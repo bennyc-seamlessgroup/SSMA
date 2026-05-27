@@ -1,0 +1,41 @@
+{
+  "api-path": "/api/v1/stock/{exchange_symbol}/{ticker}/shares_outstanding",
+  "description": "Elevate your data-driven strategies with ORTEX\u2019s Shares Outstanding API. Gain real-time visibility and full history into how many shares a company has issued, or when they last issued more shares. With reliable coverage and frequent updates, you\u2019ll have the insights needed for trend analysis, portfolio weighting, or fundamental research\u2014all delivered through a seamless and developer-friendly endpoint. Whether you\u2019re a quantitative fund, an active trader, or a financial data vendor, ORTEX\u2019s Shares Outstanding API provides the accuracy and depth to keep you ahead of the market. Available Data Points: Date: Date from which the shares are outstanding. Shares Outstanding: Number of shares outstanding. Try it out! You can test the API with the trial key TEST. Simply include it in your request headers; either here, or add the header \"Ortex-Api-Key\": \"TEST\" to your http request. Trial key restrictions: Access is restricted to a specific date range Get full access! Get a key at app.ortex.com/apis",
+  "param": [
+    {
+      "name": "exchange_symbol",
+      "value": "nasdaq",
+      "in": "path"
+    },
+    {
+      "name": "ticker",
+      "value": "CURR",
+      "in": "path"
+    },
+    {
+      "name": "from_date",
+      "value": "2024-01-01",
+      "in": "query"
+    },
+    {
+      "name": "to_date",
+      "value": "2024-04-30",
+      "in": "query"
+    }
+  ],
+  "output": {
+    "paginationLinks": {
+      "next": null,
+      "previous": null
+    },
+    "length": 1,
+    "rows": [
+      {
+        "date": "2024-01-01",
+        "sharesOutstanding": 58030000
+      }
+    ],
+    "creditsUsed": 0.15,
+    "creditsLeft": 999
+  }
+}

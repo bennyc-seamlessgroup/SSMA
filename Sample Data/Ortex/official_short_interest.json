@@ -1,0 +1,31 @@
+{
+  "api-path": "/api/v1/stock/official_short_interest",
+  "description": "Retrieve Official short interest data for US, Canada, Australia and Hong Kong for a given stock ticker. Short interest is the count of shares sold short that remain open (not yet bought back), offering a window into positioning and crowd sentiment. Elevated short interest can reflect bearish conviction and, in some cases, set the stage for short-squeeze dynamics. Use Cases: Market sentiment analysis, short-squeeze monitoring, risk management, trading strategy tuning. Available Data Points: Short Interest: Total shares reported as short. Days to Cover: Computed as short_interest \u00f7 avg_daily_volume, estimating how many trading days are needed for shorts to cover. For display and risk flags, values below 1 are rounded up to 1. Avg Daily Volume: The stock\u2019s average daily trading volume over a defined lookback, used to normalize short interest. Settlement Date: The official reporting/settlement date tied to the exchange calendar for this short interest snapshot. Coverage: This API currently provides officially filed short interest statistics for the following countries (country code): United States (US) Australia (AU) Canada (CA) Hong Kong (HK)",
+  "param": [
+    {
+      "name": "country_code",
+      "value": "US",
+      "in": "query"
+    },
+    {
+      "name": "settlement_from_date",
+      "value": "2024-01-01",
+      "in": "query"
+    },
+    {
+      "name": "settlement_to_date",
+      "value": "2024-04-30",
+      "in": "query"
+    },
+    {
+      "name": "ticker",
+      "value": "CURR",
+      "in": "query"
+    }
+  ],
+  "output": {
+    "message": "No data returned for the given query parameters",
+    "creditsUsed": 1.0,
+    "creditsLeft": 999
+  }
+}

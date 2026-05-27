@@ -1,0 +1,26 @@
+{
+  "api-path": "/api/v1/stock/{exchange_symbol}/{ticker}/european_short_interest_filings/open_positions_at",
+  "description": "API to retrieve official short interest positions for a given ticker on a given exchange. Available Data Points: Position Start Date: Date for the short interest data. (YYYY-MM-DD format). Position End Date: Date for the short interest data. (YYYY-MM-DD format). Holder: The institution or entity holding the short position. Currency: The currency of the position value. Short Interest Percentage: The percentage of shares outstanding shorted. Short Interest Percentage Free Float: The percentage of free float shares shorted. Short Interest Value: Value of the position in the currency (shortInterestShares \u00d7 closing price). For a list of mic codes, please see the Exchanges API. Coverage: This API currently provides official short interest data for the following countries: Belgium Denmark Finland France Germany Ireland Italy Japan Netherlands Norway Poland Spain Sweden United Kingdom Try it out! You can test the API with the trial key TEST. Simply include it in your request headers; either here, or add the header \"Ortex-Api-Key\": \"TEST\" to your http request. Trial key restrictions: A list of randomly selected rows will be returned Get full access! Get a key at app.ortex.com/apis",
+  "param": [
+    {
+      "name": "exchange_symbol",
+      "value": "nasdaq",
+      "in": "path"
+    },
+    {
+      "name": "ticker",
+      "value": "CURR",
+      "in": "path"
+    }
+  ],
+  "output": {
+    "paginationLinks": {
+      "next": null,
+      "previous": null
+    },
+    "length": 0,
+    "rows": [],
+    "creditsUsed": 0.1,
+    "creditsLeft": 999
+  }
+}

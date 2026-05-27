@@ -1,0 +1,39 @@
+{
+  "ticker": "CURR",
+  "asOfDate": "2026-05-26",
+  "importedAt": "2026-05-26T11:26:45.496Z",
+  "source": "Sample Data normalized",
+  "sourcePlatform": "Ortex",
+  "recordType": "incomeStatement",
+  "category": "financials",
+  "recordCount": 1,
+  "status": "ready",
+  "notes": null,
+  "originalFiles": [
+    "Sample Data/Ortex/fundamentals_income.json",
+    "Sample Data/Ortex/fundamentals_summary.json"
+  ],
+  "data": [
+    {
+      "estimatedValues": false,
+      "totalRevenues": 57501370,
+      "costOfRevenues": 39604341,
+      "grossProfit": 17897029,
+      "sg&a": null,
+      "r&d": null,
+      "d&a": null,
+      "otherOptExp": null,
+      "totalOperatingExp": 57881089,
+      "operatingIncome": -379719,
+      "interestExp": -11539349,
+      "interestIncome": null,
+      "earningsBeforeTax": -12131597,
+      "taxProvision": null,
+      "netIncome": -14849199,
+      "normalizedNetIncome": -9546147,
+      "dilutedAverageShares": 58030000,
+      "eps": -0.255888,
+      "dilutedEps": -0.164503
+    }
+  ]
+}

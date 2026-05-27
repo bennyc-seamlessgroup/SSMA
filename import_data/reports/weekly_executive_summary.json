@@ -1,0 +1,19 @@
+{
+  "ticker": "CURR",
+  "asOfDate": "2026-05-26",
+  "importedAt": "2026-05-26T11:26:45.496Z",
+  "source": "Placeholder",
+  "sourcePlatform": "Internal",
+  "recordType": "weeklyExecutiveSummary",
+  "category": "reports",
+  "recordCount": 1,
+  "status": "ready",
+  "notes": "Report generator can write approved report JSON here.",
+  "originalFiles": [],
+  "data": {
+    "title": "Weekly Executive Summary",
+    "generatedAt": null,
+    "status": "placeholder",
+    "sections": []
+  }
+}

@@ -1,0 +1,38 @@
+{
+  "ticker": "CURR",
+  "asOfDate": "2026-05-26",
+  "importedAt": "2026-05-26T11:26:45.496Z",
+  "source": "Sample Data normalized",
+  "sourcePlatform": "Ortex",
+  "recordType": "borrowFee",
+  "category": "short",
+  "recordCount": 1,
+  "status": "ready",
+  "notes": null,
+  "originalFiles": [
+    "Sample Data/Ortex/ctb_all.json",
+    "Sample Data/Ortex/ctb_new.json"
+  ],
+  "data": {
+    "all": [
+      {
+        "date": "2026-04-28",
+        "costToBorrowAll": 30.76
+      },
+      {
+        "date": "2026-04-29",
+        "costToBorrowAll": 30.78
+      }
+    ],
+    "new": [
+      {
+        "date": "2026-04-28",
+        "costToBorrowNew": 28.67
+      }
+    ],
+    "current": {
+      "date": "2026-04-29",
+      "costToBorrowAll": 30.78
+    }
+  }
+}

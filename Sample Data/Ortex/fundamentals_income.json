@@ -1,0 +1,44 @@
+{
+  "api-path": "/api/v1/stock/{exchange_symbol}/{ticker}/fundamentals/income",
+  "description": "",
+  "param": [
+    {
+      "name": "exchange_symbol",
+      "value": "nasdaq",
+      "in": "path"
+    },
+    {
+      "name": "ticker",
+      "value": "CURR",
+      "in": "path"
+    }
+  ],
+  "output": {
+    "company": "CURRENC Group Inc.",
+    "period": "2021",
+    "category": "income",
+    "data": {
+      "estimatedValues": false,
+      "totalRevenues": 57501370.0,
+      "costOfRevenues": 39604341.0,
+      "grossProfit": 17897029.0,
+      "sg&a": null,
+      "r&d": null,
+      "d&a": null,
+      "otherOptExp": null,
+      "totalOperatingExp": 57881089.0,
+      "operatingIncome": -379719.0,
+      "interestExp": -11539349.0,
+      "interestIncome": null,
+      "earningsBeforeTax": -12131597.0,
+      "taxProvision": null,
+      "netIncome": -14849199.0,
+      "normalizedNetIncome": -9546147.0,
+      "dilutedAverageShares": 58030000.0,
+      "eps": -0.255888,
+      "dilutedEps": -0.164503
+    },
+    "creditsUsed": 0.85,
+    "creditsLeft": 999
+  }
+}

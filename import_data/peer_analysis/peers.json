@@ -1,0 +1,31 @@
+{
+  "ticker": "CURR",
+  "asOfDate": "2026-05-26",
+  "importedAt": "2026-05-26T11:26:45.496Z",
+  "source": "Sample Data normalized",
+  "sourcePlatform": "Ortex",
+  "recordType": "peers",
+  "category": "peer_analysis",
+  "recordCount": 1,
+  "status": "ready",
+  "notes": null,
+  "originalFiles": [
+    "Sample Data/Ortex/peer_list.json"
+  ],
+  "data": [
+    {
+      "peerExchange": "NZSE",
+      "peerTicker": "IFT",
+      "peerRating": 45.3342,
+      "peerWeighting": 4.1217,
+      "effectScore": 0.1266,
+      "lastClose": 3.59,
+      "oneDayChangePct": -14.5238,
+      "oneWeekChangePct": -19.6868,
+      "peerOneDayChangePct": 0.1313,
+      "peerOneWeekChangePct": 1.3963,
+      "peerLastClose": 15.25,
+      "peerCurrency": "NZD"
+    }
+  ]
+}

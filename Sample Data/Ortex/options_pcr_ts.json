@@ -1,0 +1,21 @@
+{
+  "api-path": "/api/v1/stock/{exchange_symbol}/{ticker}/options/pcr/ts",
+  "description": "API to retrieve Put / Call Ratio (PCR) timeseries for a given ticker based on options data. Try it out! You can test the API with the trial key TEST. Simply include it in your request headers; either here, or add the header \"Ortex-Api-Key\": \"TEST\" to your http request. Trial key restrictions: A list of randomly selected rows will be returned Get full access! Get a key at app.ortex.com/apis",
+  "param": [
+    {
+      "name": "exchange_symbol",
+      "value": "nasdaq",
+      "in": "path"
+    },
+    {
+      "name": "ticker",
+      "value": "CURR",
+      "in": "path"
+    }
+  ],
+  "output": {
+    "message": "No data returned for the given query parameters",
+    "creditsUsed": 0.15,
+    "creditsLeft": 999
+  }
+}

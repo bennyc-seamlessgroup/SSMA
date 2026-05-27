@@ -1,0 +1,35 @@
+{
+  "api-path": "/api/v1/stock/{exchange_symbol}/{ticker}/dtc",
+  "description": "Access a key metric used to evaluate short interest pressure on a security. Days to Cover (DTC) provides an estimate of how many trading days it would take, based on average daily volume, for all short positions to be covered (i.e., bought back). Available Data Points: Date: Date for the Days to Cover data. (YYYY-MM-DD format). Days To Cover: An estimate of the number of trading days it would take to buy back all shares currently sold short, based on average daily volume. Try it out! You can test the API with the trial key TEST. Simply include it in your request headers; either here, or add the header \"Ortex-Api-Key\": \"TEST\" to your http request. Trial key restrictions: A list of randomly selected rows will be returned Get full access! Get a key at app.ortex.com/apis",
+  "param": [
+    {
+      "name": "exchange_symbol",
+      "value": "nasdaq",
+      "in": "path"
+    },
+    {
+      "name": "ticker",
+      "value": "CURR",
+      "in": "path"
+    }
+  ],
+  "output": {
+    "paginationLinks": {
+      "next": null,
+      "previous": null
+    },
+    "length": 2,
+    "rows": [
+      {
+        "date": "2026-04-28",
+        "daysToCover": 5.8446
+      },
+      {
+        "date": "2026-04-29",
+        "daysToCover": 5.7958
+      }
+    ],
+    "creditsUsed": 1.05,
+    "creditsLeft": 999
+  }
+}

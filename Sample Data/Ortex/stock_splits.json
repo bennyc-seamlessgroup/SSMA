@@ -1,0 +1,26 @@
+{
+  "api-path": "/api/v1/stock/{exchange_symbol}/{ticker}/stock_splits",
+  "description": "Unlock comprehensive insights into corporate actions with our Stock Splits API. Retrieve detailed, actionable information on stock split events\u2014including ex-dates, split ratios, and split types\u2014for a specified ticker on your chosen exchange. Empower your market analysis with precise data that highlights corporate strategies and trading opportunities Available Data Points: Split Date: The effective ex-date of the stock split, marking when the new share count takes effect. Ratio: The split ratio (e.g., 2:1 for a forward split or 1:2 for a reverse split) indicating how shares are multiplied or consolidated. Split Type: Indicates whether the split is forward (increasing share count) or reverse (reducing share count). Try it out! You can test the API with the trial key TEST. Simply include it in your request headers; either here, or add the header \"Ortex-Api-Key\": \"TEST\" to your http request. Trial key restrictions: A list of randomly selected rows will be returned Get full access! Get a key at app.ortex.com/apis",
+  "param": [
+    {
+      "name": "exchange_symbol",
+      "value": "nasdaq",
+      "in": "path"
+    },
+    {
+      "name": "ticker",
+      "value": "CURR",
+      "in": "path"
+    },
+    {
+      "name": "from_date",
+      "value": "2024-01-01",
+      "in": "query"
+    }
+  ],
+  "output": {
+    "message": "No data returned for the given query parameters",
+    "creditsUsed": 0.15,
+    "creditsLeft": 999
+  }
+}

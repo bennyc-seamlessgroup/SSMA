@@ -1,0 +1,152 @@
+{
+  "ticker": "CURR",
+  "asOfDate": "2026-05-26",
+  "importedAt": "2026-05-26T11:26:45.496Z",
+  "source": "Sample Data normalized",
+  "sourcePlatform": "Fintel/SEC EDGAR",
+  "recordType": "secFilings",
+  "category": "news_filings",
+  "recordCount": 15,
+  "status": "ready",
+  "notes": null,
+  "originalFiles": [
+    "Sample Data/Fintel.io/stock_regulatory_filings.csv"
+  ],
+  "data": [
+    {
+      "title": "LETTER",
+      "formType": "LETTER",
+      "url": "https://fintel.io/doc/null",
+      "excerpt": "May 23, 2025 Joel Bennett Chief Financial Officer Avenir Wellness Solutions, Inc. 5805 Sepulveda Blvd Suite 801 Sherman Oaks, CA 91411 Re: Avenir Wellness Solutions, Inc. Form 10-K for the Year Ended December 31, 2022 Form 10-Q for the Period Ended September 30, 2023 Dear Joel Bennett: We issued comments on the above captioned filing on April 11, 2024. On May 2, 2025, we issued a follow-up letter",
+      "publishDate": "2025-05-23",
+      "publishAt": "2025-05-23T00:00:00Z",
+      "sourcePlatform": "SEC EDGAR"
+    },
+    {
+      "title": "LETTER",
+      "formType": "LETTER",
+      "url": "https://fintel.io/doc/null",
+      "excerpt": "May 2, 2025 Joel Bennett Chief Financial Officer Avenir Wellness Solutions, Inc. 5805 Sepulveda Blvd Suite 801 Sherman Oaks, CA 91411 Re: Avenir Wellness Solutions, Inc. Form 10-K for the Year Ended December 31, 2022 Form 10-Q for the Period Ended September 30, 2023 Dear Joel Bennett: We issued comments to you on the above captioned filing on April 11, 2024. As of the date of this letter, these co",
+      "publishDate": "2025-05-02",
+      "publishAt": "2025-05-02T00:00:00Z",
+      "sourcePlatform": "SEC EDGAR"
+    },
+    {
+      "title": "UNITED STATES SECURITIES AND EXCHANGE COMMISSION Washington, D.C. 20549 FORM 12b-25 NOTIFICATION OF LATE FILING",
+      "formType": "NT 10-K",
+      "url": "https://fintel.io/doc/sec-avenir-wellness-solutions-inc-1643301-nt-10k-2025-april-01-20179-924",
+      "excerpt": "UNITED STATES SECURITIES AND EXCHANGE COMMISSION Washington, D.C. 20549 FORM 12b-25 NOTIFICATION OF LATE FILING (Check one): ☒ Form 10-K ☐ Form 20-F ☐ Form 11-K ☐ Form 10-Q ☐ Form 10-D ☐ Form N-CEN ☐ Form N-CSR For Period Ended: December 31, 2024 ☐ Transition Report on Form 10-K ☐ Transition Report on Form 20-F ☐ Transition Report on Form 11-K ☐ Transition Report on Form 10-Q For the Transition Pe",
+      "publishDate": "2025-04-01",
+      "publishAt": "2025-04-01T00:00:00Z",
+      "sourcePlatform": "SEC EDGAR"
+    },
+    {
+      "title": "Departure of Directors or Certain Officers; Election of Directors; Appointment of Certain Officers; Compensatory Arrangements of Certain Officers",
+      "formType": "8-K",
+      "url": "https://fintel.io/doc/sec-avenir-wellness-solutions-inc-1643301-8k-2025-march-04-20151-2318",
+      "excerpt": "UNITED STATES SECURITIES AND EXCHANGE COMMISSION Washington, D.C. 20549 FORM 8-K CURRENT REPORT PURSUANT TO SECTION 13 OR 15(D) OF THE SECURITIES EXCHANGE ACT OF 1934 Date of Report (Date of earliest event reported): February 26, 2025 AVENIR WELLNESS SOLUTIONS, INC. (Exact name of registrant as specified in its charter) Delaware 000-55908 90-1504639 (State or other jurisdiction (Commission (IRS Em",
+      "publishDate": "2025-03-04",
+      "publishAt": "2025-03-04T00:00:00Z",
+      "sourcePlatform": "SEC EDGAR"
+    },
+    {
+      "title": "JOINT FILING AGREEMENT PURSUANT TO RULE 13d-1(k)",
+      "formType": "EX-1",
+      "url": "https://fintel.io/doc/sec-ionic-ventures-llc-1643301-ex1-2025-january-10-20098-136",
+      "excerpt": "EXHIBIT 1 JOINT FILING AGREEMENT PURSUANT TO RULE 13d-1(k) The undersigned acknowledge and agree that the foregoing statement on Schedule 13G is filed on behalf of each of the undersigned and that all subsequent amendments to this statement on Schedule 13G shall be filed on behalf of each of the undersigned without the necessity of filing additional joint filing agreements.",
+      "publishDate": "2025-01-10",
+      "publishAt": "2025-01-10T00:00:00Z",
+      "sourcePlatform": "SEC EDGAR"
+    },
+    {
+      "title": "SETTLEMENT AGREEMENT WITH MUTUAL RELEASES",
+      "formType": "EX-10.1",
+      "url": "https://fintel.io/doc/sec-avenir-wellness-solutions-inc-1643301-ex101-2024-december-26-20083-9161",
+      "excerpt": "EX-10.1 2 avrwex101.htm SETTLEMENT AGREEMENT WITH MUTUAL RELEASES EXHIBIT 10.1 SETTLEMENT AGREEMENT WITH MUTUAL RELEASES This Settlement Agreement (“Agreement”), made effective this 15th day of December, 2024 (“Effective Date”), is by and between Avenir Wellness Solutions, Inc., f/k/a Cure Pharmaceutical Holding Corp. (“Avenir” or the “Company”), a Delaware corporation maintaining its principal pl",
+      "publishDate": "2024-12-26",
+      "publishAt": "2024-12-26T00:00:00Z",
+      "sourcePlatform": "SEC EDGAR"
+    },
+    {
+      "title": "Entry into a Material Definitive Agreement, Financial Statements and Exhibits",
+      "formType": "8-K",
+      "url": "https://fintel.io/doc/sec-avenir-wellness-solutions-inc-1643301-8k-2024-december-26-20083-6889",
+      "excerpt": "UNITED STATES SECURITIES AND EXCHANGE COMMISSION Washington, D.C. 20549 FORM 8-K CURRENT REPORT PURSUANT TO SECTION 13 OR 15(D) OF THE SECURITIES EXCHANGE ACT OF 1934 Date of Report (Date of earliest event reported): December 15, 2024 AVENIR WELLNESS SOLUTIONS, INC. (Exact name of registrant as specified in its charter) Delaware 000-55908 90-1504639 (State or other jurisdiction (Commission (IRS Em",
+      "publishDate": "2024-12-26",
+      "publishAt": "2024-12-26T00:00:00Z",
+      "sourcePlatform": "SEC EDGAR"
+    },
+    {
+      "title": "AVENIR WELLNESS SOLUTIONS, INC., F/K/A CURE PHARMACEUTICAL HOLDING CORP. SENIOR SECURED NOTE",
+      "formType": "EX-10.2",
+      "url": "https://fintel.io/doc/sec-avenir-wellness-solutions-inc-1643301-ex102-2024-december-26-20083-1512",
+      "excerpt": "EXHIBIT 10.2 PORTIONS OF THIS EXHIBIT HAVE BEEN REDACTED BECAUSE IT IS NOT MATERIAL AND OF A TYPE THAT THE REGISTRANT TREATS AS PRIVATE OR CONFIDENTIAL. SUCH REDACTED PORTIONS ARE INDICATED WITH “[***].” THE ISSUANCE AND SALE OF THIS NOTE HAS NOT BEEN REGISTERED UNDER THE SECURITIES ACT OF 1933, AS AMENDED, OR APPLICABLE STATE SECURITIES LAWS. THIS NOTE MAY NOT BE OFFERED FOR SALE, SOLD, TRANSFERR",
+      "publishDate": "2024-12-26",
+      "publishAt": "2024-12-26T00:00:00Z",
+      "sourcePlatform": "SEC EDGAR"
+    },
+    {
+      "title": "UNITED STATES SECURITIES AND EXCHANGE COMMISSION WASHINGTON, D.C. 20549 FORM 10-Q",
+      "formType": "10-Q",
+      "url": "https://fintel.io/doc/sec-avenir-wellness-solutions-inc-1643301-10q-2024-november-19-20046-824",
+      "excerpt": "UNITED STATES SECURITIES AND EXCHANGE COMMISSION WASHINGTON, D.C. 20549 FORM 10-Q ☒ QUARTERLY REPORT PURSUANT TO SECTION 13 OR 15(D) OF THE SECURITIES EXCHANGE ACT OF 1934 For the quarterly period ended September 30, 2024 ☐ TRANSITION REPORT PURSUANT TO SECTION 13 OR 15(D) OF THE SECURITIES EXCHANGE ACT OF 1934 For the transition period from to Commission file number 000-55908 AVENIR WELLNESS SOLU",
+      "publishDate": "2024-11-19",
+      "publishAt": "2024-11-19T00:00:00Z",
+      "sourcePlatform": "SEC EDGAR"
+    },
+    {
+      "title": "UNITED STATES SECURITIES AND EXCHANGE COMMISSION Washington, D.C. 20549 FORM 12b-25 NOTIFICATION OF LATE FILING",
+      "formType": "NT 10-Q",
+      "url": "https://fintel.io/doc/sec-avenir-wellness-solutions-inc-1643301-nt-10q-2024-november-15-20042-8687",
+      "excerpt": "NT 10-Q 1 avrwnt10q.htm NT 10-Q UNITED STATES SECURITIES AND EXCHANGE COMMISSION Washington, D.C. 20549 FORM 12b-25 NOTIFICATION OF LATE FILING (Check one): ☐ Form 10-K ☐ Form 20-F ☐ Form 11-K ☒ Form 10-Q ☐ Form 10-D ☐ Form N-CEN ☐ Form N-CSR For Period Ended: September 30, 2024 ☐ Transition Report on Form 10-K ☐ Transition Report on Form 20-F ☐ Transition Report on Form 11-K ☐ Transition Report o",
+      "publishDate": "2024-11-15",
+      "publishAt": "2024-11-15T00:00:00Z",
+      "sourcePlatform": "SEC EDGAR"
+    },
+    {
+      "title": "UNITED STATES SECURITIES AND EXCHANGE COMMISSION Washington, D.C. 20549 FORM 10-Q/A (Amendment No. 1)",
+      "formType": "10-Q/A",
+      "url": "https://fintel.io/doc/sec-avenir-wellness-solutions-inc-1643301-10qa-2024-october-09-20005-2211",
+      "excerpt": "UNITED STATES SECURITIES AND EXCHANGE COMMISSION Washington, D.C. 20549 FORM 10-Q/A (Amendment No. 1) ☒ QUARTERLY REPORT PURSUANT TO SECTION 13 OR 15(D) OF THE SECURITIES EXCHANGE ACT OF 1934 For the quarterly period ended March 31, 2022 ☐ TRANSITION REPORT PURSUANT TO SECTION 13 OR 15(D) OF THE SECURITIES EXCHANGE ACT OF 1934 For the transition period from to Commission file number 000-59908 AVEN",
+      "publishDate": "2024-10-09",
+      "publishAt": "2024-10-09T00:00:00Z",
+      "sourcePlatform": "SEC EDGAR"
+    },
+    {
+      "title": "UNITED STATES SECURITIES AND EXCHANGE COMMISSION Washington, D.C. 20549 FORM 10-Q/A (Amendment No. 1)",
+      "formType": "10-Q/A",
+      "url": "https://fintel.io/doc/sec-avenir-wellness-solutions-inc-1643301-10qa-2024-october-09-20005-94",
+      "excerpt": "UNITED STATES SECURITIES AND EXCHANGE COMMISSION Washington, D.C. 20549 FORM 10-Q/A (Amendment No. 1) ☒ QUARTERLY REPORT PURSUANT TO SECTION 13 OR 15(D) OF THE SECURITIES EXCHANGE ACT OF 1934 For the quarterly period ended June 30, 2021 ☐ TRANSITION REPORT PURSUANT TO SECTION 13 OR 15(D) OF THE SECURITIES EXCHANGE ACT OF 1934 For the transition period from to Commission file number 000-59908 AVENI",
+      "publishDate": "2024-10-09",
+      "publishAt": "2024-10-09T00:00:00Z",
+      "sourcePlatform": "SEC EDGAR"
+    },
+    {
+      "title": "UNITED STATES SECURITIES AND EXCHANGE COMMISSION Washington, D.C. 20549 FORM 10-Q/A (Amendment No. 1)",
+      "formType": "10-Q/A",
+      "url": "https://fintel.io/doc/sec-avenir-wellness-solutions-inc-1643301-10qa-2024-october-09-20005-827",
+      "excerpt": "UNITED STATES SECURITIES AND EXCHANGE COMMISSION Washington, D.C. 20549 FORM 10-Q/A (Amendment No. 1) ☒ QUARTERLY REPORT PURSUANT TO SECTION 13 OR 15(D) OF THE SECURITIES EXCHANGE ACT OF 1934 For the quarterly period ended September 30, 2021 ☐ TRANSITION REPORT PURSUANT TO SECTION 13 OR 15(D) OF THE SECURITIES EXCHANGE ACT OF 1934 For the transition period from to Commission file number 000-59908",
+      "publishDate": "2024-10-09",
+      "publishAt": "2024-10-09T00:00:00Z",
+      "sourcePlatform": "SEC EDGAR"
+    },
+    {
+      "title": "UNITED STATES SECURITIES AND EXCHANGE COMMISSION Washington, D.C. 20549 FORM 10-Q",
+      "formType": "10-Q",
+      "url": "https://fintel.io/doc/sec-avenir-wellness-solutions-inc-1643301-10q-2024-august-14-19949-4174",
+      "excerpt": "UNITED STATES SECURITIES AND EXCHANGE COMMISSION Washington, D.C. 20549 FORM 10-Q ☒ QUARTERLY REPORT PURSUANT TO SECTION 13 OR 15(D) OF THE SECURITIES EXCHANGE ACT OF 1934 For the quarterly period ended June 30, 2024 ☐ TRANSITION REPORT PURSUANT TO SECTION 13 OR 15(D) OF THE SECURITIES EXCHANGE ACT OF 1934 For the transition period from to Commission file number 000-55908 AVENIR WELLNESS SOLUTIONS",
+      "publishDate": "2024-08-14",
+      "publishAt": "2024-08-14T00:00:00Z",
+      "sourcePlatform": "SEC EDGAR"
+    },
+    {
+      "title": "UNITED STATES SECURITIES AND EXCHANGE COMMISSION Washington, D.C. 20549 FORM 8-K CURRENT REPORT PURSUANT TO SECTION 13 OR 15(D) OF THE SECURITIES EXCHANGE ACT OF 1934 Date of Report (Date of earliest event reported): June 28, 2024",
+      "formType": "8-K",
+      "url": "https://fintel.io/doc/sec-avenir-wellness-solutions-inc-1643301-8k-2024-july-05-19909-5634",
+      "excerpt": "UNITED STATES SECURITIES AND EXCHANGE COMMISSION Washington, D.C. 20549 FORM 8-K CURRENT REPORT PURSUANT TO SECTION 13 OR 15(D) OF THE SECURITIES EXCHANGE ACT OF 1934 Date of Report (Date of earliest event reported): June 28, 2024 AVENIR WELLNESS SOLUTIONS, INC. (Exact name of registrant as specified in its charter) Delaware 000-55908 90-1504639 (State or other jurisdiction (Commission (IRS Employ",
+      "publishDate": "2024-07-05",
+      "publishAt": "2024-07-05T00:00:00Z",
+      "sourcePlatform": "SEC EDGAR"
+    }
+  ]
+}

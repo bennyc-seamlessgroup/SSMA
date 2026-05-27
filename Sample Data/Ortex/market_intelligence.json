@@ -1,0 +1,24 @@
+{
+  "api-path": "/api/v1/stock/{ticker}/market_intelligence",
+  "description": "Return recent published Market Intelligence content for a single ticker. Pass ``?exchange=`` to disambiguate cross-region tickers.",
+  "param": [
+    {
+      "name": "ticker",
+      "value": "CURR",
+      "in": "path"
+    }
+  ],
+  "output": {
+    "ticker": "CURR",
+    "length": 1,
+    "rows": [
+      {
+        "id": 59511,
+        "contentType": "pulse",
+        "ticker": "CURR",
+        "exchange": "Nasdaq",
+        "publishedAt": "2026-05-01T13:49:45.684436Z"
+      }
+    ]
+  }
+}

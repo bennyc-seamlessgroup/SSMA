@@ -1,0 +1,2 @@
+import type { ReactNode } from 'react';
+export function MetricCard({ label, value, note, badge }: { label: string; value: string | number; note?: string; badge?: ReactNode }) { return <div className="metric"><div className="metric__label">{label}</div><div style={{ display:'flex', alignItems:'baseline', justifyContent:'space-between', gap: 8 }}><div className="metric__value">{value}</div>{badge}</div><div className="metric__note">{note}</div></div>; }

@@ -1,0 +1,27 @@
+{
+  "ticker": "CURR",
+  "asOfDate": "2026-05-26",
+  "importedAt": "2026-05-26T11:26:45.496Z",
+  "source": "Sample Data normalized",
+  "sourcePlatform": "Ortex",
+  "recordType": "priceHistory",
+  "category": "price",
+  "recordCount": 1,
+  "status": "ready",
+  "notes": null,
+  "originalFiles": [
+    "Sample Data/Ortex/closing_prices.json"
+  ],
+  "data": [
+    [
+      {
+        "date": "2026-05-18",
+        "open": 3.58,
+        "high": 3.667,
+        "low": 2.69,
+        "close": 2.69,
+        "volume": 392876
+      }
+    ]
+  ]
+}

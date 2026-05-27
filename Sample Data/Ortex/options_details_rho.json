@@ -1,0 +1,25 @@
+{
+  "api-path": "/api/v1/stock/{exchange_symbol}/{ticker}/options/details/{parameter_name}",
+  "description": "API to retrieve option metrics for a given ticker. This endpoint requires selecting a specific parameter_name, which determines the metric returned. Available Parameter Names: oi: Open Interest volume: Trading Volume last_price: Last traded price last_size: Size of the last trade ask_price: Current ask price ask_size: Ask size (number of contracts at ask) bid_price: Current bid price bid_size: Bid size (number of contracts at bid) implied_vol: Implied volatility delta: Option delta gamma: Option gamma theta: Option theta vega: Option vega rho: Option rho put_call_oi_ratio: Put/Call Ratio (Open Interest) put_call_volume_ratio: Put/Call Ratio (Volume) Parameters: parameter_name: string, required \u2014 must be one of the above values. Try it out! You can test the API with the trial key TEST. Simply include it in your request headers; either here, or add the header \"Ortex-Api-Key\": \"TEST\" to your http request. Trial key restrictions: A list of randomly selected rows will be returned Get full access! Get a key at app.ortex.com/apis",
+  "param": [
+    {
+      "name": "exchange_symbol",
+      "value": "nasdaq",
+      "in": "path"
+    },
+    {
+      "name": "ticker",
+      "value": "CURR",
+      "in": "path"
+    },
+    {
+      "name": "parameter_name",
+      "value": "rho",
+      "in": "path"
+    }
+  ],
+  "output": {
+    "creditsUsed": 0.15,
+    "creditsLeft": 999
+  }
+}

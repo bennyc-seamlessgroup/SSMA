@@ -1,0 +1,31 @@
+{
+  "ticker": "CURR",
+  "asOfDate": "2026-05-26",
+  "importedAt": "2026-05-26T11:26:45.496Z",
+  "source": "Sample Data normalized",
+  "sourcePlatform": "Ortex",
+  "recordType": "putCallRatio",
+  "category": "options",
+  "recordCount": 1,
+  "status": "ready",
+  "notes": null,
+  "originalFiles": [
+    "Sample Data/Ortex/options_details_put_call_oi_ratio.json",
+    "Sample Data/Ortex/options_details_put_call_volume_ratio.json",
+    "Sample Data/Ortex/options_pcr_ts.json"
+  ],
+  "data": {
+    "openInterestRatio": [
+      {
+        "creditsUsed": 0.15,
+        "creditsLeft": 999
+      }
+    ],
+    "volumeRatio": [
+      {
+        "creditsUsed": 0.15,
+        "creditsLeft": 999
+      }
+    ]
+  }
+}

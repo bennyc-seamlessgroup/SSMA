@@ -1,0 +1,51 @@
+{
+  "api-path": "/api/v1/stock/{exchange_symbol}/{ticker}/stock_scores",
+  "description": "This API consolidates data from multiple financial and market sources to produce a set of scores for each stock. By drawing upon both traditional metrics (e.g., valuation ratios, revenue trends) and market-focused indicators (e.g., price momentum, analyst changes), the system delivers an at-a-glance overview that can help users quickly assess a stock's standing across various dimensions. The scores are designed to be used alongside deeper qualitative and quantitative research when evaluating potential investments. HTTP Methods: GET: Returns stock scores using default weights for all metrics. POST: Allows custom weights to be specified via a JSON body. Missing weights default to 0. Custom Weights (POST only): You can customize the scoring by providing a weights object in the request body. Each weight is a numeric value (typically 0-100) that determines the influence of that metric on the overall score. Metrics not specified in the request will default to 0. Example POST body: { \"weights\": { \"quality\": 50, \"growth\": 50, \"momentum\": 65, \"dtc\": 100, \"fcf_assets\": 100 } } Output Scores: Quality: Gauges the financial stability and operational soundness of a company. This includes measures like the Altman Z-Score (for bankruptcy risk), Earnings Variability (consistency of profits), Return on Assets, and Free Cash Flow relative to Sales. A higher Quality score typically indicates stronger metrics relating to financial health and operational efficiency, but it should be considered alongside other factors. Momentum: Measures recent stock price trends and market sentiment. It typically evaluates short-term vs. long-term moving averages (e.g., 50-day vs. 200-day), proximity to 52-week highs, analyst recommendation changes, and earnings surprises. A higher Momentum score can reflect a positive short-term trajectory, though past performance is not indicative of future results. Growth: Examines the company's potential for expansion, including metrics like EBIT CAGR (compound annual growth rate), internal growth rates, and recent sales trends. A higher Growth score generally highlights more positive growth indicators, but these measures should be evaluated within the broader context of market conditions and overall risk tolerance. Value: Focuses on the relationship between a company's fundamentals and its share price. It considers metrics such as Earnings Yield, Price-to-Earnings Ratios, Price-to-Sales Ratios, and other valuation factors (e.g., Enterprise Value/EBIT). A higher Value score generally reflects more favorable valuation metrics in comparison to peers, though it does not assure future performance. Total: The Total score is not merely an average of the four sub-scores. Instead, it incorporates each category's data and compares them to relevant benchmarks, acting more like a percentile rank where 100 is the best. This provides a quick snapshot of where the stock stands relative to the universe of other stocks, based on Value, Quality, Momentum, and Growth characteristics combined. Available Weight Metrics: The following metrics can be customized via the weights parameter. They are grouped by score family: Quality Metrics (quality family weight): quality - Overall quality family weight (default: 50) dtc - Days to Cover fcf_assets - Free Cash Flow to Assets f_score - Piotroski F-Score gross_profit_to_assets - Gross Profit to Assets ratio earnings_variability - Earnings Variability (consistency) dtc_change - Days to Cover Change net_debt_to_equity - Net Debt to Equity ratio z_last - Altman Z-Score (bankruptcy risk) margin_stability - Profit Margin Stability sector_score - Sector-relative Score short_interest_pc_ff - Short Interest Percentage of Free Float quality_ml - Machine Learning Quality Score fcf_sales - Free Cash Flow to Sales roce - Return on Capital Employed util - Utilization roa - Return on Assets volatility_vs_spy - Volatility vs S&P 500 short_score - Short Interest Score Growth Metrics (growth family weight): growth - Overall growth family weight (default: 50) gross_profit_to_assets_5y_average - 5-Year Average Gross Profit to Assets eps_12m_fwd_yoy_increase - EPS 12-Month Forward YoY Increase internal_growth - Internal Growth Rate cagr_ebit_5y - 5-Year EBIT CAGR dividend_increase - Dividend Increase sales_increase_1y - 1-Year Sales Increase roe_x_earnings_retention - ROE x Earnings Retention ebit_margin_increase_5y - 5-Year EBIT Margin Increase roa_5y_average - 5-Year Average ROA ebit_margin_increase - EBIT Margin Increase roce_5y_average - 5-Year Average ROCE croic_5y_average - 5-Year Average CROIC sales_increase_5y - 5-Year Sales Increase Momentum Metrics (momentum family weight): momentum - Overall momentum family weight (default: 65) analyst_oac_diff - Analyst Opinion vs Actual Difference current_oac - Current Analyst Opinion tp_diff - Target Price Difference eps_momentum_90days - 90-Day EPS Momentum dma_75_over_300 - 75-Day MA over 300-Day MA relative_strength_91 - 91-Day Relative Strength relative_strength_182 - 182-Day Relative Strength relative_strength_365 - 365-Day Relative Strength high_52w - Distance from 52-Week High tp_change - Target Price Change pe_change - P/E Ratio Change analyst_rec_diff - Analyst Recommendation Difference eps_momentum_30days - 30-Day EPS Momentum price_eps_weighted_diverge - Price vs EPS Weighted Divergence Value Metrics: Value metrics are calculated from fundamental valuation ratios and are included in the overall scoring. Default Behavior: When using GET or when weights are not specified in POST, the API uses ORTEX's default weight configuration. When custom weights are provided via POST, any metric not specified defaults to 0, effectively excluding it from the score calculation. Disclaimer: The Stock Score is not an investment recommendation or a guarantee of future returns. It is purely a summary and comparison of selected metrics for informational purposes. Try it out! You can test the API with the trial key TEST. Simply include it in your request headers; either here, or add the header \"Ortex-Api-Key\": \"TEST\" to your http request. Trial key restrictions: A list of randomly selected rows will be returned Get full access! Get a key at app.ortex.com/apis",
+  "param": [
+    {
+      "name": "exchange_symbol",
+      "value": "nasdaq",
+      "in": "path"
+    },
+    {
+      "name": "ticker",
+      "value": "CURR",
+      "in": "path"
+    }
+  ],
+  "output": {
+    "paginationLinks": {
+      "next": null,
+      "previous": null
+    },
+    "length": 2,
+    "rows": [
+      {
+        "date": "2026-04-28",
+        "growth": 64.171569,
+        "momentum": 89.235915,
+        "quality": 33.074555,
+        "value": 23.081481,
+        "total": 63.809405
+      },
+      {
+        "date": "2026-04-29",
+        "growth": 64.171569,
+        "momentum": 90.918598,
+        "quality": 32.135963,
+        "value": 23.081481,
+        "total": 64.035971
+      }
+    ],
+    "rangeInfo": {
+      "from": "2026-04-19",
+      "to": "2026-05-19",
+      "metadata": {
+        "maxAllowedDays": 30,
+        "modifiedRange": "2026-04-19 to 2026-05-19"
+      }
+    },
+    "creditsUsed": 0.2,
+    "creditsLeft": 999
+  }
+}

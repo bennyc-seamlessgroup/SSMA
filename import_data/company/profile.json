@@ -1,0 +1,26 @@
+{
+  "ticker": "CURR",
+  "asOfDate": "2026-05-26",
+  "importedAt": "2026-05-26T11:26:45.496Z",
+  "source": "Sample Data normalized",
+  "sourcePlatform": "Ortex/Fintel",
+  "recordType": "companyProfile",
+  "category": "company",
+  "recordCount": 1,
+  "status": "ready",
+  "notes": null,
+  "originalFiles": [
+    "Sample Data/Ortex/fundamentals_summary.json",
+    "Sample Data/Fintel.io/owner_history_premium.csv"
+  ],
+  "data": {
+    "ticker": "CURR",
+    "exchange": "NasdaqGM",
+    "companyName": "CURRENC Group Inc.",
+    "sector": "Financial Technology",
+    "industry": "Digital Banking / Web3 Infrastructure",
+    "marketCap": 247211162,
+    "website": null,
+    "businessDescription": "Demo company profile normalized for the Company Intelligence Portal import data pool."
+  }
+}

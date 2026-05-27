@@ -1,0 +1,52 @@
+{
+  "api-path": "/api/v1/stock/{exchange_symbol}/{ticker}/fundamentals/summary",
+  "description": "",
+  "param": [
+    {
+      "name": "exchange_symbol",
+      "value": "nasdaq",
+      "in": "path"
+    },
+    {
+      "name": "ticker",
+      "value": "CURR",
+      "in": "path"
+    }
+  ],
+  "output": {
+    "company": "CURRENC Group Inc.",
+    "period": "2021",
+    "category": "summary",
+    "data": {
+      "estimatedValues": false,
+      "revenue": 57501370.0,
+      "revenueGrowthPctYoy": null,
+      "ev/revenue": 3.921698,
+      "grossProfit": 17897029.0,
+      "grossProfitMarginPct": 31.1245,
+      "ev/grossProfit": 12.600024,
+      "ebitda": 5232388.0,
+      "ebitdaMarginPct": 9.0995,
+      "ev/ebitda": 43.09753,
+      "netIncome": -14849199.0,
+      "normalizedNetIncome": -9546147.0,
+      "netIncomeMarginPct": -25.824,
+      "dilutedEps": -0.255888,
+      "eps": -0.255888,
+      "price/earnings": -38.532482,
+      "marketCap": 247211162.0,
+      "cashAndCashEquivalents": 71817139.0,
+      "netDebt": -44422248.0,
+      "debt": 23481302.0,
+      "enterpriseValue": 225502997.0,
+      "cashflowFromOperation": 12079651.0,
+      "cashflowFromInvesting": -406338.0,
+      "cashflowFromFinancing": -10124814.0,
+      "capitalExpenditures": -405880.0,
+      "researchAndDevelopment": null,
+      "numberOfEmployees": null
+    },
+    "creditsUsed": 0.85,
+    "creditsLeft": 999
+  }
+}

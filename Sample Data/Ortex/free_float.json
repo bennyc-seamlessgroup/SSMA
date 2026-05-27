@@ -1,0 +1,42 @@
+{
+  "api-path": "/api/v1/stock/{exchange_symbol}/{ticker}/free_float",
+  "description": "Identify the true supply of tradable shares with ORTEX\u2019s Free Float API. Perfect for uncovering liquidity constraints, gauging volatility potential, or analyzing a stock\u2019s short interest environment, the Free Float API helps you pinpoint exactly how many shares are available to the public. With consistent and timely updates, it\u2019s an invaluable resource for quant modeling, risk assessment, or portfolio optimization. Integrate ORTEX\u2019s Free Float data directly into your platform to unlock more precise market perspectives and gain a definitive edge. Available Data Points: Date: Starting date of free float numbers. Free Float Shares: Number of free float shares. Free Float Percent Of Outstanding: Percentage of free float shares from the total outstanding shares. Try it out! You can test the API with the trial key TEST. Simply include it in your request headers; either here, or add the header \"Ortex-Api-Key\": \"TEST\" to your http request. Trial key restrictions: Data within a specific date range will be returned Get full access! Get a key at app.ortex.com/apis",
+  "param": [
+    {
+      "name": "exchange_symbol",
+      "value": "nasdaq",
+      "in": "path"
+    },
+    {
+      "name": "ticker",
+      "value": "CURR",
+      "in": "path"
+    },
+    {
+      "name": "from_date",
+      "value": "2024-01-01",
+      "in": "query"
+    },
+    {
+      "name": "to_date",
+      "value": "2024-04-30",
+      "in": "query"
+    }
+  ],
+  "output": {
+    "paginationLinks": {
+      "next": null,
+      "previous": null
+    },
+    "length": 1,
+    "rows": [
+      {
+        "date": "2024-01-01",
+        "freeFloatShares": 52296916,
+        "freeFloatPcOfOutstanding": 90.12048
+      }
+    ],
+    "creditsUsed": 0.15,
+    "creditsLeft": 999
+  }
+}

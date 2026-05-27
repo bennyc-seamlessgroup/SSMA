@@ -1,0 +1,26 @@
+{
+  "api-path": "/api/v1/stock/{exchange_symbol}/{ticker}/options/chain",
+  "description": "API to retrieve the complete option chain for a given ticker and expiry date. Available Data Points: strike_price: The strike price of the option contract. option_type: Type of option (\"call\" or \"put\"). oi: Open interest for the option contract. volume: Trading volume for the option contract. last_price: Last traded price of the option. last_size: Size of the last trade. ask_price: Current ask price. ask_size: Current ask size (number of contracts available at ask). bid_price: Current bid price. bid_size: Current bid size (number of contracts available at bid). updated_date: Timestamp of the last update. Try it out! You can test the API with the trial key TEST. Simply include it in your request headers; either here, or add the header \"Ortex-Api-Key\": \"TEST\" to your http request. Trial key restrictions: A list of randomly selected rows will be returned Get full access! Get a key at app.ortex.com/apis",
+  "param": [
+    {
+      "name": "exchange_symbol",
+      "value": "nasdaq",
+      "in": "path"
+    },
+    {
+      "name": "ticker",
+      "value": "CURR",
+      "in": "path"
+    },
+    {
+      "name": "expiry",
+      "value": "2024-04-19",
+      "in": "query"
+    }
+  ],
+  "output": {
+    "message": "No data returned for the given query parameters",
+    "creditsUsed": 0.15,
+    "creditsLeft": 999
+  }
+}

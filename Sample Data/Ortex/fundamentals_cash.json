@@ -1,0 +1,49 @@
+{
+  "api-path": "/api/v1/stock/{exchange_symbol}/{ticker}/fundamentals/cash",
+  "description": "",
+  "param": [
+    {
+      "name": "exchange_symbol",
+      "value": "nasdaq",
+      "in": "path"
+    },
+    {
+      "name": "ticker",
+      "value": "CURR",
+      "in": "path"
+    }
+  ],
+  "output": {
+    "company": "CURRENC Group Inc.",
+    "period": "2021",
+    "category": "cash",
+    "data": {
+      "estimatedValues": false,
+      "normalizedNetIncome": -9546147.0,
+      "depreciationAndAmortization": null,
+      "stockBasedCompensation": null,
+      "otherOperatingActivities": -1130631.0,
+      "changeInAccountsReceivable": 1067408.0,
+      "changeInInventories": null,
+      "changeInAccountsPayable": 9023647.0,
+      "changeInUnearnedRevenues": null,
+      "changeInOtherNetOperatingAssets": 9541845.0,
+      "cashFromOperations": 12079651.0,
+      "capitalExpenditure": -405880.0,
+      "saleOfPropertyPlantAndEquipment": null,
+      "cashAcquisitions": null,
+      "divestitures": null,
+      "investmentInMarketableSecurities": -458.0,
+      "otherInvestingActivities": null,
+      "cashFromInvesting": -406338.0,
+      "cashFromFinancing": -10124814.0,
+      "paymentsForDividends": null,
+      "debtIssued": 17385882.0,
+      "debtRepaid": -27510696.0,
+      "issuanceOfCommonStock": null,
+      "otherFinancingActivities": null
+    },
+    "creditsUsed": 0.85,
+    "creditsLeft": 999
+  }
+}

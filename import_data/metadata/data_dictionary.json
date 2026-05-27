@@ -1,0 +1,142 @@
+{
+  "importedAt": "2026-05-27T09:00:00.000Z",
+  "recordCount": 34,
+  "data": [
+    {
+      "field": "ticker",
+      "definition": "Stock ticker symbol for the issuer workspace."
+    },
+    {
+      "field": "asOfDate",
+      "definition": "Business date represented by the imported data."
+    },
+    {
+      "field": "importedAt",
+      "definition": "Timestamp when the file was copied or normalized into import_data."
+    },
+    {
+      "field": "source",
+      "definition": "Human-readable source note for this normalized file."
+    },
+    {
+      "field": "sourcePlatform",
+      "definition": "Expected data provider or platform."
+    },
+    {
+      "field": "recordType",
+      "definition": "Semantic type of the JSON file."
+    },
+    {
+      "field": "recordCount",
+      "definition": "Number of top-level records in the data payload."
+    },
+    {
+      "field": "companyName",
+      "definition": "Legal or display name of the issuer."
+    },
+    {
+      "field": "marketCap",
+      "definition": "Market capitalization."
+    },
+    {
+      "field": "sharesOutstanding",
+      "definition": "Total shares outstanding."
+    },
+    {
+      "field": "freeFloat",
+      "definition": "Estimated freely tradable public float."
+    },
+    {
+      "field": "investorName",
+      "definition": "Institutional, activist, or insider name."
+    },
+    {
+      "field": "ownershipPercent",
+      "definition": "Percent of issuer owned by holder."
+    },
+    {
+      "field": "sharesChange",
+      "definition": "Absolute change in share position."
+    },
+    {
+      "field": "shortInterestPcFreeFloat",
+      "definition": "Short interest as a percent of free float."
+    },
+    {
+      "field": "costToBorrowAll",
+      "definition": "Average cost to borrow across lending data."
+    },
+    {
+      "field": "shortAvailabilityShares",
+      "definition": "Shares available to short."
+    },
+    {
+      "field": "daysToCover",
+      "definition": "Short interest divided by average daily volume."
+    },
+    {
+      "field": "putCallRatio",
+      "definition": "Options put/call ratio."
+    },
+    {
+      "field": "gammaExposure",
+      "definition": "Estimated option gamma exposure."
+    },
+    {
+      "field": "tradeCount",
+      "definition": "Number of trades or prints."
+    },
+    {
+      "field": "totalWeeklyShareQuantity",
+      "definition": "FINRA weekly volume quantity."
+    },
+    {
+      "field": "formType",
+      "definition": "SEC form type such as 13F, 13D, 13G, 8-K, or Form 4."
+    },
+    {
+      "field": "alertType",
+      "definition": "Normalized alert rule/event identifier."
+    },
+    {
+      "field": "severity",
+      "definition": "Alert priority for portal display."
+    },
+    {
+      "field": "platform",
+      "definition": "Social platform where a company mention was found."
+    },
+    {
+      "field": "author",
+      "definition": "Public handle or author name for a social mention."
+    },
+    {
+      "field": "postedAt",
+      "definition": "Timestamp when a social mention was published."
+    },
+    {
+      "field": "sentiment",
+      "definition": "Positive, negative, or neutral classification for a mention."
+    },
+    {
+      "field": "sentimentScore",
+      "definition": "0-100 score estimating tone of a mention."
+    },
+    {
+      "field": "topic",
+      "definition": "Primary theme detected in a mention."
+    },
+    {
+      "field": "comment",
+      "definition": "Text excerpt from the imported mention."
+    },
+    {
+      "field": "sourceLink",
+      "definition": "URL pointing back to the original public post."
+    },
+    {
+      "field": "engagement",
+      "definition": "Imported engagement count for the mention."
+    }
+  ]
+}

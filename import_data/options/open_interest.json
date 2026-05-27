@@ -1,0 +1,21 @@
+{
+  "ticker": "CURR",
+  "asOfDate": "2026-05-26",
+  "importedAt": "2026-05-26T11:26:45.496Z",
+  "source": "Sample Data normalized",
+  "sourcePlatform": "Ortex",
+  "recordType": "openInterest",
+  "category": "options",
+  "recordCount": 1,
+  "status": "ready",
+  "notes": null,
+  "originalFiles": [
+    "Sample Data/Ortex/options_details_oi.json"
+  ],
+  "data": [
+    {
+      "creditsUsed": 0.15,
+      "creditsLeft": 999
+    }
+  ]
+}

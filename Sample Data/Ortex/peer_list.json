@@ -1,0 +1,41 @@
+{
+  "api-path": "/api/v1/stock/{exchange_symbol}/{ticker}/peer/list",
+  "description": "Identify correlated peer companies \u2014 businesses in the same sector whose share prices have historically moved in relation to a given company. Use the Peers API to surface the most significant correlated moves, understand cross-stock relationships, and enrich your models with sector-level price dynamics. The Peer Rating reflects the strength of the historical price correlation between two companies. A higher value indicates a stronger relationship. The Effect Score combines the strength of that correlation with the peer's 1-week price movement, making it easier to identify the most impactful correlated moves over the last week \u2014 whether positively or negatively related. Available Data Points: Peer Ticker: The ticker symbol of the correlated peer company. Peer Exchange: The exchange on which the peer is traded. Peer Rating: Strength of the historical price correlation, expressed as a percentage. Peer Weighting: The peer's correlation expressed as a percentage of the total correlation across all peers, indicating its relative significance within the peer group. Effect Score: Combines correlation strength with the peer's 1-week price movement to highlight the most significant correlated moves, whether positive or negative. Last Close: The queried stock's most recent closing price. One Day Change: Percentage change in the queried stock's share price from the previous close to the last close. One Week Change: Percentage change in the queried stock's share price over the last week. Peer Last Close: The peer's most recent closing price. Peer One Day Change: Percentage change in the peer's share price from the previous close to the last close. Peer One Week Change: Percentage change in the peer's share price over the last week. Peer Currency: The currency in which the peer's price is quoted. Try it out! You can test the API with the trial key TEST. Simply include it in your request headers; either here, or add the header \"Ortex-Api-Key\": \"TEST\" to your http request. Trial key restrictions: Only the top 2 peers by effect score will be returned Get full access! Get a key at app.ortex.com/apis",
+  "param": [
+    {
+      "name": "exchange_symbol",
+      "value": "nasdaq",
+      "in": "path"
+    },
+    {
+      "name": "ticker",
+      "value": "CURR",
+      "in": "path"
+    }
+  ],
+  "output": {
+    "paginationLinks": {
+      "next": null,
+      "previous": null
+    },
+    "length": 1,
+    "rows": [
+      {
+        "peerExchange": "NZSE",
+        "peerTicker": "IFT",
+        "peerRating": 45.3342,
+        "peerWeighting": 4.1217,
+        "effectScore": 0.1266,
+        "lastClose": 3.59,
+        "oneDayChangePct": -14.5238,
+        "oneWeekChangePct": -19.6868,
+        "peerOneDayChangePct": 0.1313,
+        "peerOneWeekChangePct": 1.3963,
+        "peerLastClose": 15.25,
+        "peerCurrency": "NZD"
+      }
+    ],
+    "creditsUsed": 0.15,
+    "creditsLeft": 999
+  }
+}

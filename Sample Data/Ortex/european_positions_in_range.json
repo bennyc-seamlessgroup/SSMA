@@ -1,0 +1,34 @@
+{
+  "api-path": "/api/v1/stock/{exchange_symbol}/{ticker}/european_short_interest_filings/positions_in_range",
+  "description": "API to retrieve official short interest changes for a given ticker on a given exchange. Available Data Points: Position Start Date: Start date for the reported short interest position (YYYY-MM-DD format). Position End Date: End date for the reported short interest position (YYYY-MM-DD format). Holder: The institution or entity reporting the short position. Currency: The currency in which the position value is denominated. Short Interest Percentage: The percentage of total shares outstanding that are shorted. Short Interest Percentage Free Float: The percentage of free float shares that are shorted. Short Interest Value: The total value of the short position in the given currency (calculated as shortInterestShares \u00d7 closing price). For a list of mic codes, please see the Exchanges API. Coverage: This API currently provides official short interest data for the following countries: Belgium Denmark Finland France Germany Ireland Italy Japan Netherlands Norway Poland Spain Sweden United Kingdom Try it out! You can test the API with the trial key TEST. Simply include it in your request headers; either here, or add the header \"Ortex-Api-Key\": \"TEST\" to your http request. Trial key restrictions: A list of randomly selected rows will be returned Get full access! Get a key at app.ortex.com/apis",
+  "param": [
+    {
+      "name": "exchange_symbol",
+      "value": "nasdaq",
+      "in": "path"
+    },
+    {
+      "name": "ticker",
+      "value": "CURR",
+      "in": "path"
+    }
+  ],
+  "output": {
+    "paginationLinks": {
+      "next": null,
+      "previous": null
+    },
+    "length": 0,
+    "rows": [],
+    "rangeInfo": {
+      "from": "2025-05-19",
+      "to": "2026-05-19",
+      "metadata": {
+        "maxAllowedDays": 365,
+        "modifiedRange": "2025-05-19 to 2026-05-19"
+      }
+    },
+    "creditsUsed": 0.1,
+    "creditsLeft": 999
+  }
+}

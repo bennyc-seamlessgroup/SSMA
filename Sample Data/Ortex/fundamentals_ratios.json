@@ -1,0 +1,50 @@
+{
+  "api-path": "/api/v1/stock/{exchange_symbol}/{ticker}/fundamentals/ratios",
+  "description": "",
+  "param": [
+    {
+      "name": "exchange_symbol",
+      "value": "nasdaq",
+      "in": "path"
+    },
+    {
+      "name": "ticker",
+      "value": "CURR",
+      "in": "path"
+    }
+  ],
+  "output": {
+    "company": "CURRENC Group Inc.",
+    "period": "2021",
+    "category": "ratios",
+    "data": {
+      "estimatedValues": false,
+      "grossProfitMargin": 31.1245,
+      "sg&aMargin": 31.7848,
+      "ebitdaMargin": 9.0995,
+      "ebitMargin": -0.6603,
+      "netIncomeMargin": -25.824,
+      "normalizedNetIncomeMargin": -16.6015,
+      "returnOnAssets": null,
+      "returnOnEquity": null,
+      "returnOnCapital": -2.1856,
+      "assetTurnover": null,
+      "receivablesTurnover": null,
+      "inventoryTurnover": null,
+      "daysSalesOutstanding": null,
+      "daysPayableOutstanding": null,
+      "currentRatio": 0.779142,
+      "quickRatio": 0.596708,
+      "cashRatio": null,
+      "debt/equity": -290.1164,
+      "debt/capital": 152.5993,
+      "debt/asset": null,
+      "ebit/interestExpense": -0.032906,
+      "ebitda/interestExpense": 0.571778,
+      "debt/ebitda": 3.558876,
+      "netDebt/ebitda": -6.732731
+    },
+    "creditsUsed": 0.85,
+    "creditsLeft": 999
+  }
+}

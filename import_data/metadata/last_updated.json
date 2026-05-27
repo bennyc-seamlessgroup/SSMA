@@ -1,0 +1,57 @@
+{
+  "importedAt": "2026-05-27T09:00:00.000Z",
+  "data": [
+    {
+      "category": "company",
+      "lastUpdated": "2026-05-26T11:26:45.496Z"
+    },
+    {
+      "category": "ownership",
+      "lastUpdated": "2026-05-26T11:26:45.496Z"
+    },
+    {
+      "category": "insider",
+      "lastUpdated": "2026-05-26T11:26:45.496Z"
+    },
+    {
+      "category": "short",
+      "lastUpdated": "2026-05-26T11:26:45.496Z"
+    },
+    {
+      "category": "options",
+      "lastUpdated": "2026-05-26T11:26:45.496Z"
+    },
+    {
+      "category": "market_structure",
+      "lastUpdated": "2026-05-26T11:26:45.496Z"
+    },
+    {
+      "category": "financials",
+      "lastUpdated": "2026-05-26T11:26:45.496Z"
+    },
+    {
+      "category": "price",
+      "lastUpdated": "2026-05-26T11:26:45.496Z"
+    },
+    {
+      "category": "news_filings",
+      "lastUpdated": "2026-05-26T11:26:45.496Z"
+    },
+    {
+      "category": "peer_analysis",
+      "lastUpdated": "2026-05-26T11:26:45.496Z"
+    },
+    {
+      "category": "reports",
+      "lastUpdated": "2026-05-26T11:26:45.496Z"
+    },
+    {
+      "category": "alerts",
+      "lastUpdated": "2026-05-26T11:26:45.496Z"
+    },
+    {
+      "category": "sentiment",
+      "lastUpdated": "2026-05-27T09:00:00.000Z"
+    }
+  ]
+}

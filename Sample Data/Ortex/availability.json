@@ -1,0 +1,37 @@
+{
+  "api-path": "/api/v1/stock/{exchange_symbol}/{ticker}/availability",
+  "description": "Access detailed insights into share availability for short selling. This endpoint offers transparency into the estimated number of shares available to borrow and how that compares to current short interest levels, helping you gauge market supply dynamics. Available Data Points: Date: Date for the availability data. (YYYY-MM-DD format). Availability Shares: The estimated number of shares available to borrow for short selling, based on market utilization and reported availability. Availability Percentage of Short Interest: The availability shares expressed as a percentage of estimated short interest, indicating how much of the short demand could be covered by borrowable supply. Try it out! You can test the API with the trial key TEST. Simply include it in your request headers; either here, or add the header \"Ortex-Api-Key\": \"TEST\" to your http request. Trial key restrictions: A list of randomly selected rows will be returned Get full access! Get a key at app.ortex.com/apis",
+  "param": [
+    {
+      "name": "exchange_symbol",
+      "value": "nasdaq",
+      "in": "path"
+    },
+    {
+      "name": "ticker",
+      "value": "CURR",
+      "in": "path"
+    }
+  ],
+  "output": {
+    "paginationLinks": {
+      "next": null,
+      "previous": null
+    },
+    "length": 2,
+    "rows": [
+      {
+        "date": "2026-04-28",
+        "shortAvailabilityPct": 74.6,
+        "shortAvailabilityShares": 2547976.0
+      },
+      {
+        "date": "2026-04-29",
+        "shortAvailabilityPct": 73.57,
+        "shortAvailabilityShares": 2511276.0
+      }
+    ],
+    "creditsUsed": 1.05,
+    "creditsLeft": 999
+  }
+}

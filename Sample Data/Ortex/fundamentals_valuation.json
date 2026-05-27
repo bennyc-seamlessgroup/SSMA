@@ -1,0 +1,34 @@
+{
+  "api-path": "/api/v1/stock/{exchange_symbol}/{ticker}/fundamentals/valuation",
+  "description": "",
+  "param": [
+    {
+      "name": "exchange_symbol",
+      "value": "nasdaq",
+      "in": "path"
+    },
+    {
+      "name": "ticker",
+      "value": "CURR",
+      "in": "path"
+    }
+  ],
+  "output": {
+    "company": "CURRENC Group Inc.",
+    "period": "2021",
+    "category": "valuation",
+    "data": {
+      "estimatedValues": false,
+      "ev/salesLTM": -0.377524,
+      "ev/revenue": -0.377524,
+      "ev/ebitda": -4.148806,
+      "ev/ebitLTM": 57.169025,
+      "price/salesLTM": 4.299222,
+      "price/earningsLTM": -38.532482,
+      "price/bookValue": -18.572445,
+      "price/tangibleBookValue": -3.120136
+    },
+    "creditsUsed": 0.85,
+    "creditsLeft": 999
+  }
+}

@@ -1,0 +1,13 @@
+name,slug,url,formType,effectiveDate,fileDate,ownershipPercent,ownershipPercentChange,shares,sharesChange,sharesPercentChange,value,valueChange,valuePercentChange
+Morgan Stanley,morgan-stanley,https://fintel.io/i/morgan-stanley,13F-HR,2026-03-31,2026-05-15,0.9518356030464586,0.0,729215,0,0.0,1910543,605000,46.36
+"Two Sigma Investments, Lp",two-sigma-investments-llc,https://fintel.io/i/two-sigma-investments-llc,13F-HR,2026-03-31,2026-05-15,0.07771162752134002,0.0,59536,0,0.0,155984,49000,46.23
+Citadel Advisors Llc,citadel-advisors-llc,https://fintel.io/i/citadel-advisors-llc,13F-HR,2026-03-31,2026-05-15,0.0761570294902678,,58345,58345,,152864,152000,
+"Kestra Advisory Services, LLC",kestra-advisory-services-llc,https://fintel.io/i/kestra-advisory-services-llc,13F-HR,2026-03-31,2026-04-30,0.07558922920184093,,57910,57910,,151724,151000,
+"Geode Capital Management, Llc",geode-capital-management-llc,https://fintel.io/i/geode-capital-management-llc,13F-HR,2026-03-31,2026-05-15,0.05163849933438143,0.0,39561,0,0.0,103649,33000,47.14
+XTX Topco Ltd,xtx-topco-ltd,https://fintel.io/i/xtx-topco-ltd,13F-HR,2026-03-31,2026-05-15,0.04940384624521632,-10.105928177845335,37849,-4255,-10.105928177845335,99164,24000,32.0
+Quadrature Capital Ltd,quadrature-capital,https://fintel.io/i/quadrature-capital,13F-HR,2026-03-31,2026-05-15,0.01370160833934941,,10497,10497,,27502,27000,
+UBS Group AG,ubs,https://fintel.io/i/ubs,13F-HR,2026-03-31,2026-05-05,0.002842917306192532,-79.40425531914893,2178,-8397,-79.40425531914893,5706,-13000,-72.22
+"Cwm, Llc",cwm-llc,https://fintel.io/i/cwm-llc,13F-HR,2026-03-31,2026-05-14,0.001072946751923903,0.0,822,0,0.0,2154,2000,
+Jpmorgan Chase & Co,jpmorgan-chase-,https://fintel.io/i/jpmorgan-chase-,13F-HR/A,2026-03-31,2026-05-13,0.0001540239862859131,,118,118,,282,0,
+"SBI Securities Co., Ltd.",sbi-securities-co-ltd-2148,https://fintel.io/i/sbi-securities-co-ltd-2148,13F-HR,2026-03-31,2026-04-28,9.789660145291087e-05,0.0,75,0,0.0,197,0,
+Citigroup Inc,citigroup,https://fintel.io/i/citigroup,13F-HR,2026-03-31,2026-05-11,1.305288019372145e-06,,1,1,,3,0,

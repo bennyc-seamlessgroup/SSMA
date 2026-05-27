@@ -1,0 +1,5516 @@
+{
+  "ticker": "CURR",
+  "asOfDate": "2026-05-26",
+  "importedAt": "2026-05-26T11:26:45.496Z",
+  "source": "Sample Data normalized",
+  "sourcePlatform": "FINRA",
+  "recordType": "regSho",
+  "category": "market_structure",
+  "recordCount": 611,
+  "status": "ready",
+  "notes": null,
+  "originalFiles": [
+    "Sample Data/FINRA/Reg SHO Daily Short Sale Volume.csv"
+  ],
+  "data": [
+    {
+      "reportingFacilityCode": "NQTRF",
+      "totalParQuantity": 60340.893076,
+      "shortParQuantity": 14833,
+      "marketCode": "Q",
+      "tradeReportDate": "2026-03-02",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NYTRF",
+      "totalParQuantity": 1360,
+      "shortParQuantity": 1335,
+      "marketCode": "N",
+      "tradeReportDate": "2026-03-02",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NQTRF",
+      "totalParQuantity": 135557.970134,
+      "shortParQuantity": 39249.668171,
+      "marketCode": "Q",
+      "tradeReportDate": "2026-05-11",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NYTRF",
+      "totalParQuantity": 4078,
+      "shortParQuantity": 410,
+      "marketCode": "N",
+      "tradeReportDate": "2026-05-11",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NCTRF",
+      "totalParQuantity": 1785,
+      "shortParQuantity": 1700,
+      "marketCode": "B",
+      "tradeReportDate": "2026-03-03",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NQTRF",
+      "totalParQuantity": 35111.420512,
+      "shortParQuantity": 18681.714754,
+      "marketCode": "Q",
+      "tradeReportDate": "2026-03-03",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NYTRF",
+      "totalParQuantity": 7976,
+      "shortParQuantity": 159,
+      "marketCode": "N",
+      "tradeReportDate": "2026-03-03",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NQTRF",
+      "totalParQuantity": 75142.205507,
+      "shortParQuantity": 21198.309468,
+      "marketCode": "Q",
+      "tradeReportDate": "2026-03-09",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NYTRF",
+      "totalParQuantity": 1968,
+      "shortParQuantity": 1415,
+      "marketCode": "N",
+      "tradeReportDate": "2026-03-09",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NCTRF",
+      "totalParQuantity": 694,
+      "shortParQuantity": 683,
+      "marketCode": "B",
+      "tradeReportDate": "2026-05-04",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NQTRF",
+      "totalParQuantity": 38248.491514,
+      "shortParQuantity": 4751,
+      "marketCode": "Q",
+      "tradeReportDate": "2026-05-04",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NCTRF",
+      "totalParQuantity": 2138.99,
+      "shortParQuantity": 25,
+      "marketCode": "B",
+      "tradeReportDate": "2026-05-06",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NQTRF",
+      "totalParQuantity": 226031.095552,
+      "shortParQuantity": 97909.333661,
+      "marketCode": "Q",
+      "tradeReportDate": "2026-05-06",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 300
+    },
+    {
+      "reportingFacilityCode": "NYTRF",
+      "totalParQuantity": 4298,
+      "shortParQuantity": 887,
+      "marketCode": "N",
+      "tradeReportDate": "2026-05-06",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NCTRF",
+      "totalParQuantity": 1142.07,
+      "shortParQuantity": 241,
+      "marketCode": "B",
+      "tradeReportDate": "2026-02-27",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NQTRF",
+      "totalParQuantity": 74134.946785,
+      "shortParQuantity": 20241.941218,
+      "marketCode": "Q",
+      "tradeReportDate": "2026-02-27",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NYTRF",
+      "totalParQuantity": 4845,
+      "shortParQuantity": 691,
+      "marketCode": "N",
+      "tradeReportDate": "2026-02-27",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NQTRF",
+      "totalParQuantity": 15094.162747,
+      "shortParQuantity": 5121,
+      "marketCode": "Q",
+      "tradeReportDate": "2026-04-17",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NYTRF",
+      "totalParQuantity": 1178,
+      "shortParQuantity": 507,
+      "marketCode": "N",
+      "tradeReportDate": "2026-04-17",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NQTRF",
+      "totalParQuantity": 58356.497575,
+      "shortParQuantity": 17305.444444,
+      "marketCode": "Q",
+      "tradeReportDate": "2026-03-06",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NYTRF",
+      "totalParQuantity": 1578,
+      "shortParQuantity": 150,
+      "marketCode": "N",
+      "tradeReportDate": "2026-03-06",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NQTRF",
+      "totalParQuantity": 61396.685238,
+      "shortParQuantity": 15768.6401,
+      "marketCode": "Q",
+      "tradeReportDate": "2026-05-12",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NYTRF",
+      "totalParQuantity": 1268,
+      "shortParQuantity": 3,
+      "marketCode": "N",
+      "tradeReportDate": "2026-05-12",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NCTRF",
+      "totalParQuantity": 1112,
+      "shortParQuantity": 111,
+      "marketCode": "B",
+      "tradeReportDate": "2026-05-15",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NQTRF",
+      "totalParQuantity": 107425.910074,
+      "shortParQuantity": 37579.580879,
+      "marketCode": "Q",
+      "tradeReportDate": "2026-05-15",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 102
+    },
+    {
+      "reportingFacilityCode": "NYTRF",
+      "totalParQuantity": 7558,
+      "shortParQuantity": 4425,
+      "marketCode": "N",
+      "tradeReportDate": "2026-05-15",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NQTRF",
+      "totalParQuantity": 113680.038913,
+      "shortParQuantity": 34109.144509,
+      "marketCode": "Q",
+      "tradeReportDate": "2026-05-18",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 7250
+    },
+    {
+      "reportingFacilityCode": "NYTRF",
+      "totalParQuantity": 7892,
+      "shortParQuantity": 5535,
+      "marketCode": "N",
+      "tradeReportDate": "2026-05-18",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NCTRF",
+      "totalParQuantity": 5421,
+      "shortParQuantity": 3400,
+      "marketCode": "B",
+      "tradeReportDate": "2026-03-31",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NQTRF",
+      "totalParQuantity": 175203.091292,
+      "shortParQuantity": 65076.395256,
+      "marketCode": "Q",
+      "tradeReportDate": "2026-03-31",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NYTRF",
+      "totalParQuantity": 11398,
+      "shortParQuantity": 6383,
+      "marketCode": "N",
+      "tradeReportDate": "2026-03-31",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NCTRF",
+      "totalParQuantity": 300,
+      "shortParQuantity": 300,
+      "marketCode": "B",
+      "tradeReportDate": "2026-02-23",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NQTRF",
+      "totalParQuantity": 34261.857476,
+      "shortParQuantity": 12179.923076,
+      "marketCode": "Q",
+      "tradeReportDate": "2026-02-23",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NYTRF",
+      "totalParQuantity": 2560,
+      "shortParQuantity": 2389,
+      "marketCode": "N",
+      "tradeReportDate": "2026-02-23",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NQTRF",
+      "totalParQuantity": 51084.063932,
+      "shortParQuantity": 23735.798403,
+      "marketCode": "Q",
+      "tradeReportDate": "2026-03-16",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NYTRF",
+      "totalParQuantity": 5405,
+      "shortParQuantity": 1026,
+      "marketCode": "N",
+      "tradeReportDate": "2026-03-16",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NCTRF",
+      "totalParQuantity": 9320.4444,
+      "shortParQuantity": 8480,
+      "marketCode": "B",
+      "tradeReportDate": "2026-05-07",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NQTRF",
+      "totalParQuantity": 125056.307912,
+      "shortParQuantity": 28084.537634,
+      "marketCode": "Q",
+      "tradeReportDate": "2026-05-07",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 828
+    },
+    {
+      "reportingFacilityCode": "NYTRF",
+      "totalParQuantity": 2380,
+      "shortParQuantity": 231,
+      "marketCode": "N",
+      "tradeReportDate": "2026-05-07",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NCTRF",
+      "totalParQuantity": 118,
+      "shortParQuantity": 116,
+      "marketCode": "B",
+      "tradeReportDate": "2026-04-20",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NQTRF",
+      "totalParQuantity": 34300.792623,
+      "shortParQuantity": 5237,
+      "marketCode": "Q",
+      "tradeReportDate": "2026-04-20",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NYTRF",
+      "totalParQuantity": 1063,
+      "shortParQuantity": 905,
+      "marketCode": "N",
+      "tradeReportDate": "2026-04-20",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NQTRF",
+      "totalParQuantity": 45368.637926,
+      "shortParQuantity": 19966.99435,
+      "marketCode": "Q",
+      "tradeReportDate": "2026-04-01",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NYTRF",
+      "totalParQuantity": 8095,
+      "shortParQuantity": 626,
+      "marketCode": "N",
+      "tradeReportDate": "2026-04-01",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NQTRF",
+      "totalParQuantity": 30426.087633,
+      "shortParQuantity": 14291.406015,
+      "marketCode": "Q",
+      "tradeReportDate": "2026-04-27",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NYTRF",
+      "totalParQuantity": 1017,
+      "shortParQuantity": 545,
+      "marketCode": "N",
+      "tradeReportDate": "2026-04-27",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NCTRF",
+      "totalParQuantity": 1814,
+      "shortParQuantity": 795,
+      "marketCode": "B",
+      "tradeReportDate": "2026-05-08",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NQTRF",
+      "totalParQuantity": 164660.436302,
+      "shortParQuantity": 40646.150939,
+      "marketCode": "Q",
+      "tradeReportDate": "2026-05-08",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 723
+    },
+    {
+      "reportingFacilityCode": "NYTRF",
+      "totalParQuantity": 2496,
+      "shortParQuantity": 506,
+      "marketCode": "N",
+      "tradeReportDate": "2026-05-08",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NCTRF",
+      "totalParQuantity": 2478.6732,
+      "shortParQuantity": 2377,
+      "marketCode": "B",
+      "tradeReportDate": "2026-05-01",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NQTRF",
+      "totalParQuantity": 39570.675803,
+      "shortParQuantity": 6496.29542,
+      "marketCode": "Q",
+      "tradeReportDate": "2026-05-01",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NQTRF",
+      "totalParQuantity": 31104.16388,
+      "shortParQuantity": 10101.629337,
+      "marketCode": "Q",
+      "tradeReportDate": "2026-03-05",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NCTRF",
+      "totalParQuantity": 50,
+      "shortParQuantity": 35,
+      "marketCode": "B",
+      "tradeReportDate": "2026-03-23",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NQTRF",
+      "totalParQuantity": 46820.466576,
+      "shortParQuantity": 10305,
+      "marketCode": "Q",
+      "tradeReportDate": "2026-03-23",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NYTRF",
+      "totalParQuantity": 5311,
+      "shortParQuantity": 30,
+      "marketCode": "N",
+      "tradeReportDate": "2026-03-23",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NQTRF",
+      "totalParQuantity": 84454.117025,
+      "shortParQuantity": 11556.670984,
+      "marketCode": "Q",
+      "tradeReportDate": "2026-04-14",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 99
+    },
+    {
+      "reportingFacilityCode": "NYTRF",
+      "totalParQuantity": 6342,
+      "shortParQuantity": 12,
+      "marketCode": "N",
+      "tradeReportDate": "2026-04-14",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NQTRF",
+      "totalParQuantity": 35181.281683,
+      "shortParQuantity": 14311.790175,
+      "marketCode": "Q",
+      "tradeReportDate": "2026-03-04",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 840
+    },
+    {
+      "reportingFacilityCode": "NYTRF",
+      "totalParQuantity": 4002,
+      "shortParQuantity": 10,
+      "marketCode": "N",
+      "tradeReportDate": "2026-03-04",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NQTRF",
+      "totalParQuantity": 45042.983283,
+      "shortParQuantity": 10225.287574,
+      "marketCode": "Q",
+      "tradeReportDate": "2026-05-19",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 209
+    },
+    {
+      "reportingFacilityCode": "NYTRF",
+      "totalParQuantity": 4289,
+      "shortParQuantity": 3008,
+      "marketCode": "N",
+      "tradeReportDate": "2026-05-19",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NCTRF",
+      "totalParQuantity": 700,
+      "shortParQuantity": 500,
+      "marketCode": "B",
+      "tradeReportDate": "2026-03-30",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NQTRF",
+      "totalParQuantity": 14519.656749,
+      "shortParQuantity": 8131,
+      "marketCode": "Q",
+      "tradeReportDate": "2026-03-30",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NYTRF",
+      "totalParQuantity": 2730,
+      "shortParQuantity": 722,
+      "marketCode": "N",
+      "tradeReportDate": "2026-03-30",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NCTRF",
+      "totalParQuantity": 1191,
+      "shortParQuantity": 591,
+      "marketCode": "B",
+      "tradeReportDate": "2026-03-20",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NQTRF",
+      "totalParQuantity": 65005.939335,
+      "shortParQuantity": 25492.747081,
+      "marketCode": "Q",
+      "tradeReportDate": "2026-03-20",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NYTRF",
+      "totalParQuantity": 8374,
+      "shortParQuantity": 200,
+      "marketCode": "N",
+      "tradeReportDate": "2026-03-20",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NCTRF",
+      "totalParQuantity": 516,
+      "shortParQuantity": 516,
+      "marketCode": "B",
+      "tradeReportDate": "2026-05-13",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NQTRF",
+      "totalParQuantity": 52552.833139,
+      "shortParQuantity": 8389,
+      "marketCode": "Q",
+      "tradeReportDate": "2026-05-13",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NYTRF",
+      "totalParQuantity": 1991,
+      "shortParQuantity": 163,
+      "marketCode": "N",
+      "tradeReportDate": "2026-05-13",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NCTRF",
+      "totalParQuantity": 800,
+      "shortParQuantity": 200,
+      "marketCode": "B",
+      "tradeReportDate": "2026-04-13",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NQTRF",
+      "totalParQuantity": 59483.406739,
+      "shortParQuantity": 14838.708933,
+      "marketCode": "Q",
+      "tradeReportDate": "2026-04-13",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NYTRF",
+      "totalParQuantity": 1737,
+      "shortParQuantity": 490,
+      "marketCode": "N",
+      "tradeReportDate": "2026-04-13",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NCTRF",
+      "totalParQuantity": 3130.1768,
+      "shortParQuantity": 300,
+      "marketCode": "B",
+      "tradeReportDate": "2026-05-05",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NQTRF",
+      "totalParQuantity": 116145.315329,
+      "shortParQuantity": 46512.902318,
+      "marketCode": "Q",
+      "tradeReportDate": "2026-05-05",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NYTRF",
+      "totalParQuantity": 7124,
+      "shortParQuantity": 257,
+      "marketCode": "N",
+      "tradeReportDate": "2026-05-05",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NQTRF",
+      "totalParQuantity": 57848.97887,
+      "shortParQuantity": 22183.18022,
+      "marketCode": "Q",
+      "tradeReportDate": "2026-05-14",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NYTRF",
+      "totalParQuantity": 6591,
+      "shortParQuantity": 1051,
+      "marketCode": "N",
+      "tradeReportDate": "2026-05-14",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NQTRF",
+      "totalParQuantity": 42990.997521,
+      "shortParQuantity": 22891,
+      "marketCode": "Q",
+      "tradeReportDate": "2026-03-10",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 700
+    },
+    {
+      "reportingFacilityCode": "NYTRF",
+      "totalParQuantity": 5226,
+      "shortParQuantity": 1703,
+      "marketCode": "N",
+      "tradeReportDate": "2026-03-10",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NCTRF",
+      "totalParQuantity": 100,
+      "shortParQuantity": 100,
+      "marketCode": "B",
+      "tradeReportDate": "2026-03-27",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NQTRF",
+      "totalParQuantity": 59548.198862,
+      "shortParQuantity": 25784,
+      "marketCode": "Q",
+      "tradeReportDate": "2026-03-27",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NYTRF",
+      "totalParQuantity": 1161,
+      "shortParQuantity": 131,
+      "marketCode": "N",
+      "tradeReportDate": "2026-03-27",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NQTRF",
+      "totalParQuantity": 71858.973775,
+      "shortParQuantity": 14293.413598,
+      "marketCode": "Q",
+      "tradeReportDate": "2026-04-08",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NYTRF",
+      "totalParQuantity": 1518,
+      "shortParQuantity": 74,
+      "marketCode": "N",
+      "tradeReportDate": "2026-04-08",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NCTRF",
+      "totalParQuantity": 356,
+      "shortParQuantity": 300,
+      "marketCode": "B",
+      "tradeReportDate": "2026-03-12",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NQTRF",
+      "totalParQuantity": 67853.212978,
+      "shortParQuantity": 17872,
+      "marketCode": "Q",
+      "tradeReportDate": "2026-03-12",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NQTRF",
+      "totalParQuantity": 40319.261031,
+      "shortParQuantity": 22532.806449,
+      "marketCode": "Q",
+      "tradeReportDate": "2026-05-20",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NYTRF",
+      "totalParQuantity": 4300,
+      "shortParQuantity": 1717,
+      "marketCode": "N",
+      "tradeReportDate": "2026-05-20",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NQTRF",
+      "totalParQuantity": 26698.852855,
+      "shortParQuantity": 5371.984214,
+      "marketCode": "Q",
+      "tradeReportDate": "2026-04-15",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 601
+    },
+    {
+      "reportingFacilityCode": "NYTRF",
+      "totalParQuantity": 3364,
+      "shortParQuantity": 1882,
+      "marketCode": "N",
+      "tradeReportDate": "2026-04-15",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NQTRF",
+      "totalParQuantity": 68418.344877,
+      "shortParQuantity": 31087.87914,
+      "marketCode": "Q",
+      "tradeReportDate": "2026-04-21",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NYTRF",
+      "totalParQuantity": 2975,
+      "shortParQuantity": 1431,
+      "marketCode": "N",
+      "tradeReportDate": "2026-04-21",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NCTRF",
+      "totalParQuantity": 223,
+      "shortParQuantity": 223,
+      "marketCode": "B",
+      "tradeReportDate": "2026-02-26",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NQTRF",
+      "totalParQuantity": 21411.089992,
+      "shortParQuantity": 13104.913157,
+      "marketCode": "Q",
+      "tradeReportDate": "2026-02-26",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NYTRF",
+      "totalParQuantity": 2626,
+      "shortParQuantity": 1429,
+      "marketCode": "N",
+      "tradeReportDate": "2026-02-26",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NQTRF",
+      "totalParQuantity": 24612.957727,
+      "shortParQuantity": 19456.369978,
+      "marketCode": "Q",
+      "tradeReportDate": "2026-03-13",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NYTRF",
+      "totalParQuantity": 144,
+      "shortParQuantity": 100,
+      "marketCode": "N",
+      "tradeReportDate": "2026-03-13",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NCTRF",
+      "totalParQuantity": 632,
+      "shortParQuantity": 605,
+      "marketCode": "B",
+      "tradeReportDate": "2026-04-06",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NQTRF",
+      "totalParQuantity": 81387.476534,
+      "shortParQuantity": 22051.074809,
+      "marketCode": "Q",
+      "tradeReportDate": "2026-04-06",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NYTRF",
+      "totalParQuantity": 5795,
+      "shortParQuantity": 206,
+      "marketCode": "N",
+      "tradeReportDate": "2026-04-06",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NCTRF",
+      "totalParQuantity": 4308,
+      "shortParQuantity": 2007,
+      "marketCode": "B",
+      "tradeReportDate": "2026-04-16",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NQTRF",
+      "totalParQuantity": 101439.417738,
+      "shortParQuantity": 38739.205847,
+      "marketCode": "Q",
+      "tradeReportDate": "2026-04-16",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NYTRF",
+      "totalParQuantity": 2494,
+      "shortParQuantity": 1631,
+      "marketCode": "N",
+      "tradeReportDate": "2026-04-16",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NCTRF",
+      "totalParQuantity": 1400,
+      "shortParQuantity": 800,
+      "marketCode": "B",
+      "tradeReportDate": "2026-02-24",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NQTRF",
+      "totalParQuantity": 51662.9344,
+      "shortParQuantity": 26900,
+      "marketCode": "Q",
+      "tradeReportDate": "2026-02-24",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 800
+    },
+    {
+      "reportingFacilityCode": "NYTRF",
+      "totalParQuantity": 1519,
+      "shortParQuantity": 1405,
+      "marketCode": "N",
+      "tradeReportDate": "2026-02-24",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NQTRF",
+      "totalParQuantity": 58388.952588,
+      "shortParQuantity": 4083,
+      "marketCode": "Q",
+      "tradeReportDate": "2026-04-30",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NQTRF",
+      "totalParQuantity": 31581.205532,
+      "shortParQuantity": 12867.578332,
+      "marketCode": "Q",
+      "tradeReportDate": "2026-04-23",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NCTRF",
+      "totalParQuantity": 719,
+      "shortParQuantity": 7,
+      "marketCode": "B",
+      "tradeReportDate": "2026-04-02",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NQTRF",
+      "totalParQuantity": 67421.434494,
+      "shortParQuantity": 28389.593801,
+      "marketCode": "Q",
+      "tradeReportDate": "2026-04-02",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NYTRF",
+      "totalParQuantity": 2275,
+      "shortParQuantity": 825,
+      "marketCode": "N",
+      "tradeReportDate": "2026-04-02",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NCTRF",
+      "totalParQuantity": 780.5882,
+      "shortParQuantity": 580,
+      "marketCode": "B",
+      "tradeReportDate": "2026-04-28",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NQTRF",
+      "totalParQuantity": 16856.581338,
+      "shortParQuantity": 4623,
+      "marketCode": "Q",
+      "tradeReportDate": "2026-04-28",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NYTRF",
+      "totalParQuantity": 2200,
+      "shortParQuantity": 135,
+      "marketCode": "N",
+      "tradeReportDate": "2026-04-28",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NQTRF",
+      "totalParQuantity": 8632.784224,
+      "shortParQuantity": 296.028397,
+      "marketCode": "Q",
+      "tradeReportDate": "2026-03-19",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NQTRF",
+      "totalParQuantity": 38819.281393,
+      "shortParQuantity": 19856.03345,
+      "marketCode": "Q",
+      "tradeReportDate": "2026-02-25",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NYTRF",
+      "totalParQuantity": 2369,
+      "shortParQuantity": 869,
+      "marketCode": "N",
+      "tradeReportDate": "2026-02-25",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NCTRF",
+      "totalParQuantity": 110.5882,
+      "shortParQuantity": 110,
+      "marketCode": "B",
+      "tradeReportDate": "2026-04-29",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NQTRF",
+      "totalParQuantity": 20141.037395,
+      "shortParQuantity": 6976.507518,
+      "marketCode": "Q",
+      "tradeReportDate": "2026-04-29",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 300
+    },
+    {
+      "reportingFacilityCode": "NYTRF",
+      "totalParQuantity": 5920,
+      "shortParQuantity": 2202,
+      "marketCode": "N",
+      "tradeReportDate": "2026-04-29",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NQTRF",
+      "totalParQuantity": 21151.710278,
+      "shortParQuantity": 7737.31496,
+      "marketCode": "Q",
+      "tradeReportDate": "2026-04-22",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NYTRF",
+      "totalParQuantity": 431,
+      "shortParQuantity": 305,
+      "marketCode": "N",
+      "tradeReportDate": "2026-04-22",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NQTRF",
+      "totalParQuantity": 67084.018098,
+      "shortParQuantity": 12668.853537,
+      "marketCode": "Q",
+      "tradeReportDate": "2026-04-09",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NQTRF",
+      "totalParQuantity": 17454.716651,
+      "shortParQuantity": 9427.8931,
+      "marketCode": "Q",
+      "tradeReportDate": "2026-03-17",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NYTRF",
+      "totalParQuantity": 342,
+      "shortParQuantity": 309,
+      "marketCode": "N",
+      "tradeReportDate": "2026-03-17",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NQTRF",
+      "totalParQuantity": 28472.190136,
+      "shortParQuantity": 10742,
+      "marketCode": "Q",
+      "tradeReportDate": "2026-03-26",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NQTRF",
+      "totalParQuantity": 12415.28094,
+      "shortParQuantity": 2195,
+      "marketCode": "Q",
+      "tradeReportDate": "2026-03-11",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NYTRF",
+      "totalParQuantity": 3109,
+      "shortParQuantity": 100,
+      "marketCode": "N",
+      "tradeReportDate": "2026-03-11",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NQTRF",
+      "totalParQuantity": 204757.003258,
+      "shortParQuantity": 41594.755349,
+      "marketCode": "Q",
+      "tradeReportDate": "2026-04-10",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 4100
+    },
+    {
+      "reportingFacilityCode": "NYTRF",
+      "totalParQuantity": 6010,
+      "shortParQuantity": 2,
+      "marketCode": "N",
+      "tradeReportDate": "2026-04-10",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NQTRF",
+      "totalParQuantity": 26074.239517,
+      "shortParQuantity": 6134,
+      "marketCode": "Q",
+      "tradeReportDate": "2026-03-18",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NYTRF",
+      "totalParQuantity": 1051,
+      "shortParQuantity": 764,
+      "marketCode": "N",
+      "tradeReportDate": "2026-03-18",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NQTRF",
+      "totalParQuantity": 41289.757958,
+      "shortParQuantity": 16416.714285,
+      "marketCode": "Q",
+      "tradeReportDate": "2026-04-07",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NYTRF",
+      "totalParQuantity": 925,
+      "shortParQuantity": 104,
+      "marketCode": "N",
+      "tradeReportDate": "2026-04-07",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NQTRF",
+      "totalParQuantity": 37448.218255,
+      "shortParQuantity": 20908,
+      "marketCode": "Q",
+      "tradeReportDate": "2026-04-24",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NYTRF",
+      "totalParQuantity": 597,
+      "shortParQuantity": 297,
+      "marketCode": "N",
+      "tradeReportDate": "2026-04-24",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NQTRF",
+      "totalParQuantity": 28794.919963,
+      "shortParQuantity": 8612,
+      "marketCode": "Q",
+      "tradeReportDate": "2026-03-24",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 280
+    },
+    {
+      "reportingFacilityCode": "NCTRF",
+      "totalParQuantity": 4392,
+      "shortParQuantity": 137,
+      "marketCode": "B",
+      "tradeReportDate": "2026-03-25",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NQTRF",
+      "totalParQuantity": 37185.62108,
+      "shortParQuantity": 7755.315789,
+      "marketCode": "Q",
+      "tradeReportDate": "2026-03-25",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NYTRF",
+      "totalParQuantity": 2802,
+      "shortParQuantity": 96,
+      "marketCode": "N",
+      "tradeReportDate": "2026-03-25",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NQTRF",
+      "totalParQuantity": 28516,
+      "shortParQuantity": 16381,
+      "marketCode": "Q",
+      "tradeReportDate": "2026-01-20",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NYTRF",
+      "totalParQuantity": 373,
+      "shortParQuantity": 372,
+      "marketCode": "N",
+      "tradeReportDate": "2026-01-20",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NQTRF",
+      "totalParQuantity": 23976,
+      "shortParQuantity": 13230,
+      "marketCode": "Q",
+      "tradeReportDate": "2026-02-02",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NYTRF",
+      "totalParQuantity": 528,
+      "shortParQuantity": 126,
+      "marketCode": "N",
+      "tradeReportDate": "2026-02-02",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NCTRF",
+      "totalParQuantity": 1654,
+      "shortParQuantity": 354,
+      "marketCode": "B",
+      "tradeReportDate": "2026-01-05",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 64
+    },
+    {
+      "reportingFacilityCode": "NQTRF",
+      "totalParQuantity": 41005,
+      "shortParQuantity": 26035,
+      "marketCode": "Q",
+      "tradeReportDate": "2026-01-05",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NYTRF",
+      "totalParQuantity": 1629,
+      "shortParQuantity": 1016,
+      "marketCode": "N",
+      "tradeReportDate": "2026-01-05",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NQTRF",
+      "totalParQuantity": 144689,
+      "shortParQuantity": 112088,
+      "marketCode": "Q",
+      "tradeReportDate": "2026-01-26",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NYTRF",
+      "totalParQuantity": 6876,
+      "shortParQuantity": 1751,
+      "marketCode": "N",
+      "tradeReportDate": "2026-01-26",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NQTRF",
+      "totalParQuantity": 33128,
+      "shortParQuantity": 14341,
+      "marketCode": "Q",
+      "tradeReportDate": "2026-01-29",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NYTRF",
+      "totalParQuantity": 918,
+      "shortParQuantity": 119,
+      "marketCode": "N",
+      "tradeReportDate": "2026-01-29",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NCTRF",
+      "totalParQuantity": 49596,
+      "shortParQuantity": 37082,
+      "marketCode": "B",
+      "tradeReportDate": "2025-11-03",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 5076
+    },
+    {
+      "reportingFacilityCode": "NQTRF",
+      "totalParQuantity": 6001176,
+      "shortParQuantity": 3525009,
+      "marketCode": "Q",
+      "tradeReportDate": "2025-11-03",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 353911
+    },
+    {
+      "reportingFacilityCode": "NYTRF",
+      "totalParQuantity": 261122,
+      "shortParQuantity": 136079,
+      "marketCode": "N",
+      "tradeReportDate": "2025-11-03",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 1314
+    },
+    {
+      "reportingFacilityCode": "NCTRF",
+      "totalParQuantity": 3386,
+      "shortParQuantity": 3300,
+      "marketCode": "B",
+      "tradeReportDate": "2026-01-21",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NQTRF",
+      "totalParQuantity": 66908,
+      "shortParQuantity": 38338,
+      "marketCode": "Q",
+      "tradeReportDate": "2026-01-21",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NYTRF",
+      "totalParQuantity": 1113,
+      "shortParQuantity": 3,
+      "marketCode": "N",
+      "tradeReportDate": "2026-01-21",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NCTRF",
+      "totalParQuantity": 2959,
+      "shortParQuantity": 900,
+      "marketCode": "B",
+      "tradeReportDate": "2026-01-30",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NQTRF",
+      "totalParQuantity": 74094,
+      "shortParQuantity": 40619,
+      "marketCode": "Q",
+      "tradeReportDate": "2026-01-30",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NYTRF",
+      "totalParQuantity": 1369,
+      "shortParQuantity": 169,
+      "marketCode": "N",
+      "tradeReportDate": "2026-01-30",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NQTRF",
+      "totalParQuantity": 64551,
+      "shortParQuantity": 18711,
+      "marketCode": "Q",
+      "tradeReportDate": "2025-10-10",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NQTRF",
+      "totalParQuantity": 68432,
+      "shortParQuantity": 13303,
+      "marketCode": "Q",
+      "tradeReportDate": "2025-10-06",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NCTRF",
+      "totalParQuantity": 1547,
+      "shortParQuantity": 700,
+      "marketCode": "B",
+      "tradeReportDate": "2026-02-17",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NQTRF",
+      "totalParQuantity": 116089,
+      "shortParQuantity": 103006,
+      "marketCode": "Q",
+      "tradeReportDate": "2026-02-17",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NYTRF",
+      "totalParQuantity": 8264,
+      "shortParQuantity": 6220,
+      "marketCode": "N",
+      "tradeReportDate": "2026-02-17",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NQTRF",
+      "totalParQuantity": 69946,
+      "shortParQuantity": 28141,
+      "marketCode": "Q",
+      "tradeReportDate": "2026-01-12",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 10
+    },
+    {
+      "reportingFacilityCode": "NYTRF",
+      "totalParQuantity": 1026,
+      "shortParQuantity": 12,
+      "marketCode": "N",
+      "tradeReportDate": "2026-01-12",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NCTRF",
+      "totalParQuantity": 1100,
+      "shortParQuantity": 400,
+      "marketCode": "B",
+      "tradeReportDate": "2026-02-03",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NQTRF",
+      "totalParQuantity": 103840,
+      "shortParQuantity": 49503,
+      "marketCode": "Q",
+      "tradeReportDate": "2026-02-03",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NYTRF",
+      "totalParQuantity": 1958,
+      "shortParQuantity": 1619,
+      "marketCode": "N",
+      "tradeReportDate": "2026-02-03",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NCTRF",
+      "totalParQuantity": 400,
+      "shortParQuantity": 100,
+      "marketCode": "B",
+      "tradeReportDate": "2026-02-04",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NQTRF",
+      "totalParQuantity": 17695,
+      "shortParQuantity": 13434,
+      "marketCode": "Q",
+      "tradeReportDate": "2026-02-04",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NYTRF",
+      "totalParQuantity": 1132,
+      "shortParQuantity": 786,
+      "marketCode": "N",
+      "tradeReportDate": "2026-02-04",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NCTRF",
+      "totalParQuantity": 5691,
+      "shortParQuantity": 3248,
+      "marketCode": "B",
+      "tradeReportDate": "2026-02-09",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NQTRF",
+      "totalParQuantity": 220787,
+      "shortParQuantity": 130444,
+      "marketCode": "Q",
+      "tradeReportDate": "2026-02-09",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NYTRF",
+      "totalParQuantity": 11042,
+      "shortParQuantity": 5935,
+      "marketCode": "N",
+      "tradeReportDate": "2026-02-09",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NCTRF",
+      "totalParQuantity": 6637,
+      "shortParQuantity": 5137,
+      "marketCode": "B",
+      "tradeReportDate": "2026-01-02",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 200
+    },
+    {
+      "reportingFacilityCode": "NQTRF",
+      "totalParQuantity": 332009,
+      "shortParQuantity": 214711,
+      "marketCode": "Q",
+      "tradeReportDate": "2026-01-02",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 15064
+    },
+    {
+      "reportingFacilityCode": "NYTRF",
+      "totalParQuantity": 76067,
+      "shortParQuantity": 39185,
+      "marketCode": "N",
+      "tradeReportDate": "2026-01-02",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 150
+    },
+    {
+      "reportingFacilityCode": "NCTRF",
+      "totalParQuantity": 3322,
+      "shortParQuantity": 2401,
+      "marketCode": "B",
+      "tradeReportDate": "2025-11-04",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NQTRF",
+      "totalParQuantity": 655720,
+      "shortParQuantity": 338398,
+      "marketCode": "Q",
+      "tradeReportDate": "2025-11-04",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 23203
+    },
+    {
+      "reportingFacilityCode": "NYTRF",
+      "totalParQuantity": 36389,
+      "shortParQuantity": 17267,
+      "marketCode": "N",
+      "tradeReportDate": "2025-11-04",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NQTRF",
+      "totalParQuantity": 29851,
+      "shortParQuantity": 2538,
+      "marketCode": "Q",
+      "tradeReportDate": "2025-10-14",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NQTRF",
+      "totalParQuantity": 61243,
+      "shortParQuantity": 19443,
+      "marketCode": "Q",
+      "tradeReportDate": "2025-10-07",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NQTRF",
+      "totalParQuantity": 18809,
+      "shortParQuantity": 11277,
+      "marketCode": "Q",
+      "tradeReportDate": "2026-01-22",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NYTRF",
+      "totalParQuantity": 2357,
+      "shortParQuantity": 357,
+      "marketCode": "N",
+      "tradeReportDate": "2026-01-22",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NCTRF",
+      "totalParQuantity": 158,
+      "shortParQuantity": 57,
+      "marketCode": "B",
+      "tradeReportDate": "2026-01-23",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NQTRF",
+      "totalParQuantity": 69864,
+      "shortParQuantity": 29260,
+      "marketCode": "Q",
+      "tradeReportDate": "2026-01-23",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NYTRF",
+      "totalParQuantity": 855,
+      "shortParQuantity": 455,
+      "marketCode": "N",
+      "tradeReportDate": "2026-01-23",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NCTRF",
+      "totalParQuantity": 111,
+      "shortParQuantity": 100,
+      "marketCode": "B",
+      "tradeReportDate": "2026-01-28",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NQTRF",
+      "totalParQuantity": 36701,
+      "shortParQuantity": 23396,
+      "marketCode": "Q",
+      "tradeReportDate": "2026-01-28",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NYTRF",
+      "totalParQuantity": 1687,
+      "shortParQuantity": 1587,
+      "marketCode": "N",
+      "tradeReportDate": "2026-01-28",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NCTRF",
+      "totalParQuantity": 1588,
+      "shortParQuantity": 186,
+      "marketCode": "B",
+      "tradeReportDate": "2026-02-12",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NQTRF",
+      "totalParQuantity": 51581,
+      "shortParQuantity": 19956,
+      "marketCode": "Q",
+      "tradeReportDate": "2026-02-12",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 2000
+    },
+    {
+      "reportingFacilityCode": "NYTRF",
+      "totalParQuantity": 1297,
+      "shortParQuantity": 1029,
+      "marketCode": "N",
+      "tradeReportDate": "2026-02-12",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NCTRF",
+      "totalParQuantity": 103,
+      "shortParQuantity": 101,
+      "marketCode": "B",
+      "tradeReportDate": "2026-01-06",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NQTRF",
+      "totalParQuantity": 38127,
+      "shortParQuantity": 25099,
+      "marketCode": "Q",
+      "tradeReportDate": "2026-01-06",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NYTRF",
+      "totalParQuantity": 651,
+      "shortParQuantity": 651,
+      "marketCode": "N",
+      "tradeReportDate": "2026-01-06",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NCTRF",
+      "totalParQuantity": 700,
+      "shortParQuantity": 500,
+      "marketCode": "B",
+      "tradeReportDate": "2025-12-29",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NQTRF",
+      "totalParQuantity": 80044,
+      "shortParQuantity": 22244,
+      "marketCode": "Q",
+      "tradeReportDate": "2025-12-29",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NYTRF",
+      "totalParQuantity": 119,
+      "shortParQuantity": 118,
+      "marketCode": "N",
+      "tradeReportDate": "2025-12-29",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NQTRF",
+      "totalParQuantity": 62775,
+      "shortParQuantity": 33491,
+      "marketCode": "Q",
+      "tradeReportDate": "2025-12-22",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NYTRF",
+      "totalParQuantity": 2860,
+      "shortParQuantity": 2388,
+      "marketCode": "N",
+      "tradeReportDate": "2025-12-22",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NCTRF",
+      "totalParQuantity": 12586,
+      "shortParQuantity": 8125,
+      "marketCode": "B",
+      "tradeReportDate": "2025-10-31",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NQTRF",
+      "totalParQuantity": 444813,
+      "shortParQuantity": 141581,
+      "marketCode": "Q",
+      "tradeReportDate": "2025-10-31",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NYTRF",
+      "totalParQuantity": 48061,
+      "shortParQuantity": 11183,
+      "marketCode": "N",
+      "tradeReportDate": "2025-10-31",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NQTRF",
+      "totalParQuantity": 147092,
+      "shortParQuantity": 51542,
+      "marketCode": "Q",
+      "tradeReportDate": "2025-10-27",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NYTRF",
+      "totalParQuantity": 16176,
+      "shortParQuantity": 200,
+      "marketCode": "N",
+      "tradeReportDate": "2025-10-27",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NCTRF",
+      "totalParQuantity": 3240,
+      "shortParQuantity": 2800,
+      "marketCode": "B",
+      "tradeReportDate": "2025-10-16",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NQTRF",
+      "totalParQuantity": 266191,
+      "shortParQuantity": 62636,
+      "marketCode": "Q",
+      "tradeReportDate": "2025-10-16",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NYTRF",
+      "totalParQuantity": 33602,
+      "shortParQuantity": 32,
+      "marketCode": "N",
+      "tradeReportDate": "2025-10-16",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NCTRF",
+      "totalParQuantity": 1620,
+      "shortParQuantity": 1620,
+      "marketCode": "B",
+      "tradeReportDate": "2025-10-15",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NQTRF",
+      "totalParQuantity": 266887,
+      "shortParQuantity": 89990,
+      "marketCode": "Q",
+      "tradeReportDate": "2025-10-15",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NCTRF",
+      "totalParQuantity": 801,
+      "shortParQuantity": 200,
+      "marketCode": "B",
+      "tradeReportDate": "2025-10-03",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NQTRF",
+      "totalParQuantity": 150209,
+      "shortParQuantity": 48248,
+      "marketCode": "Q",
+      "tradeReportDate": "2025-10-03",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NYTRF",
+      "totalParQuantity": 81460,
+      "shortParQuantity": 100,
+      "marketCode": "N",
+      "tradeReportDate": "2025-10-03",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NCTRF",
+      "totalParQuantity": 101,
+      "shortParQuantity": 100,
+      "marketCode": "B",
+      "tradeReportDate": "2026-01-15",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NQTRF",
+      "totalParQuantity": 42191,
+      "shortParQuantity": 12136,
+      "marketCode": "Q",
+      "tradeReportDate": "2026-01-15",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NYTRF",
+      "totalParQuantity": 91,
+      "shortParQuantity": 91,
+      "marketCode": "N",
+      "tradeReportDate": "2026-01-15",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NCTRF",
+      "totalParQuantity": 800,
+      "shortParQuantity": 800,
+      "marketCode": "B",
+      "tradeReportDate": "2026-01-27",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NQTRF",
+      "totalParQuantity": 32995,
+      "shortParQuantity": 17344,
+      "marketCode": "Q",
+      "tradeReportDate": "2026-01-27",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NYTRF",
+      "totalParQuantity": 488,
+      "shortParQuantity": 401,
+      "marketCode": "N",
+      "tradeReportDate": "2026-01-27",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NCTRF",
+      "totalParQuantity": 2000,
+      "shortParQuantity": 100,
+      "marketCode": "B",
+      "tradeReportDate": "2026-02-06",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NQTRF",
+      "totalParQuantity": 52652,
+      "shortParQuantity": 15873,
+      "marketCode": "Q",
+      "tradeReportDate": "2026-02-06",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NYTRF",
+      "totalParQuantity": 3301,
+      "shortParQuantity": 2263,
+      "marketCode": "N",
+      "tradeReportDate": "2026-02-06",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NCTRF",
+      "totalParQuantity": 600,
+      "shortParQuantity": 200,
+      "marketCode": "B",
+      "tradeReportDate": "2026-02-05",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NQTRF",
+      "totalParQuantity": 37775,
+      "shortParQuantity": 19395,
+      "marketCode": "Q",
+      "tradeReportDate": "2026-02-05",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NYTRF",
+      "totalParQuantity": 1631,
+      "shortParQuantity": 630,
+      "marketCode": "N",
+      "tradeReportDate": "2026-02-05",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NCTRF",
+      "totalParQuantity": 2499,
+      "shortParQuantity": 1658,
+      "marketCode": "B",
+      "tradeReportDate": "2026-02-11",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NQTRF",
+      "totalParQuantity": 188398,
+      "shortParQuantity": 91890,
+      "marketCode": "Q",
+      "tradeReportDate": "2026-02-11",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NYTRF",
+      "totalParQuantity": 10645,
+      "shortParQuantity": 5194,
+      "marketCode": "N",
+      "tradeReportDate": "2026-02-11",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NCTRF",
+      "totalParQuantity": 10943,
+      "shortParQuantity": 9457,
+      "marketCode": "B",
+      "tradeReportDate": "2025-10-29",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NQTRF",
+      "totalParQuantity": 472391,
+      "shortParQuantity": 177393,
+      "marketCode": "Q",
+      "tradeReportDate": "2025-10-29",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 21787
+    },
+    {
+      "reportingFacilityCode": "NYTRF",
+      "totalParQuantity": 28902,
+      "shortParQuantity": 3262,
+      "marketCode": "N",
+      "tradeReportDate": "2025-10-29",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NCTRF",
+      "totalParQuantity": 200,
+      "shortParQuantity": 200,
+      "marketCode": "B",
+      "tradeReportDate": "2025-10-09",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NQTRF",
+      "totalParQuantity": 46515,
+      "shortParQuantity": 10345,
+      "marketCode": "Q",
+      "tradeReportDate": "2025-10-09",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NYTRF",
+      "totalParQuantity": 3132,
+      "shortParQuantity": 300,
+      "marketCode": "N",
+      "tradeReportDate": "2025-10-09",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NCTRF",
+      "totalParQuantity": 201,
+      "shortParQuantity": 200,
+      "marketCode": "B",
+      "tradeReportDate": "2026-01-09",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NQTRF",
+      "totalParQuantity": 31444,
+      "shortParQuantity": 14863,
+      "marketCode": "Q",
+      "tradeReportDate": "2026-01-09",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NYTRF",
+      "totalParQuantity": 1221,
+      "shortParQuantity": 1006,
+      "marketCode": "N",
+      "tradeReportDate": "2026-01-09",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NCTRF",
+      "totalParQuantity": 1800,
+      "shortParQuantity": 1300,
+      "marketCode": "B",
+      "tradeReportDate": "2026-01-13",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NQTRF",
+      "totalParQuantity": 81417,
+      "shortParQuantity": 61820,
+      "marketCode": "Q",
+      "tradeReportDate": "2026-01-13",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 1818
+    },
+    {
+      "reportingFacilityCode": "NYTRF",
+      "totalParQuantity": 6246,
+      "shortParQuantity": 6106,
+      "marketCode": "N",
+      "tradeReportDate": "2026-01-13",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NCTRF",
+      "totalParQuantity": 3540,
+      "shortParQuantity": 3039,
+      "marketCode": "B",
+      "tradeReportDate": "2026-01-14",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NQTRF",
+      "totalParQuantity": 74232,
+      "shortParQuantity": 48735,
+      "marketCode": "Q",
+      "tradeReportDate": "2026-01-14",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NYTRF",
+      "totalParQuantity": 3088,
+      "shortParQuantity": 1577,
+      "marketCode": "N",
+      "tradeReportDate": "2026-01-14",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NQTRF",
+      "totalParQuantity": 37784,
+      "shortParQuantity": 17977,
+      "marketCode": "Q",
+      "tradeReportDate": "2026-01-16",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 31
+    },
+    {
+      "reportingFacilityCode": "NYTRF",
+      "totalParQuantity": 3803,
+      "shortParQuantity": 3802,
+      "marketCode": "N",
+      "tradeReportDate": "2026-01-16",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NQTRF",
+      "totalParQuantity": 48478,
+      "shortParQuantity": 29504,
+      "marketCode": "Q",
+      "tradeReportDate": "2025-12-30",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NYTRF",
+      "totalParQuantity": 753,
+      "shortParQuantity": 753,
+      "marketCode": "N",
+      "tradeReportDate": "2025-12-30",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NCTRF",
+      "totalParQuantity": 2600,
+      "shortParQuantity": 1800,
+      "marketCode": "B",
+      "tradeReportDate": "2025-12-15",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NQTRF",
+      "totalParQuantity": 139761,
+      "shortParQuantity": 81338,
+      "marketCode": "Q",
+      "tradeReportDate": "2025-12-15",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 1324
+    },
+    {
+      "reportingFacilityCode": "NYTRF",
+      "totalParQuantity": 1744,
+      "shortParQuantity": 1394,
+      "marketCode": "N",
+      "tradeReportDate": "2025-12-15",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NCTRF",
+      "totalParQuantity": 8079,
+      "shortParQuantity": 4550,
+      "marketCode": "B",
+      "tradeReportDate": "2025-11-05",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 250
+    },
+    {
+      "reportingFacilityCode": "NQTRF",
+      "totalParQuantity": 548623,
+      "shortParQuantity": 325636,
+      "marketCode": "Q",
+      "tradeReportDate": "2025-11-05",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 45100
+    },
+    {
+      "reportingFacilityCode": "NYTRF",
+      "totalParQuantity": 49218,
+      "shortParQuantity": 11606,
+      "marketCode": "N",
+      "tradeReportDate": "2025-11-05",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NQTRF",
+      "totalParQuantity": 42083,
+      "shortParQuantity": 7188,
+      "marketCode": "Q",
+      "tradeReportDate": "2025-10-20",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NQTRF",
+      "totalParQuantity": 76051,
+      "shortParQuantity": 51801,
+      "marketCode": "Q",
+      "tradeReportDate": "2025-10-08",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NYTRF",
+      "totalParQuantity": 1693,
+      "shortParQuantity": 100,
+      "marketCode": "N",
+      "tradeReportDate": "2025-10-08",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NQTRF",
+      "totalParQuantity": 40952,
+      "shortParQuantity": 4831,
+      "marketCode": "Q",
+      "tradeReportDate": "2025-10-02",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NYTRF",
+      "totalParQuantity": 2727,
+      "shortParQuantity": 25,
+      "marketCode": "N",
+      "tradeReportDate": "2025-10-02",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NQTRF",
+      "totalParQuantity": 108690,
+      "shortParQuantity": 24060,
+      "marketCode": "Q",
+      "tradeReportDate": "2025-09-30",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 100
+    },
+    {
+      "reportingFacilityCode": "NYTRF",
+      "totalParQuantity": 16722,
+      "shortParQuantity": 1,
+      "marketCode": "N",
+      "tradeReportDate": "2025-09-30",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NQTRF",
+      "totalParQuantity": 170650,
+      "shortParQuantity": 28852,
+      "marketCode": "Q",
+      "tradeReportDate": "2025-09-29",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NCTRF",
+      "totalParQuantity": 702,
+      "shortParQuantity": 702,
+      "marketCode": "B",
+      "tradeReportDate": "2026-01-07",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NQTRF",
+      "totalParQuantity": 27369,
+      "shortParQuantity": 16226,
+      "marketCode": "Q",
+      "tradeReportDate": "2026-01-07",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NYTRF",
+      "totalParQuantity": 5593,
+      "shortParQuantity": 3540,
+      "marketCode": "N",
+      "tradeReportDate": "2026-01-07",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NCTRF",
+      "totalParQuantity": 1985,
+      "shortParQuantity": 1385,
+      "marketCode": "B",
+      "tradeReportDate": "2026-02-10",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NQTRF",
+      "totalParQuantity": 144740,
+      "shortParQuantity": 60630,
+      "marketCode": "Q",
+      "tradeReportDate": "2026-02-10",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 1857
+    },
+    {
+      "reportingFacilityCode": "NYTRF",
+      "totalParQuantity": 8084,
+      "shortParQuantity": 3733,
+      "marketCode": "N",
+      "tradeReportDate": "2026-02-10",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NCTRF",
+      "totalParQuantity": 2100,
+      "shortParQuantity": 100,
+      "marketCode": "B",
+      "tradeReportDate": "2026-02-18",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NQTRF",
+      "totalParQuantity": 36589,
+      "shortParQuantity": 7385,
+      "marketCode": "Q",
+      "tradeReportDate": "2026-02-18",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 100
+    },
+    {
+      "reportingFacilityCode": "NYTRF",
+      "totalParQuantity": 1987,
+      "shortParQuantity": 1867,
+      "marketCode": "N",
+      "tradeReportDate": "2026-02-18",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NCTRF",
+      "totalParQuantity": 100,
+      "shortParQuantity": 100,
+      "marketCode": "B",
+      "tradeReportDate": "2025-12-01",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NQTRF",
+      "totalParQuantity": 53474,
+      "shortParQuantity": 22641,
+      "marketCode": "Q",
+      "tradeReportDate": "2025-12-01",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NCTRF",
+      "totalParQuantity": 2507,
+      "shortParQuantity": 405,
+      "marketCode": "B",
+      "tradeReportDate": "2025-10-30",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NQTRF",
+      "totalParQuantity": 219357,
+      "shortParQuantity": 90188,
+      "marketCode": "Q",
+      "tradeReportDate": "2025-10-30",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 23
+    },
+    {
+      "reportingFacilityCode": "NYTRF",
+      "totalParQuantity": 31615,
+      "shortParQuantity": 1279,
+      "marketCode": "N",
+      "tradeReportDate": "2025-10-30",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NCTRF",
+      "totalParQuantity": 12986,
+      "shortParQuantity": 10328,
+      "marketCode": "B",
+      "tradeReportDate": "2025-10-28",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NQTRF",
+      "totalParQuantity": 774380,
+      "shortParQuantity": 239174,
+      "marketCode": "Q",
+      "tradeReportDate": "2025-10-28",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 636
+    },
+    {
+      "reportingFacilityCode": "NYTRF",
+      "totalParQuantity": 171261,
+      "shortParQuantity": 7764,
+      "marketCode": "N",
+      "tradeReportDate": "2025-10-28",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NCTRF",
+      "totalParQuantity": 4498,
+      "shortParQuantity": 300,
+      "marketCode": "B",
+      "tradeReportDate": "2025-10-17",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NQTRF",
+      "totalParQuantity": 111600,
+      "shortParQuantity": 35352,
+      "marketCode": "Q",
+      "tradeReportDate": "2025-10-17",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NYTRF",
+      "totalParQuantity": 11469,
+      "shortParQuantity": 8,
+      "marketCode": "N",
+      "tradeReportDate": "2025-10-17",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NQTRF",
+      "totalParQuantity": 33690,
+      "shortParQuantity": 14191,
+      "marketCode": "Q",
+      "tradeReportDate": "2025-10-13",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 3800
+    },
+    {
+      "reportingFacilityCode": "NYTRF",
+      "totalParQuantity": 1916,
+      "shortParQuantity": 200,
+      "marketCode": "N",
+      "tradeReportDate": "2025-10-13",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NCTRF",
+      "totalParQuantity": 3400,
+      "shortParQuantity": 300,
+      "marketCode": "B",
+      "tradeReportDate": "2026-02-13",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NQTRF",
+      "totalParQuantity": 31278,
+      "shortParQuantity": 12278,
+      "marketCode": "Q",
+      "tradeReportDate": "2026-02-13",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 56
+    },
+    {
+      "reportingFacilityCode": "NYTRF",
+      "totalParQuantity": 5760,
+      "shortParQuantity": 3564,
+      "marketCode": "N",
+      "tradeReportDate": "2026-02-13",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NQTRF",
+      "totalParQuantity": 16221,
+      "shortParQuantity": 7986,
+      "marketCode": "Q",
+      "tradeReportDate": "2026-02-20",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NYTRF",
+      "totalParQuantity": 228,
+      "shortParQuantity": 6,
+      "marketCode": "N",
+      "tradeReportDate": "2026-02-20",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NCTRF",
+      "totalParQuantity": 101,
+      "shortParQuantity": 100,
+      "marketCode": "B",
+      "tradeReportDate": "2025-12-31",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NQTRF",
+      "totalParQuantity": 60180,
+      "shortParQuantity": 17783,
+      "marketCode": "Q",
+      "tradeReportDate": "2025-12-31",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NYTRF",
+      "totalParQuantity": 2279,
+      "shortParQuantity": 1279,
+      "marketCode": "N",
+      "tradeReportDate": "2025-12-31",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NCTRF",
+      "totalParQuantity": 6735,
+      "shortParQuantity": 6635,
+      "marketCode": "B",
+      "tradeReportDate": "2025-11-17",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NQTRF",
+      "totalParQuantity": 208070,
+      "shortParQuantity": 105391,
+      "marketCode": "Q",
+      "tradeReportDate": "2025-11-17",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 602
+    },
+    {
+      "reportingFacilityCode": "NYTRF",
+      "totalParQuantity": 25571,
+      "shortParQuantity": 2643,
+      "marketCode": "N",
+      "tradeReportDate": "2025-11-17",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NCTRF",
+      "totalParQuantity": 2207,
+      "shortParQuantity": 606,
+      "marketCode": "B",
+      "tradeReportDate": "2025-11-10",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NQTRF",
+      "totalParQuantity": 363089,
+      "shortParQuantity": 214634,
+      "marketCode": "Q",
+      "tradeReportDate": "2025-11-10",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 1401
+    },
+    {
+      "reportingFacilityCode": "NYTRF",
+      "totalParQuantity": 29528,
+      "shortParQuantity": 15264,
+      "marketCode": "N",
+      "tradeReportDate": "2025-11-10",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NCTRF",
+      "totalParQuantity": 1200,
+      "shortParQuantity": 1200,
+      "marketCode": "B",
+      "tradeReportDate": "2025-10-24",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NQTRF",
+      "totalParQuantity": 69013,
+      "shortParQuantity": 18088,
+      "marketCode": "Q",
+      "tradeReportDate": "2025-10-24",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NYTRF",
+      "totalParQuantity": 14005,
+      "shortParQuantity": 62,
+      "marketCode": "N",
+      "tradeReportDate": "2025-10-24",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NQTRF",
+      "totalParQuantity": 148969,
+      "shortParQuantity": 24029,
+      "marketCode": "Q",
+      "tradeReportDate": "2025-10-22",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 5395
+    },
+    {
+      "reportingFacilityCode": "NYTRF",
+      "totalParQuantity": 11600,
+      "shortParQuantity": 29,
+      "marketCode": "N",
+      "tradeReportDate": "2025-10-22",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NQTRF",
+      "totalParQuantity": 74895,
+      "shortParQuantity": 24747,
+      "marketCode": "Q",
+      "tradeReportDate": "2025-10-21",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NYTRF",
+      "totalParQuantity": 13937,
+      "shortParQuantity": 8400,
+      "marketCode": "N",
+      "tradeReportDate": "2025-10-21",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NCTRF",
+      "totalParQuantity": 100,
+      "shortParQuantity": 100,
+      "marketCode": "B",
+      "tradeReportDate": "2025-10-01",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NQTRF",
+      "totalParQuantity": 31887,
+      "shortParQuantity": 4362,
+      "marketCode": "Q",
+      "tradeReportDate": "2025-10-01",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NYTRF",
+      "totalParQuantity": 5183,
+      "shortParQuantity": 113,
+      "marketCode": "N",
+      "tradeReportDate": "2025-10-01",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NQTRF",
+      "totalParQuantity": 32972,
+      "shortParQuantity": 10001,
+      "marketCode": "Q",
+      "tradeReportDate": "2025-09-22",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NYTRF",
+      "totalParQuantity": 3995,
+      "shortParQuantity": 988,
+      "marketCode": "N",
+      "tradeReportDate": "2025-09-22",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NQTRF",
+      "totalParQuantity": 29127,
+      "shortParQuantity": 11172,
+      "marketCode": "Q",
+      "tradeReportDate": "2026-01-08",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NYTRF",
+      "totalParQuantity": 810,
+      "shortParQuantity": 807,
+      "marketCode": "N",
+      "tradeReportDate": "2026-01-08",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NCTRF",
+      "totalParQuantity": 1000,
+      "shortParQuantity": 1000,
+      "marketCode": "B",
+      "tradeReportDate": "2025-12-23",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NQTRF",
+      "totalParQuantity": 135555,
+      "shortParQuantity": 61230,
+      "marketCode": "Q",
+      "tradeReportDate": "2025-12-23",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NYTRF",
+      "totalParQuantity": 8626,
+      "shortParQuantity": 2123,
+      "marketCode": "N",
+      "tradeReportDate": "2025-12-23",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NQTRF",
+      "totalParQuantity": 34540,
+      "shortParQuantity": 18495,
+      "marketCode": "Q",
+      "tradeReportDate": "2025-12-19",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NYTRF",
+      "totalParQuantity": 1444,
+      "shortParQuantity": 325,
+      "marketCode": "N",
+      "tradeReportDate": "2025-12-19",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NCTRF",
+      "totalParQuantity": 1793,
+      "shortParQuantity": 1000,
+      "marketCode": "B",
+      "tradeReportDate": "2025-12-18",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NQTRF",
+      "totalParQuantity": 62961,
+      "shortParQuantity": 25062,
+      "marketCode": "Q",
+      "tradeReportDate": "2025-12-18",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NYTRF",
+      "totalParQuantity": 6867,
+      "shortParQuantity": 4719,
+      "marketCode": "N",
+      "tradeReportDate": "2025-12-18",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NCTRF",
+      "totalParQuantity": 3000,
+      "shortParQuantity": 1300,
+      "marketCode": "B",
+      "tradeReportDate": "2025-12-11",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NQTRF",
+      "totalParQuantity": 50744,
+      "shortParQuantity": 19898,
+      "marketCode": "Q",
+      "tradeReportDate": "2025-12-11",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NYTRF",
+      "totalParQuantity": 1296,
+      "shortParQuantity": 232,
+      "marketCode": "N",
+      "tradeReportDate": "2025-12-11",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NQTRF",
+      "totalParQuantity": 8484,
+      "shortParQuantity": 2431,
+      "marketCode": "Q",
+      "tradeReportDate": "2026-02-19",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NYTRF",
+      "totalParQuantity": 117,
+      "shortParQuantity": 7,
+      "marketCode": "N",
+      "tradeReportDate": "2026-02-19",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NCTRF",
+      "totalParQuantity": 500,
+      "shortParQuantity": 200,
+      "marketCode": "B",
+      "tradeReportDate": "2025-12-12",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NQTRF",
+      "totalParQuantity": 52468,
+      "shortParQuantity": 23148,
+      "marketCode": "Q",
+      "tradeReportDate": "2025-12-12",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 423
+    },
+    {
+      "reportingFacilityCode": "NYTRF",
+      "totalParQuantity": 1887,
+      "shortParQuantity": 1593,
+      "marketCode": "N",
+      "tradeReportDate": "2025-12-12",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NCTRF",
+      "totalParQuantity": 2172,
+      "shortParQuantity": 400,
+      "marketCode": "B",
+      "tradeReportDate": "2025-11-20",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NQTRF",
+      "totalParQuantity": 254232,
+      "shortParQuantity": 67214,
+      "marketCode": "Q",
+      "tradeReportDate": "2025-11-20",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 5690
+    },
+    {
+      "reportingFacilityCode": "NYTRF",
+      "totalParQuantity": 90491,
+      "shortParQuantity": 2845,
+      "marketCode": "N",
+      "tradeReportDate": "2025-11-20",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NCTRF",
+      "totalParQuantity": 830,
+      "shortParQuantity": 130,
+      "marketCode": "B",
+      "tradeReportDate": "2025-11-06",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NQTRF",
+      "totalParQuantity": 174937,
+      "shortParQuantity": 98538,
+      "marketCode": "Q",
+      "tradeReportDate": "2025-11-06",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 12503
+    },
+    {
+      "reportingFacilityCode": "NYTRF",
+      "totalParQuantity": 17620,
+      "shortParQuantity": 1852,
+      "marketCode": "N",
+      "tradeReportDate": "2025-11-06",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NCTRF",
+      "totalParQuantity": 338,
+      "shortParQuantity": 300,
+      "marketCode": "B",
+      "tradeReportDate": "2025-12-17",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NQTRF",
+      "totalParQuantity": 115773,
+      "shortParQuantity": 66083,
+      "marketCode": "Q",
+      "tradeReportDate": "2025-12-17",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 275
+    },
+    {
+      "reportingFacilityCode": "NYTRF",
+      "totalParQuantity": 2371,
+      "shortParQuantity": 27,
+      "marketCode": "N",
+      "tradeReportDate": "2025-12-17",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NCTRF",
+      "totalParQuantity": 2957,
+      "shortParQuantity": 1757,
+      "marketCode": "B",
+      "tradeReportDate": "2025-12-16",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NQTRF",
+      "totalParQuantity": 129088,
+      "shortParQuantity": 104866,
+      "marketCode": "Q",
+      "tradeReportDate": "2025-12-16",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 2653
+    },
+    {
+      "reportingFacilityCode": "NYTRF",
+      "totalParQuantity": 8876,
+      "shortParQuantity": 7871,
+      "marketCode": "N",
+      "tradeReportDate": "2025-12-16",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NCTRF",
+      "totalParQuantity": 2700,
+      "shortParQuantity": 600,
+      "marketCode": "B",
+      "tradeReportDate": "2025-12-09",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NQTRF",
+      "totalParQuantity": 62352,
+      "shortParQuantity": 30272,
+      "marketCode": "Q",
+      "tradeReportDate": "2025-12-09",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NQTRF",
+      "totalParQuantity": 65689,
+      "shortParQuantity": 29636,
+      "marketCode": "Q",
+      "tradeReportDate": "2025-12-05",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NCTRF",
+      "totalParQuantity": 305,
+      "shortParQuantity": 105,
+      "marketCode": "B",
+      "tradeReportDate": "2025-12-02",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NQTRF",
+      "totalParQuantity": 55498,
+      "shortParQuantity": 23628,
+      "marketCode": "Q",
+      "tradeReportDate": "2025-12-02",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NYTRF",
+      "totalParQuantity": 10943,
+      "shortParQuantity": 118,
+      "marketCode": "N",
+      "tradeReportDate": "2025-12-02",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NCTRF",
+      "totalParQuantity": 900,
+      "shortParQuantity": 900,
+      "marketCode": "B",
+      "tradeReportDate": "2025-11-21",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NQTRF",
+      "totalParQuantity": 36433,
+      "shortParQuantity": 19004,
+      "marketCode": "Q",
+      "tradeReportDate": "2025-11-21",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 73
+    },
+    {
+      "reportingFacilityCode": "NCTRF",
+      "totalParQuantity": 1574,
+      "shortParQuantity": 620,
+      "marketCode": "B",
+      "tradeReportDate": "2025-11-14",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NQTRF",
+      "totalParQuantity": 82887,
+      "shortParQuantity": 26105,
+      "marketCode": "Q",
+      "tradeReportDate": "2025-11-14",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NYTRF",
+      "totalParQuantity": 19565,
+      "shortParQuantity": 844,
+      "marketCode": "N",
+      "tradeReportDate": "2025-11-14",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NQTRF",
+      "totalParQuantity": 82086,
+      "shortParQuantity": 22641,
+      "marketCode": "Q",
+      "tradeReportDate": "2025-10-23",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 3267
+    },
+    {
+      "reportingFacilityCode": "NYTRF",
+      "totalParQuantity": 1242,
+      "shortParQuantity": 501,
+      "marketCode": "N",
+      "tradeReportDate": "2025-10-23",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 500
+    },
+    {
+      "reportingFacilityCode": "NQTRF",
+      "totalParQuantity": 36797,
+      "shortParQuantity": 11451,
+      "marketCode": "Q",
+      "tradeReportDate": "2025-09-25",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NYTRF",
+      "totalParQuantity": 3656,
+      "shortParQuantity": 3520,
+      "marketCode": "N",
+      "tradeReportDate": "2025-09-25",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NCTRF",
+      "totalParQuantity": 600,
+      "shortParQuantity": 600,
+      "marketCode": "B",
+      "tradeReportDate": "2025-09-24",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NQTRF",
+      "totalParQuantity": 43528,
+      "shortParQuantity": 20047,
+      "marketCode": "Q",
+      "tradeReportDate": "2025-09-24",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NYTRF",
+      "totalParQuantity": 2178,
+      "shortParQuantity": 1878,
+      "marketCode": "N",
+      "tradeReportDate": "2025-09-24",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NQTRF",
+      "totalParQuantity": 15068,
+      "shortParQuantity": 8612,
+      "marketCode": "Q",
+      "tradeReportDate": "2025-09-23",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NYTRF",
+      "totalParQuantity": 3567,
+      "shortParQuantity": 3512,
+      "marketCode": "N",
+      "tradeReportDate": "2025-09-23",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NQTRF",
+      "totalParQuantity": 21270,
+      "shortParQuantity": 11172,
+      "marketCode": "Q",
+      "tradeReportDate": "2025-09-15",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 16
+    },
+    {
+      "reportingFacilityCode": "NYTRF",
+      "totalParQuantity": 1230,
+      "shortParQuantity": 23,
+      "marketCode": "N",
+      "tradeReportDate": "2025-09-15",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NQTRF",
+      "totalParQuantity": 15128,
+      "shortParQuantity": 5135,
+      "marketCode": "Q",
+      "tradeReportDate": "2025-09-02",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NYTRF",
+      "totalParQuantity": 224,
+      "shortParQuantity": 111,
+      "marketCode": "N",
+      "tradeReportDate": "2025-09-02",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NCTRF",
+      "totalParQuantity": 3473,
+      "shortParQuantity": 3473,
+      "marketCode": "B",
+      "tradeReportDate": "2025-12-04",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 3373
+    },
+    {
+      "reportingFacilityCode": "NQTRF",
+      "totalParQuantity": 28108,
+      "shortParQuantity": 3761,
+      "marketCode": "Q",
+      "tradeReportDate": "2025-12-04",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 10
+    },
+    {
+      "reportingFacilityCode": "NQTRF",
+      "totalParQuantity": 98362,
+      "shortParQuantity": 36877,
+      "marketCode": "Q",
+      "tradeReportDate": "2025-12-03",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 109
+    },
+    {
+      "reportingFacilityCode": "NYTRF",
+      "totalParQuantity": 5283,
+      "shortParQuantity": 458,
+      "marketCode": "N",
+      "tradeReportDate": "2025-12-03",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NCTRF",
+      "totalParQuantity": 952,
+      "shortParQuantity": 651,
+      "marketCode": "B",
+      "tradeReportDate": "2025-11-25",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NQTRF",
+      "totalParQuantity": 221479,
+      "shortParQuantity": 89392,
+      "marketCode": "Q",
+      "tradeReportDate": "2025-11-25",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NYTRF",
+      "totalParQuantity": 22794,
+      "shortParQuantity": 4800,
+      "marketCode": "N",
+      "tradeReportDate": "2025-11-25",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NCTRF",
+      "totalParQuantity": 3800,
+      "shortParQuantity": 400,
+      "marketCode": "B",
+      "tradeReportDate": "2025-11-24",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NQTRF",
+      "totalParQuantity": 135496,
+      "shortParQuantity": 61659,
+      "marketCode": "Q",
+      "tradeReportDate": "2025-11-24",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NYTRF",
+      "totalParQuantity": 30893,
+      "shortParQuantity": 900,
+      "marketCode": "N",
+      "tradeReportDate": "2025-11-24",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NCTRF",
+      "totalParQuantity": 1718,
+      "shortParQuantity": 1718,
+      "marketCode": "B",
+      "tradeReportDate": "2025-11-18",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NQTRF",
+      "totalParQuantity": 107265,
+      "shortParQuantity": 58178,
+      "marketCode": "Q",
+      "tradeReportDate": "2025-11-18",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 8778
+    },
+    {
+      "reportingFacilityCode": "NYTRF",
+      "totalParQuantity": 18886,
+      "shortParQuantity": 3421,
+      "marketCode": "N",
+      "tradeReportDate": "2025-11-18",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NCTRF",
+      "totalParQuantity": 5900,
+      "shortParQuantity": 800,
+      "marketCode": "B",
+      "tradeReportDate": "2025-11-13",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NQTRF",
+      "totalParQuantity": 145493,
+      "shortParQuantity": 78891,
+      "marketCode": "Q",
+      "tradeReportDate": "2025-11-13",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NYTRF",
+      "totalParQuantity": 8547,
+      "shortParQuantity": 2442,
+      "marketCode": "N",
+      "tradeReportDate": "2025-11-13",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NCTRF",
+      "totalParQuantity": 200,
+      "shortParQuantity": 200,
+      "marketCode": "B",
+      "tradeReportDate": "2025-11-07",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NQTRF",
+      "totalParQuantity": 302368,
+      "shortParQuantity": 157578,
+      "marketCode": "Q",
+      "tradeReportDate": "2025-11-07",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 200
+    },
+    {
+      "reportingFacilityCode": "NYTRF",
+      "totalParQuantity": 19612,
+      "shortParQuantity": 7042,
+      "marketCode": "N",
+      "tradeReportDate": "2025-11-07",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NQTRF",
+      "totalParQuantity": 46299,
+      "shortParQuantity": 19610,
+      "marketCode": "Q",
+      "tradeReportDate": "2025-09-26",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NYTRF",
+      "totalParQuantity": 9546,
+      "shortParQuantity": 24,
+      "marketCode": "N",
+      "tradeReportDate": "2025-09-26",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NCTRF",
+      "totalParQuantity": 200,
+      "shortParQuantity": 200,
+      "marketCode": "B",
+      "tradeReportDate": "2025-09-19",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NQTRF",
+      "totalParQuantity": 139473,
+      "shortParQuantity": 66371,
+      "marketCode": "Q",
+      "tradeReportDate": "2025-09-19",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NYTRF",
+      "totalParQuantity": 1560,
+      "shortParQuantity": 757,
+      "marketCode": "N",
+      "tradeReportDate": "2025-09-19",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NCTRF",
+      "totalParQuantity": 800,
+      "shortParQuantity": 300,
+      "marketCode": "B",
+      "tradeReportDate": "2025-12-10",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NQTRF",
+      "totalParQuantity": 44972,
+      "shortParQuantity": 15116,
+      "marketCode": "Q",
+      "tradeReportDate": "2025-12-10",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 1200
+    },
+    {
+      "reportingFacilityCode": "NCTRF",
+      "totalParQuantity": 2850,
+      "shortParQuantity": 1850,
+      "marketCode": "B",
+      "tradeReportDate": "2025-11-26",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NQTRF",
+      "totalParQuantity": 49646,
+      "shortParQuantity": 14497,
+      "marketCode": "Q",
+      "tradeReportDate": "2025-11-26",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NCTRF",
+      "totalParQuantity": 400,
+      "shortParQuantity": 300,
+      "marketCode": "B",
+      "tradeReportDate": "2025-09-18",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NQTRF",
+      "totalParQuantity": 31610,
+      "shortParQuantity": 11039,
+      "marketCode": "Q",
+      "tradeReportDate": "2025-09-18",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NYTRF",
+      "totalParQuantity": 2340,
+      "shortParQuantity": 160,
+      "marketCode": "N",
+      "tradeReportDate": "2025-09-18",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NQTRF",
+      "totalParQuantity": 93045,
+      "shortParQuantity": 34405,
+      "marketCode": "Q",
+      "tradeReportDate": "2025-12-08",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NYTRF",
+      "totalParQuantity": 289,
+      "shortParQuantity": 100,
+      "marketCode": "N",
+      "tradeReportDate": "2025-12-08",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NQTRF",
+      "totalParQuantity": 140630,
+      "shortParQuantity": 77648,
+      "marketCode": "Q",
+      "tradeReportDate": "2025-11-19",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 363
+    },
+    {
+      "reportingFacilityCode": "NYTRF",
+      "totalParQuantity": 15767,
+      "shortParQuantity": 1249,
+      "marketCode": "N",
+      "tradeReportDate": "2025-11-19",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NQTRF",
+      "totalParQuantity": 156606,
+      "shortParQuantity": 69558,
+      "marketCode": "Q",
+      "tradeReportDate": "2025-11-12",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 6275
+    },
+    {
+      "reportingFacilityCode": "NYTRF",
+      "totalParQuantity": 7082,
+      "shortParQuantity": 1507,
+      "marketCode": "N",
+      "tradeReportDate": "2025-11-12",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NQTRF",
+      "totalParQuantity": 18368,
+      "shortParQuantity": 12817,
+      "marketCode": "Q",
+      "tradeReportDate": "2025-09-17",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 299
+    },
+    {
+      "reportingFacilityCode": "NYTRF",
+      "totalParQuantity": 352,
+      "shortParQuantity": 312,
+      "marketCode": "N",
+      "tradeReportDate": "2025-09-17",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NQTRF",
+      "totalParQuantity": 32417,
+      "shortParQuantity": 19838,
+      "marketCode": "Q",
+      "tradeReportDate": "2025-09-08",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NYTRF",
+      "totalParQuantity": 513,
+      "shortParQuantity": 510,
+      "marketCode": "N",
+      "tradeReportDate": "2025-09-08",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NCTRF",
+      "totalParQuantity": 2391,
+      "shortParQuantity": 1001,
+      "marketCode": "B",
+      "tradeReportDate": "2025-08-01",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 1
+    },
+    {
+      "reportingFacilityCode": "NQTRF",
+      "totalParQuantity": 390312,
+      "shortParQuantity": 129489,
+      "marketCode": "Q",
+      "tradeReportDate": "2025-08-01",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 34591
+    },
+    {
+      "reportingFacilityCode": "NYTRF",
+      "totalParQuantity": 7550,
+      "shortParQuantity": 1317,
+      "marketCode": "N",
+      "tradeReportDate": "2025-08-01",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NCTRF",
+      "totalParQuantity": 470,
+      "shortParQuantity": 400,
+      "marketCode": "B",
+      "tradeReportDate": "2025-09-16",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NQTRF",
+      "totalParQuantity": 33882,
+      "shortParQuantity": 10956,
+      "marketCode": "Q",
+      "tradeReportDate": "2025-09-16",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NYTRF",
+      "totalParQuantity": 17,
+      "shortParQuantity": 11,
+      "marketCode": "N",
+      "tradeReportDate": "2025-09-16",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NQTRF",
+      "totalParQuantity": 41494,
+      "shortParQuantity": 20859,
+      "marketCode": "Q",
+      "tradeReportDate": "2025-08-22",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 145
+    },
+    {
+      "reportingFacilityCode": "NYTRF",
+      "totalParQuantity": 2676,
+      "shortParQuantity": 308,
+      "marketCode": "N",
+      "tradeReportDate": "2025-08-22",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NQTRF",
+      "totalParQuantity": 22795,
+      "shortParQuantity": 9367,
+      "marketCode": "Q",
+      "tradeReportDate": "2025-08-11",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 392
+    },
+    {
+      "reportingFacilityCode": "NYTRF",
+      "totalParQuantity": 2076,
+      "shortParQuantity": 1074,
+      "marketCode": "N",
+      "tradeReportDate": "2025-08-11",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NQTRF",
+      "totalParQuantity": 45079,
+      "shortParQuantity": 23582,
+      "marketCode": "Q",
+      "tradeReportDate": "2025-09-11",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NYTRF",
+      "totalParQuantity": 700,
+      "shortParQuantity": 31,
+      "marketCode": "N",
+      "tradeReportDate": "2025-09-11",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NQTRF",
+      "totalParQuantity": 26307,
+      "shortParQuantity": 19847,
+      "marketCode": "Q",
+      "tradeReportDate": "2025-09-10",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 182
+    },
+    {
+      "reportingFacilityCode": "NYTRF",
+      "totalParQuantity": 971,
+      "shortParQuantity": 771,
+      "marketCode": "N",
+      "tradeReportDate": "2025-09-10",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NQTRF",
+      "totalParQuantity": 64807,
+      "shortParQuantity": 29655,
+      "marketCode": "Q",
+      "tradeReportDate": "2025-08-25",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NYTRF",
+      "totalParQuantity": 3301,
+      "shortParQuantity": 141,
+      "marketCode": "N",
+      "tradeReportDate": "2025-08-25",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NQTRF",
+      "totalParQuantity": 169536,
+      "shortParQuantity": 55005,
+      "marketCode": "Q",
+      "tradeReportDate": "2025-08-13",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 2361
+    },
+    {
+      "reportingFacilityCode": "NYTRF",
+      "totalParQuantity": 3341,
+      "shortParQuantity": 3258,
+      "marketCode": "N",
+      "tradeReportDate": "2025-08-13",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NCTRF",
+      "totalParQuantity": 6700,
+      "shortParQuantity": 5500,
+      "marketCode": "B",
+      "tradeReportDate": "2025-08-12",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NQTRF",
+      "totalParQuantity": 211594,
+      "shortParQuantity": 103257,
+      "marketCode": "Q",
+      "tradeReportDate": "2025-08-12",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 233
+    },
+    {
+      "reportingFacilityCode": "NYTRF",
+      "totalParQuantity": 12956,
+      "shortParQuantity": 11748,
+      "marketCode": "N",
+      "tradeReportDate": "2025-08-12",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NCTRF",
+      "totalParQuantity": 787,
+      "shortParQuantity": 786,
+      "marketCode": "B",
+      "tradeReportDate": "2025-06-30",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 100
+    },
+    {
+      "reportingFacilityCode": "NQTRF",
+      "totalParQuantity": 2045491,
+      "shortParQuantity": 1249424,
+      "marketCode": "Q",
+      "tradeReportDate": "2025-06-30",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 116995
+    },
+    {
+      "reportingFacilityCode": "NYTRF",
+      "totalParQuantity": 67933,
+      "shortParQuantity": 31727,
+      "marketCode": "N",
+      "tradeReportDate": "2025-06-30",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NQTRF",
+      "totalParQuantity": 81664,
+      "shortParQuantity": 58764,
+      "marketCode": "Q",
+      "tradeReportDate": "2025-12-26",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NYTRF",
+      "totalParQuantity": 768,
+      "shortParQuantity": 318,
+      "marketCode": "N",
+      "tradeReportDate": "2025-12-26",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NCTRF",
+      "totalParQuantity": 101,
+      "shortParQuantity": 100,
+      "marketCode": "B",
+      "tradeReportDate": "2025-11-11",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NQTRF",
+      "totalParQuantity": 227243,
+      "shortParQuantity": 77695,
+      "marketCode": "Q",
+      "tradeReportDate": "2025-11-11",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 4373
+    },
+    {
+      "reportingFacilityCode": "NYTRF",
+      "totalParQuantity": 5950,
+      "shortParQuantity": 4319,
+      "marketCode": "N",
+      "tradeReportDate": "2025-11-11",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NCTRF",
+      "totalParQuantity": 4100,
+      "shortParQuantity": 2700,
+      "marketCode": "B",
+      "tradeReportDate": "2025-08-18",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NQTRF",
+      "totalParQuantity": 246912,
+      "shortParQuantity": 91888,
+      "marketCode": "Q",
+      "tradeReportDate": "2025-08-18",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NYTRF",
+      "totalParQuantity": 9065,
+      "shortParQuantity": 4342,
+      "marketCode": "N",
+      "tradeReportDate": "2025-08-18",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NQTRF",
+      "totalParQuantity": 120774,
+      "shortParQuantity": 41862,
+      "marketCode": "Q",
+      "tradeReportDate": "2025-07-31",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 11055
+    },
+    {
+      "reportingFacilityCode": "NYTRF",
+      "totalParQuantity": 9882,
+      "shortParQuantity": 5750,
+      "marketCode": "N",
+      "tradeReportDate": "2025-07-31",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NCTRF",
+      "totalParQuantity": 803,
+      "shortParQuantity": 800,
+      "marketCode": "B",
+      "tradeReportDate": "2025-07-21",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NQTRF",
+      "totalParQuantity": 648307,
+      "shortParQuantity": 255713,
+      "marketCode": "Q",
+      "tradeReportDate": "2025-07-21",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 13279
+    },
+    {
+      "reportingFacilityCode": "NYTRF",
+      "totalParQuantity": 12288,
+      "shortParQuantity": 8037,
+      "marketCode": "N",
+      "tradeReportDate": "2025-07-21",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NCTRF",
+      "totalParQuantity": 121996,
+      "shortParQuantity": 62457,
+      "marketCode": "B",
+      "tradeReportDate": "2025-07-07",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NQTRF",
+      "totalParQuantity": 18220274,
+      "shortParQuantity": 10533381,
+      "marketCode": "Q",
+      "tradeReportDate": "2025-07-07",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 148818
+    },
+    {
+      "reportingFacilityCode": "NYTRF",
+      "totalParQuantity": 985293,
+      "shortParQuantity": 466177,
+      "marketCode": "N",
+      "tradeReportDate": "2025-07-07",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NCTRF",
+      "totalParQuantity": 1300,
+      "shortParQuantity": 800,
+      "marketCode": "B",
+      "tradeReportDate": "2025-09-12",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NQTRF",
+      "totalParQuantity": 149825,
+      "shortParQuantity": 83180,
+      "marketCode": "Q",
+      "tradeReportDate": "2025-09-12",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 679
+    },
+    {
+      "reportingFacilityCode": "NYTRF",
+      "totalParQuantity": 3624,
+      "shortParQuantity": 50,
+      "marketCode": "N",
+      "tradeReportDate": "2025-09-12",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NQTRF",
+      "totalParQuantity": 86033,
+      "shortParQuantity": 9171,
+      "marketCode": "Q",
+      "tradeReportDate": "2025-09-09",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NYTRF",
+      "totalParQuantity": 13869,
+      "shortParQuantity": 3130,
+      "marketCode": "N",
+      "tradeReportDate": "2025-09-09",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NCTRF",
+      "totalParQuantity": 301,
+      "shortParQuantity": 1,
+      "marketCode": "B",
+      "tradeReportDate": "2025-09-03",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NQTRF",
+      "totalParQuantity": 17380,
+      "shortParQuantity": 11655,
+      "marketCode": "Q",
+      "tradeReportDate": "2025-09-03",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NYTRF",
+      "totalParQuantity": 196,
+      "shortParQuantity": 30,
+      "marketCode": "N",
+      "tradeReportDate": "2025-09-03",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NQTRF",
+      "totalParQuantity": 49699,
+      "shortParQuantity": 33447,
+      "marketCode": "Q",
+      "tradeReportDate": "2025-08-28",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 60
+    },
+    {
+      "reportingFacilityCode": "NYTRF",
+      "totalParQuantity": 1490,
+      "shortParQuantity": 372,
+      "marketCode": "N",
+      "tradeReportDate": "2025-08-28",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NQTRF",
+      "totalParQuantity": 125164,
+      "shortParQuantity": 60567,
+      "marketCode": "Q",
+      "tradeReportDate": "2025-08-19",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NYTRF",
+      "totalParQuantity": 1350,
+      "shortParQuantity": 930,
+      "marketCode": "N",
+      "tradeReportDate": "2025-08-19",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NCTRF",
+      "totalParQuantity": 1233,
+      "shortParQuantity": 1233,
+      "marketCode": "B",
+      "tradeReportDate": "2025-08-14",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NQTRF",
+      "totalParQuantity": 743425,
+      "shortParQuantity": 368106,
+      "marketCode": "Q",
+      "tradeReportDate": "2025-08-14",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 1030
+    },
+    {
+      "reportingFacilityCode": "NYTRF",
+      "totalParQuantity": 143270,
+      "shortParQuantity": 86561,
+      "marketCode": "N",
+      "tradeReportDate": "2025-08-14",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NQTRF",
+      "totalParQuantity": 56271,
+      "shortParQuantity": 24239,
+      "marketCode": "Q",
+      "tradeReportDate": "2025-08-07",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 834
+    },
+    {
+      "reportingFacilityCode": "NYTRF",
+      "totalParQuantity": 3190,
+      "shortParQuantity": 831,
+      "marketCode": "N",
+      "tradeReportDate": "2025-08-07",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NQTRF",
+      "totalParQuantity": 139762,
+      "shortParQuantity": 55615,
+      "marketCode": "Q",
+      "tradeReportDate": "2025-08-06",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 19843
+    },
+    {
+      "reportingFacilityCode": "NYTRF",
+      "totalParQuantity": 26377,
+      "shortParQuantity": 1421,
+      "marketCode": "N",
+      "tradeReportDate": "2025-08-06",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NCTRF",
+      "totalParQuantity": 60,
+      "shortParQuantity": 50,
+      "marketCode": "B",
+      "tradeReportDate": "2025-08-04",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 50
+    },
+    {
+      "reportingFacilityCode": "NQTRF",
+      "totalParQuantity": 106348,
+      "shortParQuantity": 57803,
+      "marketCode": "Q",
+      "tradeReportDate": "2025-08-04",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 15806
+    },
+    {
+      "reportingFacilityCode": "NYTRF",
+      "totalParQuantity": 20928,
+      "shortParQuantity": 13106,
+      "marketCode": "N",
+      "tradeReportDate": "2025-08-04",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NCTRF",
+      "totalParQuantity": 2687,
+      "shortParQuantity": 442,
+      "marketCode": "B",
+      "tradeReportDate": "2025-07-28",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NQTRF",
+      "totalParQuantity": 243529,
+      "shortParQuantity": 105591,
+      "marketCode": "Q",
+      "tradeReportDate": "2025-07-28",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 551
+    },
+    {
+      "reportingFacilityCode": "NYTRF",
+      "totalParQuantity": 31387,
+      "shortParQuantity": 25130,
+      "marketCode": "N",
+      "tradeReportDate": "2025-07-28",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NQTRF",
+      "totalParQuantity": 28352,
+      "shortParQuantity": 16872,
+      "marketCode": "Q",
+      "tradeReportDate": "2025-09-05",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 170
+    },
+    {
+      "reportingFacilityCode": "NYTRF",
+      "totalParQuantity": 551,
+      "shortParQuantity": 551,
+      "marketCode": "N",
+      "tradeReportDate": "2025-09-05",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NQTRF",
+      "totalParQuantity": 78693,
+      "shortParQuantity": 49326,
+      "marketCode": "Q",
+      "tradeReportDate": "2025-08-26",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 357
+    },
+    {
+      "reportingFacilityCode": "NYTRF",
+      "totalParQuantity": 2323,
+      "shortParQuantity": 332,
+      "marketCode": "N",
+      "tradeReportDate": "2025-08-26",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NCTRF",
+      "totalParQuantity": 1700,
+      "shortParQuantity": 800,
+      "marketCode": "B",
+      "tradeReportDate": "2025-08-15",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NQTRF",
+      "totalParQuantity": 111283,
+      "shortParQuantity": 51928,
+      "marketCode": "Q",
+      "tradeReportDate": "2025-08-15",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NYTRF",
+      "totalParQuantity": 2780,
+      "shortParQuantity": 1345,
+      "marketCode": "N",
+      "tradeReportDate": "2025-08-15",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NCTRF",
+      "totalParQuantity": 600,
+      "shortParQuantity": 600,
+      "marketCode": "B",
+      "tradeReportDate": "2025-08-08",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NQTRF",
+      "totalParQuantity": 102843,
+      "shortParQuantity": 70576,
+      "marketCode": "Q",
+      "tradeReportDate": "2025-08-08",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 2200
+    },
+    {
+      "reportingFacilityCode": "NYTRF",
+      "totalParQuantity": 11080,
+      "shortParQuantity": 7242,
+      "marketCode": "N",
+      "tradeReportDate": "2025-08-08",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 2117
+    },
+    {
+      "reportingFacilityCode": "NCTRF",
+      "totalParQuantity": 600,
+      "shortParQuantity": 500,
+      "marketCode": "B",
+      "tradeReportDate": "2025-07-30",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NQTRF",
+      "totalParQuantity": 185278,
+      "shortParQuantity": 101053,
+      "marketCode": "Q",
+      "tradeReportDate": "2025-07-30",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 28391
+    },
+    {
+      "reportingFacilityCode": "NYTRF",
+      "totalParQuantity": 6868,
+      "shortParQuantity": 5856,
+      "marketCode": "N",
+      "tradeReportDate": "2025-07-30",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NCTRF",
+      "totalParQuantity": 1553,
+      "shortParQuantity": 53,
+      "marketCode": "B",
+      "tradeReportDate": "2025-07-14",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NQTRF",
+      "totalParQuantity": 408725,
+      "shortParQuantity": 228911,
+      "marketCode": "Q",
+      "tradeReportDate": "2025-07-14",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 30466
+    },
+    {
+      "reportingFacilityCode": "NYTRF",
+      "totalParQuantity": 17307,
+      "shortParQuantity": 10166,
+      "marketCode": "N",
+      "tradeReportDate": "2025-07-14",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NQTRF",
+      "totalParQuantity": 155609,
+      "shortParQuantity": 96566,
+      "marketCode": "Q",
+      "tradeReportDate": "2025-09-04",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NYTRF",
+      "totalParQuantity": 7042,
+      "shortParQuantity": 35,
+      "marketCode": "N",
+      "tradeReportDate": "2025-09-04",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NQTRF",
+      "totalParQuantity": 60326,
+      "shortParQuantity": 12379,
+      "marketCode": "Q",
+      "tradeReportDate": "2025-08-29",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NYTRF",
+      "totalParQuantity": 372,
+      "shortParQuantity": 103,
+      "marketCode": "N",
+      "tradeReportDate": "2025-08-29",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NQTRF",
+      "totalParQuantity": 60629,
+      "shortParQuantity": 25060,
+      "marketCode": "Q",
+      "tradeReportDate": "2025-08-05",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 2001
+    },
+    {
+      "reportingFacilityCode": "NYTRF",
+      "totalParQuantity": 7823,
+      "shortParQuantity": 7671,
+      "marketCode": "N",
+      "tradeReportDate": "2025-08-05",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NCTRF",
+      "totalParQuantity": 7955,
+      "shortParQuantity": 5010,
+      "marketCode": "B",
+      "tradeReportDate": "2025-07-24",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NQTRF",
+      "totalParQuantity": 281523,
+      "shortParQuantity": 152360,
+      "marketCode": "Q",
+      "tradeReportDate": "2025-07-24",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 4635
+    },
+    {
+      "reportingFacilityCode": "NYTRF",
+      "totalParQuantity": 16664,
+      "shortParQuantity": 1679,
+      "marketCode": "N",
+      "tradeReportDate": "2025-07-24",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NCTRF",
+      "totalParQuantity": 5643,
+      "shortParQuantity": 3625,
+      "marketCode": "B",
+      "tradeReportDate": "2025-07-23",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NQTRF",
+      "totalParQuantity": 508227,
+      "shortParQuantity": 277568,
+      "marketCode": "Q",
+      "tradeReportDate": "2025-07-23",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 2101
+    },
+    {
+      "reportingFacilityCode": "NYTRF",
+      "totalParQuantity": 23415,
+      "shortParQuantity": 11896,
+      "marketCode": "N",
+      "tradeReportDate": "2025-07-23",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NQTRF",
+      "totalParQuantity": 166703,
+      "shortParQuantity": 78734,
+      "marketCode": "Q",
+      "tradeReportDate": "2025-07-15",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 16612
+    },
+    {
+      "reportingFacilityCode": "NYTRF",
+      "totalParQuantity": 1189,
+      "shortParQuantity": 189,
+      "marketCode": "N",
+      "tradeReportDate": "2025-07-15",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NQTRF",
+      "totalParQuantity": 71967,
+      "shortParQuantity": 22001,
+      "marketCode": "Q",
+      "tradeReportDate": "2025-08-20",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NYTRF",
+      "totalParQuantity": 1198,
+      "shortParQuantity": 1147,
+      "marketCode": "N",
+      "tradeReportDate": "2025-08-20",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NCTRF",
+      "totalParQuantity": 5700,
+      "shortParQuantity": 1000,
+      "marketCode": "B",
+      "tradeReportDate": "2025-07-17",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NQTRF",
+      "totalParQuantity": 172199,
+      "shortParQuantity": 80796,
+      "marketCode": "Q",
+      "tradeReportDate": "2025-07-17",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NYTRF",
+      "totalParQuantity": 13219,
+      "shortParQuantity": 9172,
+      "marketCode": "N",
+      "tradeReportDate": "2025-07-17",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NQTRF",
+      "totalParQuantity": 1365005,
+      "shortParQuantity": 773991,
+      "marketCode": "Q",
+      "tradeReportDate": "2025-07-02",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 63939
+    },
+    {
+      "reportingFacilityCode": "NYTRF",
+      "totalParQuantity": 26999,
+      "shortParQuantity": 10797,
+      "marketCode": "N",
+      "tradeReportDate": "2025-07-02",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NCTRF",
+      "totalParQuantity": 1526,
+      "shortParQuantity": 1400,
+      "marketCode": "B",
+      "tradeReportDate": "2025-07-29",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NQTRF",
+      "totalParQuantity": 530597,
+      "shortParQuantity": 275375,
+      "marketCode": "Q",
+      "tradeReportDate": "2025-07-29",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 116
+    },
+    {
+      "reportingFacilityCode": "NYTRF",
+      "totalParQuantity": 10662,
+      "shortParQuantity": 1601,
+      "marketCode": "N",
+      "tradeReportDate": "2025-07-29",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NCTRF",
+      "totalParQuantity": 37196,
+      "shortParQuantity": 20700,
+      "marketCode": "B",
+      "tradeReportDate": "2025-07-22",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NQTRF",
+      "totalParQuantity": 917349,
+      "shortParQuantity": 518199,
+      "marketCode": "Q",
+      "tradeReportDate": "2025-07-22",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 2102
+    },
+    {
+      "reportingFacilityCode": "NYTRF",
+      "totalParQuantity": 12710,
+      "shortParQuantity": 5753,
+      "marketCode": "N",
+      "tradeReportDate": "2025-07-22",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NCTRF",
+      "totalParQuantity": 2355,
+      "shortParQuantity": 455,
+      "marketCode": "B",
+      "tradeReportDate": "2025-07-18",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NQTRF",
+      "totalParQuantity": 352458,
+      "shortParQuantity": 252468,
+      "marketCode": "Q",
+      "tradeReportDate": "2025-07-18",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NYTRF",
+      "totalParQuantity": 7870,
+      "shortParQuantity": 5284,
+      "marketCode": "N",
+      "tradeReportDate": "2025-07-18",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NCTRF",
+      "totalParQuantity": 51,
+      "shortParQuantity": 50,
+      "marketCode": "B",
+      "tradeReportDate": "2025-07-16",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NQTRF",
+      "totalParQuantity": 164203,
+      "shortParQuantity": 66519,
+      "marketCode": "Q",
+      "tradeReportDate": "2025-07-16",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NYTRF",
+      "totalParQuantity": 9786,
+      "shortParQuantity": 4750,
+      "marketCode": "N",
+      "tradeReportDate": "2025-07-16",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NCTRF",
+      "totalParQuantity": 6702,
+      "shortParQuantity": 2368,
+      "marketCode": "B",
+      "tradeReportDate": "2025-07-08",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 201
+    },
+    {
+      "reportingFacilityCode": "NQTRF",
+      "totalParQuantity": 1852840,
+      "shortParQuantity": 1131946,
+      "marketCode": "Q",
+      "tradeReportDate": "2025-07-08",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 92276
+    },
+    {
+      "reportingFacilityCode": "NYTRF",
+      "totalParQuantity": 58150,
+      "shortParQuantity": 36589,
+      "marketCode": "N",
+      "tradeReportDate": "2025-07-08",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 2638
+    },
+    {
+      "reportingFacilityCode": "NCTRF",
+      "totalParQuantity": 14030,
+      "shortParQuantity": 11800,
+      "marketCode": "B",
+      "tradeReportDate": "2025-05-27",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NQTRF",
+      "totalParQuantity": 10497477,
+      "shortParQuantity": 5679180,
+      "marketCode": "Q",
+      "tradeReportDate": "2025-05-27",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 226055
+    },
+    {
+      "reportingFacilityCode": "NYTRF",
+      "totalParQuantity": 675332,
+      "shortParQuantity": 409912,
+      "marketCode": "N",
+      "tradeReportDate": "2025-05-27",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NQTRF",
+      "totalParQuantity": 73682,
+      "shortParQuantity": 13905,
+      "marketCode": "Q",
+      "tradeReportDate": "2025-08-21",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NYTRF",
+      "totalParQuantity": 694,
+      "shortParQuantity": 67,
+      "marketCode": "N",
+      "tradeReportDate": "2025-08-21",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NCTRF",
+      "totalParQuantity": 5105,
+      "shortParQuantity": 1100,
+      "marketCode": "B",
+      "tradeReportDate": "2025-07-01",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NQTRF",
+      "totalParQuantity": 2268879,
+      "shortParQuantity": 1254703,
+      "marketCode": "Q",
+      "tradeReportDate": "2025-07-01",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 9057
+    },
+    {
+      "reportingFacilityCode": "NYTRF",
+      "totalParQuantity": 39541,
+      "shortParQuantity": 12676,
+      "marketCode": "N",
+      "tradeReportDate": "2025-07-01",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NQTRF",
+      "totalParQuantity": 195245,
+      "shortParQuantity": 102087,
+      "marketCode": "Q",
+      "tradeReportDate": "2025-07-25",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 11940
+    },
+    {
+      "reportingFacilityCode": "NYTRF",
+      "totalParQuantity": 55380,
+      "shortParQuantity": 5056,
+      "marketCode": "N",
+      "tradeReportDate": "2025-07-25",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NCTRF",
+      "totalParQuantity": 1851,
+      "shortParQuantity": 1650,
+      "marketCode": "B",
+      "tradeReportDate": "2025-07-11",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NQTRF",
+      "totalParQuantity": 803502,
+      "shortParQuantity": 348367,
+      "marketCode": "Q",
+      "tradeReportDate": "2025-07-11",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 69692
+    },
+    {
+      "reportingFacilityCode": "NYTRF",
+      "totalParQuantity": 42089,
+      "shortParQuantity": 17480,
+      "marketCode": "N",
+      "tradeReportDate": "2025-07-11",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NCTRF",
+      "totalParQuantity": 1901,
+      "shortParQuantity": 701,
+      "marketCode": "B",
+      "tradeReportDate": "2025-07-09",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 700
+    },
+    {
+      "reportingFacilityCode": "NQTRF",
+      "totalParQuantity": 1189995,
+      "shortParQuantity": 790507,
+      "marketCode": "Q",
+      "tradeReportDate": "2025-07-09",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 55559
+    },
+    {
+      "reportingFacilityCode": "NYTRF",
+      "totalParQuantity": 28945,
+      "shortParQuantity": 1730,
+      "marketCode": "N",
+      "tradeReportDate": "2025-07-09",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NCTRF",
+      "totalParQuantity": 3900,
+      "shortParQuantity": 3800,
+      "marketCode": "B",
+      "tradeReportDate": "2025-06-27",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NQTRF",
+      "totalParQuantity": 752601,
+      "shortParQuantity": 377513,
+      "marketCode": "Q",
+      "tradeReportDate": "2025-06-27",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 62568
+    },
+    {
+      "reportingFacilityCode": "NYTRF",
+      "totalParQuantity": 69249,
+      "shortParQuantity": 265,
+      "marketCode": "N",
+      "tradeReportDate": "2025-06-27",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NQTRF",
+      "totalParQuantity": 384773,
+      "shortParQuantity": 111771,
+      "marketCode": "Q",
+      "tradeReportDate": "2025-06-09",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NYTRF",
+      "totalParQuantity": 164,
+      "shortParQuantity": 99,
+      "marketCode": "N",
+      "tradeReportDate": "2025-06-09",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NQTRF",
+      "totalParQuantity": 492031,
+      "shortParQuantity": 247092,
+      "marketCode": "Q",
+      "tradeReportDate": "2025-06-26",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 8230
+    },
+    {
+      "reportingFacilityCode": "NYTRF",
+      "totalParQuantity": 6384,
+      "shortParQuantity": 1855,
+      "marketCode": "N",
+      "tradeReportDate": "2025-06-26",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NQTRF",
+      "totalParQuantity": 316590,
+      "shortParQuantity": 61839,
+      "marketCode": "Q",
+      "tradeReportDate": "2025-06-16",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 139
+    },
+    {
+      "reportingFacilityCode": "NYTRF",
+      "totalParQuantity": 940,
+      "shortParQuantity": 850,
+      "marketCode": "N",
+      "tradeReportDate": "2025-06-16",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NQTRF",
+      "totalParQuantity": 54517,
+      "shortParQuantity": 11809,
+      "marketCode": "Q",
+      "tradeReportDate": "2025-08-27",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NCTRF",
+      "totalParQuantity": 5044,
+      "shortParQuantity": 2992,
+      "marketCode": "B",
+      "tradeReportDate": "2025-06-24",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NQTRF",
+      "totalParQuantity": 9101154,
+      "shortParQuantity": 4790160,
+      "marketCode": "Q",
+      "tradeReportDate": "2025-06-24",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 66003
+    },
+    {
+      "reportingFacilityCode": "NYTRF",
+      "totalParQuantity": 259985,
+      "shortParQuantity": 51963,
+      "marketCode": "N",
+      "tradeReportDate": "2025-06-24",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NCTRF",
+      "totalParQuantity": 276613,
+      "shortParQuantity": 155636,
+      "marketCode": "B",
+      "tradeReportDate": "2025-06-23",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NQTRF",
+      "totalParQuantity": 76468821,
+      "shortParQuantity": 42408734,
+      "marketCode": "Q",
+      "tradeReportDate": "2025-06-23",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 283932
+    },
+    {
+      "reportingFacilityCode": "NYTRF",
+      "totalParQuantity": 3168803,
+      "shortParQuantity": 1118142,
+      "marketCode": "N",
+      "tradeReportDate": "2025-06-23",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NCTRF",
+      "totalParQuantity": 500,
+      "shortParQuantity": 500,
+      "marketCode": "B",
+      "tradeReportDate": "2025-06-20",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NQTRF",
+      "totalParQuantity": 1955430,
+      "shortParQuantity": 577222,
+      "marketCode": "Q",
+      "tradeReportDate": "2025-06-20",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 77633
+    },
+    {
+      "reportingFacilityCode": "NYTRF",
+      "totalParQuantity": 23227,
+      "shortParQuantity": 200,
+      "marketCode": "N",
+      "tradeReportDate": "2025-06-20",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NQTRF",
+      "totalParQuantity": 312157,
+      "shortParQuantity": 62426,
+      "marketCode": "Q",
+      "tradeReportDate": "2025-06-13",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 130
+    },
+    {
+      "reportingFacilityCode": "NYTRF",
+      "totalParQuantity": 3440,
+      "shortParQuantity": 135,
+      "marketCode": "N",
+      "tradeReportDate": "2025-06-13",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NCTRF",
+      "totalParQuantity": 4101,
+      "shortParQuantity": 1000,
+      "marketCode": "B",
+      "tradeReportDate": "2025-11-28",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NQTRF",
+      "totalParQuantity": 65159,
+      "shortParQuantity": 26378,
+      "marketCode": "Q",
+      "tradeReportDate": "2025-11-28",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NYTRF",
+      "totalParQuantity": 1441,
+      "shortParQuantity": 228,
+      "marketCode": "N",
+      "tradeReportDate": "2025-11-28",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NQTRF",
+      "totalParQuantity": 650418,
+      "shortParQuantity": 102854,
+      "marketCode": "Q",
+      "tradeReportDate": "2025-06-03",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 5498
+    },
+    {
+      "reportingFacilityCode": "NYTRF",
+      "totalParQuantity": 1403,
+      "shortParQuantity": 220,
+      "marketCode": "N",
+      "tradeReportDate": "2025-06-03",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NCTRF",
+      "totalParQuantity": 625,
+      "shortParQuantity": 300,
+      "marketCode": "B",
+      "tradeReportDate": "2025-05-30",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NQTRF",
+      "totalParQuantity": 793857,
+      "shortParQuantity": 188731,
+      "marketCode": "Q",
+      "tradeReportDate": "2025-05-30",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 15000
+    },
+    {
+      "reportingFacilityCode": "NYTRF",
+      "totalParQuantity": 36391,
+      "shortParQuantity": 2087,
+      "marketCode": "N",
+      "tradeReportDate": "2025-05-30",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NCTRF",
+      "totalParQuantity": 19183,
+      "shortParQuantity": 11465,
+      "marketCode": "B",
+      "tradeReportDate": "2025-05-28",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 5135
+    },
+    {
+      "reportingFacilityCode": "NQTRF",
+      "totalParQuantity": 4409732,
+      "shortParQuantity": 2339815,
+      "marketCode": "Q",
+      "tradeReportDate": "2025-05-28",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 281390
+    },
+    {
+      "reportingFacilityCode": "NYTRF",
+      "totalParQuantity": 187478,
+      "shortParQuantity": 105936,
+      "marketCode": "N",
+      "tradeReportDate": "2025-05-28",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NQTRF",
+      "totalParQuantity": 367957,
+      "shortParQuantity": 60315,
+      "marketCode": "Q",
+      "tradeReportDate": "2025-06-11",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NYTRF",
+      "totalParQuantity": 20184,
+      "shortParQuantity": 184,
+      "marketCode": "N",
+      "tradeReportDate": "2025-06-11",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NQTRF",
+      "totalParQuantity": 737648,
+      "shortParQuantity": 123803,
+      "marketCode": "Q",
+      "tradeReportDate": "2025-06-10",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NYTRF",
+      "totalParQuantity": 235,
+      "shortParQuantity": 235,
+      "marketCode": "N",
+      "tradeReportDate": "2025-06-10",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NCTRF",
+      "totalParQuantity": 168,
+      "shortParQuantity": 168,
+      "marketCode": "B",
+      "tradeReportDate": "2025-06-04",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 168
+    },
+    {
+      "reportingFacilityCode": "NQTRF",
+      "totalParQuantity": 556843,
+      "shortParQuantity": 103179,
+      "marketCode": "Q",
+      "tradeReportDate": "2025-06-04",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 10068
+    },
+    {
+      "reportingFacilityCode": "NYTRF",
+      "totalParQuantity": 1007,
+      "shortParQuantity": 7,
+      "marketCode": "N",
+      "tradeReportDate": "2025-06-04",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NCTRF",
+      "totalParQuantity": 3803,
+      "shortParQuantity": 3802,
+      "marketCode": "B",
+      "tradeReportDate": "2025-05-22",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 3702
+    },
+    {
+      "reportingFacilityCode": "NQTRF",
+      "totalParQuantity": 1163985,
+      "shortParQuantity": 320883,
+      "marketCode": "Q",
+      "tradeReportDate": "2025-05-22",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 72717
+    },
+    {
+      "reportingFacilityCode": "NYTRF",
+      "totalParQuantity": 47683,
+      "shortParQuantity": 9548,
+      "marketCode": "N",
+      "tradeReportDate": "2025-05-22",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NQTRF",
+      "totalParQuantity": 376151,
+      "shortParQuantity": 48427,
+      "marketCode": "Q",
+      "tradeReportDate": "2025-05-21",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 390
+    },
+    {
+      "reportingFacilityCode": "NYTRF",
+      "totalParQuantity": 21793,
+      "shortParQuantity": 37,
+      "marketCode": "N",
+      "tradeReportDate": "2025-05-21",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NQTRF",
+      "totalParQuantity": 1319195,
+      "shortParQuantity": 843920,
+      "marketCode": "Q",
+      "tradeReportDate": "2025-06-25",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NYTRF",
+      "totalParQuantity": 4624,
+      "shortParQuantity": 2342,
+      "marketCode": "N",
+      "tradeReportDate": "2025-06-25",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NQTRF",
+      "totalParQuantity": 543466,
+      "shortParQuantity": 123755,
+      "marketCode": "Q",
+      "tradeReportDate": "2025-06-17",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 12062
+    },
+    {
+      "reportingFacilityCode": "NYTRF",
+      "totalParQuantity": 11168,
+      "shortParQuantity": 3,
+      "marketCode": "N",
+      "tradeReportDate": "2025-06-17",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NQTRF",
+      "totalParQuantity": 149645,
+      "shortParQuantity": 29556,
+      "marketCode": "Q",
+      "tradeReportDate": "2025-06-06",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NCTRF",
+      "totalParQuantity": 4675,
+      "shortParQuantity": 400,
+      "marketCode": "B",
+      "tradeReportDate": "2025-05-29",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NQTRF",
+      "totalParQuantity": 1470637,
+      "shortParQuantity": 372274,
+      "marketCode": "Q",
+      "tradeReportDate": "2025-05-29",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 5128
+    },
+    {
+      "reportingFacilityCode": "NYTRF",
+      "totalParQuantity": 60735,
+      "shortParQuantity": 26922,
+      "marketCode": "N",
+      "tradeReportDate": "2025-05-29",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NQTRF",
+      "totalParQuantity": 440026,
+      "shortParQuantity": 133884,
+      "marketCode": "Q",
+      "tradeReportDate": "2025-05-23",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 9617
+    },
+    {
+      "reportingFacilityCode": "NYTRF",
+      "totalParQuantity": 21415,
+      "shortParQuantity": 1302,
+      "marketCode": "N",
+      "tradeReportDate": "2025-05-23",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NQTRF",
+      "totalParQuantity": 14170,
+      "shortParQuantity": 10848,
+      "marketCode": "Q",
+      "tradeReportDate": "2025-12-24",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NYTRF",
+      "totalParQuantity": 1540,
+      "shortParQuantity": 111,
+      "marketCode": "N",
+      "tradeReportDate": "2025-12-24",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NCTRF",
+      "totalParQuantity": 100,
+      "shortParQuantity": 100,
+      "marketCode": "B",
+      "tradeReportDate": "2025-06-18",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 100
+    },
+    {
+      "reportingFacilityCode": "NQTRF",
+      "totalParQuantity": 2043413,
+      "shortParQuantity": 371316,
+      "marketCode": "Q",
+      "tradeReportDate": "2025-06-18",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 7411
+    },
+    {
+      "reportingFacilityCode": "NYTRF",
+      "totalParQuantity": 528,
+      "shortParQuantity": 310,
+      "marketCode": "N",
+      "tradeReportDate": "2025-06-18",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NQTRF",
+      "totalParQuantity": 268736,
+      "shortParQuantity": 28700,
+      "marketCode": "Q",
+      "tradeReportDate": "2025-06-12",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NYTRF",
+      "totalParQuantity": 3175,
+      "shortParQuantity": 175,
+      "marketCode": "N",
+      "tradeReportDate": "2025-06-12",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NQTRF",
+      "totalParQuantity": 110086,
+      "shortParQuantity": 35371,
+      "marketCode": "Q",
+      "tradeReportDate": "2025-06-05",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 500
+    },
+    {
+      "reportingFacilityCode": "NYTRF",
+      "totalParQuantity": 80,
+      "shortParQuantity": 80,
+      "marketCode": "N",
+      "tradeReportDate": "2025-06-05",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NCTRF",
+      "totalParQuantity": 4303,
+      "shortParQuantity": 4300,
+      "marketCode": "B",
+      "tradeReportDate": "2025-07-10",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NQTRF",
+      "totalParQuantity": 911118,
+      "shortParQuantity": 533751,
+      "marketCode": "Q",
+      "tradeReportDate": "2025-07-10",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 22161
+    },
+    {
+      "reportingFacilityCode": "NYTRF",
+      "totalParQuantity": 58962,
+      "shortParQuantity": 43536,
+      "marketCode": "N",
+      "tradeReportDate": "2025-07-10",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NCTRF",
+      "totalParQuantity": 1000,
+      "shortParQuantity": 1000,
+      "marketCode": "B",
+      "tradeReportDate": "2025-06-02",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NQTRF",
+      "totalParQuantity": 413389,
+      "shortParQuantity": 51996,
+      "marketCode": "Q",
+      "tradeReportDate": "2025-06-02",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    },
+    {
+      "reportingFacilityCode": "NQTRF",
+      "totalParQuantity": 490345,
+      "shortParQuantity": 272739,
+      "marketCode": "Q",
+      "tradeReportDate": "2025-07-03",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 31295
+    },
+    {
+      "reportingFacilityCode": "NYTRF",
+      "totalParQuantity": 23794,
+      "shortParQuantity": 10983,
+      "marketCode": "N",
+      "tradeReportDate": "2025-07-03",
+      "securitiesInformationProcessorSymbolIdentifier": "CURR",
+      "shortExemptParQuantity": 0
+    }
+  ]
+}

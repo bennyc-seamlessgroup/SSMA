@@ -1,0 +1,43 @@
+{
+  "ticker": "CURR",
+  "asOfDate": "2026-05-26",
+  "importedAt": "2026-05-26T11:26:45.496Z",
+  "source": "Sample Data normalized",
+  "sourcePlatform": "Ortex",
+  "recordType": "cashFlow",
+  "category": "financials",
+  "recordCount": 1,
+  "status": "ready",
+  "notes": null,
+  "originalFiles": [
+    "Sample Data/Ortex/fundamentals_cash.json"
+  ],
+  "data": [
+    {
+      "estimatedValues": false,
+      "normalizedNetIncome": -9546147,
+      "depreciationAndAmortization": null,
+      "stockBasedCompensation": null,
+      "otherOperatingActivities": -1130631,
+      "changeInAccountsReceivable": 1067408,
+      "changeInInventories": null,
+      "changeInAccountsPayable": 9023647,
+      "changeInUnearnedRevenues": null,
+      "changeInOtherNetOperatingAssets": 9541845,
+      "cashFromOperations": 12079651,
+      "capitalExpenditure": -405880,
+      "saleOfPropertyPlantAndEquipment": null,
+      "cashAcquisitions": null,
+      "divestitures": null,
+      "investmentInMarketableSecurities": -458,
+      "otherInvestingActivities": null,
+      "cashFromInvesting": -406338,
+      "cashFromFinancing": -10124814,
+      "paymentsForDividends": null,
+      "debtIssued": 17385882,
+      "debtRepaid": -27510696,
+      "issuanceOfCommonStock": null,
+      "otherFinancingActivities": null
+    }
+  ]
+}

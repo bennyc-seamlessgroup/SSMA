@@ -1,0 +1,55 @@
+{
+  "api-path": "/api/v1/stock/{exchange_symbol}/{ticker}/fundamentals/balance",
+  "description": "",
+  "param": [
+    {
+      "name": "exchange_symbol",
+      "value": "nasdaq",
+      "in": "path"
+    },
+    {
+      "name": "ticker",
+      "value": "CURR",
+      "in": "path"
+    }
+  ],
+  "output": {
+    "company": "CURRENC Group Inc.",
+    "period": "2021",
+    "category": "balance",
+    "data": {
+      "estimatedValues": false,
+      "currentAssets": null,
+      "cashAndCashEquivalents": 71817139.0,
+      "shortTermInvestments": 5149385.0,
+      "accountsReceivable": 7062904.0,
+      "inventory": 1252740.0,
+      "prepaidExpenses": 332866.0,
+      "totalCurrentAssets": 102513388.0,
+      "propertyPlantAndEquipment": 4963756.0,
+      "accumulatedDepreciation": -3511887.0,
+      "netPp&e": 1451869.0,
+      "longTermAssets": null,
+      "goodwill": 19229528.0,
+      "otherIntangibles": 32613225.0,
+      "deferredTaxAssets": 106151.0,
+      "totalAssets": 136784633.0,
+      "netDebt": -44422248.0,
+      "debt": 23481302.0,
+      "accountsPayable": 10848.0,
+      "accruedExpenses": 12432417.0,
+      "currentPortionOfLtDebt": 11705452.0,
+      "totalCurrentLiabilities": 131572066.0,
+      "longTermDebt": 11296483.0,
+      "longTermLeases": 23758.0,
+      "totalLiabilities": 144878384.0,
+      "commonStock": 58030.0,
+      "additionalPaidInCapital": 29172373.0,
+      "retainedEarnings": -60090694.0,
+      "treasuryStock": null,
+      "totalEquity": -8093751.0
+    },
+    "creditsUsed": 0.85,
+    "creditsLeft": 999
+  }
+}

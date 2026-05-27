@@ -1,0 +1,25 @@
+{
+  "ticker": "CURR",
+  "asOfDate": "2026-05-26",
+  "importedAt": "2026-05-26T11:26:45.496Z",
+  "source": "Sample Data normalized",
+  "sourcePlatform": "Ortex",
+  "recordType": "shortScore",
+  "category": "short",
+  "recordCount": 2,
+  "status": "ready",
+  "notes": null,
+  "originalFiles": [
+    "Sample Data/Ortex/short_score.json"
+  ],
+  "data": [
+    {
+      "date": "2026-04-28",
+      "score": 70.3186
+    },
+    {
+      "date": "2026-04-29",
+      "score": 70.2177
+    }
+  ]
+}

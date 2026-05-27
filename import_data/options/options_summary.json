@@ -1,0 +1,39 @@
+{
+  "ticker": "CURR",
+  "asOfDate": "2026-05-26",
+  "importedAt": "2026-05-26T11:26:45.496Z",
+  "source": "Sample Data normalized",
+  "sourcePlatform": "Ortex",
+  "recordType": "optionsSummary",
+  "category": "options",
+  "recordCount": 1,
+  "status": "ready",
+  "notes": null,
+  "originalFiles": [
+    "Sample Data/Ortex/options_chain.json",
+    "Sample Data/Ortex/options_sentiment_pcr.json"
+  ],
+  "data": {
+    "chain": [],
+    "putCallOpenInterestRatio": {
+      "creditsUsed": 0.15,
+      "creditsLeft": 999
+    },
+    "putCallVolumeRatio": {
+      "creditsUsed": 0.15,
+      "creditsLeft": 999
+    },
+    "impliedVolatility": [
+      {
+        "creditsUsed": 0.15,
+        "creditsLeft": 999
+      }
+    ],
+    "optionVolume": [
+      {
+        "creditsUsed": 0.15,
+        "creditsLeft": 999
+      }
+    ]
+  }
+}

@@ -1,0 +1,33 @@
+{
+  "ticker": "CURR",
+  "asOfDate": "2026-05-26",
+  "importedAt": "2026-05-26T11:26:45.496Z",
+  "source": "Demo alert synthesis",
+  "sourcePlatform": "Internal",
+  "recordType": "alerts",
+  "category": "alerts",
+  "recordCount": 2,
+  "status": "ready",
+  "notes": null,
+  "originalFiles": [],
+  "data": [
+    {
+      "id": "alert-short-interest-001",
+      "alertType": "shortInterestSpike",
+      "severity": "medium",
+      "title": "Short interest remains elevated",
+      "triggeredAt": "2026-05-26T11:26:45.496Z",
+      "status": "open",
+      "relatedFile": "import_data/short/short_interest.json"
+    },
+    {
+      "id": "alert-ownership-001",
+      "alertType": "largeInstitutionalBuyer",
+      "severity": "low",
+      "title": "Institutional accumulation detected in sample ownership data",
+      "triggeredAt": "2026-05-26T11:26:45.496Z",
+      "status": "open",
+      "relatedFile": "import_data/ownership/ownership_changes.json"
+    }
+  ]
+}
