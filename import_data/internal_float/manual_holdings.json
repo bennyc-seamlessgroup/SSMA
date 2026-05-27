@@ -1,0 +1,46 @@
+{
+  "ticker": "CURR",
+  "asOfDate": "2026-05-27",
+  "importedAt": "2026-05-27T10:58:38.498Z",
+  "source": "Manual demo seed and portal edits",
+  "sourcePlatform": "Internal Management Input",
+  "recordType": "manualHoldings",
+  "category": "internal_float",
+  "recordCount": 2,
+  "status": "ready",
+  "notes": "Private management estimates. Demo environment stores rows in import_data for review.",
+  "data": [
+    {
+      "id": "demo-ceo-controlled-account",
+      "holderName": "CEO Controlled Account",
+      "holderType": "CEO",
+      "accountType": "Personal Brokerage",
+      "brokerCustodian": "Private Broker A",
+      "numberOfShares": 1000000,
+      "tradabilityStatus": "Long-Term Held",
+      "lendingAvailability": "Not Available for Lending",
+      "tokenizationStatus": "Not Tokenized",
+      "lockUpStatus": "Insider Restriction",
+      "confidenceLevel": "High",
+      "sourceType": "Personally Controlled",
+      "notes": "Fictional demo management-controlled account.",
+      "calculatedPercentageOfSharesOutstanding": 1.723246596587972
+    },
+    {
+      "id": "20ab2158-1c1e-4889-8bbe-db0cd0b6643b",
+      "holderName": "New Holder",
+      "holderType": "Management",
+      "accountType": "Other",
+      "brokerCustodian": "",
+      "numberOfShares": 10000,
+      "tradabilityStatus": "Not Available for Trading",
+      "lendingAvailability": "Unknown",
+      "tokenizationStatus": "Not Tokenized",
+      "lockUpStatus": "No Lock-up",
+      "confidenceLevel": "Medium",
+      "sourceType": "Internal Estimate",
+      "notes": "",
+      "calculatedPercentageOfSharesOutstanding": 0.017232465965879715
+    }
+  ]
+}

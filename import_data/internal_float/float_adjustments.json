@@ -1,0 +1,31 @@
+{
+  "ticker": "CURR",
+  "asOfDate": "2026-05-27",
+  "importedAt": "2026-05-27T10:58:38.498Z",
+  "source": "Calculated from public market data and internal management input",
+  "sourcePlatform": "Public Market Data + Internal Management Input",
+  "recordType": "floatAdjustments",
+  "category": "internal_float",
+  "recordCount": 1,
+  "status": "ready",
+  "notes": "Calculated estimates for internal analysis only.",
+  "data": {
+    "officialSharesOutstanding": 58030000,
+    "officialFreeFloat": 32664808,
+    "officialShortInterestShares": 940721,
+    "managementControlledShares": 1010000,
+    "strategicLockedShares": 1000000,
+    "tokenizedShares": 0,
+    "unavailableForTradingShares": 1010000,
+    "unavailableForLendingShares": 1010000,
+    "estimatedRealTradableFloat": 31654808,
+    "estimatedRealLendableFloat": 31654808,
+    "officialShortInterestPercentFloat": 2.8799220249511337,
+    "adjustedShortInterestRealFloat": 2.9718107909547262,
+    "adjustedShortInterestLendableFloat": 2.9718107909547262,
+    "floatReductionPercent": 3.092012663904224,
+    "lendingPoolReductionPercent": 3.092012663904224,
+    "internalSqueezeRiskAdjustment": "Elevated",
+    "internalAdjustedSqueezeScore": 69
+  }
+}

@@ -1,6 +1,6 @@
 {
   "importedAt": "2026-05-27T09:00:00.000Z",
-  "recordCount": 22,
+  "recordCount": 27,
   "data": [
     {
       "sourceFile": "Sample Data/Ortex/fundamentals_summary.json",
@@ -177,6 +177,46 @@
       "importTime": "2026-05-27T09:00:00.000Z",
       "status": "mapped",
       "notes": "Demo data created for sentiment intelligence workflow."
+    },
+    {
+      "sourceFile": "Manual demo seed",
+      "destinationFile": "import_data/internal_float/manual_holdings.json",
+      "detectedDataType": "internal float management input",
+      "importTime": "2026-05-27T09:00:00.000Z",
+      "status": "mapped",
+      "notes": "Fictional demo data created for Internal Float Intelligence workflow."
+    },
+    {
+      "sourceFile": "Manual demo seed",
+      "destinationFile": "import_data/internal_float/float_adjustments.json",
+      "detectedDataType": "internal float management input",
+      "importTime": "2026-05-27T09:00:00.000Z",
+      "status": "mapped",
+      "notes": "Fictional demo data created for Internal Float Intelligence workflow."
+    },
+    {
+      "sourceFile": "Manual demo seed",
+      "destinationFile": "import_data/internal_float/tokenized_shares.json",
+      "detectedDataType": "internal float management input",
+      "importTime": "2026-05-27T09:00:00.000Z",
+      "status": "mapped",
+      "notes": "Fictional demo data created for Internal Float Intelligence workflow."
+    },
+    {
+      "sourceFile": "Manual demo seed",
+      "destinationFile": "import_data/internal_float/lending_availability.json",
+      "detectedDataType": "internal float management input",
+      "importTime": "2026-05-27T09:00:00.000Z",
+      "status": "mapped",
+      "notes": "Fictional demo data created for Internal Float Intelligence workflow."
+    },
+    {
+      "sourceFile": "Manual demo seed",
+      "destinationFile": "import_data/internal_float/internal_float_analysis.json",
+      "detectedDataType": "internal float management input",
+      "importTime": "2026-05-27T09:00:00.000Z",
+      "status": "mapped",
+      "notes": "Fictional demo data created for Internal Float Intelligence workflow."
     }
   ]
 }

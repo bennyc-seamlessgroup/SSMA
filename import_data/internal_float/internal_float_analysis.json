@@ -1,0 +1,39 @@
+{
+  "ticker": "CURR",
+  "asOfDate": "2026-05-27",
+  "importedAt": "2026-05-27T10:58:38.498Z",
+  "source": "Calculated from public market data and internal management input",
+  "sourcePlatform": "Internal Management Input",
+  "recordType": "internalFloatAnalysis",
+  "category": "internal_float",
+  "recordCount": 1,
+  "status": "ready",
+  "notes": "Executive-style internal estimate, not legal, investment, or regulatory advice.",
+  "data": {
+    "summary": "Based on management-provided internal inputs, the estimated real tradable float may be materially lower than the official free float. This internal management view suggests public short interest may understate pressure when locked, tokenized, and long-term controlled shares are removed from the active float estimate.",
+    "riskNotes": [
+      "Estimated adjusted float is based on manual inputs and is not based solely on public market data.",
+      "Tokenized or locked holdings may reduce both active trading supply and broker lending availability.",
+      "Adjusted short interest percentages should be treated as internal estimates for management review only."
+    ],
+    "adjustments": {
+      "officialSharesOutstanding": 58030000,
+      "officialFreeFloat": 32664808,
+      "officialShortInterestShares": 940721,
+      "managementControlledShares": 1010000,
+      "strategicLockedShares": 1000000,
+      "tokenizedShares": 0,
+      "unavailableForTradingShares": 1010000,
+      "unavailableForLendingShares": 1010000,
+      "estimatedRealTradableFloat": 31654808,
+      "estimatedRealLendableFloat": 31654808,
+      "officialShortInterestPercentFloat": 2.8799220249511337,
+      "adjustedShortInterestRealFloat": 2.9718107909547262,
+      "adjustedShortInterestLendableFloat": 2.9718107909547262,
+      "floatReductionPercent": 3.092012663904224,
+      "lendingPoolReductionPercent": 3.092012663904224,
+      "internalSqueezeRiskAdjustment": "Elevated",
+      "internalAdjustedSqueezeScore": 69
+    }
+  }
+}

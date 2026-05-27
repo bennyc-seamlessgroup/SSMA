@@ -1,0 +1,32 @@
+{
+  "ticker": "CURR",
+  "asOfDate": "2026-05-27",
+  "importedAt": "2026-05-27T10:58:38.498Z",
+  "source": "Manual management input",
+  "sourcePlatform": "Internal Management Input",
+  "recordType": "lendingAvailability",
+  "category": "internal_float",
+  "recordCount": 2,
+  "status": "ready",
+  "notes": "Management-provided estimate of lending availability by holder/account.",
+  "data": [
+    {
+      "id": "demo-ceo-controlled-account",
+      "holderName": "CEO Controlled Account",
+      "numberOfShares": 1000000,
+      "confidenceLevel": "High",
+      "sourceType": "Personally Controlled",
+      "lendingAvailability": "Not Available for Lending",
+      "estimatedUnavailableForLending": true
+    },
+    {
+      "id": "20ab2158-1c1e-4889-8bbe-db0cd0b6643b",
+      "holderName": "New Holder",
+      "numberOfShares": 10000,
+      "confidenceLevel": "Medium",
+      "sourceType": "Internal Estimate",
+      "lendingAvailability": "Unknown",
+      "estimatedUnavailableForLending": false
+    }
+  ]
+}

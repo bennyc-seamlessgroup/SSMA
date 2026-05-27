@@ -52,6 +52,10 @@
     {
       "category": "sentiment",
       "lastUpdated": "2026-05-27T09:00:00.000Z"
+    },
+    {
+      "category": "internal_float",
+      "lastUpdated": "2026-05-27T09:00:00.000Z"
     }
   ]
 }

@@ -1,6 +1,6 @@
 {
   "importedAt": "2026-05-27T09:00:00.000Z",
-  "recordCount": 50,
+  "recordCount": 55,
   "data": [
     {
       "file": "import_data/company/profile.json",
@@ -400,6 +400,46 @@
       "expectedSource": "Manual Upload/Internal",
       "connectorOwner": "backend",
       "updateCadence": "scheduled import",
+      "status": "ready"
+    },
+    {
+      "file": "import_data/internal_float/manual_holdings.json",
+      "category": "internal_float",
+      "expectedSource": "Internal Management Input",
+      "connectorOwner": "portal",
+      "updateCadence": "manual entry",
+      "status": "ready"
+    },
+    {
+      "file": "import_data/internal_float/float_adjustments.json",
+      "category": "internal_float",
+      "expectedSource": "Public Market Data + Internal Management Input",
+      "connectorOwner": "portal",
+      "updateCadence": "on save / recalculation",
+      "status": "ready"
+    },
+    {
+      "file": "import_data/internal_float/tokenized_shares.json",
+      "category": "internal_float",
+      "expectedSource": "Internal Management Input",
+      "connectorOwner": "portal",
+      "updateCadence": "on save / recalculation",
+      "status": "ready"
+    },
+    {
+      "file": "import_data/internal_float/lending_availability.json",
+      "category": "internal_float",
+      "expectedSource": "Internal Management Input",
+      "connectorOwner": "portal",
+      "updateCadence": "on save / recalculation",
+      "status": "ready"
+    },
+    {
+      "file": "import_data/internal_float/internal_float_analysis.json",
+      "category": "internal_float",
+      "expectedSource": "Internal Management Input",
+      "connectorOwner": "portal",
+      "updateCadence": "on save / recalculation",
       "status": "ready"
     }
   ]

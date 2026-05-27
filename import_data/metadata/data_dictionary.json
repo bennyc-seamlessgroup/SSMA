@@ -1,6 +1,6 @@
 {
-  "importedAt": "2026-05-27T09:00:00.000Z",
-  "recordCount": 34,
+  "importedAt": "2026-05-27T09:43:08.658Z",
+  "recordCount": 48,
   "data": [
     {
       "field": "ticker",
@@ -137,6 +137,62 @@
     {
       "field": "engagement",
       "definition": "Imported engagement count for the mention."
+    },
+    {
+      "field": "officialFreeFloat",
+      "definition": "Official public free float from public market data or provider-derived capital structure data."
+    },
+    {
+      "field": "estimatedRealTradableFloat",
+      "definition": "Internal management estimate of tradable float after subtracting locked, tokenized, long-term held, and unavailable-for-trading shares from official free float."
+    },
+    {
+      "field": "estimatedRealLendableFloat",
+      "definition": "Internal management estimate of lendable float after subtracting shares unavailable for lending, tokenized shares, and locked shares from official free float."
+    },
+    {
+      "field": "managementControlledShares",
+      "definition": "Shares known by management to be controlled by executives, founders, directors, affiliated entities, treasury-related structures, or major shareholders."
+    },
+    {
+      "field": "tokenizedShares",
+      "definition": "Shares marked as tokenized, pending tokenization, locked on-chain, or removed from broker lending pool in manual internal inputs."
+    },
+    {
+      "field": "unavailableForTradingShares",
+      "definition": "Manual-input shares estimated to be unavailable for active trading due to restriction, lock-up, tokenization, long-term hold, or similar status."
+    },
+    {
+      "field": "unavailableForLendingShares",
+      "definition": "Manual-input shares estimated to be unavailable for securities lending."
+    },
+    {
+      "field": "adjustedShortInterestRealFloat",
+      "definition": "Official short interest divided by estimated real tradable float."
+    },
+    {
+      "field": "adjustedShortInterestLendableFloat",
+      "definition": "Official short interest divided by estimated real lendable float."
+    },
+    {
+      "field": "floatReductionPercent",
+      "definition": "Percentage reduction from official free float to estimated real tradable float."
+    },
+    {
+      "field": "lendingPoolReductionPercent",
+      "definition": "Percentage reduction from official free float to estimated real lendable float."
+    },
+    {
+      "field": "confidenceLevel",
+      "definition": "Management-provided confidence level for a manual internal holding: High, Medium, or Low."
+    },
+    {
+      "field": "sourceType",
+      "definition": "Origin of the internal ownership information, such as personally controlled, transfer agent record, trust structure, custodian statement, tokenized wallet, internal estimate, known friendly holder, legal record, or other."
+    },
+    {
+      "field": "calculatedPercentageOfSharesOutstanding",
+      "definition": "System-calculated holder share percentage equal to holder shares divided by official shares outstanding times 100."
     }
   ]
 }

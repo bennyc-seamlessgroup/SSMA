@@ -19,6 +19,7 @@ const groups = [
       ['Insider Activity', 'insider'],
       ['Institutional Ownership', 'institutional'],
       ['Shareholder Watch', 'shareholder-watch'],
+      ['Internal Float Intelligence', 'internal-float'],
       ['Short Interest', 'short-interest'],
       ['Options / Gamma', 'options'],
       ['Sentiment', 'sentiment'],
@@ -50,6 +51,7 @@ const groups = [
     label: 'Admin / Data',
     items: [
       ['Import Data Pool', 'import-data'],
+      ['Manual Float Inputs', 'manual-float-inputs'],
       ['Source Map', 'source-map'],
       ['Data Dictionary', 'data-dictionary'],
       ['API Connectors', 'api-connectors'],

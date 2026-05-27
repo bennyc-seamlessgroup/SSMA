@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { InfoTooltip } from '@/components/InfoTooltip';
 import { buildImportDashboard, readImportFile } from '@/lib/import-data';
+import { readInternalFloatAdjustments } from '@/lib/internal-float';
 
 type Row = Record<string, unknown>;
 
@@ -191,6 +192,8 @@ export default async function CompanyDashboardPage() {
   const newsEnvelope = readImportFile<Row[]>('news_filings/news.json');
   const filingsEnvelope = readImportFile<Row[]>('news_filings/sec_filings.json');
   const sentimentEnvelope = readImportFile<Row[]>('sentiment/social_mentions.json');
+  const internalFloatEnvelope = readInternalFloatAdjustments();
+  const internalFloat = internalFloatEnvelope.data;
 
   const shortCurrent = record(record(shortInterestEnvelope.data).current);
   const shortHistory = rows(record(shortInterestEnvelope.data).finraHistory).slice(0, 10).reverse();
@@ -246,7 +249,8 @@ export default async function CompanyDashboardPage() {
   const percentile = Math.max(1, Math.round((marketRanking / marketUniverse) * 100));
 
   const kpis = [
-    { label: 'Short Squeeze Score', value: `${squeezeScore} / 100`, average: 'Market avg 42', rank: `Top ${percentile}%`, detail: `#${marketRanking} of ${marketUniverse}`, source: 'Internal Model', tone: 'bad', change: '+4.8', changeNote: 'risk rising', changeTone: 'bad', barValue: squeezeScore },
+    { label: 'Public Short Squeeze Score', value: `${squeezeScore} / 100`, average: 'Market avg 42', rank: `Top ${percentile}%`, detail: `#${marketRanking} of ${marketUniverse}`, source: 'Internal Model', tone: 'bad', change: '+4.8', changeNote: 'risk rising', changeTone: 'bad', barValue: squeezeScore },
+    { label: 'Internal Adjusted Squeeze Score', value: `${internalFloat.internalAdjustedSqueezeScore} / 100`, average: 'Private Management View', rank: `${formatPercent(internalFloat.floatReductionPercent, { maximumFractionDigits: 1 })} float reduction`, detail: 'Uses internal adjusted float and lendable float', source: 'Internal Management Input', tone: internalFloat.internalAdjustedSqueezeScore >= 75 ? 'bad' : internalFloat.internalAdjustedSqueezeScore >= 55 ? 'warn' : 'good', change: '+Private', changeNote: 'internal adjustment applied', changeTone: 'warn', barValue: internalFloat.internalAdjustedSqueezeScore },
     { label: 'US Market Ranking', value: `#${marketRanking}`, average: `${marketUniverse} stock universe`, rank: `Top ${percentile}%`, detail: 'Internal ranking engine placeholder', source: 'Internal Model', tone: 'bad', change: '+12', changeNote: 'moved up risk table', changeTone: 'bad', barValue: 99 - percentile },
     { label: 'Short Squeeze Probability', value: `${squeezeProbability}%`, average: 'Market avg 18%', rank: squeezeProbability >= 70 ? 'High probability band' : 'Watch band', detail: 'Model-calculated MVP estimate', source: 'Internal Model', tone: 'bad', change: '+3.1%', changeNote: 'probability higher', changeTone: 'bad', barValue: squeezeProbability },
     { label: 'Market Sentiment Score', value: `${sentimentScore} / 100`, average: `${socialMentions.length} social mentions`, rank: `${pct((positiveMentions / Math.max(socialMentions.length, 1)) * 100)} positive`, detail: 'Social media scan', source: 'Social Media Engine', tone: sentimentScore >= 70 ? 'good' : sentimentScore >= 45 ? 'warn' : 'bad', change: '+5.4', changeNote: 'sentiment improving', changeTone: 'good', barValue: sentimentScore },
@@ -308,6 +312,23 @@ export default async function CompanyDashboardPage() {
             </article>
           ))}
         </div>
+      </section>
+
+      <section className="terminal-section">
+        <div className="terminal-section__head">
+          <div>
+            <span>Private Management View</span>
+            <h2>Internal Float Adjustment</h2>
+          </div>
+          {sourceChip('Public Market Data + Internal Management Input')}
+        </div>
+        <div className="grid cols-4">
+          <div className="terminal-card terminal-stat"><span>Official Free Float</span><strong>{formatNumber(internalFloat.officialFreeFloat)}</strong><small>Public market view</small></div>
+          <div className="terminal-card terminal-stat"><span>Adjusted Real Float</span><strong>{formatNumber(internalFloat.estimatedRealTradableFloat)}</strong><small>Private management estimate</small></div>
+          <div className="terminal-card terminal-stat"><span>Float Reduction</span><strong>{formatPercent(internalFloat.floatReductionPercent, { maximumFractionDigits: 2 })}</strong><small>Official vs adjusted</small></div>
+          <div className="terminal-card terminal-stat"><span>Adjusted SI % Real Float</span><strong>{formatPercent(internalFloat.adjustedShortInterestRealFloat, { maximumFractionDigits: 2 })}</strong><small>Internal adjusted short pressure</small></div>
+        </div>
+        <p className="terminal-note">Placeholder score logic is ready to incorporate official short interest, official float, internal adjusted float, internal adjusted lendable float, tokenized shares, and unavailable lending shares.</p>
       </section>
 
       <section className="terminal-section ai-summary-section">
