@@ -9,7 +9,7 @@ const groups = [
     label: 'Company workspace',
     items: [
       ['Dashboard', 'dashboard'],
-      ['Company Overview', ''],
+      ['Overview (Obsolete)', ''],
     ],
   },
   {
@@ -64,7 +64,10 @@ export function Sidebar({ ticker, companyName }: { ticker: string; companyName: 
     <aside className="portal-sidebar company-sidebar">
       <Link href="/" className="brand-lockup portal-brand">
         <span className="brand-mark">CI</span>
-        <span>Currenc Intelligence</span>
+        <span className="portal-brand__text">
+          <strong>Currenc Intelligence</strong>
+          <small>Short Squeeze Monitoring &amp; Analysis</small>
+        </span>
       </Link>
 
       <div className="portal-help-card workspace-card">
@@ -74,20 +77,22 @@ export function Sidebar({ ticker, companyName }: { ticker: string; companyName: 
         <Link className="text-link" href={`/monitor/${ticker}/companies`}>Switch company</Link>
       </div>
 
-      {groups.map(group => (
-        <div key={group.label} className="portal-sidebar__group">
-          <div className="portal-sidebar__label">{group.label}</div>
-          {group.items.map(([label, slug]) => {
-            const href = `/monitor/${ticker}${slug ? `/${slug}` : ''}`;
-            const active = pathname === href;
-            return (
-              <Link key={slug || 'overview'} href={href as any} className={`portal-menu ${active ? 'active' : ''}`}>
-                <span>{label}</span>
-              </Link>
-            );
-          })}
-        </div>
-      ))}
+      <div className="portal-sidebar__scroll">
+        {groups.map(group => (
+          <div key={group.label} className="portal-sidebar__group">
+            <div className="portal-sidebar__label">{group.label}</div>
+            {group.items.map(([label, slug]) => {
+              const href = `/monitor/${ticker}${slug ? `/${slug}` : ''}`;
+              const active = pathname === href;
+              return (
+                <Link key={slug || 'overview'} href={href as any} className={`portal-menu ${active ? 'active' : ''}`}>
+                  <span>{label}</span>
+                </Link>
+              );
+            })}
+          </div>
+        ))}
+      </div>
 
       <UserMenu ticker={ticker} />
     </aside>
