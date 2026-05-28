@@ -2,9 +2,13 @@
 
 import Link from 'next/link';
 import { useState } from 'react';
+import { useParams } from 'next/navigation';
 import { accountCompanies } from '@/components/accountData';
+import { SettingsBackLink } from '@/components/SettingsBackLink';
 
 export default function CompaniesPage() {
+  const params = useParams<{ ticker: string }>();
+  const ticker = (params?.ticker ?? 'CURR').toUpperCase();
   const [isOpen, setIsOpen] = useState(false);
 
   return (
@@ -14,7 +18,10 @@ export default function CompaniesPage() {
           <h1 className="page__title">Company Management</h1>
           <p className="page__desc">Switch issuer workspaces, review account coverage, and add new monitored companies.</p>
         </div>
-        <button className="button" onClick={() => setIsOpen(true)}>Add Company</button>
+        <div className="page-header-actions">
+          <SettingsBackLink ticker={ticker} />
+          <button className="button" onClick={() => setIsOpen(true)}>Add Company</button>
+        </div>
       </div>
 
       <section className="panel">

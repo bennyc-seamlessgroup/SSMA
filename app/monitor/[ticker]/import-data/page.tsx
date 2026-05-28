@@ -1,4 +1,5 @@
 import { ImportDataTable } from '@/components/ImportDataTable';
+import { SettingsBackLink } from '@/components/SettingsBackLink';
 import { readImportDataPoolRows } from '@/lib/import-data';
 
 function formatDate(value: string) {
@@ -6,7 +7,9 @@ function formatDate(value: string) {
   return new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' }).format(new Date(value));
 }
 
-export default function ImportDataPoolPage() {
+export default async function ImportDataPoolPage({ params }: Readonly<{ params: Promise<{ ticker: string }> }>) {
+  const { ticker } = await params;
+  const normalizedTicker = ticker?.toUpperCase() ?? 'CURR';
   const rows = readImportDataPoolRows();
   const tableRows = rows.map(row => ({
     category: row.category,
@@ -25,6 +28,7 @@ export default function ImportDataPoolPage() {
           <h1 className="page__title">Import Data Pool</h1>
           <p className="page__desc">Standardized data files used by portal dashboards, AI reports, and alert logic.</p>
         </div>
+        <SettingsBackLink ticker={normalizedTicker} />
       </div>
 
       <section className="panel">

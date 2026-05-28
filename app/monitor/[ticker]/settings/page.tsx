@@ -1,45 +1,133 @@
 import Link from 'next/link';
 import { buildDashboard } from '@/lib/mock-data';
 
+const languageOptions = [
+  ['English', 'Active'],
+  ['Traditional Chinese', 'Coming soon'],
+  ['Simplified Chinese', 'Coming soon'],
+];
+
+const settingGroups = [
+  {
+    title: 'Account',
+    rows: [
+      ['Profile', 'Demo user, email, and display preferences', null],
+      ['Role & Permissions', 'Manage executives, IR users, advisors, and viewer access', 'role-permissions'],
+      ['Billing & Plan', 'Subscription coverage, seats, invoice routing, and retention', 'billing'],
+    ],
+  },
+  {
+    title: 'Workspace',
+    rows: [
+      ['Company Management', 'Switch company, add issuer workspaces, and manage coverage', 'companies'],
+      ['Language', 'Portal display language preference for this account', null],
+      ['Data Display', 'Number formats, timezone, market session, and chart defaults', null],
+    ],
+  },
+  {
+    title: 'Reports & Alerts',
+    rows: [
+      ['Delivery Settings', 'Recipients, report windows, approval flow, and test emails', 'email-settings'],
+      ['Notifications', 'Email, in-app, and executive alert routing preferences', 'notifications'],
+      ['Alert Rules', 'Thresholds for short pressure, sentiment, ownership, and filings', 'alert-rules'],
+    ],
+  },
+  {
+    title: 'Security & Governance',
+    rows: [
+      ['Security Policy', 'Session controls, access review, and protected workspace rules', 'policy'],
+      ['Data Sources', 'Import pool, source map, data dictionary, and connector readiness', 'import-data'],
+      ['Audit Trail', 'Report archive history and future user activity logs', 'reports'],
+    ],
+  },
+];
+
 export default async function SettingsPage({ params }: Readonly<{ params: Promise<{ ticker: string }> }>) {
   const { ticker } = await params;
   const company = buildDashboard(ticker).company;
 
   return (
-    <div className="page">
+    <div className="page settings-page">
       <div className="page__header">
         <div>
           <h1 className="page__title">Settings</h1>
-          <p className="page__desc">Account, workspace, delivery, and governance settings for the current company workspace.</p>
+          <p className="page__desc">Manage account preferences, workspace access, report delivery, alerts, and governance controls for this company workspace.</p>
         </div>
       </div>
 
-      <section className="grid cols-3">
-        <div className="panel">
-          <h2 className="panel__title">Profile & Access</h2>
-          <div className="section-list">
-            <div className="section"><strong>Demo User</strong><p className="page__desc" style={{ margin: '6px 0 0' }}>IR Admin · demo@currencintel.com</p></div>
-            <div className="section">Role and permission management</div>
-            <div className="section">Session and security policy</div>
+      <section className="settings-hero">
+        <div className="settings-profile-card">
+          <div className="settings-avatar">DU</div>
+          <div>
+            <h2>Demo User</h2>
+            <p>IR Admin · demo@currencintel.com</p>
           </div>
         </div>
-
-        <div className="panel">
-          <h2 className="panel__title">Company Workspace</h2>
-          <div className="section-list">
-            <div className="section"><strong>{company.company_name}</strong><p className="page__desc" style={{ margin: '6px 0 0' }}>{company.ticker} · {company.exchange}</p></div>
-            <Link className="quick-action" href={`/monitor/${company.ticker}/companies`}><span><strong>Manage companies</strong><small>Switch or add covered issuers</small></span><span>→</span></Link>
-            <Link className="quick-action" href={`/monitor/${company.ticker}/billing`}><span><strong>Billing & plan</strong><small>Seats, plan coverage, and invoice routing</small></span><span>→</span></Link>
-          </div>
+        <div className="settings-workspace-card">
+          <span>Current workspace</span>
+          <strong>{company.company_name}</strong>
+          <p>{company.ticker} · {company.exchange}</p>
         </div>
+      </section>
 
-        <div className="panel">
-          <h2 className="panel__title">Delivery & Alerts</h2>
-          <div className="section-list">
-            <Link className="quick-action" href={`/monitor/${company.ticker}/email-settings`}><span><strong>Delivery settings</strong><small>Recipients, windows, and approval flow</small></span><span>→</span></Link>
-            <Link className="quick-action" href={`/monitor/${company.ticker}/alert-rules`}><span><strong>Alert rules</strong><small>Thresholds for short pressure and sentiment events</small></span><span>→</span></Link>
-            <div className="section">Notification preference center</div>
-          </div>
+      <section className="settings-layout">
+        <aside className="settings-index">
+          {settingGroups.map(group => (
+            <a href={`#${group.title.toLowerCase().replaceAll(' ', '-')}`} key={group.title}>{group.title}</a>
+          ))}
+        </aside>
+
+        <div className="settings-stack">
+          <section className="settings-panel" id="language-preferences">
+            <div className="settings-panel__head">
+              <div>
+                <span>Preferences</span>
+                <h2>Language</h2>
+              </div>
+              <span className="badge blue">Demo setting</span>
+            </div>
+            <div className="language-switch">
+              {languageOptions.map(([label, status]) => (
+                <button className={status === 'Active' ? 'active' : ''} type="button" key={label}>
+                  <strong>{label}</strong>
+                  <span>{status}</span>
+                </button>
+              ))}
+            </div>
+            <p className="settings-note">Language switching is prepared for the portal UI. Translation behavior will be connected later.</p>
+          </section>
+
+          {settingGroups.map(group => (
+            <section className="settings-panel" id={group.title.toLowerCase().replaceAll(' ', '-')} key={group.title}>
+              <div className="settings-panel__head">
+                <div>
+                  <span>Settings</span>
+                  <h2>{group.title}</h2>
+                </div>
+              </div>
+              <div className="settings-list">
+                {group.rows.map(([title, description, slug]) => {
+                  const content = (
+                    <>
+                      <span>
+                        <strong>{title}</strong>
+                        <small>{description}</small>
+                      </span>
+                      <em>{slug ? 'Open' : 'Configured later'}</em>
+                    </>
+                  );
+
+                  return slug ? (
+                    <Link className="settings-row" href={`/monitor/${company.ticker}/${slug}` as any} key={title}>
+                      {content}
+                    </Link>
+                  ) : (
+                    <div className="settings-row muted" key={title}>{content}</div>
+                  );
+                })}
+              </div>
+            </section>
+          ))}
         </div>
       </section>
     </div>

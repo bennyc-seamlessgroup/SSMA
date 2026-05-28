@@ -1,5 +1,6 @@
 import { ImportDataTable } from '@/components/ImportDataTable';
 import { InfoTooltip } from '@/components/InfoTooltip';
+import { SettingsBackLink } from '@/components/SettingsBackLink';
 import { buildDashboard } from '@/lib/mock-data';
 
 function formatDate(value: string) {
@@ -26,6 +27,7 @@ export default async function ReportsArchivePage({ params }: Readonly<{ params: 
           <h1 className="page__title">Report Archive</h1>
           <p className="page__desc">Review generated intelligence reports, download PDFs, and confirm archive coverage for {company.ticker}.</p>
         </div>
+        <SettingsBackLink ticker={company.ticker} />
       </div>
 
       <section className="grid cols-4">

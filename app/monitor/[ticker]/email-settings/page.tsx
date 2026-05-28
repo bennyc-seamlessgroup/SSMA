@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
 import { ImportDataTable } from '@/components/ImportDataTable';
 import { InfoTooltip } from '@/components/InfoTooltip';
+import { SettingsBackLink } from '@/components/SettingsBackLink';
 import type { EmailRecipient } from '@/lib/types';
 
 const deliveryWindows = [
@@ -82,7 +83,10 @@ export default function DeliverySettingsPage() {
             Configure report windows, recipient routing, and delivery controls for the {ticker} workspace.
           </p>
         </div>
-        <button className="button secondary" onClick={testEmail}>Send test email</button>
+        <div className="page-header-actions">
+          <SettingsBackLink ticker={ticker} />
+          <button className="button secondary" onClick={testEmail}>Send test email</button>
+        </div>
       </div>
 
       <section className="grid cols-4">

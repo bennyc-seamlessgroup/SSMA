@@ -43,8 +43,11 @@ const groups = [
     label: 'Settings',
     items: [
       ['General Settings', 'settings'],
+      ['Role & Permissions', 'role-permissions'],
       ['Delivery Settings', 'email-settings'],
+      ['Notifications', 'notifications'],
       ['Alert Rules', 'alert-rules'],
+      ['Security Policy', 'policy'],
     ],
   },
   {

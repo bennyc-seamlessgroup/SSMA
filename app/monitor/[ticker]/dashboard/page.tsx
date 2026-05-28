@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { InfoTooltip } from '@/components/InfoTooltip';
+import { MonitorExpertButton } from '@/components/MonitorExpertChat';
 import { buildImportDashboard, readImportFile } from '@/lib/import-data';
 import { readInternalFloatAdjustments } from '@/lib/internal-float';
 
@@ -32,12 +33,25 @@ function formatPercent(value: unknown, options?: Intl.NumberFormatOptions) {
   return parsed === null ? 'N/A' : `${parsed.toLocaleString('en-US', options)}%`;
 }
 
+function formatCurrency(value: unknown, options?: Intl.NumberFormatOptions) {
+  const parsed = numeric(value);
+  return parsed === null ? 'N/A' : `$${parsed.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2, ...options })}`;
+}
+
 function latest(rows: Row[], dateKey = 'date') {
   return [...rows].sort((a, b) => String(b[dateKey] ?? '').localeCompare(String(a[dateKey] ?? '')))[0] ?? {};
 }
 
 function sourceChip(source: string, tone: 'ready' | 'future' | 'warning' = 'ready') {
   return <span className={`source-chip ${tone}`}>Source: {source}</span>;
+}
+
+function viewMore(ticker: string, slug: string, label = 'View more') {
+  return <Link className="section-view-more" href={`/monitor/${ticker}/${slug}` as any}>{label}</Link>;
+}
+
+function headActions(children: React.ReactNode) {
+  return <div className="terminal-section-actions">{children}</div>;
 }
 
 function InfoTitle({ children, text }: { children: React.ReactNode; text: string }) {
@@ -242,15 +256,33 @@ export default async function CompanyDashboardPage() {
   const news = rows(newsEnvelope.data).slice(0, 4);
   const alerts = rows(alertsEnvelope.data).slice(0, 5);
   const squeezeScore = Math.max(0, Math.min(100, Math.round(numeric(latestShortScore.score) ?? numeric(latestShortScore.shortScore) ?? scores.shortSqueezeRisk)));
+  const internalAdjustedSqueezeScore = Math.max(0, Math.min(100, Math.round(numeric(internalFloat.internalAdjustedSqueezeScore) ?? squeezeScore)));
+  const riskAmplification = internalAdjustedSqueezeScore - squeezeScore;
   const squeezeProbability = Math.min(92, Math.max(8, Math.round(squeezeScore * 0.82)));
   const overallRisk = squeezeScore >= 75 ? 'Elevated' : squeezeScore >= 55 ? 'Watch' : 'Controlled';
   const marketRanking = 37;
   const marketUniverse = 4126;
   const percentile = Math.max(1, Math.round((marketRanking / marketUniverse) * 100));
+  const shortInterestPct = numeric(shortCurrent.shortInterestPcFreeFloat) ?? 22.4;
+  const utilizationPct = numeric(latestUtilization.utilization) ?? 96;
+  const borrowFeePct = numeric(borrowCurrent.costToBorrowAll) ?? 87;
+  const sharesAvailable = numeric(latestAvailable.shortAvailabilityShares) ?? 42000;
+  const firstShortHistory = shortHistory[0] ?? {};
+  const lastShortHistory = shortHistory[shortHistory.length - 1] ?? {};
+  const shortTrendPct = (() => {
+    const first = numeric(firstShortHistory.currentShortPositionQuantity);
+    const last = numeric(lastShortHistory.currentShortPositionQuantity);
+    return first && last ? ((last - first) / first) * 100 : 12;
+  })();
+  const volumeMultiple = 2.4;
+  const gammaScore = numeric(record(optionSummary.gamma).score) ?? numeric(record(optionSummary.gammaExposure).score) ?? 78;
+  const putCallRatio = numeric(latestPutCall.putCallRatio ?? latestPutCall.putCallOIRatio ?? latestPutCall.putCallVolumeRatio) ?? 0.65;
+  const institutionalOwnershipSupport = topHolders.reduce((sum, row) => sum + (numeric(row.ownershipPercent) ?? 0), 0) || 72;
+  const adjustedFloatReduction = numeric(internalFloat.floatReductionPercent) ?? 28;
 
   const kpis = [
     { label: 'Public Short Squeeze Score', value: `${squeezeScore} / 100`, average: 'Market avg 42', rank: `Top ${percentile}%`, detail: `#${marketRanking} of ${marketUniverse}`, source: 'Internal Model', tone: 'bad', change: '+4.8', changeNote: 'risk rising', changeTone: 'bad', barValue: squeezeScore },
-    { label: 'Internal Adjusted Squeeze Score', value: `${internalFloat.internalAdjustedSqueezeScore} / 100`, average: 'Private Management View', rank: `${formatPercent(internalFloat.floatReductionPercent, { maximumFractionDigits: 1 })} float reduction`, detail: 'Uses internal adjusted float and lendable float', source: 'Internal Management Input', tone: internalFloat.internalAdjustedSqueezeScore >= 75 ? 'bad' : internalFloat.internalAdjustedSqueezeScore >= 55 ? 'warn' : 'good', change: '+Private', changeNote: 'internal adjustment applied', changeTone: 'warn', barValue: internalFloat.internalAdjustedSqueezeScore },
+    { label: 'Internal Adjusted Squeeze Score', value: `${internalAdjustedSqueezeScore} / 100`, average: 'Private Management View', rank: `${formatPercent(internalFloat.floatReductionPercent, { maximumFractionDigits: 1 })} float reduction`, detail: 'Uses internal adjusted float and lendable float', source: 'Internal Management Input', tone: internalAdjustedSqueezeScore >= 75 ? 'bad' : internalAdjustedSqueezeScore >= 55 ? 'warn' : 'good', change: riskAmplification >= 0 ? `+${riskAmplification}` : `${riskAmplification}`, changeNote: 'vs public score', changeTone: riskAmplification > 0 ? 'bad' : riskAmplification < 0 ? 'good' : 'warn', barValue: internalAdjustedSqueezeScore },
     { label: 'US Market Ranking', value: `#${marketRanking}`, average: `${marketUniverse} stock universe`, rank: `Top ${percentile}%`, detail: 'Internal ranking engine placeholder', source: 'Internal Model', tone: 'bad', change: '+12', changeNote: 'moved up risk table', changeTone: 'bad', barValue: 99 - percentile },
     { label: 'Short Squeeze Probability', value: `${squeezeProbability}%`, average: 'Market avg 18%', rank: squeezeProbability >= 70 ? 'High probability band' : 'Watch band', detail: 'Model-calculated MVP estimate', source: 'Internal Model', tone: 'bad', change: '+3.1%', changeNote: 'probability higher', changeTone: 'bad', barValue: squeezeProbability },
     { label: 'Market Sentiment Score', value: `${sentimentScore} / 100`, average: `${socialMentions.length} social mentions`, rank: `${pct((positiveMentions / Math.max(socialMentions.length, 1)) * 100)} positive`, detail: 'Social media scan', source: 'Social Media Engine', tone: sentimentScore >= 70 ? 'good' : sentimentScore >= 45 ? 'warn' : 'bad', change: '+5.4', changeNote: 'sentiment improving', changeTone: 'good', barValue: sentimentScore },
@@ -272,13 +304,210 @@ export default async function CompanyDashboardPage() {
     ['LTRY', 74, 48], ['SNTI', 72, 63], ['BFRG', 70, 88], ['WKEY', 68, 114], ['PBM', 66, 137],
   ];
 
-  const triggerLevels = [
-    ['Level 1', 'Initial Squeeze', squeezeScore >= 50 ? 'Triggered' : 'Preparing', Math.min(100, squeezeScore + 12)],
-    ['Level 2', 'Trend Squeeze', squeezeScore >= 70 ? 'Triggered' : 'Preparing', Math.max(24, squeezeScore - 8)],
-    ['Level 3', 'Extreme Squeeze', squeezeScore >= 88 ? 'Active' : 'Not Triggered', Math.max(8, squeezeScore - 32)],
+  const readinessConditions = [
+    {
+      name: 'Short Interest',
+      current: `${formatNumber(shortInterestPct, { maximumFractionDigits: 1 })}%`,
+      threshold: '15%',
+      status: shortInterestPct >= 15 ? 'TRIGGERED' : shortInterestPct >= 10 ? 'MONITORING' : 'NOT ACTIVE',
+      source: shortInterestEnvelope.sourcePlatform ?? 'Ortex',
+      explanation: 'Short interest exceeds the threshold associated with elevated squeeze potential.',
+      weight: 13,
+    },
+    {
+      name: 'Utilization',
+      current: `${formatNumber(utilizationPct, { maximumFractionDigits: 1 })}%`,
+      threshold: '90%',
+      status: utilizationPct >= 90 ? 'TRIGGERED' : utilizationPct >= 75 ? 'MONITORING' : 'NOT ACTIVE',
+      source: utilizationEnvelope.sourcePlatform ?? 'Ortex',
+      explanation: 'Most lendable shares are already borrowed.',
+      weight: 13,
+    },
+    {
+      name: 'Borrow Fee',
+      current: `${formatNumber(borrowFeePct, { maximumFractionDigits: 1 })}%`,
+      threshold: '50%',
+      status: borrowFeePct >= 50 ? 'TRIGGERED' : borrowFeePct >= 25 ? 'MONITORING' : 'NOT ACTIVE',
+      source: borrowFeeEnvelope.sourcePlatform ?? 'Ortex',
+      explanation: 'High borrowing costs increase pressure on short sellers.',
+      weight: 12,
+    },
+    {
+      name: 'Shares Available',
+      current: formatNumber(sharesAvailable),
+      threshold: '100,000',
+      status: sharesAvailable <= 100000 ? 'TRIGGERED' : sharesAvailable <= 250000 ? 'MONITORING' : 'NOT ACTIVE',
+      source: sharesEnvelope.sourcePlatform ?? 'Ortex',
+      explanation: 'Limited shares remain available for new short positions.',
+      weight: 10,
+    },
+    {
+      name: 'Short Interest Trend',
+      current: `${shortTrendPct >= 0 ? '+' : ''}${formatNumber(shortTrendPct, { maximumFractionDigits: 1 })}% over 30 days`,
+      threshold: 'Positive growth',
+      status: shortTrendPct > 0 ? 'TRIGGERED' : shortTrendPct > -5 ? 'MONITORING' : 'NOT ACTIVE',
+      source: shortInterestEnvelope.sourcePlatform ?? 'Ortex',
+      explanation: 'Short positioning continues to increase.',
+      weight: 8,
+    },
+    {
+      name: 'Volume Confirmation',
+      current: `${formatNumber(volumeMultiple, { maximumFractionDigits: 1 })}x average volume`,
+      threshold: '1.5x',
+      status: volumeMultiple >= 1.5 ? 'TRIGGERED' : volumeMultiple >= 1.1 ? 'MONITORING' : 'NOT ACTIVE',
+      source: 'Databento',
+      explanation: 'Trading activity supports the validity of current positioning.',
+      weight: 8,
+    },
+    {
+      name: 'Social Sentiment',
+      current: `${sentimentScore}`,
+      threshold: '80',
+      status: sentimentScore >= 80 ? 'TRIGGERED' : sentimentScore >= 55 ? 'MONITORING' : 'NOT ACTIVE',
+      source: 'Social Media Engine',
+      explanation: 'Positive sentiment is increasing but has not reached trigger levels.',
+      weight: 8,
+    },
+    {
+      name: 'Options Pressure',
+      current: `Put/Call ${formatNumber(putCallRatio, { maximumFractionDigits: 2 })} · Gamma ${formatNumber(gammaScore, { maximumFractionDigits: 0 })}`,
+      threshold: 'Gamma > 80',
+      status: gammaScore >= 80 ? 'TRIGGERED' : gammaScore >= 60 ? 'MONITORING' : 'NOT ACTIVE',
+      source: optionsEnvelope.sourcePlatform ?? 'Ortex',
+      explanation: 'Options activity is supportive but not yet extreme.',
+      weight: 8,
+    },
+    {
+      name: 'Institutional Ownership Support',
+      current: `${formatNumber(institutionalOwnershipSupport, { maximumFractionDigits: 1 })}%`,
+      threshold: '60%',
+      status: institutionalOwnershipSupport >= 60 ? 'TRIGGERED' : institutionalOwnershipSupport >= 40 ? 'MONITORING' : 'NOT ACTIVE',
+      source: topHoldersEnvelope.sourcePlatform ?? 'Fintel',
+      explanation: 'Strong institutional ownership may reduce effective float.',
+      weight: 6,
+    },
+    {
+      name: 'Internal Float Adjustment',
+      current: `${formatNumber(adjustedFloatReduction, { maximumFractionDigits: 1 })}% reduction`,
+      threshold: '20%',
+      status: adjustedFloatReduction >= 20 ? 'TRIGGERED' : adjustedFloatReduction >= 10 ? 'MONITORING' : 'NOT ACTIVE',
+      source: 'Internal Float Intelligence',
+      explanation: 'Management-adjusted float suggests fewer shares are available than public data indicates.',
+      weight: 14,
+    },
   ] as const;
+  const readinessScore = Math.round(readinessConditions.reduce((sum, condition) => {
+    if (condition.status === 'TRIGGERED') return sum + condition.weight;
+    if (condition.status === 'MONITORING') return sum + condition.weight * 0.5;
+    return sum;
+  }, 0));
+  const readinessLevel = readinessScore >= 81 ? 'Extreme' : readinessScore >= 61 ? 'High' : readinessScore >= 31 ? 'Moderate' : 'Low';
+  const readinessTone = readinessScore >= 81 ? 'extreme' : readinessScore >= 61 ? 'high' : readinessScore >= 31 ? 'moderate' : 'low';
+  const triggeredConditions = readinessConditions.filter(condition => condition.status === 'TRIGGERED');
+  const monitoringConditions = readinessConditions.filter(condition => condition.status === 'MONITORING');
+  const inactiveConditions = readinessConditions.filter(condition => condition.status === 'NOT ACTIVE');
+  const activeConditionPercent = Math.round((triggeredConditions.length / readinessConditions.length) * 100);
   const sentimentTrendValues = [42, 48, 53, 59, 63, 61, sentimentScore];
   const sentimentTrendLabels = ['May 21', 'May 22', 'May 23', 'May 24', 'May 25', 'May 26', 'May 27'];
+  const currentPrice = 4;
+  const priceScenarios = [
+    { name: 'Base Case', probability: 60, target: 5.2, upside: 30, risk: 'Low', description: 'Normal market appreciation without significant squeeze activity.' },
+    { name: 'Moderate Squeeze', probability: 25, target: 8.4, upside: 110, risk: 'Medium', description: 'Partial short covering and increased retail participation.' },
+    { name: 'High Squeeze', probability: 10, target: 14.7, upside: 267, risk: 'High', description: 'Broad short covering combined with elevated borrow costs and reduced float.' },
+    { name: 'Extreme Squeeze', probability: 5, target: 25, upside: 525, risk: 'Extreme', description: 'Forced institutional covering under severe borrow constraints.' },
+  ];
+  const priceDrivers = [
+    ['High Short Interest', shortInterestPct >= 15 ? 'High' : 'Medium', shortInterestEnvelope.sourcePlatform ?? 'Ortex'],
+    ['Elevated Borrow Fee', borrowFeePct >= 50 ? 'High' : 'Medium', borrowFeeEnvelope.sourcePlatform ?? 'Ortex'],
+    ['Reduced Effective Float', adjustedFloatReduction >= 20 ? 'High' : 'Medium', 'Internal Float Intelligence'],
+    ['Positive Sentiment', sentimentScore >= 70 ? 'High' : 'Medium', 'Social Media Engine'],
+    ['Strong Options Activity', gammaScore >= 80 ? 'High' : 'Medium', optionsEnvelope.sourcePlatform ?? 'Ortex'],
+  ];
+  const catalystItems = [
+    { date: 'May 20', title: 'Conference Presentation', category: 'Corporate', impact: 'Medium', source: 'Company Calendar' },
+    { date: 'May 30', title: 'Q2 Earnings Call', category: 'Financial', impact: 'High', source: 'Company Calendar' },
+    { date: 'June 15', title: 'Russell Reconstitution', category: 'Market Structure', impact: 'High', source: 'News Intelligence' },
+    { date: 'June 28', title: 'Investor Day', category: 'Corporate', impact: 'Medium', source: 'Internal Events' },
+    { date: 'July 10', title: 'Product Launch', category: 'Product', impact: 'Medium', source: 'Internal Events' },
+    { date: 'July 18', title: 'Institutional Ownership Disclosure Window', category: 'Financial', impact: 'Low', source: 'Fintel' },
+    { date: 'August 02', title: 'SEC Filing Review', category: 'Regulatory', impact: 'Low', source: 'SEC EDGAR' },
+    { date: 'August 12', title: 'Capital Markets Update', category: 'Corporate', impact: 'Medium', source: 'Internal Events' },
+    { date: 'August 22', title: 'Lockup Review Window', category: 'Market Structure', impact: 'Low', source: 'Internal Events' },
+    { date: 'September 04', title: 'Strategic Partnership Deadline', category: 'Corporate', impact: 'High', source: 'News Intelligence' },
+    { date: 'September 18', title: 'Commercial Rollout Milestone', category: 'Product', impact: 'Medium', source: 'Internal Events' },
+    { date: 'September 30', title: 'Quarter-End Filing Watch', category: 'Regulatory', impact: 'Low', source: 'SEC EDGAR' },
+  ];
+  const catalystCategories = [
+    ['Financial', 'Earnings · Guidance · SEC filings'],
+    ['Corporate', 'M&A · Partnerships · Capital raises'],
+    ['Market Structure', 'Russell rebalance · Index inclusion · Lockup expiry'],
+    ['Product', 'Product launch · Commercial rollout'],
+    ['Regulatory', 'FDA · SEC · Government decisions'],
+  ];
+  const catalystMonths = [
+    ['May', 2, '1 high'],
+    ['June', 2, '1 high'],
+    ['July', 2, '2 medium'],
+    ['August', 3, '1 medium'],
+    ['September', 3, '1 high'],
+  ];
+  const highImpactCatalysts = catalystItems.filter(item => item.impact === 'High').length;
+  const mediumImpactCatalysts = catalystItems.filter(item => item.impact === 'Medium').length;
+  const lowImpactCatalysts = catalystItems.filter(item => item.impact === 'Low').length;
+  const largestNewHolder = [...newHolders].sort((a, b) => (numeric(b.shares) ?? numeric(b.sharesChange) ?? 0) - (numeric(a.shares) ?? numeric(a.sharesChange) ?? 0))[0] ?? {
+    investorName: 'BlackRock',
+    sharesChange: 1200000,
+    fileDate: '2026-05-23',
+    formType: '13G',
+  };
+  const largestIncrease = [...increasedPositions].sort((a, b) => (numeric(b.sharesChange) ?? 0) - (numeric(a.sharesChange) ?? 0))[0] ?? largestNewHolder;
+  const largestReduction = [...reducedPositions].sort((a, b) => (numeric(a.sharesChange) ?? 0) - (numeric(b.sharesChange) ?? 0))[0] ?? {
+    investorName: 'Vanguard',
+    sharesChange: -500000,
+    fileDate: '2026-05-18',
+    formType: '13F-HR',
+  };
+  const latestActivistFiling = rows(activistEnvelope.data).sort((a, b) => String(b.fileDate ?? '').localeCompare(String(a.fileDate ?? '')))[0] ?? {
+    formType: '13G',
+    fileDate: '2026-05-23',
+    investorName: 'Institutional Holder Added',
+  };
+  const netInstitutionalShares = ownershipChanges.reduce((sum, row) => sum + (numeric(row.sharesChange) ?? 0), 0);
+  const ownershipScore = Math.max(0, Math.min(100, Math.round(62 + Math.min(24, Math.max(-18, netInstitutionalShares / 3500)) + Math.min(8, newHolders.length * 2))));
+  const ownershipSignal = ownershipScore >= 66 ? 'Bullish' : ownershipScore >= 45 ? 'Neutral' : 'Bearish';
+  const insiderBuyRows = insiderRows.filter(row => String(row.transactionType).toLowerCase().includes('buy') || String(row.transactionCode).toLowerCase() === 'p');
+  const insiderSellRows = insiderRows.filter(row => String(row.transactionType).toLowerCase().includes('sell') || String(row.transactionCode).toLowerCase() === 's');
+  const latestInsiderPurchase = [...insiderBuyRows].sort((a, b) => String(b.transactionDate ?? b.fileDate ?? '').localeCompare(String(a.transactionDate ?? a.fileDate ?? '')))[0] ?? {
+    insiderName: 'CEO Purchase',
+    shares: 200000,
+    value: 824000,
+    transactionDate: '2026-05-20',
+  };
+  const latestInsiderSale = [...insiderSellRows].sort((a, b) => String(b.transactionDate ?? b.fileDate ?? '').localeCompare(String(a.transactionDate ?? a.fileDate ?? '')))[0] ?? {
+    insiderName: 'Director Sale',
+    shares: 50000,
+    value: 250500,
+    transactionDate: '2026-05-17',
+  };
+  const largestInsiderTransaction = [...insiderRows].sort((a, b) => (numeric(b.shares) ?? 0) - (numeric(a.shares) ?? 0))[0] ?? latestInsiderPurchase;
+  const insiderScore = Math.max(0, Math.min(100, Math.round(50 + insiderBuyRows.length * 9 - insiderSellRows.length * 8 + (insiderNet.netShares && numeric(insiderNet.netShares)! > 0 ? 10 : 0))));
+  const insiderSignal = insiderScore >= 66 ? 'Bullish' : insiderScore >= 40 ? 'Neutral' : 'Bearish';
+  const optionsBias = putCallRatio <= 0.7 ? 'Bullish' : putCallRatio <= 1.1 ? 'Neutral' : 'Bearish';
+  const optionsScore = Math.max(0, Math.min(100, Math.round(50 + (putCallRatio <= 0.7 ? 18 : putCallRatio <= 1.1 ? 4 : -16) + (gammaScore >= 80 ? 18 : gammaScore >= 60 ? 10 : -6))));
+  const optionsSignal = optionsScore >= 66 ? 'Bullish' : optionsScore >= 45 ? 'Neutral' : 'Bearish';
+  const overallPositioningScore = Math.round(ownershipScore * 0.4 + insiderScore * 0.25 + optionsScore * 0.35);
+  const overallPositioningSignal = overallPositioningScore >= 80 ? 'Strong Bullish Positioning' : overallPositioningScore >= 66 ? 'Bullish Positioning' : overallPositioningScore >= 45 ? 'Neutral Positioning' : 'Bearish Positioning';
+  const positivePositioningFactors = [
+    ownershipSignal === 'Bullish' ? 'Institutional accumulation' : null,
+    optionsBias === 'Bullish' ? 'Low Put/Call Ratio' : null,
+    gammaScore >= 60 ? 'Positive Gamma Structure' : null,
+    adjustedFloatReduction >= 20 ? 'Reduced effective float' : null,
+  ].filter(Boolean);
+  const negativePositioningFactors = [
+    insiderSignal === 'Bearish' ? 'Recent insider selling' : null,
+    ownershipSignal !== 'Bullish' ? 'Weak institutional accumulation' : null,
+    optionsSignal !== 'Bullish' ? 'Options activity below bullish threshold' : null,
+  ].filter(Boolean);
 
   return (
     <div className="page dashboard-page squeeze-dashboard">
@@ -320,7 +549,7 @@ export default async function CompanyDashboardPage() {
             <span>Private Management View</span>
             <h2>Internal Float Adjustment</h2>
           </div>
-          {sourceChip('Public Market Data + Internal Management Input')}
+          {headActions(<>{sourceChip('Public Market Data + Internal Management Input')}{viewMore(company.ticker, 'internal-float')}</>)}
         </div>
         <div className="grid cols-4">
           <div className="terminal-card terminal-stat"><span>Official Free Float</span><strong>{formatNumber(internalFloat.officialFreeFloat)}</strong><small>Public market view</small></div>
@@ -337,12 +566,15 @@ export default async function CompanyDashboardPage() {
           <div><h3>Current Situation</h3><p>{company.ticker} is ranked in the top {percentile}% of the demo squeeze-risk universe with elevated borrow pressure, active social discussion, and visible institutional ownership movement.</p></div>
           <div><h3>Key Risks</h3><p>Borrow fee pressure, options positioning, fast-moving retail narratives, and incomplete public disclosure of institutional short concentration require ongoing executive monitoring.</p></div>
           <div><h3>Key Opportunities</h3><p>Positive social sentiment, institutional holder visibility, and a structured report cadence can help management maintain a disciplined market-defense record.</p></div>
-          <div><h3>Short Squeeze Outlook</h3><p>Current model status is {overallRisk}. Trigger Level 1 is {triggerLevels[0][2].toLowerCase()}, while higher-order squeeze validation requires additional lending and institutional data sources.</p></div>
+          <div><h3>Short Squeeze Outlook</h3><p>Current readiness is {readinessLevel.toLowerCase()} at {readinessScore} / 100. {triggeredConditions.length} of {readinessConditions.length} key conditions are triggered, while {monitoringConditions.length} remain under monitoring.</p></div>
           <div><h3>Management Recommendations</h3><p>Review borrow fee, short interest, and sentiment movement daily. Preserve report history for board review and capital markets advisor coordination.</p></div>
           <div><h3>IR Recommendations</h3><p>Maintain precise disclosure language, monitor rumor sources, prepare FAQ responses for short-pressure questions, and route major alerts to executives quickly.</p></div>
         </div>
         <div className="terminal-alert-strip">
           {alerts.length ? alerts.map((alert, index) => <span key={index}>{String(alert.title ?? alert.alertType ?? 'Alert')}</span>) : <span>No active alerts imported.</span>}
+        </div>
+        <div className="ai-summary-actions">
+          <MonitorExpertButton label="Ask Monitor Expert" question="What should management focus on today based on this dashboard?" />
         </div>
       </section>
 
@@ -350,9 +582,26 @@ export default async function CompanyDashboardPage() {
         <div className="terminal-section__head">
           <div>
             <span>Section 3</span>
-            <h2 className="terminal-title"><InfoTitle text="Model score decomposition by the major drivers of squeeze risk. Weights are placeholders for the future internal scoring engine.">Short Squeeze Score Breakdown</InfoTitle></h2>
+            <h2 className="terminal-title"><InfoTitle text="This section emphasizes the Internal Adjusted Squeeze Score when management-provided float data exists. The radar still explains the public market pressure drivers, while the private score adjusts interpretation using internal tradable and lendable float estimates.">Short Squeeze Score Breakdown</InfoTitle></h2>
           </div>
           {sourceChip('Internal Model')}
+        </div>
+        <div className="score-comparison-strip">
+          <div className="score-comparison-card private">
+            <span>Primary management score</span>
+            <strong>{internalAdjustedSqueezeScore} / 100</strong>
+            <small>Internal Adjusted Squeeze Score · Private Management View</small>
+          </div>
+          <div className="score-comparison-card">
+            <span>Public comparable score</span>
+            <strong>{squeezeScore} / 100</strong>
+            <small>Used for market ranking and peer comparison</small>
+          </div>
+          <div className={`score-comparison-card ${riskAmplification > 0 ? 'risk-up' : riskAmplification < 0 ? 'risk-down' : ''}`}>
+            <span>Risk amplification</span>
+            <strong>{riskAmplification >= 0 ? '+' : ''}{riskAmplification}</strong>
+            <small>Internal score minus public score</small>
+          </div>
         </div>
         <div className="score-breakdown-grid">
           <div className="terminal-card radar-card">
@@ -361,12 +610,12 @@ export default async function CompanyDashboardPage() {
           <div className="terminal-card score-methodology-card">
             <h3>Scoring Methodology</h3>
             <p>
-              The radar visualizes the six drivers behind the Short Squeeze Score. Larger distance from the center indicates stronger pressure from that factor.
+              The radar visualizes the six public-market drivers behind the Short Squeeze Score. The private management score is then adjusted using internal float and lendable-share assumptions.
             </p>
             <div className="methodology-stack">
               <div><strong>Primary pressure drivers</strong><span>Short interest, utilization, borrow-rate pressure, and short-position trend.</span></div>
               <div><strong>Validation layer</strong><span>Volume and turnover are used to confirm whether pressure is supported by trading activity.</span></div>
-              <div><strong>Pending institutional factor</strong><span>Institutional short concentration remains visible but requires a future premium data provider.</span></div>
+              <div><strong>Internal adjustment layer</strong><span>Adjusted float, adjusted lendable float, tokenized shares, and non-lendable shares amplify or reduce management’s private risk view.</span></div>
             </div>
             {sourceChip('Internal Model')}
           </div>
@@ -377,7 +626,7 @@ export default async function CompanyDashboardPage() {
         <div className="terminal-section__head">
           <div>
             <span>Section 4</span>
-            <h2 className="terminal-title"><InfoTitle text={`This chart displays a sample of the top 50 ranked stocks by their Short Squeeze Score. ${company.companyName} is highlighted in gold at position #${marketRanking} with a score of ${squeezeScore}. A dashed line indicates the market average score of 58 for comparison. This provides a clear visual of the company's standing relative to its peers.`}>Short Squeeze Score VS US Market</InfoTitle></h2>
+            <h2 className="terminal-title"><InfoTitle text={`This chart displays a sample of the top 50 ranked stocks by their public Short Squeeze Score. ${company.companyName} is highlighted in gold at position #${marketRanking} with a public score of ${squeezeScore}. The Internal Adjusted Squeeze Score is shown separately because it uses private management inputs and is not directly comparable across the full US market universe.`}>Short Squeeze Score VS US Market</InfoTitle></h2>
           </div>
           {sourceChip('Internal Model')}
         </div>
@@ -386,6 +635,19 @@ export default async function CompanyDashboardPage() {
           <div className="terminal-card terminal-stat"><span>Percentile Ranking</span><strong>Top {percentile}%</strong><small>US listed universe</small></div>
           <div className="terminal-card terminal-stat"><span>Industry Ranking</span><strong>#4</strong><small>FinTech / digital infrastructure</small></div>
           <div className="terminal-card terminal-stat"><span>Sector Ranking</span><strong>#9</strong><small>Financial technology sector</small></div>
+        </div>
+        <div className="market-score-note">
+          <div>
+            <span>Public ranking score</span>
+            <strong>{squeezeScore} / 100</strong>
+            <small>Comparable across the US market sample</small>
+          </div>
+          <div className="private">
+            <span>Internal adjusted score</span>
+            <strong>{internalAdjustedSqueezeScore} / 100</strong>
+            <small>Private Management View · not used for public ranking</small>
+          </div>
+          <p>Market ranking remains based on public/comparable inputs. Internal adjusted score is an overlay for management because other companies do not have the same private float data available.</p>
         </div>
         <div className="terminal-card ranking-panel">
           <div className="ranking-average-line" aria-hidden="true"><span>Market avg 58</span></div>
@@ -398,7 +660,7 @@ export default async function CompanyDashboardPage() {
       </section>
 
       <section className="terminal-section">
-        <div className="terminal-section__head"><div><span>Section 5</span><h2>Social Media Sentiment</h2></div>{sourceChip('Social Media Engine')}</div>
+        <div className="terminal-section__head"><div><span>Section 5</span><h2>Social Media Sentiment</h2></div>{headActions(<>{sourceChip('Social Media Engine')}{viewMore(company.ticker, 'sentiment')}</>)}</div>
         <div className="grid cols-4">
           <div className="terminal-card terminal-stat"><span>Total Mentions</span><strong>{socialMentions.length}</strong><small>Existing sentiment JSON</small></div>
           <div className="terminal-card terminal-stat"><span>Positive</span><strong>{pct((positiveMentions / Math.max(socialMentions.length, 1)) * 100)}</strong><small>{positiveMentions} mentions</small></div>
@@ -425,7 +687,7 @@ export default async function CompanyDashboardPage() {
       </section>
 
       <section className="terminal-section">
-        <div className="terminal-section__head"><div><span>Section 6</span><h2>Social Narrative Intelligence</h2></div>{sourceChip('Social Media Engine')}</div>
+        <div className="terminal-section__head"><div><span>Section 6</span><h2>Social Narrative Intelligence</h2></div>{headActions(<>{sourceChip('Social Media Engine')}{viewMore(company.ticker, 'sentiment')}</>)}</div>
         <div className="grid cols-3">
           <div className="terminal-card narrative-card"><h3>Top Bullish Narratives</h3><ul><li>Short squeeze incoming</li><li>Borrow fee rising</li><li>Institutions trapped</li><li>Fintech and AI narrative improving</li></ul></div>
           <div className="terminal-card narrative-card"><h3>Top Bearish Narratives</h3><ul><li>Overvalued</li><li>No catalyst</li><li>Meme stock volatility</li><li>Disclosure risk</li></ul></div>
@@ -434,7 +696,7 @@ export default async function CompanyDashboardPage() {
       </section>
 
       <section className="terminal-section large-section">
-        <div className="terminal-section__head"><div><span>Section 7</span><h2>Short Interest Intelligence</h2></div>{sourceChip(shortInterestEnvelope.sourcePlatform ?? 'Ortex/FINRA')}</div>
+        <div className="terminal-section__head"><div><span>Section 7</span><h2>Short Interest Intelligence</h2></div>{headActions(<>{sourceChip(shortInterestEnvelope.sourcePlatform ?? 'Ortex/FINRA')}{viewMore(company.ticker, 'short-interest')}</>)}</div>
         <div className="grid cols-5 dashboard-metric-row">
           <div className="terminal-card terminal-stat"><span>Short Interest</span><strong>{formatNumber(shortCurrent.shortInterestShares)}</strong><small>Shares</small></div>
           <div className="terminal-card terminal-stat"><span>SI % Float</span><strong>{formatPercent(shortCurrent.shortInterestPcFreeFloat, { maximumFractionDigits: 2 })}</strong><small>{metrics.shortInterestPercentFloat}</small></div>
@@ -456,7 +718,7 @@ export default async function CompanyDashboardPage() {
       </section>
 
       <section className="terminal-section">
-        <div className="terminal-section__head"><div><span>Section 8</span><h2>Securities Lending Intelligence</h2></div>{sourceChip('Future Data Provider Required', 'future')}</div>
+        <div className="terminal-section__head"><div><span>Section 8</span><h2>Securities Lending Intelligence</h2></div>{headActions(<>{sourceChip('Future Data Provider Required', 'future')}{viewMore(company.ticker, 'short-interest')}</>)}</div>
         <div className="grid cols-4">
           <div className="terminal-card terminal-stat future"><span>Lending Pool Size</span><strong>No Source Available</strong><small>Future Data Provider Required</small></div>
           <div className="terminal-card terminal-stat"><span>Borrow Demand</span><strong>{formatNumber(latestOnLoan.sharesOnLoan)}</strong><small>{onLoanEnvelope.sourcePlatform ?? 'Ortex'} / on loan</small></div>
@@ -466,7 +728,7 @@ export default async function CompanyDashboardPage() {
       </section>
 
       <section className="terminal-section">
-        <div className="terminal-section__head"><div><span>Section 9</span><h2>Institutional Ownership</h2></div>{sourceChip(topHoldersEnvelope.sourcePlatform ?? 'Fintel')}</div>
+        <div className="terminal-section__head"><div><span>Section 9</span><h2>Institutional Ownership</h2></div>{headActions(<>{sourceChip(topHoldersEnvelope.sourcePlatform ?? 'Fintel')}{viewMore(company.ticker, 'institutional')}</>)}</div>
         <div className="grid cols-3 dashboard-metric-row">
           <div className="terminal-card terminal-stat"><span>Institutional Ownership</span><strong>{formatPercent(topHolders.reduce((sum, row) => sum + (numeric(row.ownershipPercent) ?? 0), 0), { maximumFractionDigits: 2 })}</strong><small>Top holder sample</small></div>
           <div className="terminal-card terminal-stat"><span>Increased Positions</span><strong>{increasedPositions.length}</strong><small>Ownership changes</small></div>
@@ -480,22 +742,167 @@ export default async function CompanyDashboardPage() {
       </section>
 
       <section className="terminal-section">
-        <div className="terminal-section__head"><div><span>Sections 10-12</span><h2>Shareholder, Insider & Options Intelligence</h2></div>{sourceChip('Fintel / SEC EDGAR / Ortex')}</div>
-        <div className="grid cols-3">
-          <div className="terminal-card narrative-card"><h3>Activist & Shareholder Watch</h3><p>13D filings: {rows(activistEnvelope.data).filter(row => String(row.formType).includes('13D')).length}</p><p>13G filings: {rows(activistEnvelope.data).filter(row => String(row.formType).includes('13G')).length}</p><p>New major shareholders: {newHolders.length}</p>{sourceChip(activistEnvelope.sourcePlatform ?? 'SEC EDGAR')}</div>
-          <div className="terminal-card narrative-card"><h3>Insider Activity</h3><p>Insider buys: {formatNumber(insiderNet.buyCount)}</p><p>Insider sells: {formatNumber(insiderNet.sellCount)}</p><p>Form 3 / 4 / 5 and option exercises: {insiderRows.length ? `${insiderRows.length} records` : 'No Source Available'}</p>{sourceChip(insiderEnvelope.sourcePlatform ?? 'Fintel')}</div>
-          <div className="terminal-card narrative-card"><h3>Options Intelligence</h3><p>Put/call ratio: {formatNumber(latestPutCall.putCallRatio ?? latestPutCall.putCallOIRatio ?? latestPutCall.putCallVolumeRatio, { maximumFractionDigits: 2 })}</p><p>Open interest: {openInterestRows.length ? `${openInterestRows.length} records` : 'Pending Institutional Data Source'}</p><p>Gamma exposure: {gammaRows.length ? `${gammaRows.length} records` : 'Future Data Provider Required'}</p><p>Implied volatility: {rows(optionSummary.impliedVolatility).length ? 'Available' : 'Pending Institutional Data Source'}</p>{sourceChip(optionsEnvelope.sourcePlatform ?? 'Ortex')}</div>
+        <div className="terminal-section__head">
+          <div>
+            <span>Section 10</span>
+            <h2><InfoTitle text="Executive view of how shareholders, insiders, and options traders are positioning around the company. This section emphasizes direction and signal quality rather than raw record counts.">Positioning Intelligence</InfoTitle></h2>
+            <p className="section-subtitle">Monitor how shareholders, insiders, and options traders are positioning around the company.</p>
+          </div>
+          {headActions(<>{sourceChip('Internal Model')}{viewMore(company.ticker, 'shareholder-watch')}{viewMore(company.ticker, 'insider')}{viewMore(company.ticker, 'options')}</>)}
+        </div>
+
+        <div className="positioning-summary-bar">
+          <div><span>Ownership</span><strong className={ownershipSignal.toLowerCase()}>{ownershipSignal}</strong></div>
+          <div><span>Insider</span><strong className={insiderSignal.toLowerCase()}>{insiderSignal}</strong></div>
+          <div><span>Options</span><strong className={optionsSignal.toLowerCase()}>{optionsSignal}</strong></div>
+          <div className="positioning-score-summary"><span>Overall Positioning Score</span><strong>{overallPositioningScore} / 100</strong><small>{overallPositioningSignal}</small></div>
+        </div>
+
+        <div className="positioning-intel-grid">
+          <article className="terminal-card positioning-intel-card">
+            <div className="card-title-row"><h3>Ownership Intelligence</h3>{sourceChip(topHoldersEnvelope.sourcePlatform ?? 'Fintel')}</div>
+            <div className="positioning-score-row"><span>Ownership Score</span><strong>{ownershipScore} / 100</strong><em className={`signal-pill ${ownershipSignal.toLowerCase()}`}>{ownershipSignal}</em></div>
+            <div className="positioning-events">
+              <div><span>Largest New Holder</span><strong>{String(largestNewHolder.investorName ?? 'BlackRock')}</strong><small>+{formatNumber(numeric(largestNewHolder.sharesChange) ?? numeric(largestNewHolder.shares))} shares · {String(largestNewHolder.fileDate ?? 'May 23')}</small></div>
+              <div><span>Largest Increase</span><strong>{String(largestIncrease.investorName ?? 'Institutional Holder')}</strong><small>+{formatNumber(numeric(largestIncrease.sharesChange) ?? numeric(largestIncrease.shares))} shares · Ownership increased</small></div>
+              <div><span>Largest Reduction</span><strong>{String(largestReduction.investorName ?? 'Vanguard')}</strong><small>{formatNumber(numeric(largestReduction.sharesChange) ?? -500000)} shares · Position reduced</small></div>
+              <div><span>Latest 13D / 13G Activity</span><strong>{String(latestActivistFiling.formType ?? '13G')} Filed</strong><small>{String(latestActivistFiling.fileDate ?? 'May 23')} · {String(latestActivistFiling.investorName ?? 'Institutional holder added')}</small></div>
+            </div>
+          </article>
+
+          <article className="terminal-card positioning-intel-card">
+            <div className="card-title-row"><h3>Insider Intelligence</h3>{sourceChip(insiderEnvelope.sourcePlatform ?? 'SEC EDGAR / Fintel')}</div>
+            <div className="positioning-score-row"><span>Insider Score</span><strong>{insiderScore} / 100</strong><em className={`signal-pill ${insiderSignal.toLowerCase()}`}>{insiderSignal}</em></div>
+            <div className="positioning-events">
+              <div><span>Latest Insider Purchase</span><strong>{String(latestInsiderPurchase.insiderName ?? 'CEO Purchase')}</strong><small>{formatNumber(latestInsiderPurchase.shares)} shares · {formatCurrency((numeric(latestInsiderPurchase.value) ?? 0) / Math.max(numeric(latestInsiderPurchase.shares) ?? 1, 1))} · {String(latestInsiderPurchase.transactionDate ?? latestInsiderPurchase.fileDate ?? 'May 20')}</small></div>
+              <div><span>Latest Insider Sale</span><strong>{String(latestInsiderSale.insiderName ?? 'Director Sale')}</strong><small>{formatNumber(latestInsiderSale.shares)} shares · {formatCurrency((numeric(latestInsiderSale.value) ?? 0) / Math.max(numeric(latestInsiderSale.shares) ?? 1, 1))} · {String(latestInsiderSale.transactionDate ?? latestInsiderSale.fileDate ?? 'May 17')}</small></div>
+              <div><span>Largest Insider Transaction</span><strong>{String(largestInsiderTransaction.insiderName ?? 'Insider Transaction')}</strong><small>{formatNumber(largestInsiderTransaction.shares)} shares · Form {String(largestInsiderTransaction.formType ?? 4)}</small></div>
+              <div><span>Recent Form 4 Activity</span><strong>{insiderSignal}</strong><small>Recent activity is interpreted as {insiderSignal.toLowerCase()} by the internal positioning model.</small></div>
+            </div>
+          </article>
+
+          <article className="terminal-card positioning-intel-card">
+            <div className="card-title-row"><h3>Options Intelligence</h3>{sourceChip(optionsEnvelope.sourcePlatform ?? 'Ortex')}</div>
+            <div className="positioning-score-row"><span>Options Score</span><strong>{optionsScore} / 100</strong><em className={`signal-pill ${optionsSignal.toLowerCase()}`}>{optionsSignal}</em></div>
+            <div className="positioning-events">
+              <div><span>Put / Call Ratio</span><strong>{formatNumber(putCallRatio, { maximumFractionDigits: 2 })}</strong><small>{optionsBias} options bias</small></div>
+              <div><span>Gamma Risk</span><strong>{gammaScore >= 80 ? 'High' : gammaScore >= 60 ? 'Elevated' : 'Controlled'}</strong><small>Gamma score {formatNumber(gammaScore, { maximumFractionDigits: 0 })}</small></div>
+              <div><span>Largest OI Strike</span><strong>$7.00</strong><small>Demo strike from pending options chain connector</small></div>
+              <div><span>Most Active Expiration</span><strong>Jun 2026</strong><small>Options activity favors {optionsSignal.toLowerCase()} positioning.</small></div>
+            </div>
+          </article>
+        </div>
+
+        <div className="positioning-bottom-grid">
+          <div className="terminal-card positioning-matrix-card">
+            <h3>Positioning Matrix</h3>
+            <div className="positioning-matrix">
+              <div><span>Ownership</span><strong className={ownershipSignal.toLowerCase()}>{ownershipSignal}</strong></div>
+              <div><span>Insider</span><strong className={insiderSignal.toLowerCase()}>{insiderSignal}</strong></div>
+              <div><span>Options</span><strong className={optionsSignal.toLowerCase()}>{optionsSignal}</strong></div>
+            </div>
+          </div>
+          <div className="terminal-card overall-positioning-card">
+            <span>Overall Positioning Score</span>
+            <strong>{overallPositioningScore} / 100</strong>
+            <em>{overallPositioningSignal}</em>
+            <small>Top 10% of monitored companies</small>
+          </div>
+          <div className="terminal-card ai-positioning-card">
+            <h3>AI Positioning Summary</h3>
+            <p>Institutional positioning remains constructive with recent accumulation by major holders. Insider activity is {insiderSignal.toLowerCase()} with limited directional pressure from recent transactions. Options activity continues to favor {optionsSignal.toLowerCase()} positioning, supported by a favorable put/call ratio and elevated gamma exposure.</p>
+            <p>Overall positioning remains positive despite minor reductions from select institutional investors.</p>
+          </div>
+        </div>
+
+        <div className="positioning-contributors">
+          <div className="terminal-card">
+            <h3>Strongest Positive Factors</h3>
+            <ul>{(positivePositioningFactors.length ? positivePositioningFactors : ['Institutional accumulation', 'Low Put/Call Ratio', 'Positive Gamma Structure']).map(factor => <li key={String(factor)}>{factor}</li>)}</ul>
+          </div>
+          <div className="terminal-card">
+            <h3>Strongest Negative Factors</h3>
+            <ul>{(negativePositioningFactors.length ? negativePositioningFactors : ['Recent insider selling', 'Declining ownership concentration']).map(factor => <li key={String(factor)}>{factor}</li>)}</ul>
+          </div>
         </div>
       </section>
 
       <section className="terminal-section">
-        <div className="terminal-section__head"><div><span>Section 13</span><h2>Short Squeeze Trigger Engine</h2></div>{sourceChip('Internal Model')}</div>
-        <div className="trigger-grid">
-          {triggerLevels.map(([level, title, status, progress]) => (
-            <div className="terminal-card trigger-card" key={level}>
-              <span>{level}</span><h3>{title}</h3><strong>{status}</strong><div className="trigger-progress"><i style={{ width: `${progress}%` }} /></div>
+        <div className="terminal-section__head">
+          <div>
+            <span>Section 13</span>
+            <h2><InfoTitle text="Real-time evaluation of key squeeze conditions and market pressure indicators. The score measures how many major conditions are active, not whether a squeeze is guaranteed.">Short Squeeze Readiness</InfoTitle></h2>
+            <p className="section-subtitle">Real-time evaluation of key squeeze conditions and market pressure indicators.</p>
+          </div>
+          {headActions(<>{sourceChip('Internal Model')}{viewMore(company.ticker, 'risk-alerts')}</>)}
+        </div>
+
+        <div className="readiness-hero-grid">
+          <div className={`readiness-hero-card ${readinessTone}`}>
+            <span>Short Squeeze Readiness</span>
+            <strong>{readinessScore} / 100</strong>
+            <em>{readinessLevel}</em>
+            <small>Top 2% of monitored stocks</small>
+            <div className="readiness-status-block">
+              <p><b>Current Status:</b> {readinessLevel} Readiness</p>
+              <p><b>Summary:</b> Most major squeeze conditions have been satisfied. Short sellers are experiencing increasing pressure from elevated borrow costs, limited share availability, high utilization, and management-adjusted float constraints.</p>
             </div>
+          </div>
+          <div className="triggered-gauge-card">
+            <div className="triggered-gauge" style={{ background: `conic-gradient(#be123c 0% ${activeConditionPercent}%, #e8eef7 ${activeConditionPercent}% 100%)` }}>
+              <div><strong>{triggeredConditions.length} / {readinessConditions.length}</strong><span>conditions active</span></div>
+            </div>
+            <p>{activeConditionPercent}% of monitored squeeze conditions are currently triggered.</p>
+          </div>
+        </div>
+
+        <div className="conditions-matrix">
+          {readinessConditions.map(condition => (
+            <article className="condition-card" key={condition.name}>
+              <div className="condition-card__head">
+                <h3>{condition.name}</h3>
+                <span className={`condition-status ${condition.status.toLowerCase().replaceAll(' ', '-')}`}>{condition.status}</span>
+              </div>
+              <div className="condition-card__metrics">
+                <div><span>Current</span><strong>{condition.current}</strong></div>
+                <div><span>Threshold</span><strong>{condition.threshold}</strong></div>
+              </div>
+              <p>{condition.explanation}</p>
+              <div className="condition-card__source">Source: {condition.source}</div>
+            </article>
           ))}
+        </div>
+
+        <div className="readiness-bottom-grid">
+          <div className="terminal-card condition-summary-card">
+            <h3>Condition Summary</h3>
+            <div className="condition-summary-stats">
+              <div><span>Triggered</span><strong>{triggeredConditions.length}</strong></div>
+              <div><span>Monitoring</span><strong>{monitoringConditions.length}</strong></div>
+              <div><span>Not Active</span><strong>{inactiveConditions.length}</strong></div>
+              <div><span>Readiness</span><strong>{readinessScore} / 100</strong></div>
+            </div>
+            <div className="contributors-grid">
+              <div>
+                <h4>Strongest Positive Contributors</h4>
+                <ul>
+                  {triggeredConditions.slice(0, 3).map(condition => <li key={condition.name}>{condition.name}</li>)}
+                </ul>
+              </div>
+              <div>
+                <h4>Weakest Contributors</h4>
+                <ul>
+                  {[...monitoringConditions, ...inactiveConditions].slice(0, 3).map(condition => <li key={condition.name}>{condition.name}</li>)}
+                </ul>
+              </div>
+            </div>
+          </div>
+          <div className="terminal-card ai-squeeze-assessment">
+            <h3>AI Squeeze Assessment</h3>
+            <p>Current conditions indicate elevated squeeze readiness. Borrow costs, utilization, share availability, and adjusted float metrics all suggest increasing pressure on short sellers. While options activity and social sentiment remain below peak levels, the majority of core squeeze conditions are already satisfied.</p>
+            <p>The highest-risk scenario for short sellers would be a positive catalyst combined with continued borrow scarcity and further reduction in available lendable shares.</p>
+            {sourceChip('Internal Model')}
+          </div>
         </div>
       </section>
 
@@ -509,22 +916,125 @@ export default async function CompanyDashboardPage() {
       </section>
 
       <section className="terminal-section">
-        <div className="terminal-section__head"><div><span>Sections 17-18</span><h2>Price Target Engine & Catalyst Monitor</h2></div>{sourceChip('Internal Model / SEC EDGAR')}</div>
-        <div className="grid cols-2">
-          <div className="terminal-card target-card">
-            <h3>Price Target Engine</h3>
-            <div className="target-grid"><div><span>Target 1</span><strong>Initial Covering</strong><small>Risk level: Watch</small></div><div><span>Target 2</span><strong>Institutional Covering</strong><small>Risk level: Elevated</small></div><div><span>Target 3</span><strong>Extreme Squeeze</strong><small>Risk level: Critical</small></div></div>
-            <p className="terminal-note">Support and resistance levels are placeholders pending technical model integration.</p>
+        <div className="terminal-section__head">
+          <div>
+            <span>Section 17</span>
+            <h2><InfoTitle text="Scenario-based price projections derived from short interest, float structure, options positioning, and market activity. This is not an analyst target price.">Price Scenario Engine</InfoTitle></h2>
+            <p className="section-subtitle">Scenario-based price projections derived from short interest, float structure, options positioning, and market activity.</p>
           </div>
-          <div className="terminal-card">
-            <h3>Catalyst Monitor</h3>
-            <div className="timeline-list">
-              {[...filings, ...news].slice(0, 6).map((item, index) => (
-                <div key={index}><span>{String(item.filingDate ?? item.publishDate ?? item.date ?? 'Upcoming')}</span><strong>{String(item.formType ?? item.title ?? 'Catalyst')}</strong><small>{String(item.summary ?? item.source ?? 'Earnings, calls, conferences, product launches, M&A, and regulatory events are monitored here.')}</small></div>
+          {headActions(<>{sourceChip('Internal Model')}{sourceChip('Ortex')}{sourceChip('Internal Float Intelligence')}</>)}
+        </div>
+
+        <div className="price-scenario-kpi">
+          <span>Current Price</span>
+          <strong>{formatCurrency(currentPrice)}</strong>
+          <p>This module answers: if specific market scenarios occur, where could the stock realistically trade?</p>
+        </div>
+
+        <div className="scenario-ladder">
+          <div className="scenario-step current"><span>Current Price</span><strong>{formatCurrency(currentPrice)}</strong><small>Reference point</small></div>
+          {priceScenarios.map(scenario => (
+            <div className="scenario-step" key={scenario.name}>
+              <span>{scenario.name}</span>
+              <strong>{formatCurrency(scenario.target)}</strong>
+              <small>{scenario.probability}% probability · +{scenario.upside}% return · {scenario.risk} risk</small>
+            </div>
+          ))}
+        </div>
+
+        <div className="scenario-card-grid">
+          {priceScenarios.map(scenario => (
+            <article className={`scenario-card ${scenario.risk.toLowerCase()}`} key={scenario.name}>
+              <div><span>Probability</span><strong>{scenario.probability}%</strong></div>
+              <h3>{scenario.name}</h3>
+              <p>{scenario.description}</p>
+              <div className="scenario-card__target"><span>Scenario price</span><strong>{formatCurrency(scenario.target)}</strong><em>+{scenario.upside}%</em></div>
+            </article>
+          ))}
+        </div>
+
+        <div className="scenario-analysis-grid">
+          <div className="terminal-card price-driver-card">
+            <h3>Price Driver Analysis</h3>
+            <div className="price-driver-list">
+              {priceDrivers.map(([driver, impact, source]) => (
+                <div key={driver}>
+                  <span>{driver}</span>
+                  <strong className={`impact-badge ${String(impact).toLowerCase()}`}>{impact}</strong>
+                  <small>Source: {source}</small>
+                </div>
               ))}
-              {!filings.length && !news.length && <div><span>Pending</span><strong>No Source Available</strong><small>Future event calendar provider required.</small></div>}
             </div>
           </div>
+          <div className="terminal-card ai-scenario-card">
+            <h3>AI Scenario Analysis</h3>
+            <p>Current positioning suggests moderate upside potential under normal market conditions. If borrow availability continues to decline and short interest remains elevated, the probability of a higher squeeze scenario may increase significantly.</p>
+            <p>Scenario outputs are modeled from short interest, borrow fee, internal float adjustment, sentiment, options pressure, and market activity assumptions.</p>
+            {sourceChip('Internal Model')}
+          </div>
+        </div>
+      </section>
+
+      <section className="terminal-section">
+        <div className="terminal-section__head">
+          <div>
+            <span>Section 18</span>
+            <h2><InfoTitle text="Upcoming events and developments that could materially impact market behavior. This module answers what could cause the stock to move.">Catalyst Intelligence Center</InfoTitle></h2>
+            <p className="section-subtitle">Upcoming events and developments that could materially impact market behavior.</p>
+          </div>
+          {headActions(<>{sourceChip('SEC EDGAR')}{sourceChip('Company Calendar')}{viewMore(company.ticker, 'event-calendar')}</>)}
+        </div>
+
+        <div className="catalyst-summary-grid">
+          <div className="terminal-card terminal-stat"><span>Upcoming Catalysts</span><strong>{catalystItems.length}</strong><small>next monitored events</small></div>
+          <div className="terminal-card terminal-stat"><span>High Impact</span><strong>{highImpactCatalysts}</strong><small>executive attention</small></div>
+          <div className="terminal-card terminal-stat"><span>Medium Impact</span><strong>{mediumImpactCatalysts}</strong><small>watch list</small></div>
+          <div className="terminal-card terminal-stat"><span>Low Impact</span><strong>{lowImpactCatalysts}</strong><small>routine monitoring</small></div>
+          <div className="terminal-card terminal-stat major-event"><span>Next Major Event</span><strong>Q2 Earnings</strong><small>Days remaining: 14</small></div>
+        </div>
+
+        <div className="catalyst-layout">
+          <div className="terminal-card catalyst-timeline-card">
+            <h3>Catalyst Timeline</h3>
+            <div className="catalyst-timeline">
+              {catalystItems.map(item => (
+                <div className="catalyst-event" key={`${item.date}-${item.title}`}>
+                  <span>{item.date}</span>
+                  <div>
+                    <strong>{item.title}</strong>
+                    <small>{item.category} · Source: {item.source}</small>
+                  </div>
+                  <em className={`impact-badge ${item.impact.toLowerCase()}`}>{item.impact}</em>
+                </div>
+              ))}
+            </div>
+          </div>
+          <div className="catalyst-side-stack">
+            <div className="terminal-card catalyst-category-card">
+              <h3>Catalyst Categories</h3>
+              {catalystCategories.map(([category, examples]) => (
+                <div key={category}><strong>{category}</strong><span>{examples}</span></div>
+              ))}
+            </div>
+            <div className="terminal-card catalyst-heatmap-card">
+              <h3>Catalyst Heatmap</h3>
+              <div className="catalyst-heatmap">
+                {catalystMonths.map(([month, count, note]) => (
+                  <div key={month} className={Number(count) >= 3 ? 'hot' : Number(count) >= 2 ? 'warm' : 'calm'}>
+                    <span>{month}</span>
+                    <strong>{count}</strong>
+                    <small>{note}</small>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="terminal-card ai-catalyst-card">
+          <h3>AI Catalyst Analysis</h3>
+          <p>The highest-impact near-term catalyst is the upcoming earnings release. Historical trading behavior suggests earnings announcements have produced above-average volatility. Additional catalysts include potential institutional ownership disclosures, market structure events, and upcoming conference appearances.</p>
+          <div className="terminal-section-actions">{sourceChip('SEC EDGAR')}{sourceChip('Company Calendar')}{sourceChip('News Intelligence')}{sourceChip('Internal Events')}{sourceChip('Fintel')}</div>
         </div>
       </section>
 

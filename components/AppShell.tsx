@@ -1,4 +1,5 @@
 import { Sidebar } from './Sidebar';
+import { MonitorExpertChat } from './MonitorExpertChat';
 
 export function AppShell({ ticker, companyName, children }: { ticker: string; companyName: string; children: React.ReactNode }) {
   return (
@@ -7,6 +8,7 @@ export function AppShell({ ticker, companyName, children }: { ticker: string; co
       <main className="portal-main main-content">
         {children}
       </main>
+      <MonitorExpertChat ticker={ticker} />
     </div>
   );
 }
