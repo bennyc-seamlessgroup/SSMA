@@ -2,68 +2,72 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { useState } from 'react';
 import { UserMenu } from './UserMenu';
 
 const groups = [
   {
-    label: 'Company workspace',
+    label: 'Workspace',
     items: [
       ['Dashboard', 'dashboard'],
-      ['Overview (Obsolete)', ''],
+      ['Short Interest', 'short-interest'],
+      ['Lending Pressure', 'lending-pressure'],
+      ['Squeeze Readiness', 'squeeze-readiness'],
+      ['Internal Float', 'internal-float'],
+      ['Smart Money', 'smart-money'],
+      ['Narrative', 'sentiment'],
+      ['Catalysts', 'event-calendar'],
+      ['Price Scenarios', 'price-scenario'],
+      ['Market Defense', 'market-defense'],
+      ['Premium', 'premium-intelligence'],
     ],
   },
   {
-    label: 'Company intelligence',
+    label: 'Research',
+    muted: true,
     items: [
+      ['Overview (Obsolete)', ''],
       ['News & Filings', 'news'],
       ['Insider Activity', 'insider'],
       ['Institutional Ownership', 'institutional'],
       ['Shareholder Watch', 'shareholder-watch'],
-      ['Internal Float Intelligence', 'internal-float'],
-      ['Short Interest', 'short-interest'],
       ['Options / Gamma', 'options'],
-      ['Sentiment', 'sentiment'],
       ['Peer Comparison', 'peer-comparison'],
-      ['Event Calendar', 'event-calendar'],
     ],
   },
   {
-    label: 'AI reports',
+    label: 'AI Reports',
+    muted: true,
     items: [
-      ['Report Archive', 'reports'],
+      ['Archive', 'reports'],
       ['Daily Brief', 'daily-brief'],
       ['Ownership Report', 'ownership-report'],
       ['Short Interest Report', 'short-interest-report'],
       ['Options Report', 'options-report'],
       ['Risk Alerts', 'risk-alerts'],
-      ['Weekly Executive Summary', 'weekly-executive-summary'],
-    ],
-  },
-  {
-    label: 'Settings',
-    items: [
-      ['General Settings', 'settings'],
-      ['Role & Permissions', 'role-permissions'],
-      ['Delivery Settings', 'email-settings'],
-      ['Notifications', 'notifications'],
-      ['Alert Rules', 'alert-rules'],
-      ['Security Policy', 'policy'],
+      ['Weekly Summary', 'weekly-executive-summary'],
     ],
   },
   {
     label: 'Admin / Data',
+    muted: true,
     items: [
-      ['Import Data Pool', 'import-data'],
-      ['Manual Float Inputs', 'manual-float-inputs'],
+      ['Import Pool', 'import-data'],
+      ['Manual Float', 'manual-float-inputs'],
       ['Source Map', 'source-map'],
-      ['Data Dictionary', 'data-dictionary'],
-      ['API Connectors', 'api-connectors'],
+      ['Dictionary', 'data-dictionary'],
+      ['Connectors', 'api-connectors'],
     ],
   },
 ];
 
 export function Sidebar({ ticker, companyName }: { ticker: string; companyName: string }) {
   const pathname = usePathname();
+  const [collapsedGroups, setCollapsedGroups] = useState<Record<string, boolean>>({});
+
+  const toggleGroup = (label: string) => {
+    setCollapsedGroups(current => ({ ...current, [label]: !current[label] }));
+  };
 
   return (
     <aside className="portal-sidebar company-sidebar">
@@ -83,20 +87,39 @@ export function Sidebar({ ticker, companyName }: { ticker: string; companyName: 
       </div>
 
       <div className="portal-sidebar__scroll">
-        {groups.map(group => (
-          <div key={group.label} className="portal-sidebar__group">
-            <div className="portal-sidebar__label">{group.label}</div>
-            {group.items.map(([label, slug]) => {
-              const href = `/monitor/${ticker}${slug ? `/${slug}` : ''}`;
-              const active = pathname === href;
-              return (
-                <Link key={slug || 'overview'} href={href as any} className={`portal-menu ${active ? 'active' : ''}`}>
-                  <span>{label}</span>
-                </Link>
-              );
-            })}
-          </div>
-        ))}
+        {groups.map(group => {
+          const collapsed = Boolean(collapsedGroups[group.label]);
+
+          return (
+            <div
+              key={group.label}
+              className={`portal-sidebar__group ${collapsed ? 'is-collapsed' : ''} ${group.muted ? 'is-muted' : ''}`}
+            >
+              <button
+                type="button"
+                className="portal-sidebar__group-toggle"
+                onClick={() => toggleGroup(group.label)}
+                aria-expanded={!collapsed}
+              >
+                <span>{group.label}</span>
+                <span className="portal-sidebar__chevron" aria-hidden="true">›</span>
+              </button>
+              {!collapsed && (
+                <div className="portal-sidebar__group-items">
+                  {group.items.map(([label, slug]) => {
+                    const href = `/monitor/${ticker}${slug ? `/${slug}` : ''}`;
+                    const active = pathname === href;
+                    return (
+                      <Link key={slug || 'overview'} href={href as any} className={`portal-menu ${active ? 'active' : ''}`}>
+                        <span>{label}</span>
+                      </Link>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          );
+        })}
       </div>
 
       <UserMenu ticker={ticker} />

@@ -51,7 +51,7 @@ export default function SentimentPage() {
     <div className="page">
       <div className="page__header">
         <div>
-          <h1 className="page__title">Sentiment Intelligence</h1>
+          <h1 className="page__title">Sentiment & Narrative Intelligence</h1>
           <p className="page__desc">Social-media mention scan across public platforms, with sentiment classification and links back to the source posts.</p>
           <span className="import-file-tag">import_data/sentiment/social_mentions.json</span>
         </div>
@@ -81,6 +81,15 @@ export default function SentimentPage() {
       </section>
 
       <section className="panel">
+        <div className="research-module-grid">
+          <div className="research-hero-card"><span>Market Narrative</span><strong>{averageScore} / 100</strong><p>Summarizes sentiment quality, discussion momentum, and dominant narratives before users inspect the detailed mention feed.</p></div>
+          <div className="research-mini-card"><span>Narrative Velocity</span><strong>+18%</strong><small>Demo 7-day discussion growth.</small></div>
+          <div className="research-mini-card"><span>Mention Growth</span><strong>+24%</strong><small>Demo week-over-week mention growth.</small></div>
+          <div className="research-mini-card"><span>Top Platform</span><strong>{topPlatform}</strong><small>Largest current source of mentions.</small></div>
+        </div>
+      </section>
+
+      <section className="panel">
         <div className="section__head">
           <h2 className="panel__title with-info">
             Mention Feed
@@ -94,6 +103,7 @@ export default function SentimentPage() {
         <ImportDataTable
           columns={['postedAt', 'platform', 'author', 'sentiment', 'sentimentScore', 'topic', 'comment', 'engagement', 'sourceLink']}
           rows={rows}
+          pageSize={10}
         />
       </section>
     </div>

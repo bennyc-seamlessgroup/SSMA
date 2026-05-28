@@ -6,6 +6,7 @@ type ImportDataPreviewPageProps = {
   title: string;
   description: string;
   files: string[];
+  children?: React.ReactNode;
 };
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -64,13 +65,13 @@ function DataRowsTable({ rows }: { rows: Record<string, unknown>[] }) {
   }
   const columns = pickColumns(rows);
   const tableRows = rows.map(row => Object.fromEntries(columns.map(column => [column, formatValue(row[column])])));
-  return <ImportDataTable columns={columns} rows={tableRows} />;
+  return <ImportDataTable columns={columns} rows={tableRows} pageSize={10} />;
 }
 
 function ObjectSummaryTable({ data }: { data: Record<string, unknown> }) {
   const rows = Object.entries(data).filter(([, value]) => !Array.isArray(value) && !isRecord(value));
   if (!rows.length) return null;
-  return <ImportDataTable columns={['field', 'value']} rows={rows.map(([key, value]) => ({ field: formatLabel(key), value: formatValue(value) }))} />;
+  return <ImportDataTable columns={['field', 'value']} rows={rows.map(([key, value]) => ({ field: formatLabel(key), value: formatValue(value) }))} pageSize={10} />;
 }
 
 function ImportDataRenderer({ data }: { data: unknown }) {
@@ -101,7 +102,7 @@ function ImportDataRenderer({ data }: { data: unknown }) {
   return <p className="page__desc import-empty">{formatValue(data)}</p>;
 }
 
-export function ImportDataPreviewPage({ title, description, files }: ImportDataPreviewPageProps) {
+export function ImportDataPreviewPage({ title, description, files, children }: ImportDataPreviewPageProps) {
   const datasets = files.map(file => {
     const envelope = readImportFile(file);
     return {
@@ -124,6 +125,7 @@ export function ImportDataPreviewPage({ title, description, files }: ImportDataP
         </div>
       </div>
       <section className="panel">
+        {children}
         <div className="section-list">
           {datasets.map(row => (
             <div className="section import-data-section" key={row.file}>

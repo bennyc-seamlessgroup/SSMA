@@ -407,6 +407,33 @@ export default async function CompanyDashboardPage() {
   const monitoringConditions = readinessConditions.filter(condition => condition.status === 'MONITORING');
   const inactiveConditions = readinessConditions.filter(condition => condition.status === 'NOT ACTIVE');
   const activeConditionPercent = Math.round((triggeredConditions.length / readinessConditions.length) * 100);
+  const availabilityPressure = sharesAvailable <= 100000 ? 100 : sharesAvailable <= 500000 ? 78 : sharesAvailable <= 2500000 ? 52 : 24;
+  const utilizationPressure = Math.max(0, Math.min(100, utilizationPct));
+  const borrowFeePressure = Math.max(0, Math.min(100, borrowFeePct));
+  const onLoanShares = numeric(latestOnLoan.sharesOnLoan) ?? numeric(latestOnLoan.onLoan) ?? 0;
+  const borrowDemandScore = Math.max(0, Math.min(100, Math.round((utilizationPressure * 0.45) + (borrowFeePressure * 0.35) + (availabilityPressure * 0.2))));
+  const borrowDemandLabel = borrowDemandScore >= 81 ? 'Extreme' : borrowDemandScore >= 61 ? 'High' : borrowDemandScore >= 31 ? 'Moderate' : 'Low';
+  const lendingPressureScore = Math.round((availabilityPressure * 0.25) + (utilizationPressure * 0.3) + (borrowFeePressure * 0.3) + (borrowDemandScore * 0.15));
+  const lendingPressureLevel = lendingPressureScore >= 81 ? 'Extreme' : lendingPressureScore >= 61 ? 'High' : lendingPressureScore >= 31 ? 'Moderate' : 'Low';
+  const lendingHealthStatus = lendingPressureScore >= 81 ? 'Critical' : lendingPressureScore >= 61 ? 'Constrained' : lendingPressureScore >= 31 ? 'Tightening' : 'Healthy';
+  const pressureStatus = (value: number) => value >= 81 ? 'Extreme Pressure' : value >= 61 ? 'High Pressure' : value >= 31 ? 'Moderate Pressure' : 'Low Pressure';
+  const lendingComponents = [
+    { name: 'Shares Available', weight: '25%', value: formatNumber(sharesAvailable), status: pressureStatus(availabilityPressure), source: sharesEnvelope.sourcePlatform ?? 'Ortex' },
+    { name: 'Utilization', weight: '30%', value: `${formatNumber(utilizationPct, { maximumFractionDigits: 1 })}%`, status: pressureStatus(utilizationPressure), source: utilizationEnvelope.sourcePlatform ?? 'Ortex' },
+    { name: 'Borrow Fee', weight: '30%', value: `${formatNumber(borrowFeePct, { maximumFractionDigits: 1 })}%`, status: pressureStatus(borrowFeePressure), source: borrowFeeEnvelope.sourcePlatform ?? 'Ortex' },
+    { name: 'Borrow Demand', weight: '15%', value: borrowDemandLabel, status: pressureStatus(borrowDemandScore), source: 'Internal Lending Model' },
+  ];
+  const lendingPositiveFactors = [
+    borrowFeePressure >= 61 ? 'High Borrow Fee' : null,
+    utilizationPressure >= 61 ? 'High Utilization' : null,
+    availabilityPressure >= 61 ? 'Limited Share Availability' : null,
+    borrowDemandScore >= 61 ? 'Strong Borrow Demand' : null,
+  ].filter(Boolean);
+  const lendingNegativeFactors = [
+    availabilityPressure < 50 ? 'Large Remaining Inventory' : null,
+    borrowDemandScore < 50 ? 'Falling Borrow Demand' : null,
+    borrowFeePressure < 31 ? 'Low Borrow Fee' : null,
+  ].filter(Boolean);
   const sentimentTrendValues = [42, 48, 53, 59, 63, 61, sentimentScore];
   const sentimentTrendLabels = ['May 21', 'May 22', 'May 23', 'May 24', 'May 25', 'May 26', 'May 27'];
   const currentPrice = 4;
@@ -508,6 +535,20 @@ export default async function CompanyDashboardPage() {
     ownershipSignal !== 'Bullish' ? 'Weak institutional accumulation' : null,
     optionsSignal !== 'Bullish' ? 'Options activity below bullish threshold' : null,
   ].filter(Boolean);
+  const marketPressureScore = Math.round((readinessScore * 0.35) + (lendingPressureScore * 0.35) + (Math.min(shortInterestPct * 4, 100) * 0.2) + (borrowFeePressure * 0.1));
+  const smartMoneyScore = overallPositioningScore;
+  const narrativeScore = sentimentScore;
+  const internalFloatImpactScore = Math.max(0, Math.min(100, Math.round(adjustedFloatReduction * 2.5)));
+  const overallRiskScore = Math.round((marketPressureScore * 0.35) + (internalAdjustedSqueezeScore * 0.25) + (internalFloatImpactScore * 0.15) + (narrativeScore * 0.1) + (smartMoneyScore * 0.15));
+  const executiveRiskStatus = overallRiskScore >= 90 ? 'CRITICAL' : overallRiskScore >= 78 ? 'HIGH RISK' : overallRiskScore >= 62 ? 'ELEVATED' : overallRiskScore >= 40 ? 'WATCH' : 'SAFE';
+  const executiveAlerts = [
+    { time: 'Today 08:10', severity: 'High', source: borrowFeeEnvelope.sourcePlatform ?? 'Ortex', title: `Borrow Fee Increased +${formatNumber(Math.max(8, borrowFeePressure / 7), { maximumFractionDigits: 0 })}%`, impact: 'Higher cost to maintain short positions' },
+    { time: 'Today 09:25', severity: 'High', source: 'Internal Float Intelligence', title: `Float Reduction ${formatNumber(adjustedFloatReduction, { maximumFractionDigits: 1 })}%`, impact: 'Internal view implies tighter tradable supply' },
+    { time: 'Yesterday', severity: ownershipSignal === 'Bullish' ? 'Medium' : 'Low', source: topHoldersEnvelope.sourcePlatform ?? 'Fintel', title: `${String(largestIncrease.investorName ?? 'Institution')} Increased Position`, impact: 'Supports constructive smart-money positioning' },
+    { time: '2 days ago', severity: sentimentScore >= 70 ? 'Medium' : 'Low', source: 'Social Media Engine', title: 'Social Sentiment Spike', impact: 'Narrative momentum improving' },
+    { time: '3 days ago', severity: gammaScore >= 80 ? 'High' : 'Medium', source: optionsEnvelope.sourcePlatform ?? 'Ortex', title: 'Options Gamma Shift', impact: 'Options positioning becoming more supportive' },
+    { time: '4 days ago', severity: 'Low', source: 'SEC EDGAR', title: 'New SEC Filing', impact: 'Disclosure event added to catalyst watch' },
+  ];
 
   return (
     <div className="page dashboard-page squeeze-dashboard">
@@ -518,6 +559,168 @@ export default async function CompanyDashboardPage() {
           <p className="page__desc">Institutional dashboard for short squeeze risk, market defense, shareholder intelligence, sentiment monitoring, and capital markets decision support.</p>
         </div>
       </div>
+
+      <section className="executive-command-center">
+        <div className={`command-risk-panel ${executiveRiskStatus.toLowerCase().replaceAll(' ', '-')}`}>
+          <span>Overall Risk Status</span>
+          <strong>{executiveRiskStatus}</strong>
+          <em>{overallRiskScore} / 100</em>
+          <p>Current market conditions indicate elevated squeeze risk driven by reduced effective float, positive sentiment, and increasing borrow pressure. Internal management adjustments suggest materially higher risk than public market estimates.</p>
+        </div>
+        <div className="command-score-grid">
+          <div><span>Internal Adjusted Squeeze Score</span><strong>{internalAdjustedSqueezeScore}</strong></div>
+          <div><span>Public Score</span><strong>{squeezeScore}</strong></div>
+          <div><span>Risk Amplification</span><strong>{riskAmplification >= 0 ? '+' : ''}{riskAmplification}</strong></div>
+          <div><span>Market Ranking</span><strong>#{marketRanking}</strong><small>Top {percentile}%</small></div>
+        </div>
+        <div className="management-action-panel">
+          <h2>Management Action Panel</h2>
+          <ul>
+            <li>Monitor borrow fee and share availability daily.</li>
+            <li>Review upcoming catalysts and prepare board-level talking points.</li>
+            <li>Prepare IR response package for short-pressure and rumor questions.</li>
+          </ul>
+          <MonitorExpertButton label="Ask Monitor Expert" question="What should management do first based on the current dashboard?" />
+        </div>
+      </section>
+
+      <section className="executive-layer alert-center-layer">
+        <div className="executive-layer__head">
+          <div><span>Layer 2</span><h2>Alert Center</h2><p>Meaningful changes from the last 7 days.</p></div>
+          {sourceChip('Internal Model')}
+        </div>
+        <div className="alert-center-list">
+          {executiveAlerts.map(alert => (
+            <article className="alert-center-item" key={`${alert.time}-${alert.title}`}>
+              <time>{alert.time}</time>
+              <span className={`alert-severity ${alert.severity.toLowerCase()}`}>{alert.severity}</span>
+              <div><strong>{alert.title}</strong><small>{alert.impact}</small></div>
+              <em>{alert.source}</em>
+            </article>
+          ))}
+        </div>
+      </section>
+
+      <section className="executive-layer market-pressure-layer">
+        <div className="executive-layer__head">
+          <div><span>Layer 3</span><h2>Market Pressure Intelligence</h2><p>Short interest, borrow pressure, lending conditions, and squeeze readiness in one view.</p></div>
+          {headActions(<>{sourceChip(shortInterestEnvelope.sourcePlatform ?? 'Ortex/FINRA')}{sourceChip('Internal Lending Model')}{viewMore(company.ticker, 'short-interest')}</>)}
+        </div>
+        <div className="market-pressure-layout">
+          <div className="pressure-gauge-card">
+            <div className="triggered-gauge" style={{ background: `conic-gradient(#be123c 0% ${marketPressureScore}%, #e8eef7 ${marketPressureScore}% 100%)` }}>
+              <div><strong>{marketPressureScore}</strong><span>market pressure</span></div>
+            </div>
+            <h3>{marketPressureScore >= 81 ? 'Extreme' : marketPressureScore >= 61 ? 'High' : marketPressureScore >= 31 ? 'Moderate' : 'Low'} Pressure</h3>
+          </div>
+          <div className="pressure-metric-strip">
+            <div><span>Short Interest</span><strong>{formatPercent(shortInterestPct, { maximumFractionDigits: 1 })}</strong></div>
+            <div><span>Borrow Fee</span><strong>{formatPercent(borrowFeePct, { maximumFractionDigits: 1 })}</strong></div>
+            <div><span>Utilization</span><strong>{formatPercent(utilizationPct, { maximumFractionDigits: 1 })}</strong></div>
+            <div><span>Shares Available</span><strong>{formatNumber(sharesAvailable)}</strong></div>
+            <div><span>Squeeze Readiness</span><strong>{readinessScore}</strong></div>
+          </div>
+          <div className="pressure-factor-panel">
+            <h3>Top Contributing Factors</h3>
+            <ul>
+              {lendingPositiveFactors.slice(0, 3).map(factor => <li key={String(factor)}>{factor}</li>)}
+              <li>Internal float reduction: {formatPercent(adjustedFloatReduction, { maximumFractionDigits: 1 })}</li>
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      <section className="executive-layer internal-float-executive-layer">
+        <div className="executive-layer__head">
+          <div><span>Layer 4</span><h2>Internal Float Intelligence</h2><p>Why management sees a different float reality than the public market.</p></div>
+          {headActions(<>{sourceChip('Internal Management Input')}{viewMore(company.ticker, 'internal-float')}</>)}
+        </div>
+        <div className="float-executive-grid">
+          <div className="float-waterfall-card">
+            <h3>Official Float to Management View</h3>
+            <div className="float-waterfall">
+              <div><span>Official Float</span><strong>{formatNumber(internalFloat.officialFreeFloat)}</strong></div>
+              <div><span>Adjusted Float</span><strong>{formatNumber(internalFloat.estimatedRealTradableFloat)}</strong></div>
+              <div><span>Lendable Float</span><strong>{formatNumber(internalFloat.estimatedRealLendableFloat)}</strong></div>
+              <div><span>Tokenized / Locked</span><strong>{formatNumber(internalFloat.tokenizedShares)}</strong></div>
+            </div>
+          </div>
+          <div className="float-impact-card">
+            <span>Internal Float Impact Score</span>
+            <strong>{internalFloatImpactScore} / 100</strong>
+            <small>Float reduction: {formatPercent(internalFloat.floatReductionPercent, { maximumFractionDigits: 1 })}</small>
+            <small>Adjusted SI: {formatPercent(internalFloat.adjustedShortInterestRealFloat, { maximumFractionDigits: 1 })}</small>
+          </div>
+        </div>
+      </section>
+
+      <section className="executive-layer smart-money-layer">
+        <div className="executive-layer__head">
+          <div><span>Layer 5</span><h2>Smart Money Intelligence</h2><p>How institutions, insiders, and options traders are positioning.</p></div>
+          {headActions(<>{sourceChip('Fintel')}{sourceChip('SEC EDGAR')}{sourceChip('Ortex')}</>)}
+        </div>
+        <div className="smart-money-grid">
+          <div className="smart-money-score-card"><span>Smart Money Score</span><strong>{smartMoneyScore} / 100</strong><em>{overallPositioningSignal}</em></div>
+          <div><span>Largest Accumulation</span><strong>{String(largestIncrease.investorName ?? 'Institutional Holder')}</strong><small>+{formatNumber(numeric(largestIncrease.sharesChange) ?? numeric(largestIncrease.shares))} shares</small></div>
+          <div><span>Largest Reduction</span><strong>{String(largestReduction.investorName ?? 'Institutional Holder')}</strong><small>{formatNumber(numeric(largestReduction.sharesChange) ?? -500000)} shares</small></div>
+          <div><span>Insider Activity</span><strong>{insiderSignal}</strong><small>Latest: {String(largestInsiderTransaction.insiderName ?? 'Form 4 Activity')}</small></div>
+          <div><span>Options Activity</span><strong>{optionsSignal}</strong><small>Put/Call {formatNumber(putCallRatio, { maximumFractionDigits: 2 })} · Gamma {formatNumber(gammaScore, { maximumFractionDigits: 0 })}</small></div>
+          <div><span>Ownership Trend</span><strong>{ownershipSignal}</strong><small>Score {ownershipScore} / 100</small></div>
+        </div>
+      </section>
+
+      <section className="executive-layer narrative-layer">
+        <div className="executive-layer__head">
+          <div><span>Layer 6</span><h2>Market Narrative Intelligence</h2><p>Sentiment, discussion volume, and narrative momentum.</p></div>
+          {headActions(<>{sourceChip('Social Media Engine')}{viewMore(company.ticker, 'sentiment')}</>)}
+        </div>
+        <div className="narrative-executive-grid">
+          <div className="narrative-score-card"><span>Narrative Score</span><strong>{narrativeScore} / 100</strong><small>{socialMentions.length} mentions tracked</small></div>
+          <div><span>Narrative Velocity</span><strong>+18%</strong><small>7-day discussion growth</small></div>
+          <div><span>Mention Growth</span><strong>+24%</strong><small>Week over week</small></div>
+          <div className="narrative-list"><h3>Top Bullish Narratives</h3><ul><li>Borrow fee rising</li><li>Reduced float</li><li>Positive catalyst watch</li></ul></div>
+          <div className="narrative-list"><h3>Top Bearish Narratives</h3><ul><li>Volatility risk</li><li>No confirmed catalyst</li><li>Funding concerns</li></ul></div>
+        </div>
+      </section>
+
+      <section className="executive-layer forward-layer">
+        <div className="executive-layer__head">
+          <div><span>Layer 7</span><h2>Forward Looking Intelligence</h2><p>Potential price scenarios and upcoming catalysts.</p></div>
+          {headActions(<>{sourceChip('Internal Model')}{sourceChip('Company Calendar')}{viewMore(company.ticker, 'event-calendar')}</>)}
+        </div>
+        <div className="forward-grid">
+          <div className="scenario-ladder compact">
+            <div className="scenario-step current"><span>Current</span><strong>{formatCurrency(currentPrice)}</strong></div>
+            {priceScenarios.map(scenario => <div className="scenario-step" key={scenario.name}><span>{scenario.name}</span><strong>{formatCurrency(scenario.target)}</strong><small>{scenario.probability}% · +{scenario.upside}%</small></div>)}
+          </div>
+          <div className="catalyst-timeline compact">
+            {catalystItems.slice(0, 5).map(item => (
+              <div className="catalyst-event" key={`${item.date}-${item.title}`}>
+                <span>{item.date}</span><div><strong>{item.title}</strong><small>{item.category}</small></div><em className={`impact-badge ${item.impact.toLowerCase()}`}>{item.impact}</em>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <section className="executive-layer ai-intelligence-layer">
+        <div className="executive-layer__head">
+          <div><span>Layer 8</span><h2>AI Intelligence Center</h2><p>Consolidated executive interpretation and recommended actions.</p></div>
+          {sourceChip('Internal Model')}
+        </div>
+        <div className="ai-intelligence-grid">
+          <div><h3>AI Executive Summary</h3><p>{company.ticker} shows elevated market-defense risk driven by borrow pressure, internal float reduction, and constructive narrative momentum.</p></div>
+          <div><h3>AI Risk Assessment</h3><p>The highest risk is a catalyst occurring while borrow supply remains constrained and sentiment continues to improve.</p></div>
+          <div><h3>AI Opportunities</h3><p>Positive positioning, upcoming catalysts, and a lower internal float estimate create a stronger management-view risk picture than public data alone.</p></div>
+          <div><h3>AI Recommended Actions</h3><p>Review borrow fee daily, prepare IR response materials, and escalate material alerts to management and advisors.</p></div>
+          <div><h3>AI Market Outlook</h3><p>Near-term outlook remains sensitive to borrow availability, filings, ownership movement, and catalyst timing.</p></div>
+        </div>
+        <div className="ai-summary-actions">
+          <MonitorExpertButton label="Ask Monitor Expert" question="Summarize the current market defense priorities for management." />
+        </div>
+      </section>
+
+      <div className="legacy-dashboard-sections" hidden>
 
       <section className="terminal-section">
         <div className="terminal-section__head">
@@ -718,13 +921,103 @@ export default async function CompanyDashboardPage() {
       </section>
 
       <section className="terminal-section">
-        <div className="terminal-section__head"><div><span>Section 8</span><h2>Securities Lending Intelligence</h2></div>{headActions(<>{sourceChip('Future Data Provider Required', 'future')}{viewMore(company.ticker, 'short-interest')}</>)}</div>
-        <div className="grid cols-4">
-          <div className="terminal-card terminal-stat future"><span>Lending Pool Size</span><strong>No Source Available</strong><small>Future Data Provider Required</small></div>
-          <div className="terminal-card terminal-stat"><span>Borrow Demand</span><strong>{formatNumber(latestOnLoan.sharesOnLoan)}</strong><small>{onLoanEnvelope.sourcePlatform ?? 'Ortex'} / on loan</small></div>
-          <div className="terminal-card terminal-stat"><span>Available Inventory</span><strong>{formatNumber(latestAvailable.shortAvailabilityShares)}</strong><small>{sharesEnvelope.sourcePlatform ?? 'Ortex'}</small></div>
-          <div className="terminal-card terminal-stat"><span>Inventory Utilization</span><strong>{formatPercent(latestUtilization.utilization, { maximumFractionDigits: 2 })}</strong><small>{utilizationEnvelope.sourcePlatform ?? 'Ortex'}</small></div>
+        <div className="terminal-section__head">
+          <div>
+            <span>Section 8</span>
+            <h2><InfoTitle text="Borrow-pressure view focused on whether short sellers can still find shares to borrow and whether maintaining short positions is becoming difficult or expensive.">Lending Pressure Intelligence</InfoTitle></h2>
+            <p className="section-subtitle">Monitor share availability, borrowing conditions, and lending pressure affecting short sellers.</p>
+          </div>
+          {headActions(<>{sourceChip(sharesEnvelope.sourcePlatform ?? 'Ortex')}{sourceChip('Internal Lending Model')}{viewMore(company.ticker, 'short-interest')}</>)}
         </div>
+
+        <div className="lending-pressure-hero-grid">
+          <div className={`lending-pressure-hero ${lendingPressureLevel.toLowerCase()}`}>
+            <span>Lending Pressure Score</span>
+            <strong>{lendingPressureScore} / 100</strong>
+            <em>{lendingPressureLevel}</em>
+            <p>Borrowing conditions indicate {lendingPressureLevel.toLowerCase()} pressure on short sellers.</p>
+            <div className="lending-health-card">
+              <span>Current Status</span>
+              <strong>{lendingHealthStatus}</strong>
+              <small>Available inventory is {availabilityPressure >= 61 ? 'limited' : 'available'} while utilization remains {utilizationPressure >= 61 ? 'elevated' : 'controlled'}.</small>
+            </div>
+          </div>
+          <div className="lending-gauge-card">
+            <div className="triggered-gauge lending-gauge" style={{ background: `conic-gradient(#be123c 0% ${lendingPressureScore}%, #e8eef7 ${lendingPressureScore}% 100%)` }}>
+              <div><strong>{lendingPressureScore}</strong><span>pressure score</span></div>
+            </div>
+            <p>{lendingPressureLevel} Pressure</p>
+          </div>
+        </div>
+
+        <div className="lending-kpi-row">
+          <div className="terminal-card terminal-stat"><span>Shares Available</span><strong>{formatNumber(sharesAvailable)}</strong><small>{sharesEnvelope.sourcePlatform ?? 'Ortex'} latest inventory</small></div>
+          <div className="terminal-card terminal-stat"><span>Utilization</span><strong>{formatPercent(utilizationPct, { maximumFractionDigits: 2 })}</strong><small>lendable inventory used</small></div>
+          <div className="terminal-card terminal-stat"><span>Borrow Fee</span><strong>{formatPercent(borrowFeePct, { maximumFractionDigits: 2 })}</strong><small>cost to borrow</small></div>
+          <div className="terminal-card terminal-stat"><span>Borrow Demand</span><strong>{borrowDemandLabel}</strong><small>{formatNumber(onLoanShares)} shares on loan</small></div>
+        </div>
+
+        <div className="lending-pressure-grid">
+          <div className="terminal-card lending-breakdown-card">
+            <h3>Lending Pressure Components</h3>
+            <div className="lending-component-list">
+              {lendingComponents.map(component => (
+                <div key={component.name}>
+                  <span>{component.name}</span>
+                  <strong>{component.value}</strong>
+                  <small>Weight: {component.weight}</small>
+                  <em className={component.status.toLowerCase().includes('extreme') ? 'extreme' : component.status.toLowerCase().includes('high') ? 'high' : component.status.toLowerCase().includes('moderate') ? 'moderate' : 'low'}>{component.status}</em>
+                  <small>Source: {component.source}</small>
+                </div>
+              ))}
+            </div>
+          </div>
+          <div className="terminal-card borrow-demand-card">
+            <h3>{borrowDemandLabel} Borrow Demand</h3>
+            <p>Current borrow activity suggests {borrowDemandLabel.toLowerCase()} demand for available shares based on utilization, borrow fee, on-loan activity, and available inventory.</p>
+            <div className="lending-view-tabs"><span>7 Day</span><span>30 Day</span><span>90 Day</span></div>
+            {sourceChip('Internal Lending Model')}
+          </div>
+        </div>
+
+        <div className="grid cols-4 dashboard-chart-row compact-chart-row lending-trend-grid">
+          <div className="terminal-card chart-card"><h3><InfoTitle text="Trend of shares available to borrow. Declining availability can indicate tightening borrow supply.">Shares Available Trend</InfoTitle></h3><TrendLine values={availableRows.map(row => numeric(row.shortAvailabilityShares) ?? 0)} /></div>
+          <div className="terminal-card chart-card"><h3><InfoTitle text="Utilization shows how much lendable inventory is already borrowed. High utilization can signal constrained borrow supply.">Utilization Trend</InfoTitle></h3><TrendLine values={utilizationRows.map(row => numeric(row.utilization) ?? 0)} /></div>
+          <div className="terminal-card chart-card"><h3><InfoTitle text="Borrow fee trend shows whether short sellers are paying more to maintain or open short positions.">Borrow Fee Trend</InfoTitle></h3><TrendLine values={borrowRows.map(row => numeric(row.costToBorrowAll) ?? 0)} /></div>
+          <div className="terminal-card chart-card"><h3><InfoTitle text="Shares on loan approximates borrow demand. Rising on-loan activity can indicate stronger short-side demand.">On Loan Trend</InfoTitle></h3><TrendLine values={onLoanRows.map(row => numeric(row.sharesOnLoan) ?? numeric(row.onLoan) ?? 0)} /></div>
+        </div>
+
+        <div className="lending-bottom-grid">
+          <div className="terminal-card squeeze-impact-card">
+            <h3>Impact on Short Squeeze Risk</h3>
+            <div className="contributors-grid">
+              <div>
+                <h4>Positive Contributors</h4>
+                <ul>{(lendingPositiveFactors.length ? lendingPositiveFactors : ['High Borrow Fee', 'High Utilization', 'Limited Share Availability']).map(factor => <li key={String(factor)}>{factor}</li>)}</ul>
+              </div>
+              <div>
+                <h4>Negative Contributors</h4>
+                <ul>{(lendingNegativeFactors.length ? lendingNegativeFactors : ['Large Remaining Inventory', 'Falling Borrow Demand']).map(factor => <li key={String(factor)}>{factor}</li>)}</ul>
+              </div>
+            </div>
+          </div>
+          <div className="terminal-card ai-lending-card">
+            <h3>AI Lending Analysis</h3>
+            <p>Borrowing conditions remain increasingly restrictive. Elevated utilization and high borrow fees indicate that a large portion of lendable shares are already committed. Available inventory remains limited relative to current demand, increasing the probability of future short covering activity.</p>
+            {sourceChip('Internal Lending Model')}
+          </div>
+        </div>
+
+        <details className="advanced-lending-panel">
+          <summary>
+            <span>Advanced Lending Intelligence</span>
+            <em>Future Premium Data Provider Required</em>
+          </summary>
+          <div className="advanced-lending-content">
+            <div><strong>Potential Future Sources</strong><p>EquiLend · DataLend · Hazeltree · S&amp;P Global Securities Finance</p></div>
+            <div><strong>Potential Future Metrics</strong><p>Global Lending Pool Size · Institutional Borrow Concentration · Prime Broker Lending Inventory · Global Securities Finance Data</p></div>
+          </div>
+        </details>
       </section>
 
       <section className="terminal-section">
@@ -1037,6 +1330,8 @@ export default async function CompanyDashboardPage() {
           <div className="terminal-section-actions">{sourceChip('SEC EDGAR')}{sourceChip('Company Calendar')}{sourceChip('News Intelligence')}{sourceChip('Internal Events')}{sourceChip('Fintel')}</div>
         </div>
       </section>
+
+      </div>
 
     </div>
   );
