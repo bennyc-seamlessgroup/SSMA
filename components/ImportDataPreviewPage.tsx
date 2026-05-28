@@ -1,6 +1,7 @@
 import { readImportFile } from '@/lib/import-data';
 import { ImportDataTable } from '@/components/ImportDataTable';
 import { InfoTooltip } from '@/components/InfoTooltip';
+import { ImportDataTabs } from '@/components/ImportDataTabs';
 
 type ImportDataPreviewPageProps = {
   title: string;
@@ -29,6 +30,39 @@ function formatValue(value: unknown) {
 function cleanTitle(file: string) {
   const name = file.split('/').pop()?.replace('.json', '') ?? file;
   return name.replace(/_/g, ' ').replace(/^./, char => char.toUpperCase());
+}
+
+function DataSection({ row }: {
+  row: {
+    file: string;
+    title: string;
+    sourcePlatform: string;
+    recordCount: number;
+    status: string;
+    notes: string;
+    data: unknown;
+  };
+}) {
+  return (
+    <div className="section import-data-section">
+      <div className="section__head import-dataset-head">
+        <div>
+          <h3 className="section__title with-info">
+            {row.title}
+            <InfoTooltip text="This table is rendered from the normalized import_data JSON file shown below. Backend connectors can replace the file content without changing the portal UI." />
+          </h3>
+          <span className="import-file-tag">{row.file}</span>
+        </div>
+        <div className="import-source-meta">
+          <span>{row.sourcePlatform}</span>
+          <span>{row.recordCount.toLocaleString()} records</span>
+          <span>{row.status}</span>
+        </div>
+      </div>
+      {row.notes && <p className="page__desc import-notes">{row.notes}</p>}
+      <ImportDataRenderer data={row.data} />
+    </div>
+  );
 }
 
 function pickColumns(rows: Record<string, unknown>[]) {
@@ -106,7 +140,9 @@ export function ImportDataPreviewPage({ title, description, files, children }: I
   const datasets = files.map(file => {
     const envelope = readImportFile(file);
     return {
+      id: file.replace(/[^a-zA-Z0-9]+/g, '-'),
       file,
+      title: cleanTitle(file),
       sourcePlatform: envelope.sourcePlatform ?? 'Internal',
       recordCount: envelope.recordCount ?? 0,
       status: envelope.status ?? 'ready',
@@ -126,28 +162,24 @@ export function ImportDataPreviewPage({ title, description, files, children }: I
       </div>
       <section className="panel">
         {children}
-        <div className="section-list">
-          {datasets.map(row => (
-            <div className="section import-data-section" key={row.file}>
-              <div className="section__head import-dataset-head">
-                <div>
-                  <h3 className="section__title with-info">
-                    {cleanTitle(row.file)}
-                    <InfoTooltip text="This table is rendered from the normalized import_data JSON file shown below. Backend connectors can replace the file content without changing the portal UI." />
-                  </h3>
-                  <span className="import-file-tag">{row.file}</span>
-                </div>
-                <div className="import-source-meta">
-                  <span>{row.sourcePlatform}</span>
-                  <span>{row.recordCount.toLocaleString()} records</span>
-                  <span>{row.status}</span>
-                </div>
-              </div>
-              {row.notes && <p className="page__desc import-notes">{row.notes}</p>}
-              <ImportDataRenderer data={row.data} />
-            </div>
-          ))}
-        </div>
+        {datasets.length > 1 ? (
+          <ImportDataTabs
+            tabs={datasets.map(row => ({
+              id: row.id,
+              title: row.title,
+              file: row.file,
+              sourcePlatform: row.sourcePlatform,
+              recordCount: row.recordCount,
+              status: row.status,
+            }))}
+          >
+            {datasets.map(row => <DataSection key={row.file} row={row} />)}
+          </ImportDataTabs>
+        ) : (
+          <div className="section-list">
+            {datasets.map(row => <DataSection key={row.file} row={row} />)}
+          </div>
+        )}
       </section>
     </div>
   );

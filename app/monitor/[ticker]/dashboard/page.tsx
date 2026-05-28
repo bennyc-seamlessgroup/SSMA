@@ -555,7 +555,7 @@ export default async function CompanyDashboardPage() {
       <div className="page__header dashboard-command-header">
         <div>
           <div className="terminal-eyebrow">Short Squeeze Monitoring & Analysis Report</div>
-          <h1 className="page__title">{company.companyName} Intelligence Command Center</h1>
+          <h1 className="page__title">{company.companyName}</h1>
           <p className="page__desc">Institutional dashboard for short squeeze risk, market defense, shareholder intelligence, sentiment monitoring, and capital markets decision support.</p>
         </div>
       </div>
@@ -614,11 +614,31 @@ export default async function CompanyDashboardPage() {
             <h3>{marketPressureScore >= 81 ? 'Extreme' : marketPressureScore >= 61 ? 'High' : marketPressureScore >= 31 ? 'Moderate' : 'Low'} Pressure</h3>
           </div>
           <div className="pressure-metric-strip">
-            <div><span>Short Interest</span><strong>{formatPercent(shortInterestPct, { maximumFractionDigits: 1 })}</strong></div>
-            <div><span>Borrow Fee</span><strong>{formatPercent(borrowFeePct, { maximumFractionDigits: 1 })}</strong></div>
-            <div><span>Utilization</span><strong>{formatPercent(utilizationPct, { maximumFractionDigits: 1 })}</strong></div>
-            <div><span>Shares Available</span><strong>{formatNumber(sharesAvailable)}</strong></div>
-            <div><span>Squeeze Readiness</span><strong>{readinessScore}</strong></div>
+            <div>
+              <span>Short Interest</span>
+              <strong>{formatPercent(shortInterestPct, { maximumFractionDigits: 1 })}</strong>
+              <i style={{ width: `${Math.min(100, Math.max(8, shortInterestPct * 3))}%` }} />
+            </div>
+            <div>
+              <span>Borrow Fee</span>
+              <strong>{formatPercent(borrowFeePct, { maximumFractionDigits: 1 })}</strong>
+              <i style={{ width: `${Math.min(100, Math.max(8, borrowFeePct))}%` }} />
+            </div>
+            <div>
+              <span>Utilization</span>
+              <strong>{formatPercent(utilizationPct, { maximumFractionDigits: 1 })}</strong>
+              <i style={{ width: `${Math.min(100, Math.max(8, utilizationPct))}%` }} />
+            </div>
+            <div>
+              <span>Shares Available</span>
+              <strong>{formatNumber(sharesAvailable)}</strong>
+              <i className="inverse" style={{ width: `${Math.min(100, Math.max(8, availabilityPressure))}%` }} />
+            </div>
+            <div>
+              <span>Squeeze Readiness</span>
+              <strong>{readinessScore}</strong>
+              <i style={{ width: `${Math.min(100, Math.max(8, readinessScore))}%` }} />
+            </div>
           </div>
           <div className="pressure-factor-panel">
             <h3>Top Contributing Factors</h3>

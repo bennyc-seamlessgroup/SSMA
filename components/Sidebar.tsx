@@ -63,7 +63,9 @@ const groups = [
 
 export function Sidebar({ ticker, companyName }: { ticker: string; companyName: string }) {
   const pathname = usePathname();
-  const [collapsedGroups, setCollapsedGroups] = useState<Record<string, boolean>>({});
+  const [collapsedGroups, setCollapsedGroups] = useState<Record<string, boolean>>(() =>
+    Object.fromEntries(groups.filter(group => group.muted).map(group => [group.label, true])),
+  );
 
   const toggleGroup = (label: string) => {
     setCollapsedGroups(current => ({ ...current, [label]: !current[label] }));
@@ -87,36 +89,39 @@ export function Sidebar({ ticker, companyName }: { ticker: string; companyName: 
       </div>
 
       <div className="portal-sidebar__scroll">
-        {groups.map(group => {
+        {groups.map((group, index) => {
           const collapsed = Boolean(collapsedGroups[group.label]);
+          const showDevelopmentDivider = group.muted && !groups[index - 1]?.muted;
 
           return (
-            <div
-              key={group.label}
-              className={`portal-sidebar__group ${collapsed ? 'is-collapsed' : ''} ${group.muted ? 'is-muted' : ''}`}
-            >
-              <button
-                type="button"
-                className="portal-sidebar__group-toggle"
-                onClick={() => toggleGroup(group.label)}
-                aria-expanded={!collapsed}
+            <div key={group.label} className="portal-sidebar__group-block">
+              {showDevelopmentDivider && <div className="portal-sidebar__dev-divider">Development use only</div>}
+              <div
+                className={`portal-sidebar__group ${collapsed ? 'is-collapsed' : ''} ${group.muted ? 'is-muted' : ''}`}
               >
-                <span>{group.label}</span>
-                <span className="portal-sidebar__chevron" aria-hidden="true">›</span>
-              </button>
-              {!collapsed && (
-                <div className="portal-sidebar__group-items">
-                  {group.items.map(([label, slug]) => {
-                    const href = `/monitor/${ticker}${slug ? `/${slug}` : ''}`;
-                    const active = pathname === href;
-                    return (
-                      <Link key={slug || 'overview'} href={href as any} className={`portal-menu ${active ? 'active' : ''}`}>
-                        <span>{label}</span>
-                      </Link>
-                    );
-                  })}
-                </div>
-              )}
+                <button
+                  type="button"
+                  className="portal-sidebar__group-toggle"
+                  onClick={() => toggleGroup(group.label)}
+                  aria-expanded={!collapsed}
+                >
+                  <span>{group.label}</span>
+                  <span className="portal-sidebar__chevron" aria-hidden="true">›</span>
+                </button>
+                {!collapsed && (
+                  <div className="portal-sidebar__group-items">
+                    {group.items.map(([label, slug]) => {
+                      const href = `/monitor/${ticker}${slug ? `/${slug}` : ''}`;
+                      const active = pathname === href;
+                      return (
+                        <Link key={slug || 'overview'} href={href as any} className={`portal-menu ${active ? 'active' : ''}`}>
+                          <span>{label}</span>
+                        </Link>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
             </div>
           );
         })}
