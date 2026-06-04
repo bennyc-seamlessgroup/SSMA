@@ -219,7 +219,6 @@ export default async function CompanyDashboardPage() {
   const shortScoreRows = rows(shortScoreEnvelope.data);
   const latestShortScore = latest(shortScoreRows);
   const latestAvailable = latest(availableRows);
-  const latestUtilization = latest(utilizationRows);
   const latestOnLoan = latest(onLoanRows);
   const topHolders = rows(topHoldersEnvelope.data).slice(0, 6);
   const ownershipChanges = rows(ownershipChangesEnvelope.data);
@@ -264,7 +263,7 @@ export default async function CompanyDashboardPage() {
   const marketUniverse = 4126;
   const percentile = Math.max(1, Math.round((marketRanking / marketUniverse) * 100));
   const shortInterestPct = numeric(shortCurrent.shortInterestPcFreeFloat) ?? 22.4;
-  const utilizationPct = numeric(latestUtilization.utilization) ?? 96;
+  const utilizationPct = numeric(latestAvailable.shortAvailabilityPct) ?? 96;
   const borrowFeePct = numeric(borrowCurrent.costToBorrowAll) ?? 87;
   const sharesAvailable = numeric(latestAvailable.shortAvailabilityShares) ?? 42000;
   const firstShortHistory = shortHistory[0] ?? {};
@@ -292,7 +291,7 @@ export default async function CompanyDashboardPage() {
 
   const breakdown = [
     { label: 'Short Interest Ratio', score: 28, max: 30, weight: '30%', contribution: 'High', source: shortInterestEnvelope.sourcePlatform ?? 'Ortex/FINRA' },
-    { label: 'Securities Lending Utilization', score: 24, max: 25, weight: '25%', contribution: 'High', source: utilizationEnvelope.sourcePlatform ?? 'Ortex' },
+    { label: 'Securities Lending Utilization', score: 24, max: 25, weight: '25%', contribution: 'High', source: sharesEnvelope.sourcePlatform ?? 'Ortex' },
     { label: 'Short Position Trend', score: 13, max: 15, weight: '15%', contribution: 'Medium', source: shortInterestEnvelope.sourcePlatform ?? 'FINRA' },
     { label: 'Borrow Rate Pressure', score: 14, max: 15, weight: '15%', contribution: 'High', source: borrowFeeEnvelope.sourcePlatform ?? 'Ortex' },
     { label: 'Volume & Turnover Validation', score: 8, max: 10, weight: '10%', contribution: 'Medium', source: 'FINRA / Market Data' },
@@ -319,7 +318,7 @@ export default async function CompanyDashboardPage() {
       current: `${formatNumber(utilizationPct, { maximumFractionDigits: 1 })}%`,
       threshold: '90%',
       status: utilizationPct >= 90 ? 'TRIGGERED' : utilizationPct >= 75 ? 'MONITORING' : 'NOT ACTIVE',
-      source: utilizationEnvelope.sourcePlatform ?? 'Ortex',
+      source: sharesEnvelope.sourcePlatform ?? 'Ortex',
       explanation: 'Most lendable shares are already borrowed.',
       weight: 13,
     },
@@ -419,7 +418,7 @@ export default async function CompanyDashboardPage() {
   const pressureStatus = (value: number) => value >= 81 ? 'Extreme Pressure' : value >= 61 ? 'High Pressure' : value >= 31 ? 'Moderate Pressure' : 'Low Pressure';
   const lendingComponents = [
     { name: 'Shares Available', weight: '25%', value: formatNumber(sharesAvailable), status: pressureStatus(availabilityPressure), source: sharesEnvelope.sourcePlatform ?? 'Ortex' },
-    { name: 'Utilization', weight: '30%', value: `${formatNumber(utilizationPct, { maximumFractionDigits: 1 })}%`, status: pressureStatus(utilizationPressure), source: utilizationEnvelope.sourcePlatform ?? 'Ortex' },
+    { name: 'Utilization', weight: '30%', value: `${formatNumber(utilizationPct, { maximumFractionDigits: 1 })}%`, status: pressureStatus(utilizationPressure), source: sharesEnvelope.sourcePlatform ?? 'Ortex' },
     { name: 'Borrow Fee', weight: '30%', value: `${formatNumber(borrowFeePct, { maximumFractionDigits: 1 })}%`, status: pressureStatus(borrowFeePressure), source: borrowFeeEnvelope.sourcePlatform ?? 'Ortex' },
     { name: 'Borrow Demand', weight: '15%', value: borrowDemandLabel, status: pressureStatus(borrowDemandScore), source: 'Internal Lending Model' },
   ];
@@ -930,13 +929,13 @@ export default async function CompanyDashboardPage() {
           <div className="terminal-card terminal-stat"><span>CTB Avg</span><strong>{formatPercent(borrowCurrent.costToBorrowAll, { maximumFractionDigits: 2 })}</strong><small>Current borrow fee</small></div>
           <div className="terminal-card terminal-stat"><span>CTB Max</span><strong>No Source</strong><small>Pending Institutional Data Source</small></div>
           <div className="terminal-card terminal-stat"><span>Shares Available</span><strong>{formatNumber(latestAvailable.shortAvailabilityShares)}</strong><small>Latest inventory</small></div>
-          <div className="terminal-card terminal-stat"><span>Utilization</span><strong>{formatPercent(latestUtilization.utilization, { maximumFractionDigits: 2 })}</strong><small>Ortex style</small></div>
+          <div className="terminal-card terminal-stat"><span>Utilization</span><strong>{formatPercent(latestAvailable.shortAvailabilityPct, { maximumFractionDigits: 2 })}</strong><small>shortAvailabilityPct</small></div>
         </div>
         <div className="grid cols-4 dashboard-chart-row compact-chart-row">
           <div className="terminal-card chart-card"><h3><InfoTitle text="Trend of reported short interest shares. Higher values may indicate more shares have been sold short.">SI Trend</InfoTitle></h3><TrendLine values={shortHistory.map(row => numeric(row.currentShortPositionQuantity) ?? 0)} /></div>
           <div className="terminal-card chart-card"><h3><InfoTitle text="Cost to borrow trend. Rising borrow fees can indicate tighter lending supply or stronger borrowing demand.">Borrow Fee Trend</InfoTitle></h3><TrendLine values={borrowRows.map(row => numeric(row.costToBorrowAll) ?? 0)} /></div>
           <div className="terminal-card chart-card"><h3><InfoTitle text="Trend of shares currently available to borrow for shorting. Falling availability can indicate lending supply pressure.">Shares Available Trend</InfoTitle></h3><TrendLine values={availableRows.map(row => numeric(row.shortAvailabilityShares) ?? 0)} /></div>
-          <div className="terminal-card chart-card"><h3><InfoTitle text="Utilization estimates how much of the lendable share inventory is already borrowed. High utilization can indicate tighter borrow conditions.">Utilization Trend</InfoTitle></h3><TrendLine values={utilizationRows.map(row => numeric(row.utilization) ?? 0)} /></div>
+          <div className="terminal-card chart-card"><h3><InfoTitle text="Utilization is currently mapped to shortAvailabilityPct from shares availability data in the MVP import pool.">Utilization Trend</InfoTitle></h3><TrendLine values={availableRows.map(row => numeric(row.shortAvailabilityPct) ?? 0)} /></div>
         </div>
       </section>
 
@@ -972,7 +971,7 @@ export default async function CompanyDashboardPage() {
 
         <div className="lending-kpi-row">
           <div className="terminal-card terminal-stat"><span>Shares Available</span><strong>{formatNumber(sharesAvailable)}</strong><small>{sharesEnvelope.sourcePlatform ?? 'Ortex'} latest inventory</small></div>
-          <div className="terminal-card terminal-stat"><span>Utilization</span><strong>{formatPercent(utilizationPct, { maximumFractionDigits: 2 })}</strong><small>lendable inventory used</small></div>
+          <div className="terminal-card terminal-stat"><span>Utilization</span><strong>{formatPercent(utilizationPct, { maximumFractionDigits: 2 })}</strong><small>shortAvailabilityPct</small></div>
           <div className="terminal-card terminal-stat"><span>Borrow Fee</span><strong>{formatPercent(borrowFeePct, { maximumFractionDigits: 2 })}</strong><small>cost to borrow</small></div>
           <div className="terminal-card terminal-stat"><span>Borrow Demand</span><strong>{borrowDemandLabel}</strong><small>{formatNumber(onLoanShares)} shares on loan</small></div>
         </div>
@@ -1002,7 +1001,7 @@ export default async function CompanyDashboardPage() {
 
         <div className="grid cols-4 dashboard-chart-row compact-chart-row lending-trend-grid">
           <div className="terminal-card chart-card"><h3><InfoTitle text="Trend of shares available to borrow. Declining availability can indicate tightening borrow supply.">Shares Available Trend</InfoTitle></h3><TrendLine values={availableRows.map(row => numeric(row.shortAvailabilityShares) ?? 0)} /></div>
-          <div className="terminal-card chart-card"><h3><InfoTitle text="Utilization shows how much lendable inventory is already borrowed. High utilization can signal constrained borrow supply.">Utilization Trend</InfoTitle></h3><TrendLine values={utilizationRows.map(row => numeric(row.utilization) ?? 0)} /></div>
+          <div className="terminal-card chart-card"><h3><InfoTitle text="Utilization is currently mapped to shortAvailabilityPct from shares availability data in the MVP import pool.">Utilization Trend</InfoTitle></h3><TrendLine values={availableRows.map(row => numeric(row.shortAvailabilityPct) ?? 0)} /></div>
           <div className="terminal-card chart-card"><h3><InfoTitle text="Borrow fee trend shows whether short sellers are paying more to maintain or open short positions.">Borrow Fee Trend</InfoTitle></h3><TrendLine values={borrowRows.map(row => numeric(row.costToBorrowAll) ?? 0)} /></div>
           <div className="terminal-card chart-card"><h3><InfoTitle text="Shares on loan approximates borrow demand. Rising on-loan activity can indicate stronger short-side demand.">On Loan Trend</InfoTitle></h3><TrendLine values={onLoanRows.map(row => numeric(row.sharesOnLoan) ?? numeric(row.onLoan) ?? 0)} /></div>
         </div>

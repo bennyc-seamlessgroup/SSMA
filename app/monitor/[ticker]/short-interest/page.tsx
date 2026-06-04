@@ -139,7 +139,6 @@ export default function ShortInterestPage() {
   const shortInterestEnvelope = readImportFile<Row>('short/short_interest.json');
   const borrowFeeEnvelope = readImportFile<Row>('short/borrow_fee.json');
   const sharesEnvelope = readImportFile<Row[]>('short/shares_available.json');
-  const utilizationEnvelope = readImportFile<Row[]>('short/utilization.json');
   const shortScoreEnvelope = readImportFile<Row[]>('short/short_score.json');
   const shortVolumeEnvelope = readImportFile<Row[]>('short/short_volume.json');
 
@@ -150,9 +149,6 @@ export default function ShortInterestPage() {
   const availableRows = rows(sharesEnvelope.data);
   const sortedAvailableRows = [...availableRows].sort((a, b) => String(b.date ?? '').localeCompare(String(a.date ?? '')));
   const latestAvailable = latest(availableRows);
-  const utilizationRows = rows(utilizationEnvelope.data);
-  const sortedUtilizationRows = [...utilizationRows].sort((a, b) => String(b.date ?? '').localeCompare(String(a.date ?? '')));
-  const latestUtilization = latest(utilizationRows);
   const shortScores = rows(shortScoreEnvelope.data);
   const sortedShortScores = [...shortScores].sort((a, b) => String(b.date ?? '').localeCompare(String(a.date ?? '')));
   const latestShortScore = latest(shortScores);
@@ -166,7 +162,7 @@ export default function ShortInterestPage() {
   const shortInterestPercent = numeric(shortCurrent.shortInterestPcFreeFloat);
   const borrowFee = numeric(borrowCurrent.costToBorrowAll);
   const sharesAvailable = numeric(latestAvailable.shortAvailabilityShares);
-  const utilization = numeric(latestUtilization.utilization);
+  const utilization = numeric(latestAvailable.shortAvailabilityPct);
   const shortScore = Math.round(numeric(latestShortScore.score) ?? 0);
   const shortScoreLevel = shortScore >= 80 ? 'Extreme' : shortScore >= 65 ? 'High' : shortScore >= 40 ? 'Moderate' : 'Low';
   const shortScoreTone = shortScore >= 80 ? 'extreme' : shortScore >= 65 ? 'high' : shortScore >= 40 ? 'moderate' : 'low';
@@ -191,7 +187,7 @@ export default function ShortInterestPage() {
   const borrowFeeDelta = delta(borrowFee, numeric(sortedBorrowRows[1]?.costToBorrowAll), { maximumFractionDigits: 2 });
   const shortScoreDelta = delta(shortScore || null, numeric(sortedShortScores[1]?.score), { maximumFractionDigits: 1 });
   const sharesAvailableDelta = delta(sharesAvailable, numeric(sortedAvailableRows[1]?.shortAvailabilityShares), { maximumFractionDigits: 0 });
-  const utilizationDelta = delta(utilization, numeric(sortedUtilizationRows[1]?.utilization), { maximumFractionDigits: 2 });
+  const utilizationDelta = delta(utilization, numeric(sortedAvailableRows[1]?.shortAvailabilityPct), { maximumFractionDigits: 2 });
 
   return (
     <ImportDataPreviewPage

@@ -1,8 +1,8 @@
 'use client';
 
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
-import { useState } from 'react';
+import { usePathname, useRouter } from 'next/navigation';
+import { useEffect, useState } from 'react';
 import { UserMenu } from './UserMenu';
 
 const groups = [
@@ -61,11 +61,68 @@ const groups = [
   },
 ];
 
-export function Sidebar({ ticker, companyName }: { ticker: string; companyName: string }) {
+const importDataSeenKey = 'import-data-seen-version';
+
+export function Sidebar({
+  ticker,
+  companyName,
+  importDataVersion,
+}: {
+  ticker: string;
+  companyName: string;
+  importDataVersion: string;
+}) {
   const pathname = usePathname();
+  const router = useRouter();
+  const [currentImportDataVersion, setCurrentImportDataVersion] = useState(importDataVersion);
+  const [seenImportDataVersion, setSeenImportDataVersion] = useState(importDataVersion);
   const [collapsedGroups, setCollapsedGroups] = useState<Record<string, boolean>>(() =>
     Object.fromEntries(groups.filter(group => group.muted).map(group => [group.label, true])),
   );
+  const hasImportDataUpdate = currentImportDataVersion !== seenImportDataVersion;
+
+  useEffect(() => {
+    const storedVersion = window.localStorage.getItem(importDataSeenKey);
+    if (storedVersion) {
+      setSeenImportDataVersion(storedVersion);
+    } else {
+      window.localStorage.setItem(importDataSeenKey, importDataVersion);
+    }
+  }, [importDataVersion]);
+
+  useEffect(() => {
+    setCurrentImportDataVersion(importDataVersion);
+  }, [importDataVersion]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const checkForImportDataUpdate = async () => {
+      try {
+        const response = await fetch('/api/import-data-version', { cache: 'no-store' });
+        if (!response.ok) return;
+
+        const latest = await response.json() as { version?: string };
+        if (!latest.version || latest.version === currentImportDataVersion || cancelled) return;
+
+        setCurrentImportDataVersion(latest.version);
+        router.refresh();
+      } catch {
+        // Keep the existing UI if the local dev server is briefly unavailable.
+      }
+    };
+
+    const interval = window.setInterval(checkForImportDataUpdate, 60000);
+    return () => {
+      cancelled = true;
+      window.clearInterval(interval);
+    };
+  }, [currentImportDataVersion, router]);
+
+  const acknowledgeImportDataUpdate = () => {
+    window.localStorage.setItem(importDataSeenKey, currentImportDataVersion);
+    setSeenImportDataVersion(currentImportDataVersion);
+  };
 
   const toggleGroup = (label: string) => {
     setCollapsedGroups(current => ({ ...current, [label]: !current[label] }));
@@ -84,8 +141,11 @@ export function Sidebar({ ticker, companyName }: { ticker: string; companyName: 
       <div className="portal-help-card workspace-card">
         <div className="portal-sidebar__label">Selected company</div>
         <div className="workspace-card__ticker">{ticker}</div>
-        <p>{companyName}</p>
-        <Link className="text-link" href={`/monitor/${ticker}/companies`}>Switch company</Link>
+        <p className="workspace-card__company">
+          <span>{companyName}</span>
+          {hasImportDataUpdate && <span className="portal-update-dot" aria-label="New import data available" />}
+        </p>
+        <Link className="text-link" href={`/monitor/${ticker}/companies`} onClick={acknowledgeImportDataUpdate}>Switch company</Link>
       </div>
 
       <div className="portal-sidebar__scroll">
@@ -114,8 +174,14 @@ export function Sidebar({ ticker, companyName }: { ticker: string; companyName: 
                       const href = `/monitor/${ticker}${slug ? `/${slug}` : ''}`;
                       const active = pathname === href;
                       return (
-                        <Link key={slug || 'overview'} href={href as any} className={`portal-menu ${active ? 'active' : ''}`}>
+                        <Link
+                          key={slug || 'overview'}
+                          href={href as any}
+                          className={`portal-menu ${active ? 'active' : ''}`}
+                          onClick={acknowledgeImportDataUpdate}
+                        >
                           <span>{label}</span>
+                          {hasImportDataUpdate && active && <span className="portal-update-dot" aria-label="New import data available" />}
                         </Link>
                       );
                     })}

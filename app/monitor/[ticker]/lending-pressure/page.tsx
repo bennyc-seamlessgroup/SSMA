@@ -32,6 +32,13 @@ function formatPercent(value: unknown, options?: Intl.NumberFormatOptions) {
   return parsed === null ? 'No Source' : `${parsed.toLocaleString('en-US', options)}%`;
 }
 
+function signed(value: number, options?: Intl.NumberFormatOptions) {
+  const formatted = Math.abs(value).toLocaleString('en-US', options);
+  if (value > 0) return `+${formatted}`;
+  if (value < 0) return `-${formatted}`;
+  return formatted;
+}
+
 function sourceChip(source: string) {
   return <span className="source-chip ready">Source: {source}</span>;
 }
@@ -72,6 +79,43 @@ function TrendLine({ values, label }: { values: number[]; label: string }) {
   );
 }
 
+function delta(current: number | null, previous: number | null, options?: Intl.NumberFormatOptions) {
+  if (current === null || previous === null || previous === 0) return null;
+  const change = current - previous;
+  return {
+    change,
+    percent: (change / previous) * 100,
+    valueText: signed(change, options),
+  };
+}
+
+function DeltaBadge({ info, suffix = '' }: { info: ReturnType<typeof delta>; suffix?: string }) {
+  if (!info) return <span className="short-kpi-delta neutral">No prior update</span>;
+  const tone = info.change > 0 ? 'up' : info.change < 0 ? 'down' : 'neutral';
+  const sign = info.change > 0 ? '+' : info.change < 0 ? '-' : '';
+  return (
+    <span className={`short-kpi-delta ${tone}`}>
+      <strong>{info.valueText}{suffix}</strong>
+      <em>({sign}{Math.abs(info.percent).toLocaleString('en-US', { maximumFractionDigits: 2 })}%)</em>
+    </span>
+  );
+}
+
+function KpiCard({ label, value, change, suffix }: {
+  label: string;
+  value: ReactNode;
+  change: ReturnType<typeof delta>;
+  suffix?: string;
+}) {
+  return (
+    <div className="terminal-card terminal-stat short-kpi-card">
+      <span>{label}</span>
+      <strong>{value}</strong>
+      <DeltaBadge info={change} suffix={suffix} />
+    </div>
+  );
+}
+
 export default function LendingPressurePage() {
   const borrow = readImportFile<Row>('short/borrow_fee.json');
   const available = readImportFile<Row[]>('short/shares_available.json');
@@ -79,16 +123,27 @@ export default function LendingPressurePage() {
   const onLoan = readImportFile<Row[]>('short/on_loan.json');
   const borrowRows = rows(record(borrow.data).all);
   const availableRows = rows(available.data);
+  const sortedAvailableRows = [...availableRows].sort((a, b) => String(b.date ?? '').localeCompare(String(a.date ?? '')));
+  const sortedBorrowRows = [...borrowRows].sort((a, b) => String(b.date ?? '').localeCompare(String(a.date ?? '')));
   const utilizationRows = rows(utilization.data);
   const onLoanRows = rows(onLoan.data);
   const borrowFee = numeric(record(borrow.data).current && record(record(borrow.data).current).costToBorrowAll) ?? 0;
   const sharesAvailable = numeric(latest(availableRows).shortAvailabilityShares) ?? 0;
-  const utilizationPct = numeric(latest(utilizationRows).utilization) ?? 0;
+  const utilizationPct = numeric(latest(availableRows).shortAvailabilityPct) ?? 0;
   const onLoanShares = numeric(latest(onLoanRows).sharesOnLoan ?? latest(onLoanRows).onLoan) ?? 0;
   const availabilityPressure = sharesAvailable <= 100000 ? 100 : sharesAvailable <= 500000 ? 78 : sharesAvailable <= 1500000 ? 48 : 12;
   const utilizationPressure = Math.min(100, Math.max(0, utilizationPct));
   const borrowFeePressure = Math.min(100, Math.max(0, borrowFee));
   const borrowDemandScore = Math.round((utilizationPressure * .42) + (borrowFeePressure * .35) + (availabilityPressure * .18) + (onLoanShares > 0 ? 5 : 0));
+  const previousSharesAvailable = numeric(sortedAvailableRows[1]?.shortAvailabilityShares);
+  const previousUtilizationPct = numeric(sortedAvailableRows[1]?.shortAvailabilityPct);
+  const previousBorrowFee = numeric(sortedBorrowRows[1]?.costToBorrowAll);
+  const previousAvailabilityPressure = previousSharesAvailable === null ? null : previousSharesAvailable <= 100000 ? 100 : previousSharesAvailable <= 500000 ? 78 : previousSharesAvailable <= 1500000 ? 48 : 12;
+  const previousUtilizationPressure = previousUtilizationPct === null ? null : Math.min(100, Math.max(0, previousUtilizationPct));
+  const previousBorrowFeePressure = previousBorrowFee === null ? null : Math.min(100, Math.max(0, previousBorrowFee));
+  const previousBorrowDemandScore = previousAvailabilityPressure === null || previousUtilizationPressure === null || previousBorrowFeePressure === null
+    ? null
+    : Math.round((previousUtilizationPressure * .42) + (previousBorrowFeePressure * .35) + (previousAvailabilityPressure * .18));
   const pressureScore = Math.round((availabilityPressure * .25) + (utilizationPressure * .3) + (borrowFeePressure * .3) + (borrowDemandScore * .15));
   const level = pressureScore >= 81 ? 'Extreme' : pressureScore >= 61 ? 'High' : pressureScore >= 31 ? 'Moderate' : 'Low';
   const health = pressureScore >= 81 ? 'Critical' : pressureScore >= 61 ? 'Constrained' : pressureScore >= 31 ? 'Tightening' : 'Healthy';
@@ -97,7 +152,7 @@ export default function LendingPressurePage() {
   const componentClass = (value: number) => value >= 81 ? 'extreme' : value >= 61 ? 'high' : value >= 31 ? 'moderate' : 'low';
   const components = [
     { name: 'Shares Available', value: formatNumber(sharesAvailable), weight: '25%', pressure: availabilityPressure, source: available.sourcePlatform ?? 'Ortex' },
-    { name: 'Utilization', value: formatPercent(utilizationPct, { maximumFractionDigits: 1 }), weight: '30%', pressure: utilizationPressure, source: utilization.sourcePlatform ?? 'Ortex' },
+    { name: 'Utilization', value: formatPercent(utilizationPct, { maximumFractionDigits: 1 }), weight: '30%', pressure: utilizationPressure, source: available.sourcePlatform ?? 'Ortex' },
     { name: 'Borrow Fee', value: formatPercent(borrowFee, { maximumFractionDigits: 1 }), weight: '30%', pressure: borrowFeePressure, source: borrow.sourcePlatform ?? 'Ortex' },
     { name: 'Borrow Demand', value: borrowDemand, weight: '15%', pressure: borrowDemandScore, source: 'Internal Lending Model' },
   ];
@@ -141,11 +196,11 @@ export default function LendingPressurePage() {
           </div>
         </div>
 
-        <div className="lending-kpi-row">
-          <div className="terminal-card terminal-stat"><span>Shares Available</span><strong>{formatNumber(sharesAvailable)}</strong><small>{available.sourcePlatform ?? 'Ortex'} latest inventory</small></div>
-          <div className="terminal-card terminal-stat"><span>Utilization</span><strong>{formatPercent(utilizationPct, { maximumFractionDigits: 1 })}</strong><small>{utilizationRows.length ? 'lendable inventory used' : 'pending institutional data source'}</small></div>
-          <div className="terminal-card terminal-stat"><span>Borrow Fee</span><strong>{formatPercent(borrowFee, { maximumFractionDigits: 2 })}</strong><small>cost to borrow</small></div>
-          <div className="terminal-card terminal-stat"><span>Borrow Demand</span><strong>{borrowDemand}</strong><small>{formatNumber(onLoanShares)} shares on loan</small></div>
+        <div className="lending-kpi-row lending-delta-kpi-row">
+          <KpiCard label="Shares Available" value={formatNumber(sharesAvailable)} change={delta(sharesAvailable, previousSharesAvailable, { maximumFractionDigits: 0 })} suffix=" shares" />
+          <KpiCard label="Utilization" value={formatPercent(utilizationPct, { maximumFractionDigits: 1 })} change={delta(utilizationPct, previousUtilizationPct, { maximumFractionDigits: 2 })} suffix=" pts" />
+          <KpiCard label="Borrow Fee" value={formatPercent(borrowFee, { maximumFractionDigits: 2 })} change={delta(borrowFee, previousBorrowFee, { maximumFractionDigits: 2 })} suffix=" pts" />
+          <KpiCard label="Borrow Demand" value={borrowDemand} change={delta(borrowDemandScore, previousBorrowDemandScore, { maximumFractionDigits: 0 })} suffix=" pts" />
         </div>
 
         <div className="lending-pressure-grid">
@@ -171,9 +226,9 @@ export default function LendingPressurePage() {
           </div>
         </div>
 
-        <div className="grid cols-4 lending-trend-grid">
+        <div className="lending-trend-grid">
           <div className="terminal-card chart-card"><h3><InfoTitle text="Trend of shares available to borrow. Declining availability can indicate tightening borrow supply.">Shares Available Trend</InfoTitle></h3><TrendLine label="Available" values={availableRows.map(row => numeric(row.shortAvailabilityShares) ?? 0)} /></div>
-          <div className="terminal-card chart-card"><h3><InfoTitle text="Utilization shows how much lendable inventory is already borrowed. High utilization can signal constrained borrow supply.">Utilization Trend</InfoTitle></h3><TrendLine label="Utilization" values={utilizationRows.map(row => numeric(row.utilization) ?? 0)} /></div>
+          <div className="terminal-card chart-card"><h3><InfoTitle text="Utilization is currently mapped to shortAvailabilityPct from the shares-available file. Higher values indicate more reported short availability percentage in the current MVP data.">Utilization Trend</InfoTitle></h3><TrendLine label="Utilization" values={availableRows.map(row => numeric(row.shortAvailabilityPct) ?? 0)} /></div>
           <div className="terminal-card chart-card"><h3><InfoTitle text="Borrow fee trend shows whether short sellers are paying more to maintain or open short positions.">Borrow Fee Trend</InfoTitle></h3><TrendLine label="Borrow Fee" values={borrowRows.map(row => numeric(row.costToBorrowAll) ?? 0)} /></div>
           <div className="terminal-card chart-card"><h3><InfoTitle text="Shares on loan approximates borrow demand. Rising on-loan activity can indicate stronger short-side demand.">On Loan Trend</InfoTitle></h3><TrendLine label="On Loan" values={onLoanRows.map(row => numeric(row.sharesOnLoan) ?? numeric(row.onLoan) ?? 0)} /></div>
         </div>
