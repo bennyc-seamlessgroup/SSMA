@@ -5,6 +5,9 @@ import { calculateFloatAdjustments, readInternalFloatInputs, type FloatAdjustmen
 type AnalysisData = {
   summary?: string;
   riskNotes?: string[];
+  analysisParagraphs?: string[];
+  riskDisclaimer?: string;
+  estimateDisclaimer?: string;
 };
 
 export default async function InternalFloatPage() {
@@ -28,6 +31,9 @@ export default async function InternalFloatPage() {
         initialAdjustments={adjustments}
         analysisSummary={analysisEnvelope.data.summary ?? 'Based on management-provided internal inputs, the estimated real tradable float may be lower than the official free float.'}
         riskNotes={analysisEnvelope.data.riskNotes ?? []}
+        analysisParagraphs={analysisEnvelope.data.analysisParagraphs ?? []}
+        riskDisclaimer={analysisEnvelope.data.riskDisclaimer}
+        estimateDisclaimer={analysisEnvelope.data.estimateDisclaimer}
       />
     </div>
   );

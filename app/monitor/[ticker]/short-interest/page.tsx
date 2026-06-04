@@ -1,6 +1,6 @@
 import { ImportDataPreviewPage } from '@/components/ImportDataPreviewPage';
 import { InfoTooltip } from '@/components/InfoTooltip';
-import { readImportFile } from '@/lib/import-data';
+import { readImportFile, readPageContent } from '@/lib/import-data';
 import type { ReactNode } from 'react';
 
 type Row = Record<string, unknown>;
@@ -11,6 +11,14 @@ function rows(value: unknown): Row[] {
 
 function record(value: unknown): Row {
   return value && typeof value === 'object' && !Array.isArray(value) ? value as Row : {};
+}
+
+function text(value: unknown, fallback: string) {
+  return typeof value === 'string' && value.trim() ? value : fallback;
+}
+
+function textList(value: unknown, fallback: string[]) {
+  return Array.isArray(value) ? value.filter(item => typeof item === 'string' && item.trim()) as string[] : fallback;
 }
 
 function numeric(value: unknown) {
@@ -146,12 +154,14 @@ export default async function ShortInterestPage() {
     sharesEnvelope,
     shortScoreEnvelope,
     shortVolumeEnvelope,
+    pageContent,
   ] = await Promise.all([
     readImportFile<Row>('short/short_interest.json'),
     readImportFile<Row>('short/borrow_fee.json'),
     readImportFile<Row[]>('short/shares_available.json'),
     readImportFile<Row[]>('short/short_score.json'),
     readImportFile<Row[]>('short/short_volume.json'),
+    readPageContent('shortInterest'),
   ]);
 
   const shortCurrent = record(record(shortInterestEnvelope.data).current);
@@ -212,11 +222,18 @@ export default async function ShortInterestPage() {
   const utilizationCard = record(availableCards?.utilization);
   const shortScoreCard = record(scoreCards?.shortScore);
   const shortScoreLevelCard = record(scoreCards?.shortScoreLevel);
+  const currentInterpretation = record(pageContent.currentInterpretation);
+  const managementWatchItems = textList(pageContent.managementWatchItems, [
+    'Borrow fee movement above current levels',
+    'Any decline in available shares to borrow',
+    'Short-interest increases confirmed by volume data',
+    'Days-to-cover rising with lower trading liquidity',
+  ]);
 
   return (
     <ImportDataPreviewPage
       title="Short Interest Intelligence"
-      description="Short interest, borrow fee, shares available, short volume, and squeeze risk from the standardized import data pool."
+      description={text(pageContent.pageDescription, 'Short interest, borrow fee, shares available, short volume, and squeeze risk from the standardized import data pool.')}
       files={[
         'short/short_interest.json',
         'short/borrow_fee.json',
@@ -230,7 +247,7 @@ export default async function ShortInterestPage() {
           <div>
             <span>Overview</span>
             <h2>Short Interest Overview</h2>
-            <p className="section-subtitle">Executive view of short exposure, borrow pressure, available inventory, and squeeze-risk inputs.</p>
+            <p className="section-subtitle">{text(pageContent.overviewSubtitle, 'Executive view of short exposure, borrow pressure, available inventory, and squeeze-risk inputs.')}</p>
           </div>
           <div className="terminal-section-actions">
             {sourceChip(shortInterestEnvelope.sourcePlatform ?? 'Ortex/FINRA')}
@@ -246,7 +263,7 @@ export default async function ShortInterestPage() {
               <em>{String(shortScoreLevelCard.valueDisplay ?? shortScoreLevel)}</em>
               <DeltaBadge info={shortScoreDelta} display={String(shortScoreCard.deltaDisplay ?? '')} />
             </div>
-            <p>Composite short-interest risk score using short exposure, borrow pressure, share availability, and related market-pressure inputs.</p>
+            <p>{text(pageContent.shortScoreDescription, 'Composite short-interest risk score using short exposure, borrow pressure, share availability, and related market-pressure inputs.')}</p>
           </div>
           <div className="lending-gauge-card short-score-gauge-card">
             <div className="triggered-gauge" style={{ background: `conic-gradient(#be123c 0% ${shortScore || 0}%, #e8eef7 ${shortScore || 0}% 100%)` }}>
@@ -268,16 +285,13 @@ export default async function ShortInterestPage() {
         <div className="short-interest-analysis-grid">
           <div className="terminal-card short-pressure-card">
             <span>Current Interpretation</span>
-            <strong>{(borrowFee ?? 0) >= 25 || shortScore >= 65 ? 'Borrow pressure is visible' : 'Short pressure is moderate'}</strong>
-            <p>Current data shows {formatNumber(shortInterestShares)} reported short shares, {formatPercent(shortInterestPercent, { maximumFractionDigits: 2 })} short interest as a percentage of float, and a {formatPercent(borrowFee, { maximumFractionDigits: 2 })} borrow fee. This overview helps management understand whether short sellers are facing rising cost, tighter inventory, or increasing positioning pressure.</p>
+            <strong>{text(currentInterpretation.headline, (borrowFee ?? 0) >= 25 || shortScore >= 65 ? 'Borrow pressure is visible' : 'Short pressure is moderate')}</strong>
+            <p>{text(currentInterpretation.body, `Current data shows ${formatNumber(shortInterestShares)} reported short shares, ${formatPercent(shortInterestPercent, { maximumFractionDigits: 2 })} short interest as a percentage of float, and a ${formatPercent(borrowFee, { maximumFractionDigits: 2 })} borrow fee. This overview helps management understand whether short sellers are facing rising cost, tighter inventory, or increasing positioning pressure.`)}</p>
           </div>
           <div className="terminal-card short-pressure-card">
             <span>Management Watch Items</span>
             <ul>
-              <li>Borrow fee movement above current levels</li>
-              <li>Any decline in available shares to borrow</li>
-              <li>Short-interest increases confirmed by volume data</li>
-              <li>Days-to-cover rising with lower trading liquidity</li>
+              {managementWatchItems.map(item => <li key={item}>{item}</li>)}
             </ul>
           </div>
         </div>
@@ -288,7 +302,7 @@ export default async function ShortInterestPage() {
           <div>
             <span>Trend Analysis</span>
             <h2>Short Interest Movement</h2>
-            <p className="section-subtitle">Larger charts for short exposure, borrow cost, borrow availability, and reported short volume.</p>
+            <p className="section-subtitle">{text(pageContent.trendSubtitle, 'Larger charts for short exposure, borrow cost, borrow availability, and reported short volume.')}</p>
           </div>
           <div className="terminal-section-actions">
             {sourceChip(shortInterestEnvelope.sourcePlatform ?? 'Ortex/FINRA')}

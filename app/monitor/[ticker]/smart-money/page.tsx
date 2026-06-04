@@ -1,10 +1,34 @@
 import { ImportDataPreviewPage } from '@/components/ImportDataPreviewPage';
+import { readPageContent } from '@/lib/import-data';
 
-export default function SmartMoneyPage() {
+type Row = Record<string, unknown>;
+
+function record(value: unknown): Row {
+  return value && typeof value === 'object' && !Array.isArray(value) ? value as Row : {};
+}
+
+function recordList(value: unknown): Row[] {
+  return Array.isArray(value) ? value.filter(item => item && typeof item === 'object') as Row[] : [];
+}
+
+function text(value: unknown, fallback: string) {
+  return typeof value === 'string' && value.trim() ? value : fallback;
+}
+
+export default async function SmartMoneyPage() {
+  const pageContent = await readPageContent('smartMoney');
+  const hero = record(pageContent.hero);
+  const cards = recordList(pageContent.cards);
+  const displayCards = cards.length ? cards : [
+    { label: 'Institutional Activity', value: 'Accumulation Watch', note: 'Review ownership changes and activist filings below.' },
+    { label: 'Insider Activity', value: 'Neutral', note: 'Review Form 3/4/5 style imported records below.' },
+    { label: 'Options Activity', value: 'Bullish', note: 'Review put/call and gamma files below.' },
+  ];
+
   return (
     <ImportDataPreviewPage
       title="Smart Money Intelligence"
-      description="Institutional ownership, shareholder changes, insider activity, and options positioning research."
+      description={text(pageContent.pageDescription, 'Institutional ownership, shareholder changes, insider activity, and options positioning research.')}
       files={[
         'ownership/top_holders.json',
         'ownership/ownership_changes.json',
@@ -17,10 +41,14 @@ export default function SmartMoneyPage() {
       ]}
     >
       <div className="research-module-grid">
-        <div className="research-hero-card"><span>Smart Money Signal</span><strong>Bullish Bias</strong><p>Detailed ownership, insider, and options records remain below. Use this page to validate what institutions, insiders, and options traders are doing.</p></div>
-        <div className="research-mini-card"><span>Institutional Activity</span><strong>Accumulation Watch</strong><small>Review ownership changes and activist filings below.</small></div>
-        <div className="research-mini-card"><span>Insider Activity</span><strong>Neutral</strong><small>Review Form 3/4/5 style imported records below.</small></div>
-        <div className="research-mini-card"><span>Options Activity</span><strong>Bullish</strong><small>Review put/call and gamma files below.</small></div>
+        <div className="research-hero-card"><span>{text(hero.signalLabel, 'Smart Money Signal')}</span><strong>{text(hero.signalValue, 'Bullish Bias')}</strong><p>{text(hero.description, 'Detailed ownership, insider, and options records remain below. Use this page to validate what institutions, insiders, and options traders are doing.')}</p></div>
+        {displayCards.map(card => (
+          <div className="research-mini-card" key={String(card.label)}>
+            <span>{String(card.label)}</span>
+            <strong>{String(card.value)}</strong>
+            <small>{String(card.note)}</small>
+          </div>
+        ))}
       </div>
     </ImportDataPreviewPage>
   );

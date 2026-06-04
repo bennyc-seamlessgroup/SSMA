@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import { InfoTooltip } from '@/components/InfoTooltip';
 import { MonitorExpertButton } from '@/components/MonitorExpertChat';
-import { buildImportDashboard, readImportFile } from '@/lib/import-data';
+import { buildImportDashboard, readImportFile, readPageContent } from '@/lib/import-data';
 import { readInternalFloatAdjustments } from '@/lib/internal-float';
 
 type Row = Record<string, unknown>;
@@ -12,6 +12,18 @@ function rows(value: unknown): Row[] {
 
 function record(value: unknown): Row {
   return value && typeof value === 'object' && !Array.isArray(value) ? value as Row : {};
+}
+
+function text(value: unknown, fallback: string) {
+  return typeof value === 'string' && value.trim() ? value : fallback;
+}
+
+function textList(value: unknown, fallback: string[]) {
+  return Array.isArray(value) ? value.filter(item => typeof item === 'string' && item.trim()) as string[] : fallback;
+}
+
+function recordList(value: unknown): Row[] {
+  return Array.isArray(value) ? value.filter(item => item && typeof item === 'object') as Row[] : [];
 }
 
 function numeric(value: unknown) {
@@ -207,6 +219,7 @@ export default async function CompanyDashboardPage() {
     sentimentEnvelope,
     internalFloatEnvelope,
     dashboardMetricsEnvelope,
+    pageContent,
   ] = await Promise.all([
     buildImportDashboard(),
     readImportFile<Row>('short/short_interest.json'),
@@ -231,6 +244,7 @@ export default async function CompanyDashboardPage() {
     readImportFile<Row[]>('sentiment/social_mentions.json'),
     readInternalFloatAdjustments(),
     readImportFile<Row>('reports/dashboard_metrics.json').catch(() => ({ data: {} })),
+    readPageContent('dashboard'),
   ]);
   const { company, scores, metrics, summaries } = dashboard;
   const internalFloat = internalFloatEnvelope.data;
@@ -584,6 +598,17 @@ export default async function CompanyDashboardPage() {
   const displaySmartMoneyScore = numeric(smartMoneyMetrics.smartMoneyScore) ?? smartMoneyScore;
   const displayNarrativeScore = numeric(narrativeMetrics.narrativeScore) ?? narrativeScore;
   const displayInternalFloatImpactScore = numeric(dashboardFloatMetrics.internalFloatImpactScore) ?? internalFloatImpactScore;
+  const commandCenterContent = record(pageContent.commandCenter);
+  const sectionContent = record(pageContent.sections);
+  const marketNarrativeContent = record(pageContent.marketNarrative);
+  const dashboardManagementActions = textList(commandCenterContent.managementActions, [
+    'Monitor borrow fee and share availability daily.',
+    'Review upcoming catalysts and prepare board-level talking points.',
+    'Prepare IR response package for short-pressure and rumor questions.',
+  ]);
+  const dashboardBullishNarratives = textList(marketNarrativeContent.bullishNarratives, ['Borrow fee rising', 'Reduced float', 'Positive catalyst watch']);
+  const dashboardBearishNarratives = textList(marketNarrativeContent.bearishNarratives, ['Volatility risk', 'No confirmed catalyst', 'Funding concerns']);
+  const dashboardAiCards = recordList(pageContent.aiIntelligence);
   const executiveAlerts = [
     { time: 'Today 08:10', severity: 'High', source: borrowFeeEnvelope.sourcePlatform ?? 'Ortex', title: `Borrow Fee Increased +${formatNumber(Math.max(8, borrowFeePressure / 7), { maximumFractionDigits: 0 })}%`, impact: 'Higher cost to maintain short positions' },
     { time: 'Today 09:25', severity: 'High', source: 'Internal Float Intelligence', title: `Float Reduction ${formatNumber(adjustedFloatReduction, { maximumFractionDigits: 1 })}%`, impact: 'Internal view implies tighter tradable supply' },
@@ -599,7 +624,7 @@ export default async function CompanyDashboardPage() {
         <div>
           <div className="terminal-eyebrow">Short Squeeze Monitoring & Analysis Report</div>
           <h1 className="page__title">{company.companyName}</h1>
-          <p className="page__desc">Institutional dashboard for short squeeze risk, market defense, shareholder intelligence, sentiment monitoring, and capital markets decision support.</p>
+          <p className="page__desc">{text(pageContent.pageDescription, 'Institutional dashboard for short squeeze risk, market defense, shareholder intelligence, sentiment monitoring, and capital markets decision support.')}</p>
         </div>
       </div>
 
@@ -608,7 +633,7 @@ export default async function CompanyDashboardPage() {
           <span>Overall Risk Status</span>
           <strong>{displayExecutiveRiskStatus}</strong>
           <em>{String(commandCenterMetrics.overallRiskScoreDisplay ?? `${displayOverallRiskScore} / 100`)}</em>
-          <p>Current market conditions indicate elevated squeeze risk driven by reduced effective float, positive sentiment, and increasing borrow pressure. Internal management adjustments suggest materially higher risk than public market estimates.</p>
+          <p>{text(commandCenterContent.riskNarrative, 'Current market conditions indicate elevated squeeze risk driven by reduced effective float, positive sentiment, and increasing borrow pressure. Internal management adjustments suggest materially higher risk than public market estimates.')}</p>
         </div>
         <div className="command-score-grid">
           <div><span>Internal Adjusted Squeeze Score</span><strong>{displayInternalAdjustedSqueezeScore}</strong></div>
@@ -619,9 +644,7 @@ export default async function CompanyDashboardPage() {
         <div className="management-action-panel">
           <h2>Management Action Panel</h2>
           <ul>
-            <li>Monitor borrow fee and share availability daily.</li>
-            <li>Review upcoming catalysts and prepare board-level talking points.</li>
-            <li>Prepare IR response package for short-pressure and rumor questions.</li>
+            {dashboardManagementActions.map(item => <li key={item}>{item}</li>)}
           </ul>
           <MonitorExpertButton label="Ask Monitor Expert" question="What should management do first based on the current dashboard?" />
         </div>
@@ -629,7 +652,7 @@ export default async function CompanyDashboardPage() {
 
       <section className="executive-layer alert-center-layer">
         <div className="executive-layer__head">
-          <div><span>Layer 2</span><h2>Alert Center</h2><p>Meaningful changes from the last 7 days.</p></div>
+          <div><span>Layer 2</span><h2>Alert Center</h2><p>{text(sectionContent.alertCenterDescription, 'Meaningful changes from the last 7 days.')}</p></div>
           {sourceChip('Internal Model')}
         </div>
         <div className="alert-center-list">
@@ -646,7 +669,7 @@ export default async function CompanyDashboardPage() {
 
       <section className="executive-layer market-pressure-layer">
         <div className="executive-layer__head">
-          <div><span>Layer 3</span><h2>Market Pressure Intelligence</h2><p>Short interest, borrow pressure, lending conditions, and squeeze readiness in one view.</p></div>
+          <div><span>Layer 3</span><h2>Market Pressure Intelligence</h2><p>{text(sectionContent.marketPressureDescription, 'Short interest, borrow pressure, lending conditions, and squeeze readiness in one view.')}</p></div>
           {headActions(<>{sourceChip(shortInterestEnvelope.sourcePlatform ?? 'Ortex/FINRA')}{sourceChip('Internal Lending Model')}{viewMore(company.ticker, 'short-interest')}</>)}
         </div>
         <div className="market-pressure-layout">
@@ -695,7 +718,7 @@ export default async function CompanyDashboardPage() {
 
       <section className="executive-layer internal-float-executive-layer">
         <div className="executive-layer__head">
-          <div><span>Layer 4</span><h2>Internal Float Intelligence</h2><p>Why management sees a different float reality than the public market.</p></div>
+          <div><span>Layer 4</span><h2>Internal Float Intelligence</h2><p>{text(sectionContent.internalFloatDescription, 'Why management sees a different float reality than the public market.')}</p></div>
           {headActions(<>{sourceChip('Internal Management Input')}{viewMore(company.ticker, 'internal-float')}</>)}
         </div>
         <div className="float-executive-grid">
@@ -719,7 +742,7 @@ export default async function CompanyDashboardPage() {
 
       <section className="executive-layer smart-money-layer">
         <div className="executive-layer__head">
-          <div><span>Layer 5</span><h2>Smart Money Intelligence</h2><p>How institutions, insiders, and options traders are positioning.</p></div>
+          <div><span>Layer 5</span><h2>Smart Money Intelligence</h2><p>{text(sectionContent.smartMoneyDescription, 'How institutions, insiders, and options traders are positioning.')}</p></div>
           {headActions(<>{sourceChip('Fintel')}{sourceChip('SEC EDGAR')}{sourceChip('Ortex')}</>)}
         </div>
         <div className="smart-money-grid">
@@ -734,21 +757,21 @@ export default async function CompanyDashboardPage() {
 
       <section className="executive-layer narrative-layer">
         <div className="executive-layer__head">
-          <div><span>Layer 6</span><h2>Market Narrative Intelligence</h2><p>Sentiment, discussion volume, and narrative momentum.</p></div>
+          <div><span>Layer 6</span><h2>Market Narrative Intelligence</h2><p>{text(sectionContent.marketNarrativeDescription, 'Sentiment, discussion volume, and narrative momentum.')}</p></div>
           {headActions(<>{sourceChip('Social Media Engine')}{viewMore(company.ticker, 'sentiment')}</>)}
         </div>
         <div className="narrative-executive-grid">
           <div className="narrative-score-card"><span>Narrative Score</span><strong>{String(narrativeMetrics.narrativeScoreDisplay ?? `${displayNarrativeScore} / 100`)}</strong><small>{String(narrativeMetrics.mentionCount ?? socialMentions.length)} mentions tracked</small></div>
           <div><span>Narrative Velocity</span><strong>+18%</strong><small>7-day discussion growth</small></div>
           <div><span>Mention Growth</span><strong>+24%</strong><small>Week over week</small></div>
-          <div className="narrative-list"><h3>Top Bullish Narratives</h3><ul><li>Borrow fee rising</li><li>Reduced float</li><li>Positive catalyst watch</li></ul></div>
-          <div className="narrative-list"><h3>Top Bearish Narratives</h3><ul><li>Volatility risk</li><li>No confirmed catalyst</li><li>Funding concerns</li></ul></div>
+          <div className="narrative-list"><h3>Top Bullish Narratives</h3><ul>{dashboardBullishNarratives.map(item => <li key={item}>{item}</li>)}</ul></div>
+          <div className="narrative-list"><h3>Top Bearish Narratives</h3><ul>{dashboardBearishNarratives.map(item => <li key={item}>{item}</li>)}</ul></div>
         </div>
       </section>
 
       <section className="executive-layer forward-layer">
         <div className="executive-layer__head">
-          <div><span>Layer 7</span><h2>Forward Looking Intelligence</h2><p>Potential price scenarios and upcoming catalysts.</p></div>
+          <div><span>Layer 7</span><h2>Forward Looking Intelligence</h2><p>{text(sectionContent.forwardLookingDescription, 'Potential price scenarios and upcoming catalysts.')}</p></div>
           {headActions(<>{sourceChip('Internal Model')}{sourceChip('Company Calendar')}{viewMore(company.ticker, 'event-calendar')}</>)}
         </div>
         <div className="forward-grid">
@@ -768,15 +791,17 @@ export default async function CompanyDashboardPage() {
 
       <section className="executive-layer ai-intelligence-layer">
         <div className="executive-layer__head">
-          <div><span>Layer 8</span><h2>AI Intelligence Center</h2><p>Consolidated executive interpretation and recommended actions.</p></div>
+          <div><span>Layer 8</span><h2>AI Intelligence Center</h2><p>{text(sectionContent.aiIntelligenceDescription, 'Consolidated executive interpretation and recommended actions.')}</p></div>
           {sourceChip('Internal Model')}
         </div>
         <div className="ai-intelligence-grid">
-          <div><h3>AI Executive Summary</h3><p>{company.ticker} shows elevated market-defense risk driven by borrow pressure, internal float reduction, and constructive narrative momentum.</p></div>
-          <div><h3>AI Risk Assessment</h3><p>The highest risk is a catalyst occurring while borrow supply remains constrained and sentiment continues to improve.</p></div>
-          <div><h3>AI Opportunities</h3><p>Positive positioning, upcoming catalysts, and a lower internal float estimate create a stronger management-view risk picture than public data alone.</p></div>
-          <div><h3>AI Recommended Actions</h3><p>Review borrow fee daily, prepare IR response materials, and escalate material alerts to management and advisors.</p></div>
-          <div><h3>AI Market Outlook</h3><p>Near-term outlook remains sensitive to borrow availability, filings, ownership movement, and catalyst timing.</p></div>
+          {(dashboardAiCards.length ? dashboardAiCards : [
+            { title: 'AI Executive Summary', body: `${company.ticker} shows elevated market-defense risk driven by borrow pressure, internal float reduction, and constructive narrative momentum.` },
+            { title: 'AI Risk Assessment', body: 'The highest risk is a catalyst occurring while borrow supply remains constrained and sentiment continues to improve.' },
+            { title: 'AI Opportunities', body: 'Positive positioning, upcoming catalysts, and a lower internal float estimate create a stronger management-view risk picture than public data alone.' },
+            { title: 'AI Recommended Actions', body: 'Review borrow fee daily, prepare IR response materials, and escalate material alerts to management and advisors.' },
+            { title: 'AI Market Outlook', body: 'Near-term outlook remains sensitive to borrow availability, filings, ownership movement, and catalyst timing.' },
+          ]).map(card => <div key={String(card.title)}><h3>{String(card.title)}</h3><p>{String(card.body)}</p></div>)}
         </div>
         <div className="ai-summary-actions">
           <MonitorExpertButton label="Ask Monitor Expert" question="Summarize the current market defense priorities for management." />

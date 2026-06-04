@@ -1,6 +1,6 @@
 {
   "importedAt": "2026-06-04T05:36:10.381Z",
-  "recordCount": 56,
+  "recordCount": 57,
   "data": [
     {
       "file": "import_data/company/profile.json",
@@ -16,6 +16,14 @@
       "expectedSource": "Ortex/Fintel",
       "connectorOwner": "backend",
       "updateCadence": "scheduled import",
+      "status": "ready"
+    },
+    {
+      "file": "import_data/content/page_content.json",
+      "category": "content",
+      "expectedSource": "Internal Editorial / Backend Derived Commentary",
+      "connectorOwner": "backend",
+      "updateCadence": "scheduled import / Drive refresh",
       "status": "ready"
     },
     {

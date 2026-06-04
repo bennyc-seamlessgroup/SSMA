@@ -1,16 +1,39 @@
-export default function MarketDefensePage() {
+import { readPageContent } from '@/lib/import-data';
+
+type Row = Record<string, unknown>;
+
+function recordList(value: unknown): Row[] {
+  return Array.isArray(value) ? value.filter(item => item && typeof item === 'object') as Row[] : [];
+}
+
+function text(value: unknown, fallback: string) {
+  return typeof value === 'string' && value.trim() ? value : fallback;
+}
+
+function textList(value: unknown, fallback: string[]) {
+  return Array.isArray(value) ? value.filter(item => typeof item === 'string' && item.trim()) as string[] : fallback;
+}
+
+export default async function MarketDefensePage() {
+  const pageContent = await readPageContent('marketDefense');
+  const panels = recordList(pageContent.panels);
+  const displayPanels = panels.length ? panels : [
+    { title: 'IR Response Package', description: 'Prepare Q&A, disclosure language, rumor response, and stakeholder messaging.' },
+    { title: 'Board Briefing Pack', description: 'Summarize risk drivers, alerts, evidence trail, and recommended management actions.' },
+    { title: 'Advisor Coordination', description: 'Route high-priority alerts to legal, IR, capital markets, and executive teams.' },
+  ];
+  const checklist = textList(pageContent.checklist, ['Monitor borrow fee daily', 'Review upcoming catalysts', 'Document unusual sentiment spikes', 'Preserve report archive', 'Escalate material short-pressure alerts']);
+
   return (
     <div className="page">
-      <div className="page__header"><div><h1 className="page__title">Market Defense Center</h1><p className="page__desc">Executive workflow for monitoring market pressure, preparing responses, and preserving evidence for board and IR review.</p></div></div>
+      <div className="page__header"><div><h1 className="page__title">Market Defense Center</h1><p className="page__desc">{text(pageContent.pageDescription, 'Executive workflow for monitoring market pressure, preparing responses, and preserving evidence for board and IR review.')}</p></div></div>
       <section className="grid cols-3">
-        <div className="panel"><h2 className="panel__title">IR Response Package</h2><p className="page__desc">Prepare Q&A, disclosure language, rumor response, and stakeholder messaging.</p></div>
-        <div className="panel"><h2 className="panel__title">Board Briefing Pack</h2><p className="page__desc">Summarize risk drivers, alerts, evidence trail, and recommended management actions.</p></div>
-        <div className="panel"><h2 className="panel__title">Advisor Coordination</h2><p className="page__desc">Route high-priority alerts to legal, IR, capital markets, and executive teams.</p></div>
+        {displayPanels.map(panel => <div className="panel" key={String(panel.title)}><h2 className="panel__title">{String(panel.title)}</h2><p className="page__desc">{String(panel.description)}</p></div>)}
       </section>
       <section className="panel">
         <h2 className="panel__title">Market Defense Checklist</h2>
         <div className="section-list">
-          {['Monitor borrow fee daily', 'Review upcoming catalysts', 'Document unusual sentiment spikes', 'Preserve report archive', 'Escalate material short-pressure alerts'].map(item => <div className="section" key={item}>{item}</div>)}
+          {checklist.map(item => <div className="section" key={item}>{item}</div>)}
         </div>
       </section>
     </div>

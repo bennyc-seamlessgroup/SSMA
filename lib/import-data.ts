@@ -50,6 +50,8 @@ export type ImportDataPoolRow = {
   notes: string;
 };
 
+export type PageContentMap = Record<string, Record<string, unknown>>;
+
 const importDataRoot = path.join(process.cwd(), 'import_data');
 const googleDriveFolderMimeType = 'application/vnd.google-apps.folder';
 const googleDriveApiBase = 'https://www.googleapis.com/drive/v3';
@@ -264,6 +266,16 @@ export async function getImportFileVersionParts(relativePath: string) {
 
 export async function readImportFile<T = unknown>(relativePath: string) {
   return readJsonFile<ImportEnvelope<T>>(relativePath);
+}
+
+export async function readPageContent<T extends Record<string, unknown> = Record<string, unknown>>(pageKey: string): Promise<T> {
+  try {
+    const envelope = await readImportFile<PageContentMap>('content/page_content.json');
+    const pageContent = envelope.data[pageKey];
+    return (pageContent && typeof pageContent === 'object' && !Array.isArray(pageContent) ? pageContent : {}) as T;
+  } catch {
+    return {} as T;
+  }
 }
 
 export async function readSourceMap() {

@@ -1,6 +1,6 @@
 import { ImportDataPreviewPage } from '@/components/ImportDataPreviewPage';
 import { InfoTooltip } from '@/components/InfoTooltip';
-import { readImportFile } from '@/lib/import-data';
+import { readImportFile, readPageContent } from '@/lib/import-data';
 import type { ReactNode } from 'react';
 
 type Row = Record<string, unknown>;
@@ -11,6 +11,14 @@ function rows(value: unknown): Row[] {
 
 function record(value: unknown): Row {
   return value && typeof value === 'object' && !Array.isArray(value) ? value as Row : {};
+}
+
+function text(value: unknown, fallback: string) {
+  return typeof value === 'string' && value.trim() ? value : fallback;
+}
+
+function textList(value: unknown, fallback: string[]) {
+  return Array.isArray(value) ? value.filter(item => typeof item === 'string' && item.trim()) as string[] : fallback;
 }
 
 function numeric(value: unknown) {
@@ -121,11 +129,12 @@ function KpiCard({ label, value, change, suffix, deltaDisplay }: {
 }
 
 export default async function LendingPressurePage() {
-  const [borrow, available, utilization, onLoan] = await Promise.all([
+  const [borrow, available, utilization, onLoan, pageContent] = await Promise.all([
     readImportFile<Row>('short/borrow_fee.json'),
     readImportFile<Row[]>('short/shares_available.json'),
     readImportFile<Row[]>('short/utilization.json'),
     readImportFile<Row[]>('short/on_loan.json'),
+    readPageContent('lendingPressure'),
   ]);
   const borrowRows = rows(record(borrow.data).all);
   const availableRows = rows(available.data);
@@ -178,7 +187,7 @@ export default async function LendingPressurePage() {
   return (
     <ImportDataPreviewPage
       title="Lending Pressure Intelligence"
-      description="Detailed borrow availability, utilization, borrow fee, and on-loan data used to evaluate short seller pressure."
+      description={text(pageContent.pageDescription, 'Detailed borrow availability, utilization, borrow fee, and on-loan data used to evaluate short seller pressure.')}
       files={['short/borrow_fee.json', 'short/shares_available.json', 'short/utilization.json', 'short/on_loan.json']}
     >
       <section className="terminal-section lending-page-overview">
@@ -186,7 +195,7 @@ export default async function LendingPressurePage() {
           <div>
             <span>Overview</span>
             <h2><InfoTitle text="Borrow-pressure view focused on whether short sellers can still find shares to borrow and whether borrowing is becoming difficult or expensive.">Lending Pressure Overview</InfoTitle></h2>
-            <p className="section-subtitle">Executive view of share availability, borrowing conditions, inventory utilization, and lending pressure.</p>
+            <p className="section-subtitle">{text(pageContent.overviewSubtitle, 'Executive view of share availability, borrowing conditions, inventory utilization, and lending pressure.')}</p>
           </div>
           <div className="terminal-section-actions">
             {sourceChip(available.sourcePlatform ?? 'Ortex')}
@@ -199,11 +208,11 @@ export default async function LendingPressurePage() {
             <span>Lending Pressure Score</span>
             <strong>{String(lendingSummary.pressureScoreDisplay ?? `${displayPressureScore} / 100`)}</strong>
             <em>{displayLevel}</em>
-            <p>Borrowing conditions indicate {displayLevel.toLowerCase()} pressure on short sellers based on available inventory, utilization, borrow fee, and borrow demand.</p>
+            <p>{text(pageContent.pressureNarrative, `Borrowing conditions indicate ${displayLevel.toLowerCase()} pressure on short sellers based on available inventory, utilization, borrow fee, and borrow demand.`)}</p>
             <div className="lending-health-card">
               <span>Current Status</span>
               <strong>{displayHealth}</strong>
-              <small>{displayHealth === 'Healthy' ? 'Available inventory remains sufficient while utilization is controlled.' : 'Borrow conditions warrant management review and continued monitoring.'}</small>
+              <small>{displayHealth === 'Healthy' ? text(pageContent.healthyStatusNote, 'Available inventory remains sufficient while utilization is controlled.') : text(pageContent.reviewStatusNote, 'Borrow conditions warrant management review and continued monitoring.')}</small>
             </div>
           </div>
           <div className="lending-gauge-card">
@@ -238,7 +247,7 @@ export default async function LendingPressurePage() {
           </div>
           <div className="terminal-card borrow-demand-card">
             <h3>{borrowDemand} Borrow Demand</h3>
-            <p>Current borrow activity suggests {borrowDemand.toLowerCase()} demand for available shares based on utilization, borrow fee, on-loan activity, and available inventory.</p>
+            <p>{text(pageContent.borrowDemandNarrative, `Current borrow activity suggests ${borrowDemand.toLowerCase()} demand for available shares based on utilization, borrow fee, on-loan activity, and available inventory.`)}</p>
             <div className="lending-view-tabs"><span>7 Day</span><span>30 Day</span><span>90 Day</span></div>
             {sourceChip('Internal Lending Model')}
           </div>
@@ -255,13 +264,13 @@ export default async function LendingPressurePage() {
           <div className="terminal-card squeeze-impact-card">
             <h3>Impact on Short Squeeze Risk</h3>
             <div className="contributors-grid">
-              <div><h4>Positive Contributors</h4><ul><li>Borrow fee remains visible</li><li>Imported inventory can be monitored daily</li><li>Availability changes can quickly update pressure score</li></ul></div>
-              <div><h4>Negative Contributors</h4><ul><li>Large remaining inventory</li><li>Low utilization data currently available</li><li>No on-loan sample data yet</li></ul></div>
+              <div><h4>Positive Contributors</h4><ul>{textList(pageContent.positiveContributors, ['Borrow fee remains visible', 'Imported inventory can be monitored daily', 'Availability changes can quickly update pressure score']).map(item => <li key={item}>{item}</li>)}</ul></div>
+              <div><h4>Negative Contributors</h4><ul>{textList(pageContent.negativeContributors, ['Large remaining inventory', 'Low utilization data currently available', 'No on-loan sample data yet']).map(item => <li key={item}>{item}</li>)}</ul></div>
             </div>
           </div>
           <div className="terminal-card ai-lending-card">
             <h3>AI Lending Analysis</h3>
-            <p>Current imported data indicates {level.toLowerCase()} lending pressure. Borrow fees are visible, but available inventory remains meaningful and utilization/on-loan inputs are not yet supported by complete institutional data. Management should monitor borrow fee changes, availability drops, and future utilization feeds as primary indicators.</p>
+            <p>{text(pageContent.aiLendingAnalysis, `Current imported data indicates ${level.toLowerCase()} lending pressure. Borrow fees are visible, but available inventory remains meaningful and utilization/on-loan inputs are not yet supported by complete institutional data. Management should monitor borrow fee changes, availability drops, and future utilization feeds as primary indicators.`)}</p>
             {sourceChip('Internal Lending Model')}
           </div>
         </div>

@@ -16,6 +16,12 @@
       "Tokenized or locked holdings may reduce both active trading supply and broker lending availability.",
       "Adjusted short interest percentages should be treated as internal estimates for management review only."
     ],
+    "analysisParagraphs": [
+      "Management inputs indicate that a significant portion of the reported float may not be available for trading or securities lending. After adjusting for internally controlled holdings and tokenized shares, the estimated tradable float should be compared with the official float.",
+      "As a result, short interest as a percentage of real float may be substantially higher than public data suggests. Management should review both the official percentage and the internal tradable-float estimate."
+    ],
+    "riskDisclaimer": "For internal analysis only. This does not constitute legal, investment, or regulatory advice.",
+    "estimateDisclaimer": "This analysis is based on manual inputs provided by company management. These inputs may not be publicly verifiable and should be treated as internal estimates only. This page does not constitute legal, investment, or regulatory advice.",
     "adjustments": {
       "officialSharesOutstanding": 58030000,
       "officialFreeFloat": 32664808,

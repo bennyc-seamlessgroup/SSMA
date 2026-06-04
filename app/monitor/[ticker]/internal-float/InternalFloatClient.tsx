@@ -12,6 +12,9 @@ type Props = {
   initialAdjustments: FloatAdjustments;
   analysisSummary: string;
   riskNotes: string[];
+  analysisParagraphs: string[];
+  riskDisclaimer?: string;
+  estimateDisclaimer?: string;
 };
 
 type ChartSegment = {
@@ -182,7 +185,7 @@ function HeaderLabel({ label, help }: { label: string; help?: string }) {
   return <span className="internal-table-header-label">{label}{help && <InfoTooltip text={help} />}</span>;
 }
 
-export function InternalFloatClient({ initialHoldings, initialAdjustments, analysisSummary, riskNotes }: Props) {
+export function InternalFloatClient({ initialHoldings, initialAdjustments, analysisSummary, riskNotes, analysisParagraphs, riskDisclaimer, estimateDisclaimer }: Props) {
   const [holdings, setHoldings] = useState(initialHoldings.map(normalizeHolding));
   const [savedMessage, setSavedMessage] = useState('');
   const [isSaving, setIsSaving] = useState(false);
@@ -419,11 +422,13 @@ export function InternalFloatClient({ initialHoldings, initialAdjustments, analy
         <div className="terminal-section__head"><div><span>Section 5</span><h2>AI Executive Analysis</h2></div>{sourceChip('Internal Management Input')}</div>
         <div className="terminal-card internal-analysis-card executive-analysis-card">
           <p>{analysisSummary}</p>
-          <p>Management inputs indicate that a significant portion of the reported float may not be available for trading or securities lending. After adjusting for internally controlled holdings and tokenized shares, the estimated tradable float is {formatNumber(tradableMarketFloat)}, compared with the official float of {formatNumber(adjustments.officialFreeFloat)}.</p>
-          <p>As a result, short interest as a percentage of real float may be substantially higher than public data suggests: {formatPercent(adjustments.officialShortInterestPercentFloat)} officially versus {formatPercent(adjustments.adjustedShortInterestRealFloat)} on the internal tradable-float estimate.</p>
+          {(analysisParagraphs.length ? analysisParagraphs : [
+            `Management inputs indicate that a significant portion of the reported float may not be available for trading or securities lending. After adjusting for internally controlled holdings and tokenized shares, the estimated tradable float is ${formatNumber(tradableMarketFloat)}, compared with the official float of ${formatNumber(adjustments.officialFreeFloat)}.`,
+            `As a result, short interest as a percentage of real float may be substantially higher than public data suggests: ${formatPercent(adjustments.officialShortInterestPercentFloat)} officially versus ${formatPercent(adjustments.adjustedShortInterestRealFloat)} on the internal tradable-float estimate.`,
+          ]).map(paragraph => <p key={paragraph}>{paragraph}</p>)}
           <ul>
             {riskNotes.map(note => <li key={note}>{note}</li>)}
-            <li>For internal analysis only. This does not constitute legal, investment, or regulatory advice.</li>
+            <li>{riskDisclaimer ?? 'For internal analysis only. This does not constitute legal, investment, or regulatory advice.'}</li>
           </ul>
         </div>
       </section>
@@ -431,7 +436,7 @@ export function InternalFloatClient({ initialHoldings, initialAdjustments, analy
       <section className="terminal-section disclaimer-section">
         <div className="terminal-card warning-card">
           <h3>Internal Estimate Disclaimer</h3>
-          <p>This analysis is based on manual inputs provided by company management. These inputs may not be publicly verifiable and should be treated as internal estimates only. This page does not constitute legal, investment, or regulatory advice.</p>
+          <p>{estimateDisclaimer ?? 'This analysis is based on manual inputs provided by company management. These inputs may not be publicly verifiable and should be treated as internal estimates only. This page does not constitute legal, investment, or regulatory advice.'}</p>
         </div>
       </section>
     </>
