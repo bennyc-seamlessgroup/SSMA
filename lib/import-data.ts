@@ -1,5 +1,6 @@
 import fs from 'fs';
 import path from 'path';
+import crypto from 'crypto';
 
 export type ImportEnvelope<T = unknown> = {
   ticker?: string;
@@ -102,6 +103,10 @@ function normalizeImportPath(relativePath: string) {
 
 function driveVersionKey(entry: GoogleDriveIndexEntry) {
   return `${entry.md5Checksum ?? ''}:${entry.modifiedTime ?? ''}`;
+}
+
+function hashImportContent(content: string) {
+  return crypto.createHash('sha256').update(content).digest('hex');
 }
 
 async function listGoogleDriveChildren(folderId: string, apiKey: string): Promise<GoogleDriveFile[]> {
@@ -241,7 +246,7 @@ export async function getImportFileVersionParts(relativePath: string) {
     if (!entry) return null;
     return {
       path: normalizedPath,
-      versionKey: driveVersionKey(entry),
+      versionKey: entry.md5Checksum ?? hashImportContent(await readGoogleDriveText(normalizedPath)),
       updatedAtMs: entry.modifiedTime ? Date.parse(entry.modifiedTime) : 0,
     };
   }
@@ -249,9 +254,10 @@ export async function getImportFileVersionParts(relativePath: string) {
   const fullPath = path.join(importDataRoot, normalizedPath);
   if (!fs.existsSync(fullPath)) return null;
   const stat = fs.statSync(fullPath);
+  const content = fs.readFileSync(fullPath, 'utf8');
   return {
     path: normalizedPath,
-    versionKey: fs.readFileSync(fullPath, 'utf8'),
+    versionKey: hashImportContent(content),
     updatedAtMs: stat.mtimeMs,
   };
 }
