@@ -112,7 +112,7 @@ export function Sidebar({
       }
     };
 
-    const interval = window.setInterval(checkForImportDataUpdate, 60000);
+    const interval = window.setInterval(checkForImportDataUpdate, 10000);
     return () => {
       cancelled = true;
       window.clearInterval(interval);

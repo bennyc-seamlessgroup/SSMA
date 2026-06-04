@@ -42,7 +42,7 @@ For deployment, you can point the portal at a Google Drive folder that mirrors t
 IMPORT_DATA_SOURCE=google-drive
 GOOGLE_DRIVE_API_KEY=your_google_api_key
 GOOGLE_DRIVE_IMPORT_FOLDER_ID=your_drive_folder_id
-IMPORT_DATA_CACHE_SECONDS=30
+IMPORT_DATA_CACHE_SECONDS=10
 ```
 
 The Google Drive folder must contain the same relative JSON paths, for example `company/profile.json` and `short/short_interest.json`. For this MVP path, the folder/files must be readable by the API key, such as a shared folder accessible by link. The portal polls Drive metadata and refreshes when the file checksum or modified time changes.

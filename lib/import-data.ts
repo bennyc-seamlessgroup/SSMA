@@ -52,7 +52,7 @@ export type ImportDataPoolRow = {
 const importDataRoot = path.join(process.cwd(), 'import_data');
 const googleDriveFolderMimeType = 'application/vnd.google-apps.folder';
 const googleDriveApiBase = 'https://www.googleapis.com/drive/v3';
-const importDataCacheMs = Math.max(5, Number(process.env.IMPORT_DATA_CACHE_SECONDS ?? 30)) * 1000;
+const importDataCacheMs = Math.max(5, Number(process.env.IMPORT_DATA_CACHE_SECONDS ?? 10)) * 1000;
 
 type ImportDataSource = 'local' | 'google-drive';
 
