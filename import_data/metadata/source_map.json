@@ -1,6 +1,6 @@
 {
   "importedAt": "2026-06-04T05:36:10.381Z",
-  "recordCount": 57,
+  "recordCount": 58,
   "data": [
     {
       "file": "import_data/company/profile.json",
@@ -96,6 +96,14 @@
       "expectedSource": "Ortex/Fintel/FINRA",
       "connectorOwner": "backend",
       "updateCadence": "scheduled import",
+      "status": "ready"
+    },
+    {
+      "file": "import_data/short/short_interest_2.json",
+      "category": "short",
+      "expectedSource": "Internal Demo Dataset",
+      "connectorOwner": "backend",
+      "updateCadence": "scheduled import / Drive refresh",
       "status": "ready"
     },
     {

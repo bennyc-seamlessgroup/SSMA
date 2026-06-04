@@ -2,13 +2,44 @@
   "ticker": "CURR",
   "asOfDate": "2026-05-26",
   "importedAt": "2026-05-26T11:26:45.496Z",
-  "source": "Placeholder",
+  "source": "Sample Data normalized",
   "sourcePlatform": "Ortex",
   "recordType": "onLoan",
   "category": "short",
-  "recordCount": 0,
+  "recordCount": 7,
   "status": "ready",
-  "notes": "No on-loan sample file found; connector-ready placeholder.",
-  "originalFiles": [],
-  "data": []
+  "notes": "Demo trend data added for Lending Pressure chart until the Ortex on-loan connector provides daily records.",
+  "originalFiles": [
+    "Sample Data/Ortex/on_loan_demo.json"
+  ],
+  "data": [
+    {
+      "date": "2026-04-21",
+      "sharesOnLoan": 612400
+    },
+    {
+      "date": "2026-04-22",
+      "sharesOnLoan": 628900
+    },
+    {
+      "date": "2026-04-23",
+      "sharesOnLoan": 641200
+    },
+    {
+      "date": "2026-04-24",
+      "sharesOnLoan": 659800
+    },
+    {
+      "date": "2026-04-27",
+      "sharesOnLoan": 674300
+    },
+    {
+      "date": "2026-04-28",
+      "sharesOnLoan": 681600
+    },
+    {
+      "date": "2026-04-29",
+      "sharesOnLoan": 697200
+    }
+  ]
 }

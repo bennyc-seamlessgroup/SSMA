@@ -40,6 +40,27 @@ function formatPercent(value: unknown, options?: Intl.NumberFormatOptions) {
   return parsed === null ? 'No Source' : `${parsed.toLocaleString('en-US', options)}%`;
 }
 
+function formatCompactNumber(value: number) {
+  const absolute = Math.abs(value);
+  if (absolute >= 1000000) return `${(value / 1000000).toLocaleString('en-US', { maximumFractionDigits: 1 })}M`;
+  if (absolute >= 1000) return `${(value / 1000).toLocaleString('en-US', { maximumFractionDigits: 1 })}K`;
+  return value.toLocaleString('en-US', { maximumFractionDigits: 0 });
+}
+
+function formatAxisNumber(value: number) {
+  const rounded = Math.round(value);
+  const absolute = Math.abs(rounded);
+  if (absolute >= 1000000) return `${(rounded / 1000000).toLocaleString('en-US', { maximumFractionDigits: 0 })}M`;
+  if (absolute >= 1000) return `${(rounded / 1000).toLocaleString('en-US', { maximumFractionDigits: 0 })}K`;
+  return rounded.toLocaleString('en-US', { maximumFractionDigits: 0 });
+}
+
+function shortDateLabel(value: unknown) {
+  const [year, month, day] = String(value ?? '').split('-').map(part => Number(part));
+  if (!year || !month || !day) return String(value ?? '');
+  return `${month}/${day}`;
+}
+
 function signed(value: number, options?: Intl.NumberFormatOptions) {
   const formatted = Math.abs(value).toLocaleString('en-US', options);
   if (value > 0) return `+${formatted}`;
@@ -55,34 +76,61 @@ function InfoTitle({ children, text }: { children: ReactNode; text: string }) {
   return <span className="with-info">{children} <InfoTooltip text={text} /></span>;
 }
 
-function TrendLine({ values, label }: { values: number[]; label: string }) {
+function TrendLine({ values, labels, label, valueFormatter = formatCompactNumber }: {
+  values: number[];
+  labels?: string[];
+  label: string;
+  valueFormatter?: (value: number) => string;
+}) {
   const cleaned = values.filter(value => Number.isFinite(value));
   const plottedValues = cleaned.length ? cleaned : [0, 0];
-  const max = Math.max(...plottedValues, 1);
-  const min = Math.min(...plottedValues, 0);
+  const rawMax = Math.max(...plottedValues, 1);
+  const rawMin = Math.min(...plottedValues, rawMax);
+  const rawRange = Math.max(rawMax - rawMin, Math.abs(rawMax) * .08, 1);
+  const min = rawMin - rawRange * .16;
+  const max = rawMax + rawRange * .16;
   const range = Math.max(max - min, 1);
   const points = plottedValues.map((value, index) => {
-    const x = plottedValues.length === 1 ? 0 : (index / (plottedValues.length - 1)) * 100;
-    const y = 88 - ((value - min) / range) * 68;
+    const x = plottedValues.length === 1 ? 50 : (index / (plottedValues.length - 1)) * 100;
+    const y = 100 - ((value - min) / range) * 100;
     return { value, x, y };
   });
+  const yTicks = [max, min + range / 2, min];
+  const displayLabels = labels && labels.length === plottedValues.length
+    ? labels
+    : plottedValues.map((_, index) => `Point ${index + 1}`);
 
   return (
-    <div className="terminal-line-chart lending-mini-trend">
-      <div className="trend-chart-label">{label}: <strong>{formatNumber(plottedValues[plottedValues.length - 1], { maximumFractionDigits: 1 })}</strong></div>
-      <svg viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
-        <polyline points={points.map(point => `${point.x},${point.y}`).join(' ')} />
-      </svg>
-      {points.map((point, index) => (
-        <span
-          className={`trend-marker ${index === 0 || index === points.length - 1 ? 'show-label' : ''}`}
-          key={`${point.x}-${point.value}-${index}`}
-          style={{ left: `${point.x}%`, top: `${point.y}%` }}
-        >
-          <i />
-          {(index === 0 || index === points.length - 1) && <b>{formatNumber(point.value, { maximumFractionDigits: 0 })}</b>}
-        </span>
-      ))}
+    <div className="terminal-line-chart lending-mini-trend axis-line-chart">
+      <span className="chart-axis-title chart-axis-title-y">{label}</span>
+      <div className="chart-y-axis" aria-hidden="true">
+        {yTicks.map((tick, index) => <span key={`${tick}-${index}`}>{formatAxisNumber(tick)}</span>)}
+      </div>
+      <div className="chart-plot-area">
+        <svg viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
+          <line className="chart-axis-line" x1="0" y1="0" x2="0" y2="100" />
+          <line className="chart-axis-line" x1="0" y1="100" x2="100" y2="100" />
+          <polyline points={points.map(point => `${point.x},${point.y}`).join(' ')} />
+        </svg>
+        {points.map((point, index) => (
+          <span
+            className={`trend-marker ${index === 0 || index === points.length - 1 ? 'show-label' : ''} ${index === 0 ? 'edge-start' : ''} ${index === points.length - 1 ? 'edge-end' : ''}`}
+            key={`${point.x}-${point.value}-${index}`}
+            style={{ left: `${point.x}%`, top: `${point.y}%` }}
+          >
+            <i />
+            {(index === 0 || index === points.length - 1) && <b>{valueFormatter(point.value)}</b>}
+            <em className="trend-tooltip">
+              <strong>{displayLabels[index]}</strong>
+              <span>{label}: {valueFormatter(point.value)}</span>
+            </em>
+          </span>
+        ))}
+      </div>
+      <div className="chart-x-axis" aria-hidden="true">
+        {displayLabels.map((item, index) => <span key={`${item}-${index}`}>{item}</span>)}
+      </div>
+      <span className="chart-axis-title chart-axis-title-x">Date</span>
     </div>
   );
 }
@@ -112,18 +160,21 @@ function DeltaBadge({ info, suffix = '', display }: { info: ReturnType<typeof de
   );
 }
 
-function KpiCard({ label, value, change, suffix, deltaDisplay }: {
+function KpiCard({ label, value, change, suffix, deltaDisplay, pressureLabel, pressureTone }: {
   label: string;
   value: ReactNode;
   change: ReturnType<typeof delta>;
   suffix?: string;
   deltaDisplay?: string;
+  pressureLabel: string;
+  pressureTone: string;
 }) {
   return (
     <div className="terminal-card terminal-stat short-kpi-card">
       <span>{label}</span>
       <strong>{value}</strong>
       <DeltaBadge info={change} suffix={suffix} display={deltaDisplay} />
+      <em className={`lending-kpi-pressure ${pressureTone}`}>{pressureLabel}</em>
     </div>
   );
 }
@@ -142,6 +193,10 @@ export default async function LendingPressurePage() {
   const sortedBorrowRows = [...borrowRows].sort((a, b) => String(b.date ?? '').localeCompare(String(a.date ?? '')));
   const utilizationRows = rows(utilization.data);
   const onLoanRows = rows(onLoan.data);
+  const sortedOnLoanRows = [...onLoanRows].sort((a, b) => String(b.date ?? '').localeCompare(String(a.date ?? '')));
+  const availableTrendRows = [...availableRows].sort((a, b) => String(a.date ?? '').localeCompare(String(b.date ?? ''))).slice(-7);
+  const borrowTrendRows = [...borrowRows].sort((a, b) => String(a.date ?? '').localeCompare(String(b.date ?? ''))).slice(-7);
+  const onLoanTrendRows = [...onLoanRows].sort((a, b) => String(a.date ?? '').localeCompare(String(b.date ?? ''))).slice(-7);
   const borrowFee = numeric(record(borrow.data).current && record(record(borrow.data).current).costToBorrowAll) ?? 0;
   const sharesAvailable = numeric(latest(availableRows).shortAvailabilityShares) ?? 0;
   const utilizationPct = numeric(latest(availableRows).shortAvailabilityPct) ?? 0;
@@ -149,28 +204,16 @@ export default async function LendingPressurePage() {
   const availabilityPressure = sharesAvailable <= 100000 ? 100 : sharesAvailable <= 500000 ? 78 : sharesAvailable <= 1500000 ? 48 : 12;
   const utilizationPressure = Math.min(100, Math.max(0, utilizationPct));
   const borrowFeePressure = Math.min(100, Math.max(0, borrowFee));
+  const onLoanPressure = onLoanShares >= 1000000 ? 100 : onLoanShares >= 650000 ? 62 : onLoanShares >= 400000 ? 38 : 12;
   const borrowDemandScore = Math.round((utilizationPressure * .42) + (borrowFeePressure * .35) + (availabilityPressure * .18) + (onLoanShares > 0 ? 5 : 0));
   const previousSharesAvailable = numeric(sortedAvailableRows[1]?.shortAvailabilityShares);
   const previousUtilizationPct = numeric(sortedAvailableRows[1]?.shortAvailabilityPct);
   const previousBorrowFee = numeric(sortedBorrowRows[1]?.costToBorrowAll);
-  const previousAvailabilityPressure = previousSharesAvailable === null ? null : previousSharesAvailable <= 100000 ? 100 : previousSharesAvailable <= 500000 ? 78 : previousSharesAvailable <= 1500000 ? 48 : 12;
-  const previousUtilizationPressure = previousUtilizationPct === null ? null : Math.min(100, Math.max(0, previousUtilizationPct));
-  const previousBorrowFeePressure = previousBorrowFee === null ? null : Math.min(100, Math.max(0, previousBorrowFee));
-  const previousBorrowDemandScore = previousAvailabilityPressure === null || previousUtilizationPressure === null || previousBorrowFeePressure === null
-    ? null
-    : Math.round((previousUtilizationPressure * .42) + (previousBorrowFeePressure * .35) + (previousAvailabilityPressure * .18));
+  const previousOnLoanShares = numeric(sortedOnLoanRows[1]?.sharesOnLoan ?? sortedOnLoanRows[1]?.onLoan);
   const pressureScore = Math.round((availabilityPressure * .25) + (utilizationPressure * .3) + (borrowFeePressure * .3) + (borrowDemandScore * .15));
   const level = pressureScore >= 81 ? 'Extreme' : pressureScore >= 61 ? 'High' : pressureScore >= 31 ? 'Moderate' : 'Low';
-  const health = pressureScore >= 81 ? 'Critical' : pressureScore >= 61 ? 'Constrained' : pressureScore >= 31 ? 'Tightening' : 'Healthy';
-  const borrowDemand = borrowDemandScore >= 81 ? 'Extreme' : borrowDemandScore >= 61 ? 'High' : borrowDemandScore >= 31 ? 'Moderate' : 'Low';
   const componentStatus = (value: number) => value >= 81 ? 'Extreme Pressure' : value >= 61 ? 'High Pressure' : value >= 31 ? 'Moderate Pressure' : 'Low Pressure';
   const componentClass = (value: number) => value >= 81 ? 'extreme' : value >= 61 ? 'high' : value >= 31 ? 'moderate' : 'low';
-  const components = [
-    { name: 'Shares Available', value: formatNumber(sharesAvailable), weight: '25%', pressure: availabilityPressure, source: available.sourcePlatform ?? 'Ortex' },
-    { name: 'Utilization', value: formatPercent(utilizationPct, { maximumFractionDigits: 1 }), weight: '30%', pressure: utilizationPressure, source: available.sourcePlatform ?? 'Ortex' },
-    { name: 'Borrow Fee', value: formatPercent(borrowFee, { maximumFractionDigits: 1 }), weight: '30%', pressure: borrowFeePressure, source: borrow.sourcePlatform ?? 'Ortex' },
-    { name: 'Borrow Demand', value: borrowDemand, weight: '15%', pressure: borrowDemandScore, source: 'Internal Lending Model' },
-  ];
   const availableDerived = record((available as unknown as Row).dataDerived);
   const lendingDerived = record(availableDerived.lendingPressurePage);
   const lendingSummary = record(lendingDerived.summary);
@@ -178,11 +221,9 @@ export default async function LendingPressurePage() {
   const borrowCards = record(record(record(borrow.data).derived).lendingPressurePage).cards as Record<string, Row> | undefined;
   const sharesAvailableCard = record(lendingCards.sharesAvailable);
   const utilizationCard = record(lendingCards.utilization);
-  const borrowDemandCard = record(lendingCards.borrowDemand);
   const borrowFeeCard = record(borrowCards?.borrowFee);
   const displayPressureScore = numeric(lendingSummary.pressureScore) ?? pressureScore;
   const displayLevel = String(lendingSummary.level ?? level);
-  const displayHealth = String(lendingSummary.health ?? health);
 
   return (
     <ImportDataPreviewPage
@@ -209,11 +250,6 @@ export default async function LendingPressurePage() {
             <strong>{String(lendingSummary.pressureScoreDisplay ?? `${displayPressureScore} / 100`)}</strong>
             <em>{displayLevel}</em>
             <p>{text(pageContent.pressureNarrative, `Borrowing conditions indicate ${displayLevel.toLowerCase()} pressure on short sellers based on available inventory, utilization, borrow fee, and borrow demand.`)}</p>
-            <div className="lending-health-card">
-              <span>Current Status</span>
-              <strong>{displayHealth}</strong>
-              <small>{displayHealth === 'Healthy' ? text(pageContent.healthyStatusNote, 'Available inventory remains sufficient while utilization is controlled.') : text(pageContent.reviewStatusNote, 'Borrow conditions warrant management review and continued monitoring.')}</small>
-            </div>
           </div>
           <div className="lending-gauge-card">
             <div className="triggered-gauge" style={{ background: `conic-gradient(#be123c 0% ${displayPressureScore}%, #e8eef7 ${displayPressureScore}% 100%)` }}>
@@ -224,40 +260,17 @@ export default async function LendingPressurePage() {
         </div>
 
         <div className="lending-kpi-row lending-delta-kpi-row">
-          <KpiCard label="Shares Available" value={String(sharesAvailableCard.valueDisplay ?? formatNumber(sharesAvailable))} change={delta(sharesAvailable, previousSharesAvailable, { maximumFractionDigits: 0 })} suffix=" shares" deltaDisplay={String(sharesAvailableCard.deltaDisplay ?? '')} />
-          <KpiCard label="Utilization" value={String(utilizationCard.valueDisplay ?? formatPercent(utilizationPct, { maximumFractionDigits: 1 }))} change={delta(utilizationPct, previousUtilizationPct, { maximumFractionDigits: 2 })} suffix=" pts" deltaDisplay={String(utilizationCard.deltaDisplay ?? '')} />
-          <KpiCard label="Borrow Fee" value={String(borrowFeeCard.valueDisplay ?? formatPercent(borrowFee, { maximumFractionDigits: 2 }))} change={delta(borrowFee, previousBorrowFee, { maximumFractionDigits: 2 })} suffix=" pts" deltaDisplay={String(borrowFeeCard.deltaDisplay ?? '')} />
-          <KpiCard label="Borrow Demand" value={String(borrowDemandCard.valueDisplay ?? borrowDemand)} change={delta(borrowDemandScore, previousBorrowDemandScore, { maximumFractionDigits: 0 })} suffix=" pts" deltaDisplay={String(borrowDemandCard.deltaDisplay ?? '')} />
-        </div>
-
-        <div className="lending-pressure-grid">
-          <div className="terminal-card lending-breakdown-card">
-            <h3>Lending Pressure Components</h3>
-            <div className="lending-component-list">
-              {components.map(component => (
-                <div key={component.name}>
-                  <span>{component.name}</span>
-                  <strong>{component.value}</strong>
-                  <small>Weight: {component.weight}</small>
-                  <em className={componentClass(component.pressure)}>{componentStatus(component.pressure)}</em>
-                  <small>Source: {component.source}</small>
-                </div>
-              ))}
-            </div>
-          </div>
-          <div className="terminal-card borrow-demand-card">
-            <h3>{borrowDemand} Borrow Demand</h3>
-            <p>{text(pageContent.borrowDemandNarrative, `Current borrow activity suggests ${borrowDemand.toLowerCase()} demand for available shares based on utilization, borrow fee, on-loan activity, and available inventory.`)}</p>
-            <div className="lending-view-tabs"><span>7 Day</span><span>30 Day</span><span>90 Day</span></div>
-            {sourceChip('Internal Lending Model')}
-          </div>
+          <KpiCard label="Shares Available" value={String(sharesAvailableCard.valueDisplay ?? formatNumber(sharesAvailable))} change={delta(sharesAvailable, previousSharesAvailable, { maximumFractionDigits: 0 })} suffix=" shares" deltaDisplay={String(sharesAvailableCard.deltaDisplay ?? '')} pressureLabel={componentStatus(availabilityPressure)} pressureTone={componentClass(availabilityPressure)} />
+          <KpiCard label="Utilization" value={String(utilizationCard.valueDisplay ?? formatPercent(utilizationPct, { maximumFractionDigits: 1 }))} change={delta(utilizationPct, previousUtilizationPct, { maximumFractionDigits: 2 })} suffix=" pts" deltaDisplay={String(utilizationCard.deltaDisplay ?? '')} pressureLabel={componentStatus(utilizationPressure)} pressureTone={componentClass(utilizationPressure)} />
+          <KpiCard label="Borrow Fee" value={String(borrowFeeCard.valueDisplay ?? formatPercent(borrowFee, { maximumFractionDigits: 2 }))} change={delta(borrowFee, previousBorrowFee, { maximumFractionDigits: 2 })} suffix=" pts" deltaDisplay={String(borrowFeeCard.deltaDisplay ?? '')} pressureLabel={componentStatus(borrowFeePressure)} pressureTone={componentClass(borrowFeePressure)} />
+          <KpiCard label="On Loan" value={formatNumber(onLoanShares)} change={delta(onLoanShares, previousOnLoanShares, { maximumFractionDigits: 0 })} suffix=" shares" pressureLabel={componentStatus(onLoanPressure)} pressureTone={componentClass(onLoanPressure)} />
         </div>
 
         <div className="lending-trend-grid">
-          <div className="terminal-card chart-card"><h3><InfoTitle text="Trend of shares available to borrow. Declining availability can indicate tightening borrow supply.">Shares Available Trend</InfoTitle></h3><TrendLine label="Available" values={availableRows.map(row => numeric(row.shortAvailabilityShares) ?? 0)} /></div>
-          <div className="terminal-card chart-card"><h3><InfoTitle text="Utilization is currently mapped to shortAvailabilityPct from the shares-available file. Higher values indicate more reported short availability percentage in the current MVP data.">Utilization Trend</InfoTitle></h3><TrendLine label="Utilization" values={availableRows.map(row => numeric(row.shortAvailabilityPct) ?? 0)} /></div>
-          <div className="terminal-card chart-card"><h3><InfoTitle text="Borrow fee trend shows whether short sellers are paying more to maintain or open short positions.">Borrow Fee Trend</InfoTitle></h3><TrendLine label="Borrow Fee" values={borrowRows.map(row => numeric(row.costToBorrowAll) ?? 0)} /></div>
-          <div className="terminal-card chart-card"><h3><InfoTitle text="Shares on loan approximates borrow demand. Rising on-loan activity can indicate stronger short-side demand.">On Loan Trend</InfoTitle></h3><TrendLine label="On Loan" values={onLoanRows.map(row => numeric(row.sharesOnLoan) ?? numeric(row.onLoan) ?? 0)} /></div>
+          <div className="terminal-card chart-card"><h3><InfoTitle text="Trend of shares available to borrow. Declining availability can indicate tightening borrow supply.">Shares Available Trend</InfoTitle></h3><TrendLine label="Available" labels={availableTrendRows.map(row => shortDateLabel(row.date))} values={availableTrendRows.map(row => numeric(row.shortAvailabilityShares) ?? 0)} /></div>
+          <div className="terminal-card chart-card"><h3><InfoTitle text="Utilization is currently mapped to shortAvailabilityPct from the shares-available file. Higher values indicate more reported short availability percentage in the current MVP data.">Utilization Trend</InfoTitle></h3><TrendLine label="Utilization" labels={availableTrendRows.map(row => shortDateLabel(row.date))} values={availableTrendRows.map(row => numeric(row.shortAvailabilityPct) ?? 0)} valueFormatter={value => `${formatNumber(value, { maximumFractionDigits: 2 })}%`} /></div>
+          <div className="terminal-card chart-card"><h3><InfoTitle text="Borrow fee trend shows whether short sellers are paying more to maintain or open short positions.">Borrow Fee Trend</InfoTitle></h3><TrendLine label="Borrow Fee" labels={borrowTrendRows.map(row => shortDateLabel(row.date))} values={borrowTrendRows.map(row => numeric(row.costToBorrowAll) ?? 0)} valueFormatter={value => `${formatNumber(value, { maximumFractionDigits: 2 })}%`} /></div>
+          <div className="terminal-card chart-card"><h3><InfoTitle text="Shares on loan approximates borrow demand. Rising on-loan activity can indicate stronger short-side demand.">On Loan Trend</InfoTitle></h3><TrendLine label="On Loan" labels={onLoanTrendRows.map(row => shortDateLabel(row.date))} values={onLoanTrendRows.map(row => numeric(row.sharesOnLoan) ?? numeric(row.onLoan) ?? 0)} /></div>
         </div>
 
         <div className="lending-bottom-grid">

@@ -1,0 +1,42 @@
+{
+  "ticker": "CURR",
+  "asOfDate": "2026-06-04",
+  "importedAt": "2026-06-04T06:30:00.000Z",
+  "source": "Dummy 7-day short interest trend dataset",
+  "sourcePlatform": "Internal Demo Dataset",
+  "recordType": "shortInterestDailyTrend",
+  "category": "short",
+  "recordCount": 7,
+  "status": "ready",
+  "notes": "Dummy daily short interest trend for the Short Interest page chart. Replace with backend/provider daily trend data when available.",
+  "data": [
+    {
+      "date": "2026-05-27",
+      "shortInterestShares": 812400
+    },
+    {
+      "date": "2026-05-28",
+      "shortInterestShares": 845200
+    },
+    {
+      "date": "2026-05-29",
+      "shortInterestShares": 872900
+    },
+    {
+      "date": "2026-06-01",
+      "shortInterestShares": 899300
+    },
+    {
+      "date": "2026-06-02",
+      "shortInterestShares": 918700
+    },
+    {
+      "date": "2026-06-03",
+      "shortInterestShares": 932600
+    },
+    {
+      "date": "2026-06-04",
+      "shortInterestShares": 940721
+    }
+  ]
+}

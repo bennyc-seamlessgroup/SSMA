@@ -138,18 +138,32 @@ function ImportDataRenderer({ data }: { data: unknown }) {
 
 export async function ImportDataPreviewPage({ title, description, files, children }: ImportDataPreviewPageProps) {
   const datasets = await Promise.all(files.map(async file => {
-    const envelope = await readImportFile(file);
-    return {
-      id: file.replace(/[^a-zA-Z0-9]+/g, '-'),
-      file,
-      title: cleanTitle(file),
-      sourcePlatform: envelope.sourcePlatform ?? 'Internal',
-      recordCount: envelope.recordCount ?? 0,
-      status: envelope.status ?? 'ready',
-      notes: envelope.notes ?? 'Ready for portal workflow.',
-      importedAt: envelope.importedAt ?? '',
-      data: envelope.data,
-    };
+    try {
+      const envelope = await readImportFile(file);
+      return {
+        id: file.replace(/[^a-zA-Z0-9]+/g, '-'),
+        file,
+        title: cleanTitle(file),
+        sourcePlatform: envelope.sourcePlatform ?? 'Internal',
+        recordCount: envelope.recordCount ?? 0,
+        status: envelope.status ?? 'ready',
+        notes: envelope.notes ?? 'Ready for portal workflow.',
+        importedAt: envelope.importedAt ?? '',
+        data: envelope.data,
+      };
+    } catch {
+      return {
+        id: file.replace(/[^a-zA-Z0-9]+/g, '-'),
+        file,
+        title: cleanTitle(file),
+        sourcePlatform: 'Missing import file',
+        recordCount: 0,
+        status: 'missing',
+        notes: 'This import file is mapped but was not found in the active data source.',
+        importedAt: '',
+        data: [],
+      };
+    }
   }));
 
   return (

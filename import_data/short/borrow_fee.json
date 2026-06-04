@@ -16,6 +16,26 @@
   "data": {
     "all": [
       {
+        "date": "2026-04-21",
+        "costToBorrowAll": 29.84
+      },
+      {
+        "date": "2026-04-22",
+        "costToBorrowAll": 30.05
+      },
+      {
+        "date": "2026-04-23",
+        "costToBorrowAll": 30.18
+      },
+      {
+        "date": "2026-04-24",
+        "costToBorrowAll": 30.31
+      },
+      {
+        "date": "2026-04-27",
+        "costToBorrowAll": 30.52
+      },
+      {
         "date": "2026-04-28",
         "costToBorrowAll": 30.76
       },

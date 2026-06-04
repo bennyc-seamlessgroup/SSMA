@@ -6,13 +6,38 @@
   "sourcePlatform": "Ortex",
   "recordType": "sharesAvailable",
   "category": "short",
-  "recordCount": 2,
+  "recordCount": 7,
   "status": "ready",
   "notes": null,
   "originalFiles": [
     "Sample Data/Ortex/availability.json"
   ],
   "data": [
+    {
+      "date": "2026-04-21",
+      "shortAvailabilityPct": 76.9,
+      "shortAvailabilityShares": 2678200
+    },
+    {
+      "date": "2026-04-22",
+      "shortAvailabilityPct": 76.2,
+      "shortAvailabilityShares": 2639400
+    },
+    {
+      "date": "2026-04-23",
+      "shortAvailabilityPct": 75.7,
+      "shortAvailabilityShares": 2608700
+    },
+    {
+      "date": "2026-04-24",
+      "shortAvailabilityPct": 75.1,
+      "shortAvailabilityShares": 2586200
+    },
+    {
+      "date": "2026-04-27",
+      "shortAvailabilityPct": 74.9,
+      "shortAvailabilityShares": 2561800
+    },
     {
       "date": "2026-04-28",
       "shortAvailabilityPct": 74.6,
