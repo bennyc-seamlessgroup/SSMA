@@ -99,8 +99,8 @@ function TrendLine({ values }: { values: number[] }) {
   );
 }
 
-export default function SentimentPage() {
-  const envelope = readImportFile<SocialMention[]>('sentiment/social_mentions.json');
+export default async function SentimentPage() {
+  const envelope = await readImportFile<SocialMention[]>('sentiment/social_mentions.json');
   const mentions = envelope.data;
   const positive = mentions.filter(item => item.sentiment === 'positive').length;
   const negative = mentions.filter(item => item.sentiment === 'negative').length;

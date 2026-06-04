@@ -102,7 +102,12 @@ export function MonitorExpertChat({ ticker }: { ticker: string }) {
           event.preventDefault();
           submitQuestion();
         }}>
-          <input value={draft} onChange={event => setDraft(event.target.value)} placeholder="Ask about short pressure, float, sentiment, or response priorities" />
+          <input
+            value={draft}
+            onChange={event => setDraft(event.target.value)}
+            placeholder="Ask about short pressure, float, sentiment, or response priorities"
+            suppressHydrationWarning
+          />
           <button type="submit">Send</button>
         </form>
       </aside>

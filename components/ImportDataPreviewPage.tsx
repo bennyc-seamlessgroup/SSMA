@@ -136,9 +136,9 @@ function ImportDataRenderer({ data }: { data: unknown }) {
   return <p className="page__desc import-empty">{formatValue(data)}</p>;
 }
 
-export function ImportDataPreviewPage({ title, description, files, children }: ImportDataPreviewPageProps) {
-  const datasets = files.map(file => {
-    const envelope = readImportFile(file);
+export async function ImportDataPreviewPage({ title, description, files, children }: ImportDataPreviewPageProps) {
+  const datasets = await Promise.all(files.map(async file => {
+    const envelope = await readImportFile(file);
     return {
       id: file.replace(/[^a-zA-Z0-9]+/g, '-'),
       file,
@@ -150,7 +150,7 @@ export function ImportDataPreviewPage({ title, description, files, children }: I
       importedAt: envelope.importedAt ?? '',
       data: envelope.data,
     };
-  });
+  }));
 
   return (
     <div className="page">

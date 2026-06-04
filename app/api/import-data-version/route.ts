@@ -4,7 +4,7 @@ import { getImportDataVersion } from '@/lib/import-data-version';
 export const dynamic = 'force-dynamic';
 
 export async function GET() {
-  return NextResponse.json(getImportDataVersion(), {
+  return NextResponse.json(await getImportDataVersion(), {
     headers: {
       'Cache-Control': 'no-store, max-age=0',
     },

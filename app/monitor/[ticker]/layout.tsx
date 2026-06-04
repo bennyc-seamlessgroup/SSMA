@@ -7,7 +7,7 @@ export const dynamic = 'force-dynamic';
 export default async function TickerLayout({ children, params }: Readonly<{ children: React.ReactNode; params: Promise<{ ticker: string }> }>) {
   const { ticker } = await params;
   const bundle = buildDashboard(ticker);
-  const importDataVersion = getImportDataVersion();
+  const importDataVersion = await getImportDataVersion();
 
   return (
     <AppShell

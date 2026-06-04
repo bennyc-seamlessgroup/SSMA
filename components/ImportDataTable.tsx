@@ -73,6 +73,7 @@ export function ImportDataTable({ columns, rows, pageSize = 25 }: ImportDataTabl
           className="input import-table-search"
           aria-label="Search table"
           placeholder="Search records"
+          suppressHydrationWarning
           value={search}
           onChange={event => {
             setSearch(event.target.value);

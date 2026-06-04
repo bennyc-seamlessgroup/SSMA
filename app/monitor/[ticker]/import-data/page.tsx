@@ -10,7 +10,7 @@ function formatDate(value: string) {
 export default async function ImportDataPoolPage({ params }: Readonly<{ params: Promise<{ ticker: string }> }>) {
   const { ticker } = await params;
   const normalizedTicker = ticker?.toUpperCase() ?? 'CURR';
-  const rows = readImportDataPoolRows();
+  const rows = await readImportDataPoolRows();
   const tableRows = rows.map(row => ({
     category: row.category,
     fileName: row.fileName,

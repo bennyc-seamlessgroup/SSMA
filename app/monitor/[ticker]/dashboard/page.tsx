@@ -183,30 +183,54 @@ function RadarChart({ items }: { items: Array<{ label: string; score: number; ma
 }
 
 export default async function CompanyDashboardPage() {
-  const dashboard = buildImportDashboard();
+  const [
+    dashboard,
+    shortInterestEnvelope,
+    borrowFeeEnvelope,
+    sharesEnvelope,
+    utilizationEnvelope,
+    onLoanEnvelope,
+    shortScoreEnvelope,
+    topHoldersEnvelope,
+    ownershipChangesEnvelope,
+    activistEnvelope,
+    ownershipTrendEnvelope,
+    insiderEnvelope,
+    insiderNetEnvelope,
+    optionsEnvelope,
+    putCallEnvelope,
+    openInterestEnvelope,
+    gammaEnvelope,
+    alertsEnvelope,
+    newsEnvelope,
+    filingsEnvelope,
+    sentimentEnvelope,
+    internalFloatEnvelope,
+  ] = await Promise.all([
+    buildImportDashboard(),
+    readImportFile<Row>('short/short_interest.json'),
+    readImportFile<Row>('short/borrow_fee.json'),
+    readImportFile<Row[]>('short/shares_available.json'),
+    readImportFile<Row[]>('short/utilization.json'),
+    readImportFile<Row[]>('short/on_loan.json'),
+    readImportFile<Row[]>('short/short_score.json'),
+    readImportFile<Row[]>('ownership/top_holders.json'),
+    readImportFile<Row[]>('ownership/ownership_changes.json'),
+    readImportFile<Row[]>('ownership/activist_filings.json'),
+    readImportFile<Row[]>('ownership/ownership_trend.json'),
+    readImportFile<Row[]>('insider/insider_transactions.json'),
+    readImportFile<Row>('insider/net_insider_activity.json'),
+    readImportFile<Row>('options/options_summary.json'),
+    readImportFile<Row>('options/put_call_ratio.json'),
+    readImportFile<Row[]>('options/open_interest.json'),
+    readImportFile<Row[]>('options/gamma_exposure.json'),
+    readImportFile<Row[]>('alerts/alerts.json'),
+    readImportFile<Row[]>('news_filings/news.json'),
+    readImportFile<Row[]>('news_filings/sec_filings.json'),
+    readImportFile<Row[]>('sentiment/social_mentions.json'),
+    readInternalFloatAdjustments(),
+  ]);
   const { company, scores, metrics, summaries } = dashboard;
-
-  const shortInterestEnvelope = readImportFile<Row>('short/short_interest.json');
-  const borrowFeeEnvelope = readImportFile<Row>('short/borrow_fee.json');
-  const sharesEnvelope = readImportFile<Row[]>('short/shares_available.json');
-  const utilizationEnvelope = readImportFile<Row[]>('short/utilization.json');
-  const onLoanEnvelope = readImportFile<Row[]>('short/on_loan.json');
-  const shortScoreEnvelope = readImportFile<Row[]>('short/short_score.json');
-  const topHoldersEnvelope = readImportFile<Row[]>('ownership/top_holders.json');
-  const ownershipChangesEnvelope = readImportFile<Row[]>('ownership/ownership_changes.json');
-  const activistEnvelope = readImportFile<Row[]>('ownership/activist_filings.json');
-  const ownershipTrendEnvelope = readImportFile<Row[]>('ownership/ownership_trend.json');
-  const insiderEnvelope = readImportFile<Row[]>('insider/insider_transactions.json');
-  const insiderNetEnvelope = readImportFile<Row>('insider/net_insider_activity.json');
-  const optionsEnvelope = readImportFile<Row>('options/options_summary.json');
-  const putCallEnvelope = readImportFile<Row>('options/put_call_ratio.json');
-  const openInterestEnvelope = readImportFile<Row[]>('options/open_interest.json');
-  const gammaEnvelope = readImportFile<Row[]>('options/gamma_exposure.json');
-  const alertsEnvelope = readImportFile<Row[]>('alerts/alerts.json');
-  const newsEnvelope = readImportFile<Row[]>('news_filings/news.json');
-  const filingsEnvelope = readImportFile<Row[]>('news_filings/sec_filings.json');
-  const sentimentEnvelope = readImportFile<Row[]>('sentiment/social_mentions.json');
-  const internalFloatEnvelope = readInternalFloatAdjustments();
   const internalFloat = internalFloatEnvelope.data;
 
   const shortCurrent = record(record(shortInterestEnvelope.data).current);

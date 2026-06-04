@@ -116,11 +116,13 @@ function KpiCard({ label, value, change, suffix }: {
   );
 }
 
-export default function LendingPressurePage() {
-  const borrow = readImportFile<Row>('short/borrow_fee.json');
-  const available = readImportFile<Row[]>('short/shares_available.json');
-  const utilization = readImportFile<Row[]>('short/utilization.json');
-  const onLoan = readImportFile<Row[]>('short/on_loan.json');
+export default async function LendingPressurePage() {
+  const [borrow, available, utilization, onLoan] = await Promise.all([
+    readImportFile<Row>('short/borrow_fee.json'),
+    readImportFile<Row[]>('short/shares_available.json'),
+    readImportFile<Row[]>('short/utilization.json'),
+    readImportFile<Row[]>('short/on_loan.json'),
+  ]);
   const borrowRows = rows(record(borrow.data).all);
   const availableRows = rows(available.data);
   const sortedAvailableRows = [...availableRows].sort((a, b) => String(b.date ?? '').localeCompare(String(a.date ?? '')));

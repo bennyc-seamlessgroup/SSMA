@@ -1,8 +1,8 @@
 import { ImportDataTable } from '@/components/ImportDataTable';
 import { readDataDictionary } from '@/lib/import-data';
 
-export default function DataDictionaryPage() {
-  const dictionary = readDataDictionary();
+export default async function DataDictionaryPage() {
+  const dictionary = await readDataDictionary();
   const rows = dictionary.data.map(row => ({ field: row.field, definition: row.definition }));
 
   return (

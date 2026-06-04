@@ -7,11 +7,11 @@ type AnalysisData = {
   riskNotes?: string[];
 };
 
-export default function InternalFloatPage() {
-  const holdingsEnvelope = readInternalFloatInputs();
+export default async function InternalFloatPage() {
+  const holdingsEnvelope = await readInternalFloatInputs();
   const holdings = holdingsEnvelope.data;
-  const analysisEnvelope = readImportFile<AnalysisData>('internal_float/internal_float_analysis.json');
-  const adjustments = calculateFloatAdjustments(holdings) as FloatAdjustments;
+  const analysisEnvelope = await readImportFile<AnalysisData>('internal_float/internal_float_analysis.json');
+  const adjustments = await calculateFloatAdjustments(holdings) as FloatAdjustments;
 
   return (
     <div className="page dashboard-page internal-float-page">

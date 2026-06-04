@@ -13,7 +13,7 @@ type AlertRule = {
 export default async function AlertRulesPage({ params }: Readonly<{ params: Promise<{ ticker: string }> }>) {
   const { ticker } = await params;
   const normalizedTicker = ticker?.toUpperCase() ?? 'CURR';
-  const rules = readImportFile<AlertRule[]>('alerts/alert_rules.json').data;
+  const rules = (await readImportFile<AlertRule[]>('alerts/alert_rules.json')).data;
   const rows = rules.map(rule => ({
     alertType: rule.alertType ?? '',
     title: rule.title ?? '',

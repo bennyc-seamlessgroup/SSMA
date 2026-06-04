@@ -1,6 +1,5 @@
 import crypto from 'crypto';
-import fs from 'fs';
-import path from 'path';
+import { getImportFileVersionParts, listImportDataFiles } from '@/lib/import-data';
 
 export type ImportDataVersion = {
   version: string;
@@ -8,31 +7,18 @@ export type ImportDataVersion = {
   fileCount: number;
 };
 
-const importDataRoot = path.join(process.cwd(), 'import_data');
-
-function listJsonFiles(directory: string): string[] {
-  if (!fs.existsSync(directory)) return [];
-
-  return fs.readdirSync(directory, { withFileTypes: true }).flatMap(entry => {
-    const fullPath = path.join(directory, entry.name);
-    if (entry.isDirectory()) return listJsonFiles(fullPath);
-    if (!entry.isFile() || !entry.name.endsWith('.json')) return [];
-    return fullPath;
-  });
-}
-
-export function getImportDataVersion(): ImportDataVersion {
-  const files = listJsonFiles(importDataRoot).sort();
+export async function getImportDataVersion(): Promise<ImportDataVersion> {
+  const files = await listImportDataFiles();
   const hash = crypto.createHash('sha256');
   let latestModifiedMs = 0;
 
   for (const file of files) {
-    const stat = fs.statSync(file);
-    const relativePath = path.relative(importDataRoot, file);
-    latestModifiedMs = Math.max(latestModifiedMs, stat.mtimeMs);
-    hash.update(relativePath);
+    const versionParts = await getImportFileVersionParts(file);
+    if (!versionParts) continue;
+    latestModifiedMs = Math.max(latestModifiedMs, versionParts.updatedAtMs);
+    hash.update(versionParts.path);
     hash.update('\0');
-    hash.update(fs.readFileSync(file));
+    hash.update(versionParts.versionKey);
     hash.update('\0');
   }
 

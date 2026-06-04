@@ -42,7 +42,7 @@ function changeType(value: unknown): InstitutionalHolding['change_type'] {
 export default async function InstitutionalPage({ params }: Readonly<{ params: Promise<{ ticker: string }> }>) {
   const { ticker } = await params;
   const normalizedTicker = ticker.toUpperCase();
-  const envelope = readImportFile<SecurityOwnershipRow[]>('ownership/security_ownership.json');
+  const envelope = await readImportFile<SecurityOwnershipRow[]>('ownership/security_ownership.json');
   const rows = envelope.data;
   const holdings: InstitutionalHolding[] = rows.map((row, index) => ({
     id: `import-ownership-${index}`,

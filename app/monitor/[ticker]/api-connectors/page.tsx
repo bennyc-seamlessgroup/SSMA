@@ -1,7 +1,7 @@
 import { readSourceMap } from '@/lib/import-data';
 
-export default function ApiConnectorsPage() {
-  const connectorRows = readSourceMap().data.filter(row => row.connectorOwner === 'backend');
+export default async function ApiConnectorsPage() {
+  const connectorRows = (await readSourceMap()).data.filter(row => row.connectorOwner === 'backend');
 
   return (
     <div className="page">

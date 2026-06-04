@@ -135,12 +135,20 @@ function KpiCard({ label, value, detail, change, suffix }: {
   );
 }
 
-export default function ShortInterestPage() {
-  const shortInterestEnvelope = readImportFile<Row>('short/short_interest.json');
-  const borrowFeeEnvelope = readImportFile<Row>('short/borrow_fee.json');
-  const sharesEnvelope = readImportFile<Row[]>('short/shares_available.json');
-  const shortScoreEnvelope = readImportFile<Row[]>('short/short_score.json');
-  const shortVolumeEnvelope = readImportFile<Row[]>('short/short_volume.json');
+export default async function ShortInterestPage() {
+  const [
+    shortInterestEnvelope,
+    borrowFeeEnvelope,
+    sharesEnvelope,
+    shortScoreEnvelope,
+    shortVolumeEnvelope,
+  ] = await Promise.all([
+    readImportFile<Row>('short/short_interest.json'),
+    readImportFile<Row>('short/borrow_fee.json'),
+    readImportFile<Row[]>('short/shares_available.json'),
+    readImportFile<Row[]>('short/short_score.json'),
+    readImportFile<Row[]>('short/short_volume.json'),
+  ]);
 
   const shortCurrent = record(record(shortInterestEnvelope.data).current);
   const shortHistory = rows(record(shortInterestEnvelope.data).finraHistory).slice(0, 12).reverse();

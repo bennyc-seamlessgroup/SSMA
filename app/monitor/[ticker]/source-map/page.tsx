@@ -1,8 +1,8 @@
 import { ImportDataTable } from '@/components/ImportDataTable';
 import { readSourceMap } from '@/lib/import-data';
 
-export default function SourceMapPage() {
-  const sourceMap = readSourceMap();
+export default async function SourceMapPage() {
+  const sourceMap = await readSourceMap();
   const rows = sourceMap.data.map(row => ({
     file: row.file,
     category: row.category,

@@ -87,17 +87,17 @@ function numeric(value: unknown) {
   return Number.isFinite(parsed) ? parsed : 0;
 }
 
-function readEnvelope<T>(relativePath: string): ImportEnvelope<T> {
-  return JSON.parse(fs.readFileSync(path.join(importDataRoot, relativePath), 'utf8')) as ImportEnvelope<T>;
-}
-
 function writeEnvelope<T>(relativePath: string, envelope: ImportEnvelope<T>) {
   fs.writeFileSync(path.join(importDataRoot, relativePath), `${JSON.stringify(envelope, null, 2)}\n`);
 }
 
-export function baseMarketInputs() {
-  const capital = readImportFile<Record<string, unknown>>('company/capital_structure.json').data;
-  const shortInterest = readImportFile<Record<string, unknown>>('short/short_interest.json').data;
+export async function baseMarketInputs() {
+  const [capitalEnvelope, shortInterestEnvelope] = await Promise.all([
+    readImportFile<Record<string, unknown>>('company/capital_structure.json'),
+    readImportFile<Record<string, unknown>>('short/short_interest.json'),
+  ]);
+  const capital = capitalEnvelope.data;
+  const shortInterest = shortInterestEnvelope.data;
   const currentShort = shortInterest.current && typeof shortInterest.current === 'object'
     ? shortInterest.current as Record<string, unknown>
     : {};
@@ -209,8 +209,8 @@ export function demoManualHoldings(): ManualHolding[] {
   ];
 }
 
-export function calculateFloatAdjustments(holdings: ManualHolding[]): FloatAdjustments {
-  const base = baseMarketInputs();
+export async function calculateFloatAdjustments(holdings: ManualHolding[]): Promise<FloatAdjustments> {
+  const base = await baseMarketInputs();
   const sumWhere = (predicate: (holding: ManualHolding) => boolean) =>
     holdings.reduce((sum, holding) => sum + (predicate(holding) ? numeric(holding.numberOfShares) : 0), 0);
 
@@ -259,15 +259,15 @@ export function calculateFloatAdjustments(holdings: ManualHolding[]): FloatAdjus
   };
 }
 
-export function readInternalFloatInputs() {
-  return readEnvelope<ManualHolding[]>('internal_float/manual_holdings.json');
+export async function readInternalFloatInputs() {
+  return readImportFile<ManualHolding[]>('internal_float/manual_holdings.json');
 }
 
-export function readInternalFloatAdjustments() {
-  return readEnvelope<FloatAdjustments>('internal_float/float_adjustments.json');
+export async function readInternalFloatAdjustments() {
+  return readImportFile<FloatAdjustments>('internal_float/float_adjustments.json');
 }
 
-export function saveInternalFloatInputs(holdings: ManualHolding[]) {
+export async function saveInternalFloatInputs(holdings: ManualHolding[]) {
   const importedAt = new Date().toISOString();
   const normalizedHoldings = holdings.map(holding => holding.holderType === 'Tokenized Shares'
     ? {
@@ -277,7 +277,7 @@ export function saveInternalFloatInputs(holdings: ManualHolding[]) {
       tokenizationStatus: holding.tokenizationStatus === 'Not Tokenized' ? 'Tokenized' : holding.tokenizationStatus,
     }
     : holding);
-  const normalizedAdjustments = calculateFloatAdjustments(normalizedHoldings);
+  const normalizedAdjustments = await calculateFloatAdjustments(normalizedHoldings);
   const tokenized = normalizedHoldings.filter(holding => holding.holderType === 'Tokenized Shares' || holding.tokenizationStatus !== 'Not Tokenized' || holding.tradabilityStatus === 'Tokenized');
   const enrichHolding = (holding: ManualHolding) => ({
     ...holding,

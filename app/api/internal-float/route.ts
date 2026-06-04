@@ -28,7 +28,7 @@ function sanitizeHoldings(value: unknown): ManualHolding[] {
 export async function POST(request: Request) {
   const body = await request.json().catch(() => ({}));
   const holdings = body?.action === 'reset' ? demoManualHoldings() : sanitizeHoldings(body?.holdings);
-  const adjustments = saveInternalFloatInputs(holdings);
+  const adjustments = await saveInternalFloatInputs(holdings);
 
   return NextResponse.json({
     status: 'ok',
@@ -43,6 +43,6 @@ export async function PUT(request: Request) {
 
   return NextResponse.json({
     status: 'preview',
-    adjustments: calculateFloatAdjustments(holdings),
+    adjustments: await calculateFloatAdjustments(holdings),
   });
 }
