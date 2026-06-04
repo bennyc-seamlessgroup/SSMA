@@ -206,6 +206,7 @@ export default async function CompanyDashboardPage() {
     filingsEnvelope,
     sentimentEnvelope,
     internalFloatEnvelope,
+    dashboardMetricsEnvelope,
   ] = await Promise.all([
     buildImportDashboard(),
     readImportFile<Row>('short/short_interest.json'),
@@ -229,6 +230,7 @@ export default async function CompanyDashboardPage() {
     readImportFile<Row[]>('news_filings/sec_filings.json'),
     readImportFile<Row[]>('sentiment/social_mentions.json'),
     readInternalFloatAdjustments(),
+    readImportFile<Row>('reports/dashboard_metrics.json').catch(() => ({ data: {} })),
   ]);
   const { company, scores, metrics, summaries } = dashboard;
   const internalFloat = internalFloatEnvelope.data;
@@ -564,6 +566,24 @@ export default async function CompanyDashboardPage() {
   const internalFloatImpactScore = Math.max(0, Math.min(100, Math.round(adjustedFloatReduction * 2.5)));
   const overallRiskScore = Math.round((marketPressureScore * 0.35) + (internalAdjustedSqueezeScore * 0.25) + (internalFloatImpactScore * 0.15) + (narrativeScore * 0.1) + (smartMoneyScore * 0.15));
   const executiveRiskStatus = overallRiskScore >= 90 ? 'CRITICAL' : overallRiskScore >= 78 ? 'HIGH RISK' : overallRiskScore >= 62 ? 'ELEVATED' : overallRiskScore >= 40 ? 'WATCH' : 'SAFE';
+  const dashboardMetrics = record(dashboardMetricsEnvelope.data);
+  const commandCenterMetrics = record(dashboardMetrics.commandCenter);
+  const scoreGridMetrics = record(dashboardMetrics.scoreGrid);
+  const marketPressureMetrics = record(dashboardMetrics.marketPressure);
+  const dashboardFloatMetrics = record(dashboardMetrics.internalFloat);
+  const smartMoneyMetrics = record(dashboardMetrics.smartMoney);
+  const narrativeMetrics = record(dashboardMetrics.narrative);
+  const displayExecutiveRiskStatus = String(commandCenterMetrics.overallRiskStatus ?? executiveRiskStatus);
+  const displayOverallRiskScore = numeric(commandCenterMetrics.overallRiskScore) ?? overallRiskScore;
+  const displayInternalAdjustedSqueezeScore = numeric(scoreGridMetrics.internalAdjustedSqueezeScore) ?? internalAdjustedSqueezeScore;
+  const displayPublicScore = numeric(scoreGridMetrics.publicScore) ?? squeezeScore;
+  const displayRiskAmplification = String(scoreGridMetrics.riskAmplificationDisplay ?? `${riskAmplification >= 0 ? '+' : ''}${riskAmplification}`);
+  const displayMarketRanking = String(scoreGridMetrics.marketRankingDisplay ?? `#${marketRanking}`);
+  const displayPercentile = String(scoreGridMetrics.percentileDisplay ?? `Top ${percentile}%`);
+  const displayMarketPressureScore = numeric(marketPressureMetrics.marketPressureScore) ?? marketPressureScore;
+  const displaySmartMoneyScore = numeric(smartMoneyMetrics.smartMoneyScore) ?? smartMoneyScore;
+  const displayNarrativeScore = numeric(narrativeMetrics.narrativeScore) ?? narrativeScore;
+  const displayInternalFloatImpactScore = numeric(dashboardFloatMetrics.internalFloatImpactScore) ?? internalFloatImpactScore;
   const executiveAlerts = [
     { time: 'Today 08:10', severity: 'High', source: borrowFeeEnvelope.sourcePlatform ?? 'Ortex', title: `Borrow Fee Increased +${formatNumber(Math.max(8, borrowFeePressure / 7), { maximumFractionDigits: 0 })}%`, impact: 'Higher cost to maintain short positions' },
     { time: 'Today 09:25', severity: 'High', source: 'Internal Float Intelligence', title: `Float Reduction ${formatNumber(adjustedFloatReduction, { maximumFractionDigits: 1 })}%`, impact: 'Internal view implies tighter tradable supply' },
@@ -584,17 +604,17 @@ export default async function CompanyDashboardPage() {
       </div>
 
       <section className="executive-command-center">
-        <div className={`command-risk-panel ${executiveRiskStatus.toLowerCase().replaceAll(' ', '-')}`}>
+        <div className={`command-risk-panel ${displayExecutiveRiskStatus.toLowerCase().replaceAll(' ', '-')}`}>
           <span>Overall Risk Status</span>
-          <strong>{executiveRiskStatus}</strong>
-          <em>{overallRiskScore} / 100</em>
+          <strong>{displayExecutiveRiskStatus}</strong>
+          <em>{String(commandCenterMetrics.overallRiskScoreDisplay ?? `${displayOverallRiskScore} / 100`)}</em>
           <p>Current market conditions indicate elevated squeeze risk driven by reduced effective float, positive sentiment, and increasing borrow pressure. Internal management adjustments suggest materially higher risk than public market estimates.</p>
         </div>
         <div className="command-score-grid">
-          <div><span>Internal Adjusted Squeeze Score</span><strong>{internalAdjustedSqueezeScore}</strong></div>
-          <div><span>Public Score</span><strong>{squeezeScore}</strong></div>
-          <div><span>Risk Amplification</span><strong>{riskAmplification >= 0 ? '+' : ''}{riskAmplification}</strong></div>
-          <div><span>Market Ranking</span><strong>#{marketRanking}</strong><small>Top {percentile}%</small></div>
+          <div><span>Internal Adjusted Squeeze Score</span><strong>{displayInternalAdjustedSqueezeScore}</strong></div>
+          <div><span>Public Score</span><strong>{displayPublicScore}</strong></div>
+          <div><span>Risk Amplification</span><strong>{displayRiskAmplification}</strong></div>
+          <div><span>Market Ranking</span><strong>{displayMarketRanking}</strong><small>{displayPercentile}</small></div>
         </div>
         <div className="management-action-panel">
           <h2>Management Action Panel</h2>
@@ -631,35 +651,35 @@ export default async function CompanyDashboardPage() {
         </div>
         <div className="market-pressure-layout">
           <div className="pressure-gauge-card">
-            <div className="triggered-gauge" style={{ background: `conic-gradient(#be123c 0% ${marketPressureScore}%, #e8eef7 ${marketPressureScore}% 100%)` }}>
-              <div><strong>{marketPressureScore}</strong><span>market pressure</span></div>
+            <div className="triggered-gauge" style={{ background: `conic-gradient(#be123c 0% ${displayMarketPressureScore}%, #e8eef7 ${displayMarketPressureScore}% 100%)` }}>
+              <div><strong>{displayMarketPressureScore}</strong><span>market pressure</span></div>
             </div>
-            <h3>{marketPressureScore >= 81 ? 'Extreme' : marketPressureScore >= 61 ? 'High' : marketPressureScore >= 31 ? 'Moderate' : 'Low'} Pressure</h3>
+            <h3>{displayMarketPressureScore >= 81 ? 'Extreme' : displayMarketPressureScore >= 61 ? 'High' : displayMarketPressureScore >= 31 ? 'Moderate' : 'Low'} Pressure</h3>
           </div>
           <div className="pressure-metric-strip">
             <div>
               <span>Short Interest</span>
-              <strong>{formatPercent(shortInterestPct, { maximumFractionDigits: 1 })}</strong>
+              <strong>{String(marketPressureMetrics.shortInterestPercentDisplay ?? formatPercent(shortInterestPct, { maximumFractionDigits: 1 }))}</strong>
               <i style={{ width: `${Math.min(100, Math.max(8, shortInterestPct * 3))}%` }} />
             </div>
             <div>
               <span>Borrow Fee</span>
-              <strong>{formatPercent(borrowFeePct, { maximumFractionDigits: 1 })}</strong>
+              <strong>{String(marketPressureMetrics.borrowFeePercentDisplay ?? formatPercent(borrowFeePct, { maximumFractionDigits: 1 }))}</strong>
               <i style={{ width: `${Math.min(100, Math.max(8, borrowFeePct))}%` }} />
             </div>
             <div>
               <span>Utilization</span>
-              <strong>{formatPercent(utilizationPct, { maximumFractionDigits: 1 })}</strong>
+              <strong>{String(marketPressureMetrics.utilizationPercentDisplay ?? formatPercent(utilizationPct, { maximumFractionDigits: 1 }))}</strong>
               <i style={{ width: `${Math.min(100, Math.max(8, utilizationPct))}%` }} />
             </div>
             <div>
               <span>Shares Available</span>
-              <strong>{formatNumber(sharesAvailable)}</strong>
+              <strong>{String(marketPressureMetrics.sharesAvailableDisplay ?? formatNumber(sharesAvailable))}</strong>
               <i className="inverse" style={{ width: `${Math.min(100, Math.max(8, availabilityPressure))}%` }} />
             </div>
             <div>
               <span>Squeeze Readiness</span>
-              <strong>{readinessScore}</strong>
+              <strong>{String(marketPressureMetrics.readinessScore ?? readinessScore)}</strong>
               <i style={{ width: `${Math.min(100, Math.max(8, readinessScore))}%` }} />
             </div>
           </div>
@@ -682,15 +702,15 @@ export default async function CompanyDashboardPage() {
           <div className="float-waterfall-card">
             <h3>Official Float to Management View</h3>
             <div className="float-waterfall">
-              <div><span>Official Float</span><strong>{formatNumber(internalFloat.officialFreeFloat)}</strong></div>
-              <div><span>Adjusted Float</span><strong>{formatNumber(internalFloat.estimatedRealTradableFloat)}</strong></div>
-              <div><span>Lendable Float</span><strong>{formatNumber(internalFloat.estimatedRealLendableFloat)}</strong></div>
-              <div><span>Tokenized / Locked</span><strong>{formatNumber(internalFloat.tokenizedShares)}</strong></div>
+              <div><span>Official Float</span><strong>{String(dashboardFloatMetrics.officialFloatDisplay ?? formatNumber(internalFloat.officialFreeFloat))}</strong></div>
+              <div><span>Adjusted Float</span><strong>{String(dashboardFloatMetrics.adjustedFloatDisplay ?? formatNumber(internalFloat.estimatedRealTradableFloat))}</strong></div>
+              <div><span>Lendable Float</span><strong>{String(dashboardFloatMetrics.lendableFloatDisplay ?? formatNumber(internalFloat.estimatedRealLendableFloat))}</strong></div>
+              <div><span>Tokenized / Locked</span><strong>{String(dashboardFloatMetrics.tokenizedLockedSharesDisplay ?? formatNumber(internalFloat.tokenizedShares))}</strong></div>
             </div>
           </div>
           <div className="float-impact-card">
             <span>Internal Float Impact Score</span>
-            <strong>{internalFloatImpactScore} / 100</strong>
+            <strong>{String(dashboardFloatMetrics.internalFloatImpactScoreDisplay ?? `${displayInternalFloatImpactScore} / 100`)}</strong>
             <small>Float reduction: {formatPercent(internalFloat.floatReductionPercent, { maximumFractionDigits: 1 })}</small>
             <small>Adjusted SI: {formatPercent(internalFloat.adjustedShortInterestRealFloat, { maximumFractionDigits: 1 })}</small>
           </div>
@@ -703,7 +723,7 @@ export default async function CompanyDashboardPage() {
           {headActions(<>{sourceChip('Fintel')}{sourceChip('SEC EDGAR')}{sourceChip('Ortex')}</>)}
         </div>
         <div className="smart-money-grid">
-          <div className="smart-money-score-card"><span>Smart Money Score</span><strong>{smartMoneyScore} / 100</strong><em>{overallPositioningSignal}</em></div>
+          <div className="smart-money-score-card"><span>Smart Money Score</span><strong>{String(smartMoneyMetrics.smartMoneyScoreDisplay ?? `${displaySmartMoneyScore} / 100`)}</strong><em>{overallPositioningSignal}</em></div>
           <div><span>Largest Accumulation</span><strong>{String(largestIncrease.investorName ?? 'Institutional Holder')}</strong><small>+{formatNumber(numeric(largestIncrease.sharesChange) ?? numeric(largestIncrease.shares))} shares</small></div>
           <div><span>Largest Reduction</span><strong>{String(largestReduction.investorName ?? 'Institutional Holder')}</strong><small>{formatNumber(numeric(largestReduction.sharesChange) ?? -500000)} shares</small></div>
           <div><span>Insider Activity</span><strong>{insiderSignal}</strong><small>Latest: {String(largestInsiderTransaction.insiderName ?? 'Form 4 Activity')}</small></div>
@@ -718,7 +738,7 @@ export default async function CompanyDashboardPage() {
           {headActions(<>{sourceChip('Social Media Engine')}{viewMore(company.ticker, 'sentiment')}</>)}
         </div>
         <div className="narrative-executive-grid">
-          <div className="narrative-score-card"><span>Narrative Score</span><strong>{narrativeScore} / 100</strong><small>{socialMentions.length} mentions tracked</small></div>
+          <div className="narrative-score-card"><span>Narrative Score</span><strong>{String(narrativeMetrics.narrativeScoreDisplay ?? `${displayNarrativeScore} / 100`)}</strong><small>{String(narrativeMetrics.mentionCount ?? socialMentions.length)} mentions tracked</small></div>
           <div><span>Narrative Velocity</span><strong>+18%</strong><small>7-day discussion growth</small></div>
           <div><span>Mention Growth</span><strong>+24%</strong><small>Week over week</small></div>
           <div className="narrative-list"><h3>Top Bullish Narratives</h3><ul><li>Borrow fee rising</li><li>Reduced float</li><li>Positive catalyst watch</li></ul></div>

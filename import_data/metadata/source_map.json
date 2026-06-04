@@ -1,6 +1,6 @@
 {
-  "importedAt": "2026-05-27T09:00:00.000Z",
-  "recordCount": 55,
+  "importedAt": "2026-06-04T05:36:10.381Z",
+  "recordCount": 56,
   "data": [
     {
       "file": "import_data/company/profile.json",
@@ -440,6 +440,14 @@
       "expectedSource": "Internal Management Input",
       "connectorOwner": "portal",
       "updateCadence": "on save / recalculation",
+      "status": "ready"
+    },
+    {
+      "file": "import_data/reports/dashboard_metrics.json",
+      "category": "reports",
+      "expectedSource": "Internal Derived Metrics",
+      "connectorOwner": "backend",
+      "updateCadence": "on import_data refresh",
       "status": "ready"
     }
   ]

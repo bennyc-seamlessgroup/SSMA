@@ -104,7 +104,10 @@ function delta(current: number | null, previous: number | null, options?: Intl.N
   };
 }
 
-function DeltaBadge({ info, suffix = '' }: { info: ReturnType<typeof delta>; suffix?: string }) {
+function DeltaBadge({ info, suffix = '', display }: { info: ReturnType<typeof delta>; suffix?: string; display?: string }) {
+  if (display) {
+    return <span className={`short-kpi-delta ${display.startsWith('-') ? 'down' : display.startsWith('+') ? 'up' : 'neutral'}`}><strong>{display}</strong></span>;
+  }
   if (!info) {
     return <span className="short-kpi-delta neutral">No prior update</span>;
   }
@@ -118,18 +121,19 @@ function DeltaBadge({ info, suffix = '' }: { info: ReturnType<typeof delta>; suf
   );
 }
 
-function KpiCard({ label, value, detail, change, suffix }: {
+function KpiCard({ label, value, detail, change, suffix, deltaDisplay }: {
   label: string;
   value: ReactNode;
   detail?: string;
   change: ReturnType<typeof delta>;
   suffix?: string;
+  deltaDisplay?: string;
 }) {
   return (
     <div className="terminal-card terminal-stat short-kpi-card">
       <span>{label}</span>
       <strong>{value}</strong>
-      <DeltaBadge info={change} suffix={suffix} />
+      <DeltaBadge info={change} suffix={suffix} display={deltaDisplay} />
       {detail && <small>{detail}</small>}
     </div>
   );
@@ -196,6 +200,18 @@ export default async function ShortInterestPage() {
   const shortScoreDelta = delta(shortScore || null, numeric(sortedShortScores[1]?.score), { maximumFractionDigits: 1 });
   const sharesAvailableDelta = delta(sharesAvailable, numeric(sortedAvailableRows[1]?.shortAvailabilityShares), { maximumFractionDigits: 0 });
   const utilizationDelta = delta(utilization, numeric(sortedAvailableRows[1]?.shortAvailabilityPct), { maximumFractionDigits: 2 });
+  const shortCards = record(record(record(shortInterestEnvelope.data).derived).shortInterestPage).cards as Record<string, Row> | undefined;
+  const borrowCards = record(record(record(borrowFeeEnvelope.data).derived).shortInterestPage).cards as Record<string, Row> | undefined;
+  const availableCards = record(record(record((sharesEnvelope as unknown as Row).dataDerived).shortInterestPage).cards) as Record<string, Row> | undefined;
+  const scoreCards = record(record(record(shortScoreEnvelope as unknown as Row).dataDerived).shortInterestPage).cards as Record<string, Row> | undefined;
+  const shortInterestCard = record(shortCards?.shortInterest);
+  const siPercentCard = record(shortCards?.shortInterestPercentFloat);
+  const daysToCoverCard = record(shortCards?.daysToCover);
+  const borrowFeeCard = record(borrowCards?.borrowFee);
+  const sharesAvailableCard = record(availableCards?.sharesAvailable);
+  const utilizationCard = record(availableCards?.utilization);
+  const shortScoreCard = record(scoreCards?.shortScore);
+  const shortScoreLevelCard = record(scoreCards?.shortScoreLevel);
 
   return (
     <ImportDataPreviewPage
@@ -225,10 +241,10 @@ export default async function ShortInterestPage() {
         <div className="lending-pressure-hero-grid short-interest-score-grid">
           <div className={`lending-pressure-hero short-score-hero ${shortScoreTone}`}>
             <span>Short Score</span>
-            <strong>{shortScore || 'No Source'} / 100</strong>
+            <strong>{String(shortScoreCard.valueDisplay ?? `${shortScore || 'No Source'} / 100`)}</strong>
             <div className="short-score-status-row">
-              <em>{shortScoreLevel}</em>
-              <DeltaBadge info={shortScoreDelta} />
+              <em>{String(shortScoreLevelCard.valueDisplay ?? shortScoreLevel)}</em>
+              <DeltaBadge info={shortScoreDelta} display={String(shortScoreCard.deltaDisplay ?? '')} />
             </div>
             <p>Composite short-interest risk score using short exposure, borrow pressure, share availability, and related market-pressure inputs.</p>
           </div>
@@ -241,12 +257,12 @@ export default async function ShortInterestPage() {
         </div>
 
         <div className="lending-kpi-row short-interest-kpi-grid">
-          <KpiCard label="Short Interest" value={formatNumber(shortInterestShares)} change={shortInterestDelta} suffix=" shares" />
-          <KpiCard label="SI % Float" value={formatPercent(shortInterestPercent, { maximumFractionDigits: 2 })} change={shortInterestPctDelta} suffix=" pts" />
-          <KpiCard label="Days To Cover" value={formatNumber(daysToCover, { maximumFractionDigits: 2 })} change={daysToCoverDelta} />
-          <KpiCard label="Borrow Fee" value={formatPercent(borrowFee, { maximumFractionDigits: 2 })} change={borrowFeeDelta} suffix=" pts" />
-          <KpiCard label="Shares Available" value={formatNumber(sharesAvailable)} change={sharesAvailableDelta} suffix=" shares" />
-          <KpiCard label="Utilization" value={formatPercent(utilization, { maximumFractionDigits: 2 })} change={utilizationDelta} suffix=" pts" />
+          <KpiCard label="Short Interest" value={String(shortInterestCard.valueDisplay ?? formatNumber(shortInterestShares))} change={shortInterestDelta} suffix=" shares" deltaDisplay={String(shortInterestCard.deltaDisplay ?? '')} />
+          <KpiCard label="SI % Float" value={String(siPercentCard.valueDisplay ?? formatPercent(shortInterestPercent, { maximumFractionDigits: 2 }))} change={shortInterestPctDelta} suffix=" pts" deltaDisplay={String(siPercentCard.deltaDisplay ?? '')} />
+          <KpiCard label="Days To Cover" value={String(daysToCoverCard.valueDisplay ?? formatNumber(daysToCover, { maximumFractionDigits: 2 }))} change={daysToCoverDelta} deltaDisplay={String(daysToCoverCard.deltaDisplay ?? '')} />
+          <KpiCard label="Borrow Fee" value={String(borrowFeeCard.valueDisplay ?? formatPercent(borrowFee, { maximumFractionDigits: 2 }))} change={borrowFeeDelta} suffix=" pts" deltaDisplay={String(borrowFeeCard.deltaDisplay ?? '')} />
+          <KpiCard label="Shares Available" value={String(sharesAvailableCard.valueDisplay ?? formatNumber(sharesAvailable))} change={sharesAvailableDelta} suffix=" shares" deltaDisplay={String(sharesAvailableCard.deltaDisplay ?? '')} />
+          <KpiCard label="Utilization" value={String(utilizationCard.valueDisplay ?? formatPercent(utilization, { maximumFractionDigits: 2 }))} change={utilizationDelta} suffix=" pts" deltaDisplay={String(utilizationCard.deltaDisplay ?? '')} />
         </div>
 
         <div className="short-interest-analysis-grid">

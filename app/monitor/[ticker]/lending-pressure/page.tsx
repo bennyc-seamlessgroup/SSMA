@@ -89,7 +89,10 @@ function delta(current: number | null, previous: number | null, options?: Intl.N
   };
 }
 
-function DeltaBadge({ info, suffix = '' }: { info: ReturnType<typeof delta>; suffix?: string }) {
+function DeltaBadge({ info, suffix = '', display }: { info: ReturnType<typeof delta>; suffix?: string; display?: string }) {
+  if (display) {
+    return <span className={`short-kpi-delta ${display.startsWith('-') ? 'down' : display.startsWith('+') ? 'up' : 'neutral'}`}><strong>{display}</strong></span>;
+  }
   if (!info) return <span className="short-kpi-delta neutral">No prior update</span>;
   const tone = info.change > 0 ? 'up' : info.change < 0 ? 'down' : 'neutral';
   const sign = info.change > 0 ? '+' : info.change < 0 ? '-' : '';
@@ -101,17 +104,18 @@ function DeltaBadge({ info, suffix = '' }: { info: ReturnType<typeof delta>; suf
   );
 }
 
-function KpiCard({ label, value, change, suffix }: {
+function KpiCard({ label, value, change, suffix, deltaDisplay }: {
   label: string;
   value: ReactNode;
   change: ReturnType<typeof delta>;
   suffix?: string;
+  deltaDisplay?: string;
 }) {
   return (
     <div className="terminal-card terminal-stat short-kpi-card">
       <span>{label}</span>
       <strong>{value}</strong>
-      <DeltaBadge info={change} suffix={suffix} />
+      <DeltaBadge info={change} suffix={suffix} display={deltaDisplay} />
     </div>
   );
 }
@@ -158,6 +162,18 @@ export default async function LendingPressurePage() {
     { name: 'Borrow Fee', value: formatPercent(borrowFee, { maximumFractionDigits: 1 }), weight: '30%', pressure: borrowFeePressure, source: borrow.sourcePlatform ?? 'Ortex' },
     { name: 'Borrow Demand', value: borrowDemand, weight: '15%', pressure: borrowDemandScore, source: 'Internal Lending Model' },
   ];
+  const availableDerived = record((available as unknown as Row).dataDerived);
+  const lendingDerived = record(availableDerived.lendingPressurePage);
+  const lendingSummary = record(lendingDerived.summary);
+  const lendingCards = record(lendingDerived.cards);
+  const borrowCards = record(record(record(borrow.data).derived).lendingPressurePage).cards as Record<string, Row> | undefined;
+  const sharesAvailableCard = record(lendingCards.sharesAvailable);
+  const utilizationCard = record(lendingCards.utilization);
+  const borrowDemandCard = record(lendingCards.borrowDemand);
+  const borrowFeeCard = record(borrowCards?.borrowFee);
+  const displayPressureScore = numeric(lendingSummary.pressureScore) ?? pressureScore;
+  const displayLevel = String(lendingSummary.level ?? level);
+  const displayHealth = String(lendingSummary.health ?? health);
 
   return (
     <ImportDataPreviewPage
@@ -179,30 +195,30 @@ export default async function LendingPressurePage() {
         </div>
 
         <div className="lending-pressure-hero-grid">
-          <div className={`lending-pressure-hero ${level.toLowerCase()}`}>
+          <div className={`lending-pressure-hero ${displayLevel.toLowerCase()}`}>
             <span>Lending Pressure Score</span>
-            <strong>{pressureScore} / 100</strong>
-            <em>{level}</em>
-            <p>Borrowing conditions indicate {level.toLowerCase()} pressure on short sellers based on available inventory, utilization, borrow fee, and borrow demand.</p>
+            <strong>{String(lendingSummary.pressureScoreDisplay ?? `${displayPressureScore} / 100`)}</strong>
+            <em>{displayLevel}</em>
+            <p>Borrowing conditions indicate {displayLevel.toLowerCase()} pressure on short sellers based on available inventory, utilization, borrow fee, and borrow demand.</p>
             <div className="lending-health-card">
               <span>Current Status</span>
-              <strong>{health}</strong>
-              <small>{health === 'Healthy' ? 'Available inventory remains sufficient while utilization is controlled.' : 'Borrow conditions warrant management review and continued monitoring.'}</small>
+              <strong>{displayHealth}</strong>
+              <small>{displayHealth === 'Healthy' ? 'Available inventory remains sufficient while utilization is controlled.' : 'Borrow conditions warrant management review and continued monitoring.'}</small>
             </div>
           </div>
           <div className="lending-gauge-card">
-            <div className="triggered-gauge" style={{ background: `conic-gradient(#be123c 0% ${pressureScore}%, #e8eef7 ${pressureScore}% 100%)` }}>
-              <div><strong>{pressureScore}</strong><span>pressure score</span></div>
+            <div className="triggered-gauge" style={{ background: `conic-gradient(#be123c 0% ${displayPressureScore}%, #e8eef7 ${displayPressureScore}% 100%)` }}>
+              <div><strong>{displayPressureScore}</strong><span>pressure score</span></div>
             </div>
-            <p>{level} Pressure</p>
+            <p>{displayLevel} Pressure</p>
           </div>
         </div>
 
         <div className="lending-kpi-row lending-delta-kpi-row">
-          <KpiCard label="Shares Available" value={formatNumber(sharesAvailable)} change={delta(sharesAvailable, previousSharesAvailable, { maximumFractionDigits: 0 })} suffix=" shares" />
-          <KpiCard label="Utilization" value={formatPercent(utilizationPct, { maximumFractionDigits: 1 })} change={delta(utilizationPct, previousUtilizationPct, { maximumFractionDigits: 2 })} suffix=" pts" />
-          <KpiCard label="Borrow Fee" value={formatPercent(borrowFee, { maximumFractionDigits: 2 })} change={delta(borrowFee, previousBorrowFee, { maximumFractionDigits: 2 })} suffix=" pts" />
-          <KpiCard label="Borrow Demand" value={borrowDemand} change={delta(borrowDemandScore, previousBorrowDemandScore, { maximumFractionDigits: 0 })} suffix=" pts" />
+          <KpiCard label="Shares Available" value={String(sharesAvailableCard.valueDisplay ?? formatNumber(sharesAvailable))} change={delta(sharesAvailable, previousSharesAvailable, { maximumFractionDigits: 0 })} suffix=" shares" deltaDisplay={String(sharesAvailableCard.deltaDisplay ?? '')} />
+          <KpiCard label="Utilization" value={String(utilizationCard.valueDisplay ?? formatPercent(utilizationPct, { maximumFractionDigits: 1 }))} change={delta(utilizationPct, previousUtilizationPct, { maximumFractionDigits: 2 })} suffix=" pts" deltaDisplay={String(utilizationCard.deltaDisplay ?? '')} />
+          <KpiCard label="Borrow Fee" value={String(borrowFeeCard.valueDisplay ?? formatPercent(borrowFee, { maximumFractionDigits: 2 }))} change={delta(borrowFee, previousBorrowFee, { maximumFractionDigits: 2 })} suffix=" pts" deltaDisplay={String(borrowFeeCard.deltaDisplay ?? '')} />
+          <KpiCard label="Borrow Demand" value={String(borrowDemandCard.valueDisplay ?? borrowDemand)} change={delta(borrowDemandScore, previousBorrowDemandScore, { maximumFractionDigits: 0 })} suffix=" pts" deltaDisplay={String(borrowDemandCard.deltaDisplay ?? '')} />
         </div>
 
         <div className="lending-pressure-grid">

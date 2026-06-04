@@ -33,6 +33,50 @@
     "current": {
       "date": "2026-04-29",
       "costToBorrowAll": 30.78
+    },
+    "derived": {
+      "shortInterestPage": {
+        "cards": {
+          "borrowFee": {
+            "label": "Borrow Fee",
+            "value": 30.78,
+            "valueDisplay": "30.78%",
+            "formula": "value = data.current.costToBorrowAll; change = data.current.costToBorrowAll - previous(data.all[].costToBorrowAll); changePercent = change / previous(data.all[].costToBorrowAll) * 100",
+            "sourcePaths": [
+              "data.current.costToBorrowAll",
+              "data.all[].costToBorrowAll"
+            ],
+            "change": 0.019999999999999574,
+            "changeDisplay": "+0.02 pts",
+            "changePercent": 0.06501950585175414,
+            "changePercentDisplay": "+0.07%",
+            "deltaDisplay": "+0.02 pts(+0.07%)",
+            "previousValue": 30.76,
+            "deltaCurrentValue": 30.78
+          }
+        }
+      },
+      "lendingPressurePage": {
+        "cards": {
+          "borrowFee": {
+            "label": "Borrow Fee",
+            "value": 30.78,
+            "valueDisplay": "30.78%",
+            "formula": "value = data.current.costToBorrowAll; change = data.current.costToBorrowAll - previous(data.all[].costToBorrowAll); changePercent = change / previous(data.all[].costToBorrowAll) * 100",
+            "sourcePaths": [
+              "data.current.costToBorrowAll",
+              "data.all[].costToBorrowAll"
+            ],
+            "change": 0.019999999999999574,
+            "changeDisplay": "+0.02 pts",
+            "changePercent": 0.06501950585175414,
+            "changePercentDisplay": "+0.07%",
+            "deltaDisplay": "+0.02 pts(+0.07%)",
+            "previousValue": 30.76,
+            "deltaCurrentValue": 30.78
+          }
+        }
+      }
     }
   }
 }

@@ -2519,6 +2519,65 @@
         "changePercent": 2.23,
         "securitiesInformationProcessorSymbolIdentifier": "CURR"
       }
-    ]
+    ],
+    "derived": {
+      "shortInterestPage": {
+        "cards": {
+          "shortInterest": {
+            "label": "Short Interest",
+            "value": 940721,
+            "valueDisplay": "940,721",
+            "formula": "value = data.current.shortInterestShares; change = latest(data.finraHistory).currentShortPositionQuantity - latest(data.finraHistory).previousShortPositionQuantity; changePercent = change / latest(data.finraHistory).previousShortPositionQuantity * 100",
+            "sourcePaths": [
+              "data.current.shortInterestShares",
+              "data.finraHistory[].currentShortPositionQuantity",
+              "data.finraHistory[].previousShortPositionQuantity"
+            ],
+            "change": -31671,
+            "changeDisplay": "-31,671 shares",
+            "changePercent": -20.3522819283612,
+            "changePercentDisplay": "-20.35%",
+            "deltaDisplay": "-31,671 shares(-20.35%)",
+            "previousValue": 155614,
+            "deltaCurrentValue": 123943
+          },
+          "shortInterestPercentFloat": {
+            "label": "SI % Float",
+            "value": 2.879922,
+            "valueDisplay": "2.88%",
+            "formula": "value = data.current.shortInterestPcFreeFloat; change = value * shortInterest.changePercent / 100; changePercent = shortInterest.changePercent",
+            "sourcePaths": [
+              "data.current.shortInterestPcFreeFloat",
+              "data.derived.shortInterestPage.cards.shortInterest.changePercent"
+            ],
+            "change": -0.5861298447568986,
+            "changeDisplay": "-0.59 pts",
+            "changePercent": -20.3522819283612,
+            "changePercentDisplay": "-20.35%",
+            "deltaDisplay": "-0.59 pts(-20.35%)",
+            "previousValue": 3.4660518447568984,
+            "deltaCurrentValue": 2.879922
+          },
+          "daysToCover": {
+            "label": "Days To Cover",
+            "value": 0,
+            "valueDisplay": "0",
+            "formula": "value = data.current.daysToCoverQuantity ?? data.daysToCover; change = latest(data.finraHistory).daysToCoverQuantity - previous(data.finraHistory).daysToCoverQuantity; changePercent = change / previous(data.finraHistory).daysToCoverQuantity * 100",
+            "sourcePaths": [
+              "data.current.daysToCoverQuantity",
+              "data.daysToCover",
+              "data.finraHistory[].daysToCoverQuantity"
+            ],
+            "change": 0,
+            "changeDisplay": "0",
+            "changePercent": 0,
+            "changePercentDisplay": "0%",
+            "deltaDisplay": "0(0%)",
+            "previousValue": 1,
+            "deltaCurrentValue": 1
+          }
+        }
+      }
+    }
   }
 }
