@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { UserMenu } from './UserMenu';
+import { DevModeToggle } from './DevModeToggle';
 
 const groups = [
   {
@@ -154,39 +155,46 @@ export function Sidebar({
           const showDevelopmentDivider = group.muted && !groups[index - 1]?.muted;
 
           return (
-            <div key={group.label} className="portal-sidebar__group-block">
-              {showDevelopmentDivider && <div className="portal-sidebar__dev-divider">Development use only</div>}
-              <div
-                className={`portal-sidebar__group ${collapsed ? 'is-collapsed' : ''} ${group.muted ? 'is-muted' : ''}`}
-              >
-                <button
-                  type="button"
-                  className="portal-sidebar__group-toggle"
-                  onClick={() => toggleGroup(group.label)}
-                  aria-expanded={!collapsed}
+            <div key={group.label} className="portal-sidebar__group-wrap">
+              {showDevelopmentDivider && (
+                <>
+                  <DevModeToggle />
+                  <div className="portal-sidebar__dev-divider dev-only">Development use only</div>
+                </>
+              )}
+              <div className={`portal-sidebar__group-block ${group.muted ? 'dev-only' : ''}`}>
+                <div
+                  className={`portal-sidebar__group ${collapsed ? 'is-collapsed' : ''} ${group.muted ? 'is-muted' : ''}`}
                 >
-                  <span>{group.label}</span>
-                  <span className="portal-sidebar__chevron" aria-hidden="true">›</span>
-                </button>
-                {!collapsed && (
-                  <div className="portal-sidebar__group-items">
-                    {group.items.map(([label, slug]) => {
-                      const href = `/monitor/${ticker}${slug ? `/${slug}` : ''}`;
-                      const active = pathname === href;
-                      return (
-                        <Link
-                          key={slug || 'overview'}
-                          href={href as any}
-                          className={`portal-menu ${active ? 'active' : ''}`}
-                          onClick={acknowledgeImportDataUpdate}
-                        >
-                          <span>{label}</span>
-                          {hasImportDataUpdate && active && <span className="portal-update-dot" aria-label="New import data available" />}
-                        </Link>
-                      );
-                    })}
-                  </div>
-                )}
+                  <button
+                    type="button"
+                    className="portal-sidebar__group-toggle"
+                    onClick={() => toggleGroup(group.label)}
+                    aria-expanded={!collapsed}
+                  >
+                    <span>{group.label}</span>
+                    <span className="portal-sidebar__chevron" aria-hidden="true">›</span>
+                  </button>
+                  {!collapsed && (
+                    <div className="portal-sidebar__group-items">
+                      {group.items.map(([label, slug]) => {
+                        const href = `/monitor/${ticker}${slug ? `/${slug}` : ''}`;
+                        const active = pathname === href;
+                        return (
+                          <Link
+                            key={slug || 'overview'}
+                            href={href as any}
+                            className={`portal-menu ${active ? 'active' : ''}`}
+                            onClick={acknowledgeImportDataUpdate}
+                          >
+                            <span>{label}</span>
+                            {hasImportDataUpdate && active && <span className="portal-update-dot" aria-label="New import data available" />}
+                          </Link>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
           );

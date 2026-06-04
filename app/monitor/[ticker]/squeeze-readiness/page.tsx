@@ -120,7 +120,7 @@ export default function SqueezeReadinessPage() {
               </div>
               <div className="readiness-check-meta">
                 <div><span>Threshold</span><strong>{condition.threshold}</strong></div>
-                <div><span>Source</span><strong>{condition.source}</strong></div>
+                <div className="dev-source-inline"><span>Source</span><strong>{condition.source}</strong></div>
               </div>
               <p>{condition.note}</p>
             </article>

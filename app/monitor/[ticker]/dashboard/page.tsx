@@ -689,7 +689,7 @@ export default async function CompanyDashboardPage() {
               <time>{alert.time}</time>
               <span className={`alert-severity ${alert.severity.toLowerCase()}`}>{alert.severity}</span>
               <div><strong>{alert.title}</strong><small>{alert.impact}</small></div>
-              <em>{alert.source}</em>
+              <em className="dev-source-inline">{alert.source}</em>
             </article>
           ))}
         </div>
@@ -992,14 +992,14 @@ export default async function CompanyDashboardPage() {
         <div className="grid cols-5 dashboard-metric-row">
           <div className="terminal-card terminal-stat"><span>Short Interest</span><strong>{formatNumber(shortCurrent.shortInterestShares)}</strong><small>Shares</small></div>
           <div className="terminal-card terminal-stat"><span>SI % Float</span><strong>{formatPercent(shortCurrent.shortInterestPcFreeFloat, { maximumFractionDigits: 2 })}</strong><small>{metrics.shortInterestPercentFloat}</small></div>
-          <div className="terminal-card terminal-stat"><span>Days To Cover</span><strong>{formatNumber(shortCurrent.daysToCoverQuantity ?? record(shortInterestEnvelope.data).daysToCover, { maximumFractionDigits: 2 })}</strong><small>FINRA / Ortex</small></div>
+          <div className="terminal-card terminal-stat"><span>Days To Cover</span><strong>{formatNumber(shortCurrent.daysToCoverQuantity ?? record(shortInterestEnvelope.data).daysToCover, { maximumFractionDigits: 2 })}</strong><small className="dev-source-inline">FINRA / Ortex</small></div>
           <div className="terminal-card terminal-stat"><span>Borrow Fee</span><strong>{formatPercent(borrowCurrent.costToBorrowAll, { maximumFractionDigits: 2 })}</strong><small>CTB all</small></div>
-          <div className="terminal-card terminal-stat"><span>Short Score</span><strong>{squeezeScore}</strong><small>Internal model</small></div>
-          <div className="terminal-card terminal-stat"><span>CTB Min</span><strong>No Source</strong><small>Pending Institutional Data Source</small></div>
+          <div className="terminal-card terminal-stat"><span>Short Score</span><strong>{squeezeScore}</strong><small className="dev-source-inline">Internal model</small></div>
+          <div className="terminal-card terminal-stat dev-source-inline"><span>CTB Min</span><strong>No Source</strong><small>Pending Institutional Data Source</small></div>
           <div className="terminal-card terminal-stat"><span>CTB Avg</span><strong>{formatPercent(borrowCurrent.costToBorrowAll, { maximumFractionDigits: 2 })}</strong><small>Current borrow fee</small></div>
-          <div className="terminal-card terminal-stat"><span>CTB Max</span><strong>No Source</strong><small>Pending Institutional Data Source</small></div>
+          <div className="terminal-card terminal-stat dev-source-inline"><span>CTB Max</span><strong>No Source</strong><small>Pending Institutional Data Source</small></div>
           <div className="terminal-card terminal-stat"><span>Shares Available</span><strong>{formatNumber(latestAvailable.shortAvailabilityShares)}</strong><small>Latest inventory</small></div>
-          <div className="terminal-card terminal-stat"><span>Utilization</span><strong>{formatPercent(latestAvailable.shortAvailabilityPct, { maximumFractionDigits: 2 })}</strong><small>shortAvailabilityPct</small></div>
+          <div className="terminal-card terminal-stat"><span>Utilization</span><strong>{formatPercent(latestAvailable.shortAvailabilityPct, { maximumFractionDigits: 2 })}</strong><small className="dev-source-inline">shortAvailabilityPct</small></div>
         </div>
         <div className="grid cols-4 dashboard-chart-row compact-chart-row">
           <div className="terminal-card chart-card"><h3><InfoTitle text="Trend of reported short interest shares. Higher values may indicate more shares have been sold short.">SI Trend</InfoTitle></h3><TrendLine values={shortHistory.map(row => numeric(row.currentShortPositionQuantity) ?? 0)} /></div>
@@ -1040,8 +1040,8 @@ export default async function CompanyDashboardPage() {
         </div>
 
         <div className="lending-kpi-row">
-          <div className="terminal-card terminal-stat"><span>Shares Available</span><strong>{formatNumber(sharesAvailable)}</strong><small>{sharesEnvelope.sourcePlatform ?? 'Ortex'} latest inventory</small></div>
-          <div className="terminal-card terminal-stat"><span>Utilization</span><strong>{formatPercent(utilizationPct, { maximumFractionDigits: 2 })}</strong><small>shortAvailabilityPct</small></div>
+          <div className="terminal-card terminal-stat"><span>Shares Available</span><strong>{formatNumber(sharesAvailable)}</strong><small className="dev-source-inline">{sharesEnvelope.sourcePlatform ?? 'Ortex'} latest inventory</small></div>
+          <div className="terminal-card terminal-stat"><span>Utilization</span><strong>{formatPercent(utilizationPct, { maximumFractionDigits: 2 })}</strong><small className="dev-source-inline">shortAvailabilityPct</small></div>
           <div className="terminal-card terminal-stat"><span>Borrow Fee</span><strong>{formatPercent(borrowFeePct, { maximumFractionDigits: 2 })}</strong><small>cost to borrow</small></div>
           <div className="terminal-card terminal-stat"><span>Borrow Demand</span><strong>{borrowDemandLabel}</strong><small>{formatNumber(onLoanShares)} shares on loan</small></div>
         </div>
@@ -1056,7 +1056,7 @@ export default async function CompanyDashboardPage() {
                   <strong>{component.value}</strong>
                   <small>Weight: {component.weight}</small>
                   <em className={component.status.toLowerCase().includes('extreme') ? 'extreme' : component.status.toLowerCase().includes('high') ? 'high' : component.status.toLowerCase().includes('moderate') ? 'moderate' : 'low'}>{component.status}</em>
-                  <small>Source: {component.source}</small>
+                  <small className="dev-source-inline">Source: {component.source}</small>
                 </div>
               ))}
             </div>
@@ -1103,7 +1103,7 @@ export default async function CompanyDashboardPage() {
             <em>Future Premium Data Provider Required</em>
           </summary>
           <div className="advanced-lending-content">
-            <div><strong>Potential Future Sources</strong><p>EquiLend · DataLend · Hazeltree · S&amp;P Global Securities Finance</p></div>
+            <div className="dev-source-inline"><strong>Potential Future Sources</strong><p>EquiLend · DataLend · Hazeltree · S&amp;P Global Securities Finance</p></div>
             <div><strong>Potential Future Metrics</strong><p>Global Lending Pool Size · Institutional Borrow Concentration · Prime Broker Lending Inventory · Global Securities Finance Data</p></div>
           </div>
         </details>
@@ -1250,7 +1250,7 @@ export default async function CompanyDashboardPage() {
                 <div><span>Threshold</span><strong>{condition.threshold}</strong></div>
               </div>
               <p>{condition.explanation}</p>
-              <div className="condition-card__source">Source: {condition.source}</div>
+              <div className="condition-card__source dev-source-inline">Source: {condition.source}</div>
             </article>
           ))}
         </div>
@@ -1343,7 +1343,7 @@ export default async function CompanyDashboardPage() {
                 <div key={driver}>
                   <span>{driver}</span>
                   <strong className={`impact-badge ${String(impact).toLowerCase()}`}>{impact}</strong>
-                  <small>Source: {source}</small>
+                  <small className="dev-source-inline">Source: {source}</small>
                 </div>
               ))}
             </div>
@@ -1384,7 +1384,7 @@ export default async function CompanyDashboardPage() {
                   <span>{item.date}</span>
                   <div>
                     <strong>{item.title}</strong>
-                    <small>{item.category} · Source: {item.source}</small>
+                    <small><span>{item.category}</span><span className="dev-source-inline"> · Source: {item.source}</span></small>
                   </div>
                   <em className={`impact-badge ${item.impact.toLowerCase()}`}>{item.impact}</em>
                 </div>

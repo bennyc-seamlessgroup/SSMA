@@ -53,126 +53,202 @@ export type ImportDataPoolRow = {
 export type PageContentMap = Record<string, Record<string, unknown>>;
 
 const importDataRoot = path.join(process.cwd(), 'import_data');
-const googleDriveFolderMimeType = 'application/vnd.google-apps.folder';
-const googleDriveApiBase = 'https://www.googleapis.com/drive/v3';
 const importDataCacheMs = Math.max(5, Number(process.env.IMPORT_DATA_CACHE_SECONDS ?? 10)) * 1000;
 
-type ImportDataSource = 'local' | 'google-drive';
+type ImportDataSource = 'local' | 's3';
 
-type GoogleDriveFile = {
-  id: string;
-  name: string;
-  mimeType: string;
-  modifiedTime?: string;
-  md5Checksum?: string;
+type S3IndexEntry = {
+  key: string;
+  eTag: string | null;
+  lastModified: string | null;
+  size: number | null;
 };
 
-type GoogleDriveIndexEntry = {
-  id: string;
-  modifiedTime: string | null;
-  md5Checksum: string | null;
-};
-
-type GoogleDriveIndex = {
+type S3Index = {
   expiresAt: number;
-  files: Map<string, GoogleDriveIndexEntry>;
+  files: Map<string, S3IndexEntry>;
 };
 
-type GoogleDriveContentCache = {
+type S3ContentCache = {
   versionKey: string;
   content: string;
 };
 
-let googleDriveIndexCache: GoogleDriveIndex | null = null;
-const googleDriveContentCache = new Map<string, GoogleDriveContentCache>();
+let s3IndexCache: S3Index | null = null;
+const s3ContentCache = new Map<string, S3ContentCache>();
 
 function importDataSource(): ImportDataSource {
-  return process.env.IMPORT_DATA_SOURCE === 'google-drive' ? 'google-drive' : 'local';
+  return process.env.IMPORT_DATA_SOURCE === 's3' ? 's3' : 'local';
 }
 
-function googleDriveConfig() {
-  const apiKey = process.env.GOOGLE_DRIVE_API_KEY?.trim();
-  const folderId = process.env.GOOGLE_DRIVE_IMPORT_FOLDER_ID?.trim();
-  if (!apiKey || !folderId) {
-    throw new Error('Google Drive import data requires GOOGLE_DRIVE_API_KEY and GOOGLE_DRIVE_IMPORT_FOLDER_ID.');
+function s3Config() {
+  const region = process.env.AWS_REGION?.trim() || 'us-east-1';
+  const bucket = process.env.AWS_S3_BUCKET_NAME?.trim();
+  const accessKeyId = process.env.AWS_ACCESS_KEY_ID?.trim();
+  const secretAccessKey = process.env.AWS_SECRET_ACCESS_KEY?.trim();
+  if (!bucket || !accessKeyId || !secretAccessKey) {
+    throw new Error('S3 import data requires AWS_REGION, AWS_S3_BUCKET_NAME, AWS_ACCESS_KEY_ID, and AWS_SECRET_ACCESS_KEY.');
   }
-  return { apiKey, folderId };
+  return { region, bucket, accessKeyId, secretAccessKey };
 }
 
 function normalizeImportPath(relativePath: string) {
   return relativePath.replace(/^import_data\//, '').replace(/^\/+/, '');
 }
 
-function driveVersionKey(entry: GoogleDriveIndexEntry) {
-  return `${entry.md5Checksum ?? ''}:${entry.modifiedTime ?? ''}`;
+function s3VersionKey(entry: S3IndexEntry) {
+  return `${entry.eTag ?? ''}:${entry.lastModified ?? ''}:${entry.size ?? ''}`;
 }
 
 function hashImportContent(content: string) {
   return crypto.createHash('sha256').update(content).digest('hex');
 }
 
-async function listGoogleDriveChildren(folderId: string, apiKey: string): Promise<GoogleDriveFile[]> {
-  const files: GoogleDriveFile[] = [];
-  let pageToken: string | undefined;
+function hmac(key: crypto.BinaryLike, value: string) {
+  return crypto.createHmac('sha256', key).update(value, 'utf8').digest();
+}
+
+function sha256Hex(value: string) {
+  return crypto.createHash('sha256').update(value, 'utf8').digest('hex');
+}
+
+function awsEncode(value: string) {
+  return encodeURIComponent(value).replace(/[!'()*]/g, char => `%${char.charCodeAt(0).toString(16).toUpperCase()}`);
+}
+
+function encodeS3Key(key: string) {
+  return key.split('/').map(awsEncode).join('/');
+}
+
+function formatAmzDate(date: Date) {
+  return date.toISOString().replace(/[:-]|\.\d{3}/g, '');
+}
+
+function s3SigningKey(secretAccessKey: string, dateStamp: string, region: string) {
+  const dateKey = hmac(`AWS4${secretAccessKey}`, dateStamp);
+  const regionKey = hmac(dateKey, region);
+  const serviceKey = hmac(regionKey, 's3');
+  return hmac(serviceKey, 'aws4_request');
+}
+
+function buildCanonicalQuery(params: URLSearchParams) {
+  return [...params.entries()]
+    .sort(([aKey, aValue], [bKey, bValue]) => aKey === bKey ? aValue.localeCompare(bValue) : aKey.localeCompare(bKey))
+    .map(([key, value]) => `${awsEncode(key)}=${awsEncode(value)}`)
+    .join('&');
+}
+
+async function signedS3Fetch(method: 'GET' | 'HEAD', key: string, params = new URLSearchParams()) {
+  const { region, bucket, accessKeyId, secretAccessKey } = s3Config();
+  const host = `${bucket}.s3.${region}.amazonaws.com`;
+  const now = new Date();
+  const amzDate = formatAmzDate(now);
+  const dateStamp = amzDate.slice(0, 8);
+  const canonicalUri = `/${encodeS3Key(key)}`;
+  const canonicalQueryString = buildCanonicalQuery(params);
+  const canonicalHeaders = [
+    `host:${host}`,
+    `x-amz-content-sha256:UNSIGNED-PAYLOAD`,
+    `x-amz-date:${amzDate}`,
+  ].join('\n') + '\n';
+  const signedHeaders = 'host;x-amz-content-sha256;x-amz-date';
+  const canonicalRequest = [
+    method,
+    canonicalUri,
+    canonicalQueryString,
+    canonicalHeaders,
+    signedHeaders,
+    'UNSIGNED-PAYLOAD',
+  ].join('\n');
+  const credentialScope = `${dateStamp}/${region}/s3/aws4_request`;
+  const stringToSign = [
+    'AWS4-HMAC-SHA256',
+    amzDate,
+    credentialScope,
+    sha256Hex(canonicalRequest),
+  ].join('\n');
+  const signature = crypto.createHmac('sha256', s3SigningKey(secretAccessKey, dateStamp, region)).update(stringToSign, 'utf8').digest('hex');
+  const authorization = `AWS4-HMAC-SHA256 Credential=${accessKeyId}/${credentialScope}, SignedHeaders=${signedHeaders}, Signature=${signature}`;
+  const url = `https://${host}${canonicalUri}${canonicalQueryString ? `?${canonicalQueryString}` : ''}`;
+
+  return fetch(url, {
+    method,
+    cache: 'no-store',
+    headers: {
+      Authorization: authorization,
+      'x-amz-content-sha256': 'UNSIGNED-PAYLOAD',
+      'x-amz-date': amzDate,
+    },
+  });
+}
+
+function xmlText(block: string, tag: string) {
+  const match = block.match(new RegExp(`<${tag}>([\\s\\S]*?)</${tag}>`));
+  return match ? decodeXml(match[1]) : null;
+}
+
+function decodeXml(value: string) {
+  return value
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'");
+}
+
+async function listS3Objects(): Promise<S3IndexEntry[]> {
+  const files: S3IndexEntry[] = [];
+  let continuationToken: string | null = null;
 
   do {
     const params = new URLSearchParams({
-      key: apiKey,
-      q: `'${folderId}' in parents and trashed = false`,
-      fields: 'nextPageToken,files(id,name,mimeType,modifiedTime,md5Checksum)',
-      pageSize: '1000',
-      supportsAllDrives: 'true',
-      includeItemsFromAllDrives: 'true',
+      'list-type': '2',
+      'max-keys': '1000',
     });
-    if (pageToken) params.set('pageToken', pageToken);
+    if (continuationToken) params.set('continuation-token', continuationToken);
 
-    const response = await fetch(`${googleDriveApiBase}/files?${params.toString()}`, { cache: 'no-store' });
+    const response = await signedS3Fetch('GET', '', params);
     if (!response.ok) {
-      throw new Error(`Unable to list Google Drive import data folder: ${response.status} ${response.statusText}`);
+      throw new Error(`Unable to list S3 import data bucket: ${response.status} ${response.statusText}`);
     }
 
-    const payload = await response.json() as { files?: GoogleDriveFile[]; nextPageToken?: string };
-    files.push(...(payload.files ?? []));
-    pageToken = payload.nextPageToken;
-  } while (pageToken);
+    const payload = await response.text();
+    for (const match of payload.matchAll(/<Contents>([\s\S]*?)<\/Contents>/g)) {
+      const block = match[1];
+      const key = xmlText(block, 'Key');
+      if (!key || !key.endsWith('.json')) continue;
+      files.push({
+        key: normalizeImportPath(key),
+        eTag: xmlText(block, 'ETag')?.replace(/^"|"$/g, '') ?? null,
+        lastModified: xmlText(block, 'LastModified'),
+        size: numeric(xmlText(block, 'Size')),
+      });
+    }
+    continuationToken = xmlText(payload, 'NextContinuationToken');
+  } while (continuationToken);
 
   return files;
 }
 
-async function buildGoogleDriveIndex() {
-  const { apiKey, folderId } = googleDriveConfig();
-  const files = new Map<string, GoogleDriveIndexEntry>();
-
-  async function walk(currentFolderId: string, prefix = '') {
-    const children = await listGoogleDriveChildren(currentFolderId, apiKey);
-    for (const child of children) {
-      const childPath = `${prefix}${child.name}`;
-      if (child.mimeType === googleDriveFolderMimeType) {
-        await walk(child.id, `${childPath}/`);
-      } else if (child.name.endsWith('.json')) {
-        files.set(childPath, {
-          id: child.id,
-          modifiedTime: child.modifiedTime ?? null,
-          md5Checksum: child.md5Checksum ?? null,
-        });
-      }
-    }
+async function buildS3Index() {
+  const files = new Map<string, S3IndexEntry>();
+  for (const file of await listS3Objects()) {
+    files.set(file.key, file);
   }
 
-  await walk(folderId);
-  googleDriveIndexCache = {
+  s3IndexCache = {
     expiresAt: Date.now() + importDataCacheMs,
     files,
   };
-  return googleDriveIndexCache;
+  return s3IndexCache;
 }
 
-async function getGoogleDriveIndex() {
-  if (googleDriveIndexCache && googleDriveIndexCache.expiresAt > Date.now()) {
-    return googleDriveIndexCache;
+async function getS3Index() {
+  if (s3IndexCache && s3IndexCache.expiresAt > Date.now()) {
+    return s3IndexCache;
   }
 
-  return buildGoogleDriveIndex();
+  return buildS3Index();
 }
 
 export function listLocalImportJsonFiles(): string[] {
@@ -200,27 +276,25 @@ export function getLocalImportFileUpdatedAt(relativePath: string) {
   return fs.statSync(fullPath).mtimeMs;
 }
 
-async function readGoogleDriveText(relativePath: string) {
+async function readS3Text(relativePath: string) {
   const normalizedPath = normalizeImportPath(relativePath);
-  const index = await getGoogleDriveIndex();
+  const index = await getS3Index();
   const entry = index.files.get(normalizedPath);
   if (!entry) {
-    throw new Error(`Google Drive import data file not found: ${normalizedPath}`);
+    throw new Error(`S3 import data file not found: ${normalizedPath}`);
   }
 
-  const versionKey = driveVersionKey(entry);
-  const cached = googleDriveContentCache.get(normalizedPath);
+  const versionKey = s3VersionKey(entry);
+  const cached = s3ContentCache.get(normalizedPath);
   if (cached?.versionKey === versionKey) return cached.content;
 
-  const { apiKey } = googleDriveConfig();
-  const params = new URLSearchParams({ key: apiKey, alt: 'media' });
-  const response = await fetch(`${googleDriveApiBase}/files/${entry.id}?${params.toString()}`, { cache: 'no-store' });
+  const response = await signedS3Fetch('GET', normalizedPath);
   if (!response.ok) {
-    throw new Error(`Unable to download Google Drive import data file ${normalizedPath}: ${response.status} ${response.statusText}`);
+    throw new Error(`Unable to download S3 import data file ${normalizedPath}: ${response.status} ${response.statusText}`);
   }
 
   const content = await response.text();
-  googleDriveContentCache.set(normalizedPath, { versionKey, content });
+  s3ContentCache.set(normalizedPath, { versionKey, content });
   return content;
 }
 
@@ -228,9 +302,9 @@ async function readJsonFile<T>(relativePath: string): Promise<T> {
   const normalizedPath = normalizeImportPath(relativePath);
   let content: string;
 
-  if (importDataSource() === 'google-drive') {
+  if (importDataSource() === 's3') {
     try {
-      content = await readGoogleDriveText(normalizedPath);
+      content = await readS3Text(normalizedPath);
     } catch (error) {
       const localPath = path.join(importDataRoot, normalizedPath);
       if (!fs.existsSync(localPath)) throw error;
@@ -244,9 +318,14 @@ async function readJsonFile<T>(relativePath: string): Promise<T> {
 }
 
 export async function listImportDataFiles() {
-  if (importDataSource() === 'google-drive') {
-    const index = await getGoogleDriveIndex();
-    return Array.from(index.files.keys()).sort();
+  if (importDataSource() === 's3') {
+    try {
+      const index = await getS3Index();
+      return Array.from(index.files.keys()).sort();
+    } catch (error) {
+      if (!fs.existsSync(importDataRoot)) throw error;
+      return listLocalImportJsonFiles();
+    }
   }
 
   return listLocalImportJsonFiles();
@@ -254,15 +333,20 @@ export async function listImportDataFiles() {
 
 export async function getImportFileVersionParts(relativePath: string) {
   const normalizedPath = normalizeImportPath(relativePath);
-  if (importDataSource() === 'google-drive') {
-    const index = await getGoogleDriveIndex();
-    const entry = index.files.get(normalizedPath);
-    if (!entry) return null;
-    return {
-      path: normalizedPath,
-      versionKey: entry.md5Checksum ?? hashImportContent(await readGoogleDriveText(normalizedPath)),
-      updatedAtMs: entry.modifiedTime ? Date.parse(entry.modifiedTime) : 0,
-    };
+  if (importDataSource() === 's3') {
+    try {
+      const index = await getS3Index();
+      const entry = index.files.get(normalizedPath);
+      if (!entry) return null;
+      return {
+        path: normalizedPath,
+        versionKey: s3VersionKey(entry) || hashImportContent(await readS3Text(normalizedPath)),
+        updatedAtMs: entry.lastModified ? Date.parse(entry.lastModified) : 0,
+      };
+    } catch (error) {
+      const fullPath = path.join(importDataRoot, normalizedPath);
+      if (!fs.existsSync(fullPath)) throw error;
+    }
   }
 
   const fullPath = path.join(importDataRoot, normalizedPath);

@@ -8,7 +8,7 @@ Local-first executive dashboard for public company management teams.
 - Three daily AI-style reports
 - Email recipient management UI
 - API status panel
-- Local or Google Drive JSON import data
+- Local or S3 JSON import data
 - Placeholder API routes for future ORTEX / Fintel / WhaleWisdom integrations
 
 ## Run locally
@@ -36,13 +36,15 @@ By default the portal reads JSON from the local `import_data` folder:
 IMPORT_DATA_SOURCE=local
 ```
 
-For deployment, you can point the portal at a Google Drive folder that mirrors the same folder structure as `import_data`:
+For deployment, you can point the portal at an S3 bucket that mirrors the same folder structure as `import_data`:
 
 ```bash
-IMPORT_DATA_SOURCE=google-drive
-GOOGLE_DRIVE_API_KEY=your_google_api_key
-GOOGLE_DRIVE_IMPORT_FOLDER_ID=your_drive_folder_id
-IMPORT_DATA_CACHE_SECONDS=10
+IMPORT_DATA_SOURCE=s3
+AWS_REGION=us-east-1
+AWS_S3_BUCKET_NAME=your_bucket_name
+AWS_ACCESS_KEY_ID=your_access_key_id
+AWS_SECRET_ACCESS_KEY=your_secret_access_key
+IMPORT_DATA_CACHE_SECONDS=30
 ```
 
-The Google Drive folder must contain the same relative JSON paths, for example `company/profile.json` and `short/short_interest.json`. For this MVP path, the folder/files must be readable by the API key, such as a shared folder accessible by link. The portal polls Drive metadata and refreshes when the file checksum or modified time changes.
+The S3 bucket must contain the same relative JSON paths, for example `company/profile.json` and `short/short_interest.json`. The portal lists S3 object metadata and refreshes when the object ETag, last modified time, or size changes.

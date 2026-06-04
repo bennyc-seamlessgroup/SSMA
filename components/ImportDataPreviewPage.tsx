@@ -176,24 +176,26 @@ export async function ImportDataPreviewPage({ title, description, files, childre
       </div>
       <section className="panel">
         {children}
-        {datasets.length > 1 ? (
-          <ImportDataTabs
-            tabs={datasets.map(row => ({
-              id: row.id,
-              title: row.title,
-              file: row.file,
-              sourcePlatform: row.sourcePlatform,
-              recordCount: row.recordCount,
-              status: row.status,
-            }))}
-          >
-            {datasets.map(row => <DataSection key={row.file} row={row} />)}
-          </ImportDataTabs>
-        ) : (
-          <div className="section-list">
-            {datasets.map(row => <DataSection key={row.file} row={row} />)}
-          </div>
-        )}
+        <div className="import-data-dev-panel">
+          {datasets.length > 1 ? (
+            <ImportDataTabs
+              tabs={datasets.map(row => ({
+                id: row.id,
+                title: row.title,
+                file: row.file,
+                sourcePlatform: row.sourcePlatform,
+                recordCount: row.recordCount,
+                status: row.status,
+              }))}
+            >
+              {datasets.map(row => <DataSection key={row.file} row={row} />)}
+            </ImportDataTabs>
+          ) : (
+            <div className="section-list">
+              {datasets.map(row => <DataSection key={row.file} row={row} />)}
+            </div>
+          )}
+        </div>
       </section>
     </div>
   );
