@@ -225,9 +225,21 @@ async function readGoogleDriveText(relativePath: string) {
 }
 
 async function readJsonFile<T>(relativePath: string): Promise<T> {
-  const content = importDataSource() === 'google-drive'
-    ? await readGoogleDriveText(relativePath)
-    : readLocalImportText(relativePath);
+  const normalizedPath = normalizeImportPath(relativePath);
+  let content: string;
+
+  if (importDataSource() === 'google-drive') {
+    try {
+      content = await readGoogleDriveText(normalizedPath);
+    } catch (error) {
+      const localPath = path.join(importDataRoot, normalizedPath);
+      if (!fs.existsSync(localPath)) throw error;
+      content = readLocalImportText(normalizedPath);
+    }
+  } else {
+    content = readLocalImportText(normalizedPath);
+  }
+
   return JSON.parse(content) as T;
 }
 

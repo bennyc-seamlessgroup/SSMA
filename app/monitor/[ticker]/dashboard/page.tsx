@@ -598,6 +598,34 @@ export default async function CompanyDashboardPage() {
   const displaySmartMoneyScore = numeric(smartMoneyMetrics.smartMoneyScore) ?? smartMoneyScore;
   const displayNarrativeScore = numeric(narrativeMetrics.narrativeScore) ?? narrativeScore;
   const displayInternalFloatImpactScore = numeric(dashboardFloatMetrics.internalFloatImpactScore) ?? internalFloatImpactScore;
+  const shortInterestPressureLevel = shortInterestPct >= 15 ? 'High' : shortInterestPct >= 5 ? 'Moderate' : 'Low';
+  const shortInterestPressureTone = shortInterestPct >= 15 ? 'high' : shortInterestPct >= 5 ? 'moderate' : 'low';
+  const marketPressureOverviewCards = [
+    {
+      title: 'Short Interest',
+      value: formatNumber(shortCurrent.shortInterestShares),
+      tag: shortInterestPressureLevel,
+      tone: shortInterestPressureTone,
+      supporting: `SI Float: ${String(marketPressureMetrics.shortInterestPercentDisplay ?? formatPercent(shortInterestPct, { maximumFractionDigits: 1 }))}`,
+      href: `/monitor/${company.ticker}/short-interest`,
+    },
+    {
+      title: 'Lending Pressure',
+      value: `${lendingPressureScore} / 100`,
+      tag: lendingPressureLevel,
+      tone: lendingPressureLevel.toLowerCase(),
+      supporting: `Borrow Fee: ${String(marketPressureMetrics.borrowFeePercentDisplay ?? formatPercent(borrowFeePct, { maximumFractionDigits: 2 }))}`,
+      href: `/monitor/${company.ticker}/lending-pressure`,
+    },
+    {
+      title: 'Squeeze Readiness',
+      value: `${String(marketPressureMetrics.readinessScore ?? readinessScore)} / 100`,
+      tag: readinessLevel,
+      tone: readinessTone,
+      supporting: `Triggered: ${triggeredConditions.length} of ${readinessConditions.length}`,
+      href: `/monitor/${company.ticker}/squeeze-readiness`,
+    },
+  ];
   const commandCenterContent = record(pageContent.commandCenter);
   const sectionContent = record(pageContent.sections);
   const marketNarrativeContent = record(pageContent.marketNarrative);
@@ -670,7 +698,7 @@ export default async function CompanyDashboardPage() {
       <section className="executive-layer market-pressure-layer">
         <div className="executive-layer__head">
           <div><span>Layer 3</span><h2>Market Pressure Intelligence</h2><p>{text(sectionContent.marketPressureDescription, 'Short interest, borrow pressure, lending conditions, and squeeze readiness in one view.')}</p></div>
-          {headActions(<>{sourceChip(shortInterestEnvelope.sourcePlatform ?? 'Ortex/FINRA')}{sourceChip('Internal Lending Model')}{viewMore(company.ticker, 'short-interest')}</>)}
+          {headActions(<>{sourceChip(shortInterestEnvelope.sourcePlatform ?? 'Ortex/FINRA')}{sourceChip('Internal Lending Model')}</>)}
         </div>
         <div className="market-pressure-layout">
           <div className="pressure-gauge-card">
@@ -679,39 +707,17 @@ export default async function CompanyDashboardPage() {
             </div>
             <h3>{displayMarketPressureScore >= 81 ? 'Extreme' : displayMarketPressureScore >= 61 ? 'High' : displayMarketPressureScore >= 31 ? 'Moderate' : 'Low'} Pressure</h3>
           </div>
-          <div className="pressure-metric-strip">
-            <div>
-              <span>Short Interest</span>
-              <strong>{String(marketPressureMetrics.shortInterestPercentDisplay ?? formatPercent(shortInterestPct, { maximumFractionDigits: 1 }))}</strong>
-              <i style={{ width: `${Math.min(100, Math.max(8, shortInterestPct * 3))}%` }} />
-            </div>
-            <div>
-              <span>Borrow Fee</span>
-              <strong>{String(marketPressureMetrics.borrowFeePercentDisplay ?? formatPercent(borrowFeePct, { maximumFractionDigits: 1 }))}</strong>
-              <i style={{ width: `${Math.min(100, Math.max(8, borrowFeePct))}%` }} />
-            </div>
-            <div>
-              <span>Utilization</span>
-              <strong>{String(marketPressureMetrics.utilizationPercentDisplay ?? formatPercent(utilizationPct, { maximumFractionDigits: 1 }))}</strong>
-              <i style={{ width: `${Math.min(100, Math.max(8, utilizationPct))}%` }} />
-            </div>
-            <div>
-              <span>Shares Available</span>
-              <strong>{String(marketPressureMetrics.sharesAvailableDisplay ?? formatNumber(sharesAvailable))}</strong>
-              <i className="inverse" style={{ width: `${Math.min(100, Math.max(8, availabilityPressure))}%` }} />
-            </div>
-            <div>
-              <span>Squeeze Readiness</span>
-              <strong>{String(marketPressureMetrics.readinessScore ?? readinessScore)}</strong>
-              <i style={{ width: `${Math.min(100, Math.max(8, readinessScore))}%` }} />
-            </div>
-          </div>
-          <div className="pressure-factor-panel">
-            <h3>Top Contributing Factors</h3>
-            <ul>
-              {lendingPositiveFactors.slice(0, 3).map(factor => <li key={String(factor)}>{factor}</li>)}
-              <li>Internal float reduction: {formatPercent(adjustedFloatReduction, { maximumFractionDigits: 1 })}</li>
-            </ul>
+          <div className="market-pressure-card-grid">
+            {marketPressureOverviewCards.map(card => (
+              <Link className="market-pressure-overview-card" href={card.href as any} key={card.title}>
+                <span>{card.title}</span>
+                <strong>{card.value}</strong>
+                <em className={card.tone}>{card.tag}</em>
+                <small>{card.supporting}</small>
+                <b aria-hidden="true">&gt;</b>
+              </Link>
+            ))}
+            <p className="market-pressure-note">{text(sectionContent.marketPressureNarrative, 'Market pressure is summarized from short interest, lending pressure, and squeeze readiness so executives can quickly decide where to drill in.')}</p>
           </div>
         </div>
       </section>
@@ -722,15 +728,10 @@ export default async function CompanyDashboardPage() {
           {headActions(<>{sourceChip('Internal Management Input')}{viewMore(company.ticker, 'internal-float')}</>)}
         </div>
         <div className="float-executive-grid">
-          <div className="float-waterfall-card">
-            <h3>Official Float to Management View</h3>
-            <div className="float-waterfall">
-              <div><span>Official Float</span><strong>{String(dashboardFloatMetrics.officialFloatDisplay ?? formatNumber(internalFloat.officialFreeFloat))}</strong></div>
-              <div><span>Adjusted Float</span><strong>{String(dashboardFloatMetrics.adjustedFloatDisplay ?? formatNumber(internalFloat.estimatedRealTradableFloat))}</strong></div>
-              <div><span>Lendable Float</span><strong>{String(dashboardFloatMetrics.lendableFloatDisplay ?? formatNumber(internalFloat.estimatedRealLendableFloat))}</strong></div>
-              <div><span>Tokenized / Locked</span><strong>{String(dashboardFloatMetrics.tokenizedLockedSharesDisplay ?? formatNumber(internalFloat.tokenizedShares))}</strong></div>
-            </div>
-          </div>
+          <div className="float-metric-card"><span>Official Float</span><strong>{String(dashboardFloatMetrics.officialFloatDisplay ?? formatNumber(internalFloat.officialFreeFloat))}</strong><small>Public float baseline</small></div>
+          <div className="float-metric-card"><span>Adjusted Float</span><strong>{String(dashboardFloatMetrics.adjustedFloatDisplay ?? formatNumber(internalFloat.estimatedRealTradableFloat))}</strong><small>Management tradable view</small></div>
+          <div className="float-metric-card"><span>Lendable Float</span><strong>{String(dashboardFloatMetrics.lendableFloatDisplay ?? formatNumber(internalFloat.estimatedRealLendableFloat))}</strong><small>Estimated lendable supply</small></div>
+          <div className="float-metric-card"><span>Tokenized / Locked</span><strong>{String(dashboardFloatMetrics.tokenizedLockedSharesDisplay ?? formatNumber(internalFloat.tokenizedShares))}</strong><small>Restricted from float</small></div>
           <div className="float-impact-card">
             <span>Internal Float Impact Score</span>
             <strong>{String(dashboardFloatMetrics.internalFloatImpactScoreDisplay ?? `${displayInternalFloatImpactScore} / 100`)}</strong>

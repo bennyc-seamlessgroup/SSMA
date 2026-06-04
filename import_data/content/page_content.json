@@ -23,6 +23,7 @@
       "sections": {
         "alertCenterDescription": "Meaningful changes from the last 7 days.",
         "marketPressureDescription": "Short interest, borrow pressure, lending conditions, and squeeze readiness in one view.",
+        "marketPressureNarrative": "Market pressure is summarized from short interest, lending pressure, and squeeze readiness so executives can quickly decide where to drill in.",
         "internalFloatDescription": "Why management sees a different float reality than the public market.",
         "smartMoneyDescription": "How institutions, insiders, and options traders are positioning.",
         "marketNarrativeDescription": "Sentiment, discussion volume, and narrative momentum.",

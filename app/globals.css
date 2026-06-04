@@ -2016,6 +2016,7 @@ body { min-height: 100vh; }
 .command-risk-panel p,
 .management-action-panel li,
 .executive-layer__head p,
+.pressure-gauge-card p,
 .ai-intelligence-grid p,
 .narrative-list li,
 .pressure-factor-panel li {
@@ -2150,9 +2151,9 @@ body { min-height: 100vh; }
 
 .market-pressure-layout {
   display: grid;
-  grid-template-columns: minmax(220px, 260px) minmax(0, 1fr);
+  grid-template-columns: minmax(210px, 250px) minmax(0, 1fr);
   gap: 14px;
-  align-items: stretch;
+  align-items: start;
 }
 
 .pressure-gauge-card,
@@ -2168,8 +2169,21 @@ body { min-height: 100vh; }
 .pressure-gauge-card {
   display: grid;
   place-items: center;
-  gap: 10px;
+  gap: 8px;
+  min-height: 196px;
   text-align: center;
+}
+
+.market-pressure-layer .pressure-gauge-card .triggered-gauge {
+  width: 138px;
+}
+
+.market-pressure-layer .pressure-gauge-card .triggered-gauge > div {
+  width: 88px;
+}
+
+.market-pressure-layer .pressure-gauge-card .triggered-gauge strong {
+  font-size: 22px;
 }
 
 .pressure-gauge-card h3,
@@ -2181,7 +2195,16 @@ body { min-height: 100vh; }
   color: #061b31;
 }
 
+.pressure-gauge-card p {
+  margin: 0;
+  max-width: 220px;
+  color: #526682;
+  font-size: 13px;
+  text-align: center;
+}
+
 .pressure-metric-strip,
+.market-pressure-card-grid,
 .float-waterfall,
 .smart-money-grid,
 .narrative-executive-grid,
@@ -2193,6 +2216,122 @@ body { min-height: 100vh; }
 .pressure-metric-strip {
   grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
   min-width: 0;
+}
+
+.market-pressure-card-grid {
+  grid-template-columns: 1fr;
+  align-content: start;
+  min-width: 0;
+}
+
+.market-pressure-overview-card {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(190px, 1fr) 190px 96px minmax(190px, 1fr) 24px;
+  align-items: center;
+  gap: 12px;
+  min-height: 0;
+  padding: 12px 14px;
+  border: 1px solid #e5edf5;
+  border-radius: 14px;
+  background: #f8fbff;
+  color: inherit;
+  text-decoration: none;
+  transition: border-color .18s ease, box-shadow .18s ease, transform .18s ease;
+}
+
+.market-pressure-overview-card:hover {
+  border-color: #bfdbfe;
+  box-shadow: rgba(49,82,180,.12) 0 12px 26px;
+  transform: translateY(-1px);
+}
+
+.market-pressure-overview-card span {
+  display: block;
+  color: #64748d;
+  font-size: 11px;
+  font-weight: 900;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+}
+
+.market-pressure-overview-card strong {
+  display: block;
+  justify-self: start;
+  color: #061b31;
+  font-size: clamp(24px, 2.2vw, 31px);
+  line-height: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.market-pressure-overview-card em {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  justify-self: start;
+  min-width: 88px;
+  padding: 6px 10px;
+  border-radius: 999px;
+  font-size: 10px;
+  font-style: normal;
+  font-weight: 950;
+  letter-spacing: .08em;
+  line-height: 1;
+  text-transform: uppercase;
+}
+
+.market-pressure-overview-card em.extreme,
+.market-pressure-overview-card em.high {
+  color: #be123c;
+  border: 1px solid #fecdd3;
+  background: #fff1f2;
+}
+
+.market-pressure-overview-card em.moderate {
+  color: #a16207;
+  border: 1px solid #fde68a;
+  background: #fffbeb;
+}
+
+.market-pressure-overview-card em.low {
+  color: #15803d;
+  border: 1px solid #bbf7d0;
+  background: #f0fdf4;
+}
+
+.market-pressure-overview-card small {
+  justify-self: start;
+  color: #526682;
+  font-size: 12px;
+  font-weight: 800;
+  line-height: 1.35;
+}
+
+.market-pressure-overview-card b {
+  position: static;
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  border: 1px solid #d6e4ff;
+  border-radius: 999px;
+  background: #fff;
+  color: #3152b4;
+  font-size: 15px;
+  line-height: 1;
+}
+
+.market-pressure-note {
+  margin: 2px 0 0;
+  padding: 11px 13px;
+  border: 1px solid #e5edf5;
+  border-radius: 14px;
+  background: #fff;
+  color: #526682;
+  font-size: 13px;
+  line-height: 1.45;
 }
 
 .pressure-metric-strip div,
@@ -2289,18 +2428,74 @@ body { min-height: 100vh; }
 
 .float-executive-grid {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 280px;
-  gap: 14px;
+  grid-template-columns: repeat(4, minmax(0, 1fr)) minmax(220px, .85fr);
+  gap: 12px;
+  align-items: stretch;
 }
 
-.float-waterfall {
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+.internal-float-executive-layer .executive-layer__head {
+  align-items: flex-end;
+  margin-bottom: 14px;
+}
+
+.internal-float-executive-layer .terminal-section-actions {
+  flex-wrap: nowrap;
+  align-items: center;
+}
+
+.internal-float-executive-layer .terminal-section-actions .source-chip {
+  max-width: 260px;
+}
+
+.float-metric-card,
+.float-impact-card {
+  min-width: 0;
+  padding: 15px;
+  border: 1px solid #dbe6f3;
+  border-radius: 16px;
+  background: #f8fbff;
+}
+
+.float-metric-card {
+  display: grid;
+  align-content: center;
+  gap: 7px;
+}
+
+.float-metric-card span,
+.float-impact-card span {
+  display: block;
+  color: #64748d;
+  font-size: 11px;
+  font-weight: 900;
+  letter-spacing: .1em;
+  line-height: 1.2;
+  text-transform: uppercase;
+}
+
+.float-metric-card strong,
+.float-impact-card strong {
+  display: block;
+  color: #061b31;
+  font-size: clamp(21px, 2vw, 27px);
+  line-height: 1.05;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.float-metric-card small,
+.float-impact-card small {
+  color: #526682;
+  font-size: 12px;
+  font-weight: 750;
+  line-height: 1.35;
 }
 
 .float-impact-card {
   display: grid;
   align-content: center;
-  gap: 8px;
+  gap: 7px;
   background: #fff8f9;
   border-color: #fecdd3;
 }
@@ -6391,6 +6586,14 @@ body { min-height: 100vh; }
   .short-interest-overview .short-interest-kpi-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
+
+  .market-pressure-overview-card {
+    grid-template-columns: minmax(160px, 1fr) 160px 96px minmax(150px, 1fr) 24px;
+  }
+
+  .float-executive-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
 }
 
 @media (max-width: 760px) {
@@ -6406,6 +6609,7 @@ body { min-height: 100vh; }
   .alert-center-item,
   .command-score-grid,
   .pressure-metric-strip,
+  .market-pressure-card-grid,
   .float-waterfall,
   .catalyst-timeline.compact,
   .positioning-score-row {
@@ -6418,6 +6622,21 @@ body { min-height: 100vh; }
     right: 50%;
     bottom: -18px;
     transform: translateX(50%);
+  }
+
+  .market-pressure-overview-card {
+    grid-template-columns: 1fr auto;
+  }
+
+  .market-pressure-overview-card strong,
+  .market-pressure-overview-card em,
+  .market-pressure-overview-card small {
+    grid-column: 1 / -1;
+  }
+
+  .market-pressure-overview-card b {
+    grid-column: 2;
+    grid-row: 1;
   }
 
   .terminal-section {
