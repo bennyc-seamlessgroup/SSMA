@@ -3,6 +3,8 @@ import { InfoTooltip } from '@/components/InfoTooltip';
 import { readImportFile, readPageContent } from '@/lib/import-data';
 import type { ReactNode } from 'react';
 
+export const dynamic = 'force-dynamic';
+
 type Row = Record<string, unknown>;
 
 function rows(value: unknown): Row[] {

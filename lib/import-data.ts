@@ -60,6 +60,7 @@ type ImportDataSource = 'local' | 's3';
 
 type S3IndexEntry = {
   key: string;
+  objectKey: string;
   eTag: string | null;
   lastModified: string | null;
   size: number | null;
@@ -77,6 +78,7 @@ type S3ContentCache = {
 
 let s3IndexCache: S3Index | null = null;
 const s3ContentCache = new Map<string, S3ContentCache>();
+const s3ContentRequests = new Map<string, Promise<string>>();
 
 function importDataSource(): ImportDataSource {
   return process.env.IMPORT_DATA_SOURCE === 's3' ? 's3' : 'local';
@@ -98,6 +100,10 @@ function s3Config() {
     throw new Error('S3 import data requires AWS_REGION, AWS_S3_BUCKET_NAME, AWS_ACCESS_KEY_ID, and AWS_SECRET_ACCESS_KEY.');
   }
   return { region, bucket, accessKeyId, secretAccessKey };
+}
+
+function localS3FallbackEnabled() {
+  return process.env.IMPORT_DATA_LOCAL_FALLBACK === 'true';
 }
 
 function normalizeImportPath(relativePath: string) {
@@ -147,6 +153,18 @@ function buildCanonicalQuery(params: URLSearchParams) {
     .join('&');
 }
 
+function sleep(ms: number) {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+function getErrorMessage(error: unknown) {
+  if (error instanceof Error) {
+    const cause = error.cause instanceof Error ? `; cause: ${error.cause.message}` : '';
+    return `${error.message}${cause}`;
+  }
+  return String(error);
+}
+
 async function signedS3Fetch(method: 'GET' | 'HEAD', key: string, params = new URLSearchParams()) {
   const { region, bucket, accessKeyId, secretAccessKey } = s3Config();
   const host = `${bucket}.s3.${region}.amazonaws.com`;
@@ -180,15 +198,27 @@ async function signedS3Fetch(method: 'GET' | 'HEAD', key: string, params = new U
   const authorization = `AWS4-HMAC-SHA256 Credential=${accessKeyId}/${credentialScope}, SignedHeaders=${signedHeaders}, Signature=${signature}`;
   const url = `https://${host}${canonicalUri}${canonicalQueryString ? `?${canonicalQueryString}` : ''}`;
 
-  return fetch(url, {
-    method,
-    cache: 'no-store',
-    headers: {
-      Authorization: authorization,
-      'x-amz-content-sha256': 'UNSIGNED-PAYLOAD',
-      'x-amz-date': amzDate,
-    },
-  });
+  const requestLabel = key || 'bucket listing';
+  let lastError: unknown;
+
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    try {
+      return await fetch(url, {
+        method,
+        cache: 'no-store',
+        headers: {
+          Authorization: authorization,
+          'x-amz-content-sha256': 'UNSIGNED-PAYLOAD',
+          'x-amz-date': amzDate,
+        },
+      });
+    } catch (error) {
+      lastError = error;
+      if (attempt < 2) await sleep(200 * (attempt + 1));
+    }
+  }
+
+  throw new Error(`Unable to reach S3 import data ${requestLabel}: ${getErrorMessage(lastError)}`);
 }
 
 function xmlText(block: string, tag: string) {
@@ -228,6 +258,7 @@ async function listS3Objects(): Promise<S3IndexEntry[]> {
       if (!key || !key.endsWith('.json')) continue;
       files.push({
         key: normalizeImportPath(key),
+        objectKey: key,
         eTag: xmlText(block, 'ETag')?.replace(/^"|"$/g, '') ?? null,
         lastModified: xmlText(block, 'LastModified'),
         size: numeric(xmlText(block, 'Size')),
@@ -285,6 +316,46 @@ export function getLocalImportFileUpdatedAt(relativePath: string) {
   return fs.statSync(fullPath).mtimeMs;
 }
 
+export async function getImportFileStatus(relativePath: string) {
+  const normalizedPath = normalizeImportPath(relativePath);
+
+  if (importDataSource() === 's3') {
+    const index = await getS3Index();
+    const entry = index.files.get(normalizedPath);
+    return {
+      path: normalizedPath,
+      source: 's3' as const,
+      exists: Boolean(entry),
+      objectKey: entry?.objectKey ?? null,
+      updatedAt: entry?.lastModified ?? null,
+      size: entry?.size ?? null,
+      versionKey: entry ? s3VersionKey(entry) : null,
+    };
+  }
+
+  const fullPath = path.join(importDataRoot, normalizedPath);
+  if (!fs.existsSync(fullPath)) {
+    return {
+      path: normalizedPath,
+      source: 'local' as const,
+      exists: false,
+      updatedAt: null,
+      size: null,
+      versionKey: null,
+    };
+  }
+
+  const stat = fs.statSync(fullPath);
+  return {
+    path: normalizedPath,
+    source: 'local' as const,
+    exists: true,
+    updatedAt: new Date(stat.mtimeMs).toISOString(),
+    size: stat.size,
+    versionKey: hashImportContent(fs.readFileSync(fullPath, 'utf8')),
+  };
+}
+
 async function readS3Text(relativePath: string) {
   const normalizedPath = normalizeImportPath(relativePath);
   const index = await getS3Index();
@@ -297,14 +368,26 @@ async function readS3Text(relativePath: string) {
   const cached = s3ContentCache.get(normalizedPath);
   if (cached?.versionKey === versionKey) return cached.content;
 
-  const response = await signedS3Fetch('GET', normalizedPath);
-  if (!response.ok) {
-    throw new Error(`Unable to download S3 import data file ${normalizedPath}: ${response.status} ${response.statusText}`);
-  }
+  const pending = s3ContentRequests.get(normalizedPath);
+  if (pending) return pending;
 
-  const content = await response.text();
-  s3ContentCache.set(normalizedPath, { versionKey, content });
-  return content;
+  const request = (async () => {
+    const response = await signedS3Fetch('GET', entry.objectKey);
+    if (!response.ok) {
+      throw new Error(`Unable to download S3 import data file ${normalizedPath}: ${response.status} ${response.statusText}`);
+    }
+
+    const content = await response.text();
+    s3ContentCache.set(normalizedPath, { versionKey, content });
+    return content;
+  })();
+
+  s3ContentRequests.set(normalizedPath, request);
+  try {
+    return await request;
+  } finally {
+    s3ContentRequests.delete(normalizedPath);
+  }
 }
 
 async function readJsonFile<T>(relativePath: string): Promise<T> {
@@ -316,7 +399,7 @@ async function readJsonFile<T>(relativePath: string): Promise<T> {
       content = await readS3Text(normalizedPath);
     } catch (error) {
       const localPath = path.join(importDataRoot, normalizedPath);
-      if (!fs.existsSync(localPath)) throw error;
+      if (!localS3FallbackEnabled() || !fs.existsSync(localPath)) throw error;
       content = readLocalImportText(normalizedPath);
     }
   } else {
