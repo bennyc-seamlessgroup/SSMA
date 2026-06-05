@@ -2107,6 +2107,29 @@ html:not([data-dev-mode="true"]) .dev-source-inline {
   padding: 16px;
 }
 
+.command-risk-panel > span .with-info,
+.command-score-grid span .with-info {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  max-width: 100%;
+  line-height: 1.2;
+  vertical-align: top;
+}
+
+.command-risk-panel > span .info-tooltip,
+.command-score-grid span .info-tooltip {
+  width: 16px;
+  height: 16px;
+  margin-top: -1px;
+}
+
+.command-risk-panel > span .info-tooltip svg,
+.command-score-grid span .info-tooltip svg {
+  width: 13px;
+  height: 13px;
+}
+
 .command-score-grid strong {
   display: block;
   margin-top: 8px;
@@ -7120,6 +7143,11 @@ html:not([data-dev-mode="true"]) .dev-source-inline {
   opacity: 0;
   pointer-events: none;
   transition: opacity .15s ease;
+}
+
+.info-tooltip__bubble,
+.info-tooltip__bubble * {
+  color: #fff !important;
 }
 .info-tooltip:hover .info-tooltip__bubble,
 .info-tooltip:focus .info-tooltip__bubble {

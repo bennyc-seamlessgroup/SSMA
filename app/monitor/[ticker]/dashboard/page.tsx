@@ -658,16 +658,16 @@ export default async function CompanyDashboardPage() {
 
       <section className="executive-command-center">
         <div className={`command-risk-panel ${displayExecutiveRiskStatus.toLowerCase().replaceAll(' ', '-')}`}>
-          <span>Overall Risk Status</span>
+          <span><InfoTitle text="Overall assessment of current short squeeze risk based on market data, trading activity, sentiment, and internal company factors.">Overall Risk Status</InfoTitle></span>
           <strong>{displayExecutiveRiskStatus}</strong>
           <em>{String(commandCenterMetrics.overallRiskScoreDisplay ?? `${displayOverallRiskScore} / 100`)}</em>
           <p>{text(commandCenterContent.riskNarrative, 'Current market conditions indicate elevated squeeze risk driven by reduced effective float, positive sentiment, and increasing borrow pressure. Internal management adjustments suggest materially higher risk than public market estimates.')}</p>
         </div>
         <div className="command-score-grid">
-          <div><span>Internal Adjusted Squeeze Score</span><strong>{displayInternalAdjustedSqueezeScore}</strong></div>
-          <div><span>Public Score</span><strong>{displayPublicScore}</strong></div>
-          <div><span>Risk Amplification</span><strong>{displayRiskAmplification}</strong></div>
-          <div><span>Market Ranking</span><strong>{displayMarketRanking}</strong><small>{displayPercentile}</small></div>
+          <div><span><InfoTitle text="Management-adjusted squeeze risk score incorporating non-public factors such as effective float, insider ownership, strategic holdings, and upcoming corporate catalysts.">Internal Adjusted Squeeze Score</InfoTitle></span><strong>{displayInternalAdjustedSqueezeScore}</strong></div>
+          <div><span><InfoTitle text="Market-based squeeze risk score calculated using publicly available data including short interest, borrow fees, utilization, volume, options activity, and sentiment indicators.">Public Score</InfoTitle></span><strong>{displayPublicScore}</strong></div>
+          <div><span><InfoTitle text="Additional risk premium added to the Public Score based on internal company conditions that may increase squeeze potential beyond market expectations.">Risk Amplification</InfoTitle></span><strong>{displayRiskAmplification}</strong></div>
+          <div><span><InfoTitle text="Company's relative squeeze risk ranking compared to all actively monitored U.S. listed companies in the intelligence database.">Market Ranking</InfoTitle></span><strong>{displayMarketRanking}</strong><small>{displayPercentile}</small></div>
         </div>
         <div className="management-action-panel">
           <h2>Management Action Panel</h2>
