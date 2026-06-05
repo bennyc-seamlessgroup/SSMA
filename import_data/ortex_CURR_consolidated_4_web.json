@@ -1,7 +1,7 @@
 {
   "ticker": "CURR",
   "asOfDate": "2026-06-03",
-  "importedAt": "2026-06-05T10:45:32.873Z",
+  "importedAt": "2026-06-05T12:28:02.383Z",
   "source": "Normalized from Sample Data/ortex_CURR_consolidated.json",
   "sourcePlatform": "Ortex",
   "recordType": "ortexConsolidatedShortInterest",

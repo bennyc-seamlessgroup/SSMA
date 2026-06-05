@@ -197,7 +197,7 @@ export default async function ShortInterestPage() {
     ortexEnvelope,
     pageContent,
   ] = await Promise.all([
-    readImportFile<Row>('short/ortex_consolidated.json'),
+    readImportFile<Row>('ortex_CURR_consolidated_4_web.json'),
     readPageContent('shortInterest'),
   ]);
 
@@ -259,7 +259,7 @@ export default async function ShortInterestPage() {
       title="Short Interest Intelligence"
       description="Short interest, borrow fee, shares available, days to cover, and squeeze risk from the consolidated ORTEX import data."
       files={[
-        'short/ortex_consolidated.json',
+        'ortex_CURR_consolidated_4_web.json',
       ]}
     >
       <section className="terminal-section short-interest-overview">
