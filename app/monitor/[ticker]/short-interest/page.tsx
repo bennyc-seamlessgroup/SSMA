@@ -194,112 +194,72 @@ function KpiCard({ label, value, detail, change, suffix, deltaDisplay }: {
 
 export default async function ShortInterestPage() {
   const [
-    shortInterestEnvelope,
-    borrowFeeEnvelope,
-    sharesEnvelope,
-    shortScoreEnvelope,
-    shortVolumeEnvelope,
-    shortInterestTrendEnvelope,
+    ortexEnvelope,
     pageContent,
   ] = await Promise.all([
-    readImportFile<Row>('short/short_interest.json'),
-    readImportFile<Row>('short/borrow_fee.json'),
-    readImportFile<Row[]>('short/shares_available.json'),
-    readImportFile<Row[]>('short/short_score.json'),
-    readImportFile<Row[]>('short/short_volume.json'),
-    readImportFile<Row[]>('short/short_interest_2.json').catch(() => ({ data: [] })),
+    readImportFile<Row>('short/ortex_consolidated.json'),
     readPageContent('shortInterest'),
   ]);
 
-  const shortCurrent = record(record(shortInterestEnvelope.data).current);
-  const shortHistory = rows(record(shortInterestEnvelope.data).finraHistory).slice(0, 12).reverse();
-  const borrowRows = rows(record(borrowFeeEnvelope.data).all);
-  const borrowCurrent = record(record(borrowFeeEnvelope.data).current);
-  const availableRows = rows(sharesEnvelope.data);
-  const sortedAvailableRows = [...availableRows].sort((a, b) => String(b.date ?? '').localeCompare(String(a.date ?? '')));
-  const latestAvailable = latest(availableRows);
-  const shortScores = rows(shortScoreEnvelope.data);
-  const sortedShortScores = [...shortScores].sort((a, b) => String(b.date ?? '').localeCompare(String(a.date ?? '')));
-  const latestShortScore = latest(shortScores);
-  const shortInterestTrendRows = rows(shortInterestTrendEnvelope.data)
+  const ortexData = record(ortexEnvelope.data);
+  const shortCurrent = record(ortexData.current);
+  const dailyRows = rows(ortexData.daily);
+  const shortInterestTrendRows = dailyRows
     .sort((a, b) => String(a.date ?? '').localeCompare(String(b.date ?? '')))
     .slice(-7);
-  const shortVolumeByDate = rows(record(shortVolumeEnvelope.data).regSho).reduce<Record<string, number>>((acc, row) => {
-    const date = String(row.tradeReportDate ?? row.date ?? '');
-    if (!date) return acc;
-    acc[date] = (acc[date] ?? 0) + (numeric(row.shortParQuantity) ?? numeric(row.shortVolume) ?? numeric(row.totalShortVolume) ?? 0);
-    return acc;
-  }, {});
-  const shortVolumeTrendRows = Object.entries(shortVolumeByDate)
-    .sort(([dateA], [dateB]) => dateA.localeCompare(dateB))
-    .slice(-7)
-    .map(([date, value]) => ({ date, value }));
-  const sortedBorrowRows = [...borrowRows].sort((a, b) => String(b.date ?? '').localeCompare(String(a.date ?? '')));
-  const sortedShortHistory = [...shortHistory].sort((a, b) => String(b.settlementDate ?? b.accountingDate ?? '').localeCompare(String(a.settlementDate ?? a.accountingDate ?? '')));
-  const latestShortHistory = sortedShortHistory[0] ?? {};
-  const previousShortHistory = sortedShortHistory[1] ?? {};
+  const sortedDailyRows = [...dailyRows].sort((a, b) => String(b.date ?? '').localeCompare(String(a.date ?? '')));
+  const latestDaily = sortedDailyRows[0] ?? {};
+  const previousDaily = sortedDailyRows[1] ?? {};
 
   const shortInterestShares = numeric(shortCurrent.shortInterestShares);
   const shortInterestPercent = numeric(shortCurrent.shortInterestPcFreeFloat);
-  const borrowFee = numeric(borrowCurrent.costToBorrowAll);
-  const sharesAvailable = numeric(latestAvailable.shortAvailabilityShares);
-  const utilization = numeric(latestAvailable.shortAvailabilityPct);
-  const shortScore = Math.round(numeric(latestShortScore.score) ?? 0);
+  const borrowFee = numeric(shortCurrent.costToBorrowAll);
+  const sharesAvailable = numeric(shortCurrent.shortAvailabilityShares);
+  const utilization = numeric(shortCurrent.shortAvailabilityPct);
+  const shortScore = Math.round(numeric(shortCurrent.shortScore) ?? 0);
   const shortScoreLevel = shortScore >= 80 ? 'Extreme' : shortScore >= 65 ? 'High' : shortScore >= 40 ? 'Moderate' : 'Low';
   const shortScoreTone = shortScore >= 80 ? 'extreme' : shortScore >= 65 ? 'high' : shortScore >= 40 ? 'moderate' : 'low';
-  const daysToCover = numeric(shortCurrent.daysToCoverQuantity ?? record(shortInterestEnvelope.data).daysToCover);
-  const shortHistoryCurrent = numeric(latestShortHistory.currentShortPositionQuantity);
-  const shortHistoryPrevious = numeric(latestShortHistory.previousShortPositionQuantity) ?? numeric(previousShortHistory.currentShortPositionQuantity);
-  const shortInterestDelta = shortInterestShares !== null && shortHistoryCurrent !== null && shortHistoryPrevious !== null
-    ? {
-      change: shortHistoryCurrent - shortHistoryPrevious,
-      percent: shortHistoryPrevious ? ((shortHistoryCurrent - shortHistoryPrevious) / shortHistoryPrevious) * 100 : 0,
-      valueText: signed(shortHistoryCurrent - shortHistoryPrevious),
-    }
-    : null;
-  const shortInterestPctDelta = shortInterestDelta && shortInterestPercent !== null
-    ? {
-      change: shortInterestPercent * (shortInterestDelta.percent / 100),
-      percent: shortInterestDelta.percent,
-      valueText: signed(shortInterestPercent * (shortInterestDelta.percent / 100), { maximumFractionDigits: 2 }),
-    }
-    : null;
-  const daysToCoverDelta = delta(numeric(latestShortHistory.daysToCoverQuantity), numeric(previousShortHistory.daysToCoverQuantity), { maximumFractionDigits: 2 });
-  const borrowFeeDelta = delta(borrowFee, numeric(sortedBorrowRows[1]?.costToBorrowAll), { maximumFractionDigits: 2 });
-  const shortScoreDelta = delta(shortScore || null, numeric(sortedShortScores[1]?.score), { maximumFractionDigits: 1 });
-  const sharesAvailableDelta = delta(sharesAvailable, numeric(sortedAvailableRows[1]?.shortAvailabilityShares), { maximumFractionDigits: 0 });
-  const utilizationDelta = delta(utilization, numeric(sortedAvailableRows[1]?.shortAvailabilityPct), { maximumFractionDigits: 2 });
-  const shortCards = record(record(record(shortInterestEnvelope.data).derived).shortInterestPage).cards as Record<string, Row> | undefined;
-  const borrowCards = record(record(record(borrowFeeEnvelope.data).derived).shortInterestPage).cards as Record<string, Row> | undefined;
-  const availableCards = record(record(record((sharesEnvelope as unknown as Row).dataDerived).shortInterestPage).cards) as Record<string, Row> | undefined;
-  const scoreCards = record(record(record(shortScoreEnvelope as unknown as Row).dataDerived).shortInterestPage).cards as Record<string, Row> | undefined;
+  const daysToCover = numeric(shortCurrent.daysToCoverQuantity);
+  const latestShortInterest = record(latestDaily.shortInterest);
+  const previousShortInterest = record(previousDaily.shortInterest);
+  const latestDaysToCover = record(latestDaily.daysToCover);
+  const previousDaysToCover = record(previousDaily.daysToCover);
+  const latestBorrowFee = record(latestDaily.borrowFeeAll);
+  const previousBorrowFee = record(previousDaily.borrowFeeAll);
+  const latestAvailability = record(latestDaily.availability);
+  const previousAvailability = record(previousDaily.availability);
+  const latestShortScore = record(latestDaily.shortScore);
+  const previousShortScore = record(previousDaily.shortScore);
+  const shortInterestDelta = delta(numeric(latestShortInterest.shortInterestShares), numeric(previousShortInterest.shortInterestShares), { maximumFractionDigits: 0 });
+  const shortInterestPctDelta = delta(numeric(latestShortInterest.shortInterestPcFreeFloat), numeric(previousShortInterest.shortInterestPcFreeFloat), { maximumFractionDigits: 2 });
+  const daysToCoverDelta = delta(numeric(latestDaysToCover.daysToCover), numeric(previousDaysToCover.daysToCover), { maximumFractionDigits: 2 });
+  const borrowFeeDelta = delta(numeric(latestBorrowFee.costToBorrowAll), numeric(previousBorrowFee.costToBorrowAll), { maximumFractionDigits: 2 });
+  const shortScoreDelta = delta(Math.round(numeric(latestShortScore.score) ?? 0) || null, numeric(previousShortScore.score), { maximumFractionDigits: 1 });
+  const sharesAvailableDelta = delta(numeric(latestAvailability.shortAvailabilityShares), numeric(previousAvailability.shortAvailabilityShares), { maximumFractionDigits: 0 });
+  const utilizationDelta = delta(numeric(latestAvailability.shortAvailabilityPct), numeric(previousAvailability.shortAvailabilityPct), { maximumFractionDigits: 2 });
+  const shortCards = record(record(record(ortexData.derived).shortInterestPage).cards) as Record<string, Row> | undefined;
   const shortInterestCard = record(shortCards?.shortInterest);
   const siPercentCard = record(shortCards?.shortInterestPercentFloat);
   const daysToCoverCard = record(shortCards?.daysToCover);
-  const borrowFeeCard = record(borrowCards?.borrowFee);
-  const sharesAvailableCard = record(availableCards?.sharesAvailable);
-  const utilizationCard = record(availableCards?.utilization);
-  const shortScoreCard = record(scoreCards?.shortScore);
-  const shortScoreLevelCard = record(scoreCards?.shortScoreLevel);
-  const currentInterpretation = record(pageContent.currentInterpretation);
-  const managementWatchItems = textList(pageContent.managementWatchItems, [
+  const borrowFeeCard = record(shortCards?.borrowFee);
+  const sharesAvailableCard = record(shortCards?.sharesAvailable);
+  const utilizationCard = record(shortCards?.utilization);
+  const shortScoreCard = record(shortCards?.shortScore);
+  const shortScoreLevelCard = record(shortCards?.shortScoreLevel);
+  const currentInterpretation = record(ortexData.currentInterpretation);
+  const managementWatchItems = textList(ortexData.managementWatchItems, [
     'Borrow fee movement above current levels',
     'Any decline in available shares to borrow',
-    'Short-interest increases confirmed by volume data',
+    'Short-interest increases confirmed by ORTEX daily records',
     'Days-to-cover rising with lower trading liquidity',
   ]);
 
   return (
     <ImportDataPreviewPage
       title="Short Interest Intelligence"
-      description={text(pageContent.pageDescription, 'Short interest, borrow fee, shares available, short volume, and squeeze risk from the standardized import data pool.')}
+      description="Short interest, borrow fee, shares available, days to cover, and squeeze risk from the consolidated ORTEX import data."
       files={[
-        'short/short_interest.json',
-        'short/short_interest_2.json',
-        'short/borrow_fee.json',
-        'short/shares_available.json',
-        'short/short_volume.json',
-        'short/short_score.json',
+        'short/ortex_consolidated.json',
       ]}
     >
       <section className="terminal-section short-interest-overview">
@@ -310,15 +270,14 @@ export default async function ShortInterestPage() {
             <p className="section-subtitle">{text(pageContent.overviewSubtitle, 'Executive view of short exposure, borrow pressure, available inventory, and squeeze-risk inputs.')}</p>
           </div>
           <div className="terminal-section-actions">
-            {sourceChip(shortInterestEnvelope.sourcePlatform ?? 'Ortex/FINRA')}
-            {sourceChip(borrowFeeEnvelope.sourcePlatform ?? 'Ortex')}
+            {sourceChip(ortexEnvelope.sourcePlatform ?? 'Ortex')}
           </div>
         </div>
 
         <div className="lending-pressure-hero-grid short-interest-score-grid">
           <div className={`lending-pressure-hero short-score-hero ${shortScoreTone}`}>
             <span>Short Score</span>
-            <strong>{String(shortScoreCard.valueDisplay ?? `${shortScore || 'No Source'} / 100`)}</strong>
+            <strong>{shortScore ? `${shortScore} / 100` : 'No Source'}</strong>
             <div className="short-score-status-row">
               <em>{String(shortScoreLevelCard.valueDisplay ?? shortScoreLevel)}</em>
               <DeltaBadge info={shortScoreDelta} display={String(shortScoreCard.deltaDisplay ?? '')} />
@@ -334,12 +293,12 @@ export default async function ShortInterestPage() {
         </div>
 
         <div className="lending-kpi-row short-interest-kpi-grid">
-          <KpiCard label="Short Interest" value={String(shortInterestCard.valueDisplay ?? formatNumber(shortInterestShares))} change={shortInterestDelta} suffix=" shares" deltaDisplay={String(shortInterestCard.deltaDisplay ?? '')} />
-          <KpiCard label="SI % Float" value={String(siPercentCard.valueDisplay ?? formatPercent(shortInterestPercent, { maximumFractionDigits: 2 }))} change={shortInterestPctDelta} suffix=" pts" deltaDisplay={String(siPercentCard.deltaDisplay ?? '')} />
-          <KpiCard label="Days To Cover" value={String(daysToCoverCard.valueDisplay ?? formatNumber(daysToCover, { maximumFractionDigits: 2 }))} change={daysToCoverDelta} deltaDisplay={String(daysToCoverCard.deltaDisplay ?? '')} />
-          <KpiCard label="Borrow Fee" value={String(borrowFeeCard.valueDisplay ?? formatPercent(borrowFee, { maximumFractionDigits: 2 }))} change={borrowFeeDelta} suffix=" pts" deltaDisplay={String(borrowFeeCard.deltaDisplay ?? '')} />
-          <KpiCard label="Shares Available" value={String(sharesAvailableCard.valueDisplay ?? formatNumber(sharesAvailable))} change={sharesAvailableDelta} suffix=" shares" deltaDisplay={String(sharesAvailableCard.deltaDisplay ?? '')} />
-          <KpiCard label="Utilization" value={String(utilizationCard.valueDisplay ?? formatPercent(utilization, { maximumFractionDigits: 2 }))} change={utilizationDelta} suffix=" pts" deltaDisplay={String(utilizationCard.deltaDisplay ?? '')} />
+          <KpiCard label="Short Interest" value={formatNumber(shortInterestShares)} change={shortInterestDelta} suffix=" shares" deltaDisplay={String(shortInterestCard.deltaDisplay ?? '')} />
+          <KpiCard label="SI % Float" value={formatPercent(shortInterestPercent, { maximumFractionDigits: 2 })} change={shortInterestPctDelta} suffix=" pts" deltaDisplay={String(siPercentCard.deltaDisplay ?? '')} />
+          <KpiCard label="Days To Cover" value={formatNumber(daysToCover, { maximumFractionDigits: 2 })} change={daysToCoverDelta} deltaDisplay={String(daysToCoverCard.deltaDisplay ?? '')} />
+          <KpiCard label="Borrow Fee" value={formatPercent(borrowFee, { maximumFractionDigits: 2 })} change={borrowFeeDelta} suffix=" pts" deltaDisplay={String(borrowFeeCard.deltaDisplay ?? '')} />
+          <KpiCard label="Shares Available" value={formatNumber(sharesAvailable)} change={sharesAvailableDelta} suffix=" shares" deltaDisplay={String(sharesAvailableCard.deltaDisplay ?? '')} />
+          <KpiCard label="Utilization" value={formatPercent(utilization, { maximumFractionDigits: 2 })} change={utilizationDelta} suffix=" pts" deltaDisplay={String(utilizationCard.deltaDisplay ?? '')} />
         </div>
 
         <div className="short-interest-analysis-grid">
@@ -362,11 +321,10 @@ export default async function ShortInterestPage() {
           <div>
             <span>Trend Analysis</span>
             <h2>Short Interest Movement</h2>
-            <p className="section-subtitle">{text(pageContent.trendSubtitle, 'Larger charts for short exposure, borrow cost, borrow availability, and reported short volume.')}</p>
+            <p className="section-subtitle">ORTEX-backed trend charts for short exposure, borrow cost, and borrow availability.</p>
           </div>
           <div className="terminal-section-actions">
-            {sourceChip(shortInterestEnvelope.sourcePlatform ?? 'Ortex/FINRA')}
-            {sourceChip(shortVolumeEnvelope.sourcePlatform ?? 'FINRA')}
+            {sourceChip(ortexEnvelope.sourcePlatform ?? 'Ortex')}
           </div>
         </div>
         <div className="short-interest-trend-grid">
@@ -375,23 +333,24 @@ export default async function ShortInterestPage() {
             <TrendLine
               label="Shares"
               labels={shortInterestTrendRows.map(row => shortDateLabel(row.date))}
-              values={shortInterestTrendRows.map(row => numeric(row.shortInterestShares) ?? 0)}
+              values={shortInterestTrendRows.map(row => numeric(record(row.shortInterest).shortInterestShares) ?? 0)}
             />
           </div>
           <div className="terminal-card chart-card">
             <h3><InfoTitle text="Cost to borrow shows how expensive it is for short sellers to maintain or open short positions.">Borrow Fee Trend</InfoTitle></h3>
-            <TrendLine label="CTB" labels={borrowRows.map(row => shortDateLabel(row.date))} values={borrowRows.map(row => numeric(row.costToBorrowAll) ?? 0)} valueFormatter={value => `${formatNumber(value, { maximumFractionDigits: 2 })}%`} />
+            <TrendLine
+              label="CTB"
+              labels={shortInterestTrendRows.map(row => shortDateLabel(row.date))}
+              values={shortInterestTrendRows.map(row => numeric(record(row.borrowFeeAll).costToBorrowAll) ?? 0)}
+              valueFormatter={value => `${formatNumber(value, { maximumFractionDigits: 2 })}%`}
+            />
           </div>
           <div className="terminal-card chart-card">
             <h3><InfoTitle text="Available shares indicate how many shares may still be available for borrowing. Lower inventory can increase borrow pressure.">Shares Available Trend</InfoTitle></h3>
-            <TrendLine label="Available" labels={availableRows.map(row => shortDateLabel(row.date))} values={availableRows.map(row => numeric(row.shortAvailabilityShares) ?? 0)} />
-          </div>
-          <div className="terminal-card chart-card">
-            <h3><InfoTitle text="Short-volume records help validate whether short-side activity is showing up in reported market volume.">Short Volume Breakdown</InfoTitle></h3>
             <TrendLine
-              label="Volume"
-              labels={shortVolumeTrendRows.map(row => shortDateLabel(row.date))}
-              values={shortVolumeTrendRows.map(row => row.value)}
+              label="Available"
+              labels={shortInterestTrendRows.map(row => shortDateLabel(row.date))}
+              values={shortInterestTrendRows.map(row => numeric(record(row.availability).shortAvailabilityShares) ?? 0)}
             />
           </div>
         </div>

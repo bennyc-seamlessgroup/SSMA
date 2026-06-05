@@ -1,0 +1,429 @@
+{
+  "_template": "Short Interest page production data handoff",
+  "_pageRoute": "/monitor/[ticker]/short-interest",
+  "_purpose": "Fill only market-changing values, derived display values, chart series, and editable commentary used by the Short Interest page. Static UI headings and labels are intentionally excluded.",
+  "_uploadNote": "This is a reference template. In production, upload each object under targetFiles to the matching S3/import_data path, for example import_data/short/short_interest.json.",
+  "_fieldGuide": {
+    "currentDateFields": "Use ISO date strings in YYYY-MM-DD format.",
+    "importedAt": "Use ISO datetime when the backend/import pipeline writes the file.",
+    "derivedCardRule": "The page prefers derived card values when present. Populate valueDisplay, changeDisplay, changePercentDisplay, deltaDisplay, previousValue, and deltaCurrentValue so the frontend does not calculate KPI changes.",
+    "shortInterestCardFormula": "change = latest(finraHistory).currentShortPositionQuantity - latest(finraHistory).previousShortPositionQuantity; changePercent = change / latest(finraHistory).previousShortPositionQuantity * 100.",
+    "shortInterestPercentFloatFormula": "change = current.shortInterestPcFreeFloat * shortInterest.changePercent / 100; changePercent = shortInterest.changePercent.",
+    "daysToCoverFormula": "change = latest(finraHistory).daysToCoverQuantity - previous(finraHistory).daysToCoverQuantity; changePercent = change / previous(finraHistory).daysToCoverQuantity * 100.",
+    "borrowFeeFormula": "change = current.costToBorrowAll - previous(all[].costToBorrowAll); changePercent = change / previous(all[].costToBorrowAll) * 100.",
+    "sharesAvailableFormula": "change = latest(data).shortAvailabilityShares - previous(data).shortAvailabilityShares; changePercent = change / previous(data).shortAvailabilityShares * 100.",
+    "utilizationFormula": "change = latest(data).shortAvailabilityPct - previous(data).shortAvailabilityPct; changePercent = change / previous(data).shortAvailabilityPct * 100.",
+    "shortScoreFormula": "value = round(latest(data).score); change = value - previous(data).score; changePercent = change / previous(data).score * 100.",
+    "shortScoreLevelFormula": "Extreme if score >= 80; High if >= 65; Moderate if >= 40; otherwise Low."
+  },
+  "targetFiles": {
+    "import_data/short/short_interest.json": {
+      "ticker": "CURR",
+      "asOfDate": "2026-06-05",
+      "importedAt": "2026-06-05T00:00:00.000Z",
+      "sourcePlatform": "Ortex/FINRA",
+      "recordType": "shortInterest",
+      "category": "short",
+      "recordCount": 1,
+      "status": "ready",
+      "data": {
+        "current": {
+          "date": "2026-06-05",
+          "shortInterestShares": 940721,
+          "shortInterestPcFreeFloat": 2.879922,
+          "shortInterestUsd": 3151416,
+          "daysToCoverQuantity": 1.0
+        },
+        "finraHistory": [
+          {
+            "settlementDate": "2026-05-31",
+            "accountingDate": 20260531,
+            "currentShortPositionQuantity": 940721,
+            "previousShortPositionQuantity": 318558,
+            "changePreviousNumber": 622163,
+            "changePercent": 195.31,
+            "averageDailyVolumeQuantity": 940721,
+            "daysToCoverQuantity": 1.0,
+            "securitiesInformationProcessorSymbolIdentifier": "CURR"
+          },
+          {
+            "settlementDate": "2026-05-15",
+            "accountingDate": 20260515,
+            "currentShortPositionQuantity": 318558,
+            "previousShortPositionQuantity": 250000,
+            "changePreviousNumber": 68558,
+            "changePercent": 27.42,
+            "averageDailyVolumeQuantity": 318558,
+            "daysToCoverQuantity": 1.0,
+            "securitiesInformationProcessorSymbolIdentifier": "CURR"
+          }
+        ],
+        "derived": {
+          "shortInterestPage": {
+            "cards": {
+              "shortInterest": {
+                "value": 940721,
+                "valueDisplay": "940,721",
+                "change": 622163,
+                "changeDisplay": "+622,163 shares",
+                "changePercent": 195.31,
+                "changePercentDisplay": "+195.31%",
+                "deltaDisplay": "+622,163 shares(+195.31%)",
+                "previousValue": 318558,
+                "deltaCurrentValue": 940721
+              },
+              "shortInterestPercentFloat": {
+                "value": 2.879922,
+                "valueDisplay": "2.88%",
+                "change": 5.625,
+                "changeDisplay": "+5.63 pts",
+                "changePercent": 195.31,
+                "changePercentDisplay": "+195.31%",
+                "deltaDisplay": "+5.63 pts(+195.31%)",
+                "previousValue": 0.975,
+                "deltaCurrentValue": 2.879922
+              },
+              "daysToCover": {
+                "value": 1.0,
+                "valueDisplay": "1.00",
+                "change": 0.0,
+                "changeDisplay": "0",
+                "changePercent": 0.0,
+                "changePercentDisplay": "0%",
+                "deltaDisplay": "0(0%)",
+                "previousValue": 1.0,
+                "deltaCurrentValue": 1.0
+              }
+            }
+          }
+        }
+      }
+    },
+    "import_data/short/short_interest_2.json": {
+      "ticker": "CURR",
+      "asOfDate": "2026-06-05",
+      "importedAt": "2026-06-05T00:00:00.000Z",
+      "sourcePlatform": "Production Daily Short Interest Feed",
+      "recordType": "shortInterestDailyTrend",
+      "category": "short",
+      "recordCount": 7,
+      "status": "ready",
+      "data": [
+        {
+          "date": "2026-05-28",
+          "shortInterestShares": 845200
+        },
+        {
+          "date": "2026-05-29",
+          "shortInterestShares": 872900
+        },
+        {
+          "date": "2026-06-01",
+          "shortInterestShares": 899300
+        },
+        {
+          "date": "2026-06-02",
+          "shortInterestShares": 918700
+        },
+        {
+          "date": "2026-06-03",
+          "shortInterestShares": 932600
+        },
+        {
+          "date": "2026-06-04",
+          "shortInterestShares": 940721
+        },
+        {
+          "date": "2026-06-05",
+          "shortInterestShares": 955000
+        }
+      ]
+    },
+    "import_data/short/borrow_fee.json": {
+      "ticker": "CURR",
+      "asOfDate": "2026-06-05",
+      "importedAt": "2026-06-05T00:00:00.000Z",
+      "sourcePlatform": "Ortex",
+      "recordType": "borrowFee",
+      "category": "short",
+      "recordCount": 1,
+      "status": "ready",
+      "data": {
+        "all": [
+          {
+            "date": "2026-05-28",
+            "costToBorrowAll": 30.05
+          },
+          {
+            "date": "2026-05-29",
+            "costToBorrowAll": 30.18
+          },
+          {
+            "date": "2026-06-01",
+            "costToBorrowAll": 30.31
+          },
+          {
+            "date": "2026-06-02",
+            "costToBorrowAll": 30.52
+          },
+          {
+            "date": "2026-06-03",
+            "costToBorrowAll": 30.76
+          },
+          {
+            "date": "2026-06-04",
+            "costToBorrowAll": 30.78
+          },
+          {
+            "date": "2026-06-05",
+            "costToBorrowAll": 31.1
+          }
+        ],
+        "new": [
+          {
+            "date": "2026-06-05",
+            "costToBorrowNew": 29.2
+          }
+        ],
+        "current": {
+          "date": "2026-06-05",
+          "costToBorrowAll": 31.1
+        },
+        "derived": {
+          "shortInterestPage": {
+            "cards": {
+              "borrowFee": {
+                "value": 31.1,
+                "valueDisplay": "31.10%",
+                "change": 0.32,
+                "changeDisplay": "+0.32 pts",
+                "changePercent": 1.04,
+                "changePercentDisplay": "+1.04%",
+                "deltaDisplay": "+0.32 pts(+1.04%)",
+                "previousValue": 30.78,
+                "deltaCurrentValue": 31.1
+              }
+            }
+          }
+        }
+      }
+    },
+    "import_data/short/shares_available.json": {
+      "ticker": "CURR",
+      "asOfDate": "2026-06-05",
+      "importedAt": "2026-06-05T00:00:00.000Z",
+      "sourcePlatform": "Ortex",
+      "recordType": "sharesAvailable",
+      "category": "short",
+      "recordCount": 7,
+      "status": "ready",
+      "data": [
+        {
+          "date": "2026-05-28",
+          "shortAvailabilityPct": 76.2,
+          "shortAvailabilityShares": 2639400
+        },
+        {
+          "date": "2026-05-29",
+          "shortAvailabilityPct": 75.7,
+          "shortAvailabilityShares": 2608700
+        },
+        {
+          "date": "2026-06-01",
+          "shortAvailabilityPct": 75.1,
+          "shortAvailabilityShares": 2586200
+        },
+        {
+          "date": "2026-06-02",
+          "shortAvailabilityPct": 74.9,
+          "shortAvailabilityShares": 2561800
+        },
+        {
+          "date": "2026-06-03",
+          "shortAvailabilityPct": 74.6,
+          "shortAvailabilityShares": 2547976
+        },
+        {
+          "date": "2026-06-04",
+          "shortAvailabilityPct": 73.57,
+          "shortAvailabilityShares": 2511276
+        },
+        {
+          "date": "2026-06-05",
+          "shortAvailabilityPct": 72.8,
+          "shortAvailabilityShares": 2480000
+        }
+      ],
+      "dataDerived": {
+        "shortInterestPage": {
+          "cards": {
+            "sharesAvailable": {
+              "value": 2480000,
+              "valueDisplay": "2,480,000",
+              "change": -31276,
+              "changeDisplay": "-31,276 shares",
+              "changePercent": -1.25,
+              "changePercentDisplay": "-1.25%",
+              "deltaDisplay": "-31,276 shares(-1.25%)",
+              "previousValue": 2511276,
+              "deltaCurrentValue": 2480000
+            },
+            "utilization": {
+              "value": 72.8,
+              "valueDisplay": "72.80%",
+              "change": -0.77,
+              "changeDisplay": "-0.77 pts",
+              "changePercent": -1.05,
+              "changePercentDisplay": "-1.05%",
+              "deltaDisplay": "-0.77 pts(-1.05%)",
+              "previousValue": 73.57,
+              "deltaCurrentValue": 72.8
+            }
+          }
+        }
+      }
+    },
+    "import_data/short/short_score.json": {
+      "ticker": "CURR",
+      "asOfDate": "2026-06-05",
+      "importedAt": "2026-06-05T00:00:00.000Z",
+      "sourcePlatform": "Ortex",
+      "recordType": "shortScore",
+      "category": "short",
+      "recordCount": 2,
+      "status": "ready",
+      "data": [
+        {
+          "date": "2026-06-04",
+          "score": 70.2177
+        },
+        {
+          "date": "2026-06-05",
+          "score": 72.4
+        }
+      ],
+      "dataDerived": {
+        "shortInterestPage": {
+          "cards": {
+            "shortScore": {
+              "value": 72,
+              "valueDisplay": "72 / 100",
+              "change": 1.78,
+              "changeDisplay": "+1.8",
+              "changePercent": 2.54,
+              "changePercentDisplay": "+2.54%",
+              "deltaDisplay": "+1.8(+2.54%)",
+              "previousValue": 70.2177,
+              "deltaCurrentValue": 72
+            },
+            "shortScoreLevel": {
+              "value": "High",
+              "valueDisplay": "High"
+            }
+          }
+        }
+      }
+    },
+    "import_data/short/short_volume.json": {
+      "ticker": "CURR",
+      "asOfDate": "2026-06-05",
+      "importedAt": "2026-06-05T00:00:00.000Z",
+      "sourcePlatform": "FINRA/Fintel",
+      "recordType": "shortVolume",
+      "category": "short",
+      "recordCount": 1,
+      "status": "ready",
+      "data": {
+        "regSho": [
+          {
+            "tradeReportDate": "2026-05-28",
+            "reportingFacilityCode": "NQTRF",
+            "marketCode": "Q",
+            "totalParQuantity": 60340,
+            "shortParQuantity": 14833,
+            "shortExemptParQuantity": 0,
+            "securitiesInformationProcessorSymbolIdentifier": "CURR"
+          },
+          {
+            "tradeReportDate": "2026-05-29",
+            "reportingFacilityCode": "NQTRF",
+            "marketCode": "Q",
+            "totalParQuantity": 74134,
+            "shortParQuantity": 20242,
+            "shortExemptParQuantity": 0,
+            "securitiesInformationProcessorSymbolIdentifier": "CURR"
+          },
+          {
+            "tradeReportDate": "2026-06-01",
+            "reportingFacilityCode": "NQTRF",
+            "marketCode": "Q",
+            "totalParQuantity": 15094,
+            "shortParQuantity": 5121,
+            "shortExemptParQuantity": 0,
+            "securitiesInformationProcessorSymbolIdentifier": "CURR"
+          },
+          {
+            "tradeReportDate": "2026-06-02",
+            "reportingFacilityCode": "NQTRF",
+            "marketCode": "Q",
+            "totalParQuantity": 38248,
+            "shortParQuantity": 4751,
+            "shortExemptParQuantity": 0,
+            "securitiesInformationProcessorSymbolIdentifier": "CURR"
+          },
+          {
+            "tradeReportDate": "2026-06-03",
+            "reportingFacilityCode": "NQTRF",
+            "marketCode": "Q",
+            "totalParQuantity": 226031,
+            "shortParQuantity": 97909,
+            "shortExemptParQuantity": 300,
+            "securitiesInformationProcessorSymbolIdentifier": "CURR"
+          },
+          {
+            "tradeReportDate": "2026-06-04",
+            "reportingFacilityCode": "NQTRF",
+            "marketCode": "Q",
+            "totalParQuantity": 135558,
+            "shortParQuantity": 39250,
+            "shortExemptParQuantity": 0,
+            "securitiesInformationProcessorSymbolIdentifier": "CURR"
+          },
+          {
+            "tradeReportDate": "2026-06-05",
+            "reportingFacilityCode": "NQTRF",
+            "marketCode": "Q",
+            "totalParQuantity": 90000,
+            "shortParQuantity": 24200,
+            "shortExemptParQuantity": 0,
+            "securitiesInformationProcessorSymbolIdentifier": "CURR"
+          }
+        ]
+      }
+    },
+    "import_data/content/page_content.json": {
+      "ticker": "CURR",
+      "asOfDate": "2026-06-05",
+      "importedAt": "2026-06-05T00:00:00.000Z",
+      "sourcePlatform": "Internal Editorial / Backend Commentary",
+      "recordType": "pageContent",
+      "category": "content",
+      "status": "ready",
+      "data": {
+        "shortInterest": {
+          "shortScoreDescription": "Composite short-interest risk score using short exposure, borrow pressure, share availability, and related market-pressure inputs.",
+          "currentInterpretation": {
+            "headline": "Borrow pressure is visible",
+            "body": "Current data shows reported short shares, short interest as a percentage of float, and borrow fee pressure. This overview helps management understand whether short sellers are facing rising cost, tighter inventory, or increasing positioning pressure."
+          },
+          "managementWatchItems": [
+            "Borrow fee movement above current levels",
+            "Any decline in available shares to borrow",
+            "Short-interest increases confirmed by volume data",
+            "Days-to-cover rising with lower trading liquidity"
+          ]
+        }
+      }
+    }
+  }
+}

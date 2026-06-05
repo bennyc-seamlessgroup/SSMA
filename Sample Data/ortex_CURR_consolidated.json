@@ -1,0 +1,335 @@
+[
+  {
+    "date": "2026-05-26",
+    "records": {
+      "availability": {
+        "date": "2026-05-26",
+        "shortAvailabilityPct": 72.43,
+        "shortAvailabilityShares": 2439567.0
+      },
+      "closing_prices": {
+        "date": "2026-05-26",
+        "open": 3.07,
+        "high": 3.3106,
+        "low": 2.878,
+        "close": 3.27,
+        "volume": 146245
+      },
+      "ctb_all": {
+        "date": "2026-05-26",
+        "costToBorrowAll": 31.21
+      },
+      "ctb_new": {
+        "date": "2026-05-26",
+        "costToBorrowNew": 33.07
+      },
+      "dtc": {
+        "date": "2026-05-26",
+        "daysToCover": 4.9076
+      },
+      "european_total_open_positions": {
+        "shortInterestShares": 0.0,
+        "shortInterestPcFreeFloat": 0.0,
+        "shortInterestValue": 0.0,
+        "currency": "USD",
+        "creditsUsed": 0.3,
+        "creditsLeft": 9924.15
+      },
+      "short_interest": {
+        "date": "2026-05-26",
+        "shortInterestShares": 882263,
+        "shortInterestPcFreeFloat": 1.295158,
+        "shortInterestUsd": 2885001
+      },
+      "short_score": {
+        "date": "2026-05-26",
+        "score": 68.6268
+      }
+    }
+  },
+  {
+    "date": "2026-05-27",
+    "records": {
+      "availability": {
+        "date": "2026-05-27",
+        "shortAvailabilityPct": 74.1,
+        "shortAvailabilityShares": 2466930.0
+      },
+      "closing_prices": {
+        "date": "2026-05-27",
+        "open": 3.19,
+        "high": 3.39,
+        "low": 3.15,
+        "close": 3.17,
+        "volume": 100978
+      },
+      "ctb_all": {
+        "date": "2026-05-27",
+        "costToBorrowAll": 31.23
+      },
+      "ctb_new": {
+        "date": "2026-05-27",
+        "costToBorrowNew": 30.43
+      },
+      "dtc": {
+        "date": "2026-05-27",
+        "daysToCover": 5.1896
+      },
+      "european_total_open_positions": {
+        "shortInterestShares": 0.0,
+        "shortInterestPcFreeFloat": 0.0,
+        "shortInterestValue": 0.0,
+        "currency": "USD",
+        "creditsUsed": 0.3,
+        "creditsLeft": 9917.85
+      },
+      "short_interest": {
+        "date": "2026-05-27",
+        "shortInterestShares": 926491,
+        "shortInterestPcFreeFloat": 1.360085,
+        "shortInterestUsd": 2936975
+      },
+      "short_score": {
+        "date": "2026-05-27",
+        "score": 66.9355
+      }
+    }
+  },
+  {
+    "date": "2026-05-28",
+    "records": {
+      "availability": {
+        "date": "2026-05-28",
+        "shortAvailabilityPct": 83.43,
+        "shortAvailabilityShares": 2604947.0
+      },
+      "closing_prices": {
+        "date": "2026-05-28",
+        "open": 3.16,
+        "high": 3.2493,
+        "low": 3.08,
+        "close": 3.19,
+        "volume": 75351
+      },
+      "ctb_all": {
+        "date": "2026-05-28",
+        "costToBorrowAll": 31.1
+      },
+      "ctb_new": {
+        "date": "2026-05-28",
+        "costToBorrowNew": 33.22
+      },
+      "dtc": {
+        "date": "2026-05-28",
+        "daysToCover": 5.2027
+      },
+      "european_total_open_positions": {
+        "shortInterestShares": 0.0,
+        "shortInterestPcFreeFloat": 0.0,
+        "shortInterestValue": 0.0,
+        "currency": "USD",
+        "creditsUsed": 0.3,
+        "creditsLeft": 9911.55
+      },
+      "short_interest": {
+        "date": "2026-05-28",
+        "shortInterestShares": 928013,
+        "shortInterestPcFreeFloat": 1.362319,
+        "shortInterestUsd": 2960361
+      },
+      "short_score": {
+        "date": "2026-05-28",
+        "score": 66.8087
+      }
+    }
+  },
+  {
+    "date": "2026-05-29",
+    "records": {
+      "availability": {
+        "date": "2026-05-29",
+        "shortAvailabilityPct": 77.8,
+        "shortAvailabilityShares": 2518253.0
+      },
+      "closing_prices": {
+        "date": "2026-05-29",
+        "open": 3.28,
+        "high": 3.302,
+        "low": 3.12,
+        "close": 3.14,
+        "volume": 75631
+      },
+      "ctb_all": {
+        "date": "2026-05-29",
+        "costToBorrowAll": 31.13
+      },
+      "ctb_new": {
+        "date": "2026-05-29",
+        "costToBorrowNew": 30.33
+      },
+      "dtc": {
+        "date": "2026-05-29",
+        "daysToCover": 5.2366
+      },
+      "european_total_open_positions": {
+        "shortInterestShares": 0.0,
+        "shortInterestPcFreeFloat": 0.0,
+        "shortInterestValue": 0.0,
+        "currency": "USD",
+        "creditsUsed": 0.3,
+        "creditsLeft": 9905.25
+      },
+      "short_interest": {
+        "date": "2026-05-29",
+        "shortInterestShares": 926191,
+        "shortInterestPcFreeFloat": 1.359645,
+        "shortInterestUsd": 2908238
+      },
+      "short_score": {
+        "date": "2026-05-29",
+        "score": 66.9299
+      }
+    }
+  },
+  {
+    "date": "2026-06-01",
+    "records": {
+      "availability": {
+        "date": "2026-06-01",
+        "shortAvailabilityPct": 80.54,
+        "shortAvailabilityShares": 2552741.0
+      },
+      "closing_prices": {
+        "date": "2026-06-01",
+        "open": 3.1,
+        "high": 3.2897,
+        "low": 3.1,
+        "close": 3.19,
+        "volume": 42333
+      },
+      "ctb_all": {
+        "date": "2026-06-01",
+        "costToBorrowAll": 31.14
+      },
+      "ctb_new": [],
+      "dtc": {
+        "date": "2026-06-01",
+        "daysToCover": 5.2817
+      },
+      "european_total_open_positions": {
+        "shortInterestShares": 0.0,
+        "shortInterestPcFreeFloat": 0.0,
+        "shortInterestValue": 0.0,
+        "currency": "USD",
+        "creditsUsed": 0.3,
+        "creditsLeft": 9899.9
+      },
+      "short_interest": {
+        "date": "2026-06-01",
+        "shortInterestShares": 925040,
+        "shortInterestPcFreeFloat": 2.887731,
+        "shortInterestUsd": 2950876
+      },
+      "short_score": {
+        "date": "2026-06-01",
+        "score": 67.0156
+      }
+    }
+  },
+  {
+    "date": "2026-06-02",
+    "records": {
+      "availability": {
+        "date": "2026-06-02",
+        "shortAvailabilityPct": 76.68,
+        "shortAvailabilityShares": 2522799.0
+      },
+      "closing_prices": {
+        "date": "2026-06-02",
+        "open": 3.21,
+        "high": 3.39,
+        "low": 3.1985,
+        "close": 3.28,
+        "volume": 103873
+      },
+      "ctb_all": {
+        "date": "2026-06-02",
+        "costToBorrowAll": 31.16
+      },
+      "ctb_new": {
+        "date": "2026-06-02",
+        "costToBorrowNew": 33.94
+      },
+      "dtc": {
+        "date": "2026-06-02",
+        "daysToCover": 5.3345
+      },
+      "european_total_open_positions": {
+        "shortInterestShares": 0.0,
+        "shortInterestPcFreeFloat": 0.0,
+        "shortInterestValue": 0.0,
+        "currency": "USD",
+        "creditsUsed": 0.3,
+        "creditsLeft": 9893.6
+      },
+      "short_interest": {
+        "date": "2026-06-02",
+        "shortInterestShares": 931706,
+        "shortInterestPcFreeFloat": 2.90854,
+        "shortInterestUsd": 3055994
+      },
+      "short_score": {
+        "date": "2026-06-02",
+        "score": 69.6201
+      }
+    }
+  },
+  {
+    "date": "2026-06-03",
+    "records": {
+      "availability": {
+        "date": "2026-06-03",
+        "shortAvailabilityPct": 67.59,
+        "shortAvailabilityShares": 2393008.0
+      },
+      "closing_prices": {
+        "date": "2026-06-03",
+        "open": 3.37,
+        "high": 3.37,
+        "low": 2.9,
+        "close": 3.11,
+        "volume": 142301
+      },
+      "ctb_all": {
+        "date": "2026-06-03",
+        "costToBorrowAll": 31.38
+      },
+      "ctb_new": {
+        "date": "2026-06-03",
+        "costToBorrowNew": 35.6
+      },
+      "dtc": {
+        "date": "2026-06-03",
+        "daysToCover": 5.3431
+      },
+      "european_total_open_positions": {
+        "shortInterestShares": 0.0,
+        "shortInterestPcFreeFloat": 0.0,
+        "shortInterestValue": 0.0,
+        "currency": "USD",
+        "creditsUsed": 0.3,
+        "creditsLeft": 9843.2
+      },
+      "short_interest": {
+        "date": "2026-06-03",
+        "shortInterestShares": 931718,
+        "shortInterestPcFreeFloat": 2.908578,
+        "shortInterestUsd": 2897643
+      },
+      "short_score": {
+        "date": "2026-06-03",
+        "score": 69.7855
+      }
+    }
+  }
+]

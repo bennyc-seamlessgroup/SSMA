@@ -1,0 +1,290 @@
+{
+  "_template": "Lending Pressure page production data handoff",
+  "_pageRoute": "/monitor/[ticker]/lending-pressure",
+  "_purpose": "Fill only market-changing values, derived display values, trend series, and editable commentary used by the Lending Pressure page. Static UI headings and labels are intentionally excluded.",
+  "_uploadNote": "This is a reference template. In production, upload each object under targetFiles to the matching S3/import_data path, for example import_data/short/shares_available.json.",
+  "_fieldGuide": {
+    "currentDateFields": "Use ISO date strings in YYYY-MM-DD format.",
+    "importedAt": "Use ISO datetime when the backend/import pipeline writes the file.",
+    "derivedCardRule": "The page prefers derived card values when present for Shares Available, Utilization, and Borrow Fee. Populate valueDisplay, changeDisplay, changePercentDisplay, deltaDisplay, previousValue, and deltaCurrentValue so the frontend does not calculate KPI changes.",
+    "pressureScoreFormula": "pressureScore = round(availabilityPressure * 0.25 + utilizationPressure * 0.30 + borrowFeePressure * 0.30 + borrowDemandScore * 0.15).",
+    "availabilityPressureFormula": "100 if sharesAvailable <= 100000; 78 if <= 500000; 48 if <= 1500000; otherwise 12.",
+    "utilizationPressureFormula": "min(100, max(0, latest(shortAvailabilityPct))). Current MVP uses shortAvailabilityPct from shares_available.json for utilization display.",
+    "borrowFeePressureFormula": "min(100, max(0, borrow_fee.json data.current.costToBorrowAll)).",
+    "onLoanPressureFormula": "100 if sharesOnLoan >= 1000000; 62 if >= 650000; 38 if >= 400000; otherwise 12.",
+    "borrowDemandScoreFormula": "round(utilizationPressure * 0.42 + borrowFeePressure * 0.35 + availabilityPressure * 0.18 + 5 if onLoanShares > 0).",
+    "levelFormula": "Extreme if score >= 81; High if >= 61; Moderate if >= 31; otherwise Low.",
+    "sharesAvailableFormula": "change = latest(data).shortAvailabilityShares - previous(data).shortAvailabilityShares; changePercent = change / previous(data).shortAvailabilityShares * 100.",
+    "utilizationFormula": "change = latest(data).shortAvailabilityPct - previous(data).shortAvailabilityPct; changePercent = change / previous(data).shortAvailabilityPct * 100.",
+    "borrowFeeFormula": "change = current.costToBorrowAll - previous(all[].costToBorrowAll); changePercent = change / previous(all[].costToBorrowAll) * 100.",
+    "onLoanFormula": "change = latest(data).sharesOnLoan - previous(data).sharesOnLoan; changePercent = change / previous(data).sharesOnLoan * 100. The current page can calculate this if supplied with the trend rows."
+  },
+  "targetFiles": {
+    "import_data/short/shares_available.json": {
+      "ticker": "CURR",
+      "asOfDate": "2026-06-05",
+      "importedAt": "2026-06-05T00:00:00.000Z",
+      "sourcePlatform": "Ortex",
+      "recordType": "sharesAvailable",
+      "category": "short",
+      "recordCount": 7,
+      "status": "ready",
+      "data": [
+        {
+          "date": "2026-05-28",
+          "shortAvailabilityPct": 76.2,
+          "shortAvailabilityShares": 2639400
+        },
+        {
+          "date": "2026-05-29",
+          "shortAvailabilityPct": 75.7,
+          "shortAvailabilityShares": 2608700
+        },
+        {
+          "date": "2026-06-01",
+          "shortAvailabilityPct": 75.1,
+          "shortAvailabilityShares": 2586200
+        },
+        {
+          "date": "2026-06-02",
+          "shortAvailabilityPct": 74.9,
+          "shortAvailabilityShares": 2561800
+        },
+        {
+          "date": "2026-06-03",
+          "shortAvailabilityPct": 74.6,
+          "shortAvailabilityShares": 2547976
+        },
+        {
+          "date": "2026-06-04",
+          "shortAvailabilityPct": 73.57,
+          "shortAvailabilityShares": 2511276
+        },
+        {
+          "date": "2026-06-05",
+          "shortAvailabilityPct": 72.8,
+          "shortAvailabilityShares": 2480000
+        }
+      ],
+      "dataDerived": {
+        "lendingPressurePage": {
+          "summary": {
+            "pressureScore": 41,
+            "pressureScoreDisplay": "41 / 100",
+            "level": "Moderate",
+            "health": "Tightening"
+          },
+          "components": {
+            "availabilityPressure": 12,
+            "utilizationPressure": 72.8,
+            "borrowFeePressure": 31.1,
+            "onLoanPressure": 62,
+            "borrowDemandScore": 43,
+            "borrowDemand": "Moderate"
+          },
+          "cards": {
+            "sharesAvailable": {
+              "value": 2480000,
+              "valueDisplay": "2,480,000",
+              "change": -31276,
+              "changeDisplay": "-31,276 shares",
+              "changePercent": -1.25,
+              "changePercentDisplay": "-1.25%",
+              "deltaDisplay": "-31,276 shares(-1.25%)",
+              "previousValue": 2511276,
+              "deltaCurrentValue": 2480000
+            },
+            "utilization": {
+              "value": 72.8,
+              "valueDisplay": "72.8%",
+              "change": -0.77,
+              "changeDisplay": "-0.77 pts",
+              "changePercent": -1.05,
+              "changePercentDisplay": "-1.05%",
+              "deltaDisplay": "-0.77 pts(-1.05%)",
+              "previousValue": 73.57,
+              "deltaCurrentValue": 72.8
+            }
+          }
+        }
+      }
+    },
+    "import_data/short/borrow_fee.json": {
+      "ticker": "CURR",
+      "asOfDate": "2026-06-05",
+      "importedAt": "2026-06-05T00:00:00.000Z",
+      "sourcePlatform": "Ortex",
+      "recordType": "borrowFee",
+      "category": "short",
+      "recordCount": 1,
+      "status": "ready",
+      "data": {
+        "all": [
+          {
+            "date": "2026-05-28",
+            "costToBorrowAll": 30.05
+          },
+          {
+            "date": "2026-05-29",
+            "costToBorrowAll": 30.18
+          },
+          {
+            "date": "2026-06-01",
+            "costToBorrowAll": 30.31
+          },
+          {
+            "date": "2026-06-02",
+            "costToBorrowAll": 30.52
+          },
+          {
+            "date": "2026-06-03",
+            "costToBorrowAll": 30.76
+          },
+          {
+            "date": "2026-06-04",
+            "costToBorrowAll": 30.78
+          },
+          {
+            "date": "2026-06-05",
+            "costToBorrowAll": 31.1
+          }
+        ],
+        "new": [
+          {
+            "date": "2026-06-05",
+            "costToBorrowNew": 29.2
+          }
+        ],
+        "current": {
+          "date": "2026-06-05",
+          "costToBorrowAll": 31.1
+        },
+        "derived": {
+          "lendingPressurePage": {
+            "cards": {
+              "borrowFee": {
+                "value": 31.1,
+                "valueDisplay": "31.10%",
+                "change": 0.32,
+                "changeDisplay": "+0.32 pts",
+                "changePercent": 1.04,
+                "changePercentDisplay": "+1.04%",
+                "deltaDisplay": "+0.32 pts(+1.04%)",
+                "previousValue": 30.78,
+                "deltaCurrentValue": 31.1
+              }
+            }
+          }
+        }
+      }
+    },
+    "import_data/short/on_loan.json": {
+      "ticker": "CURR",
+      "asOfDate": "2026-06-05",
+      "importedAt": "2026-06-05T00:00:00.000Z",
+      "sourcePlatform": "Ortex",
+      "recordType": "onLoan",
+      "category": "short",
+      "recordCount": 7,
+      "status": "ready",
+      "data": [
+        {
+          "date": "2026-05-28",
+          "sharesOnLoan": 628900
+        },
+        {
+          "date": "2026-05-29",
+          "sharesOnLoan": 641200
+        },
+        {
+          "date": "2026-06-01",
+          "sharesOnLoan": 659800
+        },
+        {
+          "date": "2026-06-02",
+          "sharesOnLoan": 674300
+        },
+        {
+          "date": "2026-06-03",
+          "sharesOnLoan": 681600
+        },
+        {
+          "date": "2026-06-04",
+          "sharesOnLoan": 697200
+        },
+        {
+          "date": "2026-06-05",
+          "sharesOnLoan": 710500
+        }
+      ]
+    },
+    "import_data/short/utilization.json": {
+      "ticker": "CURR",
+      "asOfDate": "2026-06-05",
+      "importedAt": "2026-06-05T00:00:00.000Z",
+      "sourcePlatform": "Ortex",
+      "recordType": "utilization",
+      "category": "short",
+      "recordCount": 7,
+      "status": "ready",
+      "notes": "Current Lending Pressure page reads this file for preview tables, but chart/KPI utilization currently uses shortAvailabilityPct from shares_available.json.",
+      "data": [
+        {
+          "date": "2026-05-28",
+          "utilizationPercent": 76.2
+        },
+        {
+          "date": "2026-05-29",
+          "utilizationPercent": 75.7
+        },
+        {
+          "date": "2026-06-01",
+          "utilizationPercent": 75.1
+        },
+        {
+          "date": "2026-06-02",
+          "utilizationPercent": 74.9
+        },
+        {
+          "date": "2026-06-03",
+          "utilizationPercent": 74.6
+        },
+        {
+          "date": "2026-06-04",
+          "utilizationPercent": 73.57
+        },
+        {
+          "date": "2026-06-05",
+          "utilizationPercent": 72.8
+        }
+      ]
+    },
+    "import_data/content/page_content.json": {
+      "ticker": "CURR",
+      "asOfDate": "2026-06-05",
+      "importedAt": "2026-06-05T00:00:00.000Z",
+      "sourcePlatform": "Internal Editorial / Backend Commentary",
+      "recordType": "pageContent",
+      "category": "content",
+      "status": "ready",
+      "data": {
+        "lendingPressure": {
+          "pageDescription": "Detailed borrow availability, utilization, borrow fee, and on-loan data used to evaluate short seller pressure.",
+          "overviewSubtitle": "Executive view of share availability, borrowing conditions, inventory utilization, and lending pressure.",
+          "pressureNarrative": "Borrowing conditions indicate pressure on short sellers based on available inventory, utilization, borrow fee, and borrow demand.",
+          "positiveContributors": [
+            "Borrow fee remains visible",
+            "Imported inventory can be monitored daily",
+            "Availability changes can quickly update pressure score"
+          ],
+          "negativeContributors": [
+            "Large remaining inventory",
+            "Low utilization data currently available",
+            "No on-loan sample data yet"
+          ],
+          "aiLendingAnalysis": "Current imported data indicates lending pressure. Borrow fees are visible, but available inventory remains meaningful and utilization/on-loan inputs should be monitored with complete institutional data. Management should watch borrow fee changes, availability drops, and utilization trends as primary indicators."
+        }
+      }
+    }
+  }
+}
