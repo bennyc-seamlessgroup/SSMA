@@ -1,10 +1,35 @@
 import Link from 'next/link';
 import { InfoTooltip } from '@/components/InfoTooltip';
 import { MonitorExpertButton } from '@/components/MonitorExpertChat';
-import { buildImportDashboard, readImportFile, readPageContent } from '@/lib/import-data';
-import { readInternalFloatAdjustments } from '@/lib/internal-float';
+import { readImportFile } from '@/lib/import-data';
 
 type Row = Record<string, unknown>;
+type ImportEnvelope<T> = Row & { data: T; sourcePlatform?: string };
+type ImportDashboard = {
+  company: {
+    ticker: string;
+    companyName: string;
+    exchange: string;
+    marketCap: string;
+    freeFloat: string;
+    sharesOutstanding: string;
+  };
+  scores: {
+    healthScore: number;
+    marketSentimentScore: number;
+    ownershipTrend: string;
+    shortSqueezeRisk: number;
+  };
+  metrics: {
+    borrowFee: string;
+    sharesAvailable: string;
+    shortInterestPercentFloat: string;
+    daysToCover: string;
+    putCallRatio: string;
+    gammaExposure: string;
+  };
+  summaries: Row;
+};
 
 function rows(value: unknown): Row[] {
   return Array.isArray(value) ? value.filter(item => item && typeof item === 'object') as Row[] : [];
@@ -12,6 +37,11 @@ function rows(value: unknown): Row[] {
 
 function record(value: unknown): Row {
   return value && typeof value === 'object' && !Array.isArray(value) ? value as Row : {};
+}
+
+function importEnvelope<T>(files: Row, path: string, fallbackData: T): ImportEnvelope<T> {
+  const envelope = record(files[path]);
+  return (Object.keys(envelope).length ? envelope : { data: fallbackData }) as ImportEnvelope<T>;
 }
 
 function text(value: unknown, fallback: string) {
@@ -195,57 +225,33 @@ function RadarChart({ items }: { items: Array<{ label: string; score: number; ma
 }
 
 export default async function CompanyDashboardPage() {
-  const [
-    dashboard,
-    shortInterestEnvelope,
-    borrowFeeEnvelope,
-    sharesEnvelope,
-    utilizationEnvelope,
-    onLoanEnvelope,
-    shortScoreEnvelope,
-    topHoldersEnvelope,
-    ownershipChangesEnvelope,
-    activistEnvelope,
-    ownershipTrendEnvelope,
-    insiderEnvelope,
-    insiderNetEnvelope,
-    optionsEnvelope,
-    putCallEnvelope,
-    openInterestEnvelope,
-    gammaEnvelope,
-    alertsEnvelope,
-    newsEnvelope,
-    filingsEnvelope,
-    sentimentEnvelope,
-    internalFloatEnvelope,
-    dashboardMetricsEnvelope,
-    pageContent,
-  ] = await Promise.all([
-    buildImportDashboard(),
-    readImportFile<Row>('short/short_interest.json'),
-    readImportFile<Row>('short/borrow_fee.json'),
-    readImportFile<Row[]>('short/shares_available.json'),
-    readImportFile<Row[]>('short/utilization.json'),
-    readImportFile<Row[]>('short/on_loan.json'),
-    readImportFile<Row[]>('short/short_score.json'),
-    readImportFile<Row[]>('ownership/top_holders.json'),
-    readImportFile<Row[]>('ownership/ownership_changes.json'),
-    readImportFile<Row[]>('ownership/activist_filings.json'),
-    readImportFile<Row[]>('ownership/ownership_trend.json'),
-    readImportFile<Row[]>('insider/insider_transactions.json'),
-    readImportFile<Row>('insider/net_insider_activity.json'),
-    readImportFile<Row>('options/options_summary.json'),
-    readImportFile<Row>('options/put_call_ratio.json'),
-    readImportFile<Row[]>('options/open_interest.json'),
-    readImportFile<Row[]>('options/gamma_exposure.json'),
-    readImportFile<Row[]>('alerts/alerts.json'),
-    readImportFile<Row[]>('news_filings/news.json'),
-    readImportFile<Row[]>('news_filings/sec_filings.json'),
-    readImportFile<Row[]>('sentiment/social_mentions.json'),
-    readInternalFloatAdjustments(),
-    readImportFile<Row>('reports/dashboard_metrics.json').catch(() => ({ data: {} })),
-    readPageContent('dashboard'),
-  ]);
+  const dashboardEnvelope = await readImportFile<Row>('dashboard_CURR_consolidated_4_web.json');
+  const dashboardData = record(dashboardEnvelope.data);
+  const dashboard = dashboardData.dashboard as ImportDashboard;
+  const consolidatedFiles = record(dashboardData.files);
+  const shortInterestEnvelope = importEnvelope<Row>(consolidatedFiles, 'short/short_interest.json', {});
+  const borrowFeeEnvelope = importEnvelope<Row>(consolidatedFiles, 'short/borrow_fee.json', {});
+  const sharesEnvelope = importEnvelope<Row[]>(consolidatedFiles, 'short/shares_available.json', []);
+  const utilizationEnvelope = importEnvelope<Row[]>(consolidatedFiles, 'short/utilization.json', []);
+  const onLoanEnvelope = importEnvelope<Row[]>(consolidatedFiles, 'short/on_loan.json', []);
+  const shortScoreEnvelope = importEnvelope<Row[]>(consolidatedFiles, 'short/short_score.json', []);
+  const topHoldersEnvelope = importEnvelope<Row[]>(consolidatedFiles, 'ownership/top_holders.json', []);
+  const ownershipChangesEnvelope = importEnvelope<Row[]>(consolidatedFiles, 'ownership/ownership_changes.json', []);
+  const activistEnvelope = importEnvelope<Row[]>(consolidatedFiles, 'ownership/activist_filings.json', []);
+  const ownershipTrendEnvelope = importEnvelope<Row[]>(consolidatedFiles, 'ownership/ownership_trend.json', []);
+  const insiderEnvelope = importEnvelope<Row[]>(consolidatedFiles, 'insider/insider_transactions.json', []);
+  const insiderNetEnvelope = importEnvelope<Row>(consolidatedFiles, 'insider/net_insider_activity.json', {});
+  const optionsEnvelope = importEnvelope<Row>(consolidatedFiles, 'options/options_summary.json', {});
+  const putCallEnvelope = importEnvelope<Row>(consolidatedFiles, 'options/put_call_ratio.json', {});
+  const openInterestEnvelope = importEnvelope<Row[]>(consolidatedFiles, 'options/open_interest.json', []);
+  const gammaEnvelope = importEnvelope<Row[]>(consolidatedFiles, 'options/gamma_exposure.json', []);
+  const alertsEnvelope = importEnvelope<Row[]>(consolidatedFiles, 'alerts/alerts.json', []);
+  const newsEnvelope = importEnvelope<Row[]>(consolidatedFiles, 'news_filings/news.json', []);
+  const filingsEnvelope = importEnvelope<Row[]>(consolidatedFiles, 'news_filings/sec_filings.json', []);
+  const sentimentEnvelope = importEnvelope<Row[]>(consolidatedFiles, 'sentiment/social_mentions.json', []);
+  const internalFloatEnvelope = importEnvelope<Row>(consolidatedFiles, 'internal_float/float_adjustments.json', {});
+  const dashboardMetricsEnvelope = importEnvelope<Row>(consolidatedFiles, 'reports/dashboard_metrics.json', {});
+  const pageContent = record(dashboardData.pageContent);
   const { company, scores, metrics, summaries } = dashboard;
   const internalFloat = internalFloatEnvelope.data;
 
