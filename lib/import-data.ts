@@ -53,7 +53,8 @@ export type ImportDataPoolRow = {
 export type PageContentMap = Record<string, Record<string, unknown>>;
 
 const importDataRoot = path.join(process.cwd(), 'import_data');
-const importDataCacheMs = Math.max(5, Number(process.env.IMPORT_DATA_CACHE_SECONDS ?? 10)) * 1000;
+const importDataCacheSeconds = Math.max(5, Number(process.env.IMPORT_DATA_CACHE_SECONDS ?? 10));
+const importDataCacheMs = importDataCacheSeconds * 1000;
 
 type ImportDataSource = 'local' | 's3';
 
@@ -81,6 +82,13 @@ function importDataSource(): ImportDataSource {
   return process.env.IMPORT_DATA_SOURCE === 's3' ? 's3' : 'local';
 }
 
+export function getImportDataRuntimeConfig() {
+  return {
+    source: importDataSource(),
+    cacheSeconds: importDataCacheSeconds,
+  };
+}
+
 function s3Config() {
   const region = process.env.AWS_REGION?.trim() || 'us-east-1';
   const bucket = process.env.AWS_S3_BUCKET_NAME?.trim();
@@ -97,7 +105,8 @@ function normalizeImportPath(relativePath: string) {
 }
 
 function s3VersionKey(entry: S3IndexEntry) {
-  return `${entry.eTag ?? ''}:${entry.lastModified ?? ''}:${entry.size ?? ''}`;
+  if (entry.eTag) return `${entry.eTag}:${entry.size ?? ''}`;
+  return `${entry.lastModified ?? ''}:${entry.size ?? ''}`;
 }
 
 function hashImportContent(content: string) {
@@ -319,13 +328,8 @@ async function readJsonFile<T>(relativePath: string): Promise<T> {
 
 export async function listImportDataFiles() {
   if (importDataSource() === 's3') {
-    try {
-      const index = await getS3Index();
-      return Array.from(index.files.keys()).sort();
-    } catch (error) {
-      if (!fs.existsSync(importDataRoot)) throw error;
-      return listLocalImportJsonFiles();
-    }
+    const index = await getS3Index();
+    return Array.from(index.files.keys()).sort();
   }
 
   return listLocalImportJsonFiles();
@@ -334,19 +338,14 @@ export async function listImportDataFiles() {
 export async function getImportFileVersionParts(relativePath: string) {
   const normalizedPath = normalizeImportPath(relativePath);
   if (importDataSource() === 's3') {
-    try {
-      const index = await getS3Index();
-      const entry = index.files.get(normalizedPath);
-      if (!entry) return null;
-      return {
-        path: normalizedPath,
-        versionKey: s3VersionKey(entry) || hashImportContent(await readS3Text(normalizedPath)),
-        updatedAtMs: entry.lastModified ? Date.parse(entry.lastModified) : 0,
-      };
-    } catch (error) {
-      const fullPath = path.join(importDataRoot, normalizedPath);
-      if (!fs.existsSync(fullPath)) throw error;
-    }
+    const index = await getS3Index();
+    const entry = index.files.get(normalizedPath);
+    if (!entry) return null;
+    return {
+      path: normalizedPath,
+      versionKey: s3VersionKey(entry) || hashImportContent(await readS3Text(normalizedPath)),
+      updatedAtMs: entry.lastModified ? Date.parse(entry.lastModified) : 0,
+    };
   }
 
   const fullPath = path.join(importDataRoot, normalizedPath);

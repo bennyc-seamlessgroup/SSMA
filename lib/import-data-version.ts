@@ -1,14 +1,17 @@
 import crypto from 'crypto';
-import { getImportFileVersionParts, listImportDataFiles } from '@/lib/import-data';
+import { getImportDataRuntimeConfig, getImportFileVersionParts, listImportDataFiles } from '@/lib/import-data';
 
 export type ImportDataVersion = {
   version: string;
   updatedAt: string | null;
   fileCount: number;
+  source: 'local' | 's3';
+  cacheSeconds: number;
 };
 
 export async function getImportDataVersion(): Promise<ImportDataVersion> {
   const files = await listImportDataFiles();
+  const runtime = getImportDataRuntimeConfig();
   const hash = crypto.createHash('sha256');
   let latestModifiedMs = 0;
 
@@ -26,6 +29,8 @@ export async function getImportDataVersion(): Promise<ImportDataVersion> {
     version: hash.digest('hex'),
     updatedAt: latestModifiedMs ? new Date(latestModifiedMs).toISOString() : null,
     fileCount: files.length,
+    source: runtime.source,
+    cacheSeconds: runtime.cacheSeconds,
   };
 }
 

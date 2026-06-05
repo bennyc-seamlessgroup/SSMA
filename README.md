@@ -44,7 +44,7 @@ AWS_REGION=us-east-1
 AWS_S3_BUCKET_NAME=your_bucket_name
 AWS_ACCESS_KEY_ID=your_access_key_id
 AWS_SECRET_ACCESS_KEY=your_secret_access_key
-IMPORT_DATA_CACHE_SECONDS=30
+IMPORT_DATA_CACHE_SECONDS=10
 ```
 
-The S3 bucket must contain the same relative JSON paths, for example `company/profile.json` and `short/short_interest.json`. The portal lists S3 object metadata and refreshes when the object ETag, last modified time, or size changes.
+The S3 bucket must contain the same relative JSON paths, for example `company/profile.json` and `short/short_interest.json`. The portal lists S3 object metadata every `IMPORT_DATA_CACHE_SECONDS` seconds and refreshes when the object content identity changes. Timestamp-only uploads with identical object content should not trigger the update indicator.
