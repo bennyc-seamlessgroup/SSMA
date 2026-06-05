@@ -8,7 +8,7 @@
   "category": "short",
   "recordCount": 7,
   "status": "ready",
-  "notes": "Lending Pressure page handoff format. ORTEX provides availability and borrow fee data. onLoan is included as a backend-fillable null field because the current ORTEX consolidated source does not include on-loan records.",
+  "notes": "Lending Pressure page handoff format. ORTEX provides availability and borrow fee data. On-loan data is intentionally excluded because the current source does not provide it.",
   "originalFiles": [
     "import_data/ortex_CURR_consolidated_4_web.json"
   ],
@@ -20,18 +20,17 @@
       "Availability changes can quickly update pressure score"
     ],
     "negativeContributors": [
-      "On-loan data is not present in the current ORTEX consolidated source",
-      "Backend should populate onLoan.sharesOnLoan when available",
-      "Pressure score should be recalculated after on-loan data is available"
+      "Large remaining inventory",
+      "Low utilization data currently available",
+      "No institutional lending feed yet"
     ],
-    "aiLendingAnalysis": "Current imported ORTEX data supports borrow-fee, availability, and utilization pressure analysis. On-loan activity should be populated by the backend when that feed becomes available.",
+    "aiLendingAnalysis": "Current imported ORTEX data supports borrow-fee, availability, and utilization pressure analysis. Institutional lending activity should be added only when a reliable provider feed becomes available.",
     "current": {
       "date": "2026-06-03",
       "shortAvailabilityShares": 2393008,
       "shortAvailabilityPct": 67.59,
       "costToBorrowAll": 31.38,
-      "costToBorrowNew": 35.6,
-      "sharesOnLoan": null
+      "costToBorrowNew": 35.6
     },
     "daily": [
       {
@@ -53,11 +52,6 @@
         "borrowFeeNew": {
           "date": "2026-05-26",
           "costToBorrowNew": 33.07
-        },
-        "onLoan": {
-          "date": "2026-05-26",
-          "sharesOnLoan": null,
-          "sourceStatus": "missing_from_ortex_consolidated_source"
         }
       },
       {
@@ -79,11 +73,6 @@
         "borrowFeeNew": {
           "date": "2026-05-27",
           "costToBorrowNew": 30.43
-        },
-        "onLoan": {
-          "date": "2026-05-27",
-          "sharesOnLoan": null,
-          "sourceStatus": "missing_from_ortex_consolidated_source"
         }
       },
       {
@@ -105,11 +94,6 @@
         "borrowFeeNew": {
           "date": "2026-05-28",
           "costToBorrowNew": 33.22
-        },
-        "onLoan": {
-          "date": "2026-05-28",
-          "sharesOnLoan": null,
-          "sourceStatus": "missing_from_ortex_consolidated_source"
         }
       },
       {
@@ -131,11 +115,6 @@
         "borrowFeeNew": {
           "date": "2026-05-29",
           "costToBorrowNew": 30.33
-        },
-        "onLoan": {
-          "date": "2026-05-29",
-          "sharesOnLoan": null,
-          "sourceStatus": "missing_from_ortex_consolidated_source"
         }
       },
       {
@@ -154,12 +133,7 @@
           "date": "2026-06-01",
           "costToBorrowAll": 31.14
         },
-        "borrowFeeNew": [],
-        "onLoan": {
-          "date": "2026-06-01",
-          "sharesOnLoan": null,
-          "sourceStatus": "missing_from_ortex_consolidated_source"
-        }
+        "borrowFeeNew": []
       },
       {
         "date": "2026-06-02",
@@ -180,11 +154,6 @@
         "borrowFeeNew": {
           "date": "2026-06-02",
           "costToBorrowNew": 33.94
-        },
-        "onLoan": {
-          "date": "2026-06-02",
-          "sharesOnLoan": null,
-          "sourceStatus": "missing_from_ortex_consolidated_source"
         }
       },
       {
@@ -206,11 +175,6 @@
         "borrowFeeNew": {
           "date": "2026-06-03",
           "costToBorrowNew": 35.6
-        },
-        "onLoan": {
-          "date": "2026-06-03",
-          "sharesOnLoan": null,
-          "sourceStatus": "missing_from_ortex_consolidated_source"
         }
       }
     ],
@@ -221,21 +185,32 @@
           "pressureScoreDisplay": "39 / 100",
           "level": "Moderate",
           "health": "Tightening",
-          "formula": "pressureScore = round(availabilityPressure * 0.25 + utilizationPressure * 0.30 + borrowFeePressure * 0.30 + borrowDemandScore * 0.15)"
+          "formula": "pressureScore = round(availabilityPressure * 0.25 + utilizationPressure * 0.30 + borrowFeePressure * 0.30 + borrowDemandScore * 0.15)",
+          "components": {
+            "availabilityPressure": 12,
+            "utilizationPressure": 67.59,
+            "borrowFeePressure": 31.38,
+            "borrowDemandScore": 44,
+            "borrowDemand": "Moderate",
+            "formulas": {
+              "availabilityPressure": "100 if sharesAvailable <= 100000; 78 if <= 500000; 48 if <= 1500000; otherwise 12",
+              "utilizationPressure": "min(100, max(0, latest(data.daily[].availability.shortAvailabilityPct)))",
+              "borrowFeePressure": "min(100, max(0, latest(data.daily[].borrowFeeAll.costToBorrowAll)))",
+              "borrowDemandScore": "round(utilizationPressure * 0.45 + borrowFeePressure * 0.35 + availabilityPressure * 0.20)"
+            }
+          }
         },
         "components": {
           "availabilityPressure": 12,
           "utilizationPressure": 67.59,
           "borrowFeePressure": 31.38,
-          "onLoanPressure": 12,
-          "borrowDemandScore": 42,
+          "borrowDemandScore": 44,
           "borrowDemand": "Moderate",
           "formulas": {
             "availabilityPressure": "100 if sharesAvailable <= 100000; 78 if <= 500000; 48 if <= 1500000; otherwise 12",
             "utilizationPressure": "min(100, max(0, latest(data.daily[].availability.shortAvailabilityPct)))",
             "borrowFeePressure": "min(100, max(0, latest(data.daily[].borrowFeeAll.costToBorrowAll)))",
-            "onLoanPressure": "100 if sharesOnLoan >= 1000000; 62 if >= 650000; 38 if >= 400000; otherwise 12",
-            "borrowDemandScore": "round(utilizationPressure * 0.42 + borrowFeePressure * 0.35 + availabilityPressure * 0.18 + 5 if sharesOnLoan > 0)"
+            "borrowDemandScore": "round(utilizationPressure * 0.45 + borrowFeePressure * 0.35 + availabilityPressure * 0.20)"
           }
         },
         "cards": {
@@ -274,22 +249,10 @@
             "previousValue": 31.16,
             "deltaCurrentValue": 31.38,
             "pressureLabel": "Moderate Pressure"
-          },
-          "onLoan": {
-            "value": null,
-            "valueDisplay": "N/A",
-            "change": null,
-            "changeDisplay": "No prior update",
-            "changePercent": null,
-            "changePercentDisplay": "N/A",
-            "deltaDisplay": "No prior update",
-            "previousValue": 0,
-            "deltaCurrentValue": 0,
-            "pressureLabel": "Low Pressure",
-            "sourceStatus": "missing_from_ortex_consolidated_source"
           }
         }
       }
-    }
+    },
+    "requiredBackendUpdates": []
   }
 }

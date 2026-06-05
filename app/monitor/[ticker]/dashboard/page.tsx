@@ -233,7 +233,6 @@ export default async function CompanyDashboardPage() {
   const borrowFeeEnvelope = importEnvelope<Row>(consolidatedFiles, 'short/borrow_fee.json', {});
   const sharesEnvelope = importEnvelope<Row[]>(consolidatedFiles, 'short/shares_available.json', []);
   const utilizationEnvelope = importEnvelope<Row[]>(consolidatedFiles, 'short/utilization.json', []);
-  const onLoanEnvelope = importEnvelope<Row[]>(consolidatedFiles, 'short/on_loan.json', []);
   const shortScoreEnvelope = importEnvelope<Row[]>(consolidatedFiles, 'short/short_score.json', []);
   const topHoldersEnvelope = importEnvelope<Row[]>(consolidatedFiles, 'ownership/top_holders.json', []);
   const ownershipChangesEnvelope = importEnvelope<Row[]>(consolidatedFiles, 'ownership/ownership_changes.json', []);
@@ -261,11 +260,9 @@ export default async function CompanyDashboardPage() {
   const borrowCurrent = record(record(borrowFeeEnvelope.data).current);
   const availableRows = rows(sharesEnvelope.data);
   const utilizationRows = rows(utilizationEnvelope.data);
-  const onLoanRows = rows(onLoanEnvelope.data);
   const shortScoreRows = rows(shortScoreEnvelope.data);
   const latestShortScore = latest(shortScoreRows);
   const latestAvailable = latest(availableRows);
-  const latestOnLoan = latest(onLoanRows);
   const topHolders = rows(topHoldersEnvelope.data).slice(0, 6);
   const ownershipChanges = rows(ownershipChangesEnvelope.data);
   const increasedPositions = ownershipChanges.filter(row => (numeric(row.sharesChange) ?? 0) > 0);
@@ -455,7 +452,6 @@ export default async function CompanyDashboardPage() {
   const availabilityPressure = sharesAvailable <= 100000 ? 100 : sharesAvailable <= 500000 ? 78 : sharesAvailable <= 2500000 ? 52 : 24;
   const utilizationPressure = Math.max(0, Math.min(100, utilizationPct));
   const borrowFeePressure = Math.max(0, Math.min(100, borrowFeePct));
-  const onLoanShares = numeric(latestOnLoan.sharesOnLoan) ?? numeric(latestOnLoan.onLoan) ?? 0;
   const borrowDemandScore = Math.max(0, Math.min(100, Math.round((utilizationPressure * 0.45) + (borrowFeePressure * 0.35) + (availabilityPressure * 0.2))));
   const borrowDemandLabel = borrowDemandScore >= 81 ? 'Extreme' : borrowDemandScore >= 61 ? 'High' : borrowDemandScore >= 31 ? 'Moderate' : 'Low';
   const lendingPressureScore = Math.round((availabilityPressure * 0.25) + (utilizationPressure * 0.3) + (borrowFeePressure * 0.3) + (borrowDemandScore * 0.15));
@@ -1049,7 +1045,7 @@ export default async function CompanyDashboardPage() {
           <div className="terminal-card terminal-stat"><span>Shares Available</span><strong>{formatNumber(sharesAvailable)}</strong><small className="dev-source-inline">{sharesEnvelope.sourcePlatform ?? 'Ortex'} latest inventory</small></div>
           <div className="terminal-card terminal-stat"><span>Utilization</span><strong>{formatPercent(utilizationPct, { maximumFractionDigits: 2 })}</strong><small className="dev-source-inline">shortAvailabilityPct</small></div>
           <div className="terminal-card terminal-stat"><span>Borrow Fee</span><strong>{formatPercent(borrowFeePct, { maximumFractionDigits: 2 })}</strong><small>cost to borrow</small></div>
-          <div className="terminal-card terminal-stat"><span>Borrow Demand</span><strong>{borrowDemandLabel}</strong><small>{formatNumber(onLoanShares)} shares on loan</small></div>
+          <div className="terminal-card terminal-stat"><span>Borrow Demand</span><strong>{borrowDemandLabel}</strong><small>Availability, utilization, and borrow fee proxy</small></div>
         </div>
 
         <div className="lending-pressure-grid">
@@ -1069,7 +1065,7 @@ export default async function CompanyDashboardPage() {
           </div>
           <div className="terminal-card borrow-demand-card">
             <h3>{borrowDemandLabel} Borrow Demand</h3>
-            <p>Current borrow activity suggests {borrowDemandLabel.toLowerCase()} demand for available shares based on utilization, borrow fee, on-loan activity, and available inventory.</p>
+            <p>Current borrow activity suggests {borrowDemandLabel.toLowerCase()} demand for available shares based on utilization, borrow fee, and available inventory.</p>
             <div className="lending-view-tabs"><span>7 Day</span><span>30 Day</span><span>90 Day</span></div>
             {sourceChip('Internal Lending Model')}
           </div>
@@ -1079,7 +1075,6 @@ export default async function CompanyDashboardPage() {
           <div className="terminal-card chart-card"><h3><InfoTitle text="Trend of shares available to borrow. Declining availability can indicate tightening borrow supply.">Shares Available Trend</InfoTitle></h3><TrendLine values={availableRows.map(row => numeric(row.shortAvailabilityShares) ?? 0)} /></div>
           <div className="terminal-card chart-card"><h3><InfoTitle text="Utilization is currently mapped to shortAvailabilityPct from shares availability data in the MVP import pool.">Utilization Trend</InfoTitle></h3><TrendLine values={availableRows.map(row => numeric(row.shortAvailabilityPct) ?? 0)} /></div>
           <div className="terminal-card chart-card"><h3><InfoTitle text="Borrow fee trend shows whether short sellers are paying more to maintain or open short positions.">Borrow Fee Trend</InfoTitle></h3><TrendLine values={borrowRows.map(row => numeric(row.costToBorrowAll) ?? 0)} /></div>
-          <div className="terminal-card chart-card"><h3><InfoTitle text="Shares on loan approximates borrow demand. Rising on-loan activity can indicate stronger short-side demand.">On Loan Trend</InfoTitle></h3><TrendLine values={onLoanRows.map(row => numeric(row.sharesOnLoan) ?? numeric(row.onLoan) ?? 0)} /></div>
         </div>
 
         <div className="lending-bottom-grid">

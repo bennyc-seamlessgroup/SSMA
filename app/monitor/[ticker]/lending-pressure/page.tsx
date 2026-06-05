@@ -194,20 +194,16 @@ export default async function LendingPressurePage() {
   const latestAvailability = record(latestDaily.availability);
   const previousAvailability = record(previousDaily.availability);
   const previousBorrowFeeRow = record(previousDaily.borrowFeeAll);
-  const previousOnLoan = record(previousDaily.onLoan);
   const borrowFee = numeric(current.costToBorrowAll) ?? 0;
   const sharesAvailable = numeric(current.shortAvailabilityShares) ?? 0;
   const utilizationPct = numeric(current.shortAvailabilityPct) ?? 0;
-  const onLoanShares = numeric(current.sharesOnLoan) ?? 0;
   const availabilityPressure = sharesAvailable <= 100000 ? 100 : sharesAvailable <= 500000 ? 78 : sharesAvailable <= 1500000 ? 48 : 12;
   const utilizationPressure = Math.min(100, Math.max(0, utilizationPct));
   const borrowFeePressure = Math.min(100, Math.max(0, borrowFee));
-  const onLoanPressure = onLoanShares >= 1000000 ? 100 : onLoanShares >= 650000 ? 62 : onLoanShares >= 400000 ? 38 : 12;
-  const borrowDemandScore = Math.round((utilizationPressure * .42) + (borrowFeePressure * .35) + (availabilityPressure * .18) + (onLoanShares > 0 ? 5 : 0));
+  const borrowDemandScore = Math.round((utilizationPressure * .45) + (borrowFeePressure * .35) + (availabilityPressure * .2));
   const previousSharesAvailable = numeric(previousAvailability.shortAvailabilityShares);
   const previousUtilizationPct = numeric(previousAvailability.shortAvailabilityPct);
   const previousBorrowFee = numeric(previousBorrowFeeRow.costToBorrowAll);
-  const previousOnLoanShares = numeric(previousOnLoan.sharesOnLoan ?? previousOnLoan.onLoan);
   const pressureScore = Math.round((availabilityPressure * .25) + (utilizationPressure * .3) + (borrowFeePressure * .3) + (borrowDemandScore * .15));
   const level = pressureScore >= 81 ? 'Extreme' : pressureScore >= 61 ? 'High' : pressureScore >= 31 ? 'Moderate' : 'Low';
   const componentStatus = (value: number) => value >= 81 ? 'Extreme Pressure' : value >= 61 ? 'High Pressure' : value >= 31 ? 'Moderate Pressure' : 'Low Pressure';
@@ -218,14 +214,13 @@ export default async function LendingPressurePage() {
   const sharesAvailableCard = record(lendingCards.sharesAvailable);
   const utilizationCard = record(lendingCards.utilization);
   const borrowFeeCard = record(lendingCards.borrowFee);
-  const onLoanCard = record(lendingCards.onLoan);
   const displayPressureScore = numeric(lendingSummary.pressureScore) ?? pressureScore;
   const displayLevel = String(lendingSummary.level ?? level);
 
   return (
     <ImportDataPreviewPage
       title="Lending Pressure Intelligence"
-      description={text(pageContent.pageDescription, 'Detailed borrow availability, utilization, borrow fee, and on-loan data used to evaluate short seller pressure.')}
+      description={text(pageContent.pageDescription, 'Detailed borrow availability, utilization, and borrow fee data used to evaluate short seller pressure.')}
       files={['lending_pressure_CURR_consolidated_4_web.json']}
     >
       <section className="terminal-section lending-page-overview">
@@ -246,7 +241,7 @@ export default async function LendingPressurePage() {
             <span>Lending Pressure Score</span>
             <strong>{String(lendingSummary.pressureScoreDisplay ?? `${displayPressureScore} / 100`)}</strong>
             <em>{displayLevel}</em>
-            <p>{text(lendingData.pressureNarrative, text(pageContent.pressureNarrative, `Borrowing conditions indicate ${displayLevel.toLowerCase()} pressure on short sellers based on available inventory, utilization, borrow fee, and borrow demand.`))}</p>
+            <p>{text(lendingData.pressureNarrative, text(pageContent.pressureNarrative, `Borrowing conditions indicate ${displayLevel.toLowerCase()} pressure on short sellers based on available inventory, utilization, and borrow fee.`))}</p>
           </div>
           <div className="lending-gauge-card">
             <div className="triggered-gauge" style={{ background: `conic-gradient(#be123c 0% ${displayPressureScore}%, #e8eef7 ${displayPressureScore}% 100%)` }}>
@@ -260,14 +255,12 @@ export default async function LendingPressurePage() {
           <KpiCard label="Shares Available" value={formatNumber(sharesAvailable)} change={delta(sharesAvailable, previousSharesAvailable, { maximumFractionDigits: 0 })} suffix=" shares" deltaDisplay={String(sharesAvailableCard.deltaDisplay ?? '')} pressureLabel={String(sharesAvailableCard.pressureLabel ?? componentStatus(availabilityPressure))} pressureTone={componentClass(availabilityPressure)} />
           <KpiCard label="Utilization" value={formatPercent(utilizationPct, { maximumFractionDigits: 1 })} change={delta(utilizationPct, previousUtilizationPct, { maximumFractionDigits: 2 })} suffix=" pts" deltaDisplay={String(utilizationCard.deltaDisplay ?? '')} pressureLabel={String(utilizationCard.pressureLabel ?? componentStatus(utilizationPressure))} pressureTone={componentClass(utilizationPressure)} />
           <KpiCard label="Borrow Fee" value={formatPercent(borrowFee, { maximumFractionDigits: 2 })} change={delta(borrowFee, previousBorrowFee, { maximumFractionDigits: 2 })} suffix=" pts" deltaDisplay={String(borrowFeeCard.deltaDisplay ?? '')} pressureLabel={String(borrowFeeCard.pressureLabel ?? componentStatus(borrowFeePressure))} pressureTone={componentClass(borrowFeePressure)} />
-          <KpiCard label="On Loan" value={formatNumber(current.sharesOnLoan)} change={delta(numeric(current.sharesOnLoan), previousOnLoanShares, { maximumFractionDigits: 0 })} suffix=" shares" deltaDisplay={String(onLoanCard.deltaDisplay ?? '')} pressureLabel={String(onLoanCard.pressureLabel ?? componentStatus(onLoanPressure))} pressureTone={componentClass(onLoanPressure)} />
         </div>
 
         <div className="lending-trend-grid">
           <div className="terminal-card chart-card"><h3><InfoTitle text="Trend of shares available to borrow. Declining availability can indicate tightening borrow supply.">Shares Available Trend</InfoTitle></h3><TrendLine label="Available" labels={trendRows.map(row => shortDateLabel(row.date))} values={trendRows.map(row => numeric(record(row.availability).shortAvailabilityShares) ?? 0)} /></div>
           <div className="terminal-card chart-card"><h3><InfoTitle text="Utilization is currently mapped to ORTEX availability percentage in the consolidated lending file.">Utilization Trend</InfoTitle></h3><TrendLine label="Utilization" labels={trendRows.map(row => shortDateLabel(row.date))} values={trendRows.map(row => numeric(record(row.availability).shortAvailabilityPct) ?? 0)} valueFormatter={value => `${formatNumber(value, { maximumFractionDigits: 2 })}%`} /></div>
           <div className="terminal-card chart-card"><h3><InfoTitle text="Borrow fee trend shows whether short sellers are paying more to maintain or open short positions.">Borrow Fee Trend</InfoTitle></h3><TrendLine label="Borrow Fee" labels={trendRows.map(row => shortDateLabel(row.date))} values={trendRows.map(row => numeric(record(row.borrowFeeAll).costToBorrowAll) ?? 0)} valueFormatter={value => `${formatNumber(value, { maximumFractionDigits: 2 })}%`} /></div>
-          <div className="terminal-card chart-card"><h3><InfoTitle text="Shares on loan approximates borrow demand. This chart will populate when the backend adds on-loan records to the consolidated file.">On Loan Trend</InfoTitle></h3><TrendLine label="On Loan" labels={trendRows.map(row => shortDateLabel(row.date))} values={trendRows.map(row => numeric(record(row.onLoan).sharesOnLoan) ?? numeric(record(row.onLoan).onLoan) ?? 0)} /></div>
         </div>
 
         <div className="lending-bottom-grid">
@@ -275,12 +268,12 @@ export default async function LendingPressurePage() {
             <h3>Impact on Short Squeeze Risk</h3>
             <div className="contributors-grid">
               <div><h4>Positive Contributors</h4><ul>{textList(lendingData.positiveContributors, textList(pageContent.positiveContributors, ['Borrow fee remains visible', 'Imported inventory can be monitored daily', 'Availability changes can quickly update pressure score'])).map(item => <li key={item}>{item}</li>)}</ul></div>
-              <div><h4>Negative Contributors</h4><ul>{textList(lendingData.negativeContributors, textList(pageContent.negativeContributors, ['Large remaining inventory', 'Low utilization data currently available', 'No on-loan sample data yet'])).map(item => <li key={item}>{item}</li>)}</ul></div>
+              <div><h4>Negative Contributors</h4><ul>{textList(lendingData.negativeContributors, textList(pageContent.negativeContributors, ['Large remaining inventory', 'Low utilization data currently available', 'No institutional lending feed yet'])).map(item => <li key={item}>{item}</li>)}</ul></div>
             </div>
           </div>
           <div className="terminal-card ai-lending-card">
             <h3>AI Lending Analysis</h3>
-            <p>{text(lendingData.aiLendingAnalysis, text(pageContent.aiLendingAnalysis, `Current imported data indicates ${level.toLowerCase()} lending pressure. Borrow fees are visible, but available inventory remains meaningful and utilization/on-loan inputs are not yet supported by complete institutional data. Management should monitor borrow fee changes, availability drops, and future utilization feeds as primary indicators.`))}</p>
+            <p>{text(lendingData.aiLendingAnalysis, text(pageContent.aiLendingAnalysis, `Current imported data indicates ${level.toLowerCase()} lending pressure. Borrow fees are visible, but available inventory remains meaningful and institutional lending inputs are not yet supported by complete provider data. Management should monitor borrow fee changes, availability drops, and future utilization feeds as primary indicators.`))}</p>
             {sourceChip('Internal Lending Model')}
           </div>
         </div>

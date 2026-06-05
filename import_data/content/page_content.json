@@ -82,12 +82,12 @@
       "trendSubtitle": "Larger charts for short exposure, borrow cost, borrow availability, and reported short volume."
     },
     "lendingPressure": {
-      "pageDescription": "Detailed borrow availability, utilization, borrow fee, and on-loan data used to evaluate short seller pressure.",
+      "pageDescription": "Detailed borrow availability, utilization, and borrow fee data used to evaluate short seller pressure.",
       "overviewSubtitle": "Executive view of share availability, borrowing conditions, inventory utilization, and lending pressure.",
       "pressureNarrative": "Borrowing conditions indicate pressure on short sellers based on available inventory, utilization, borrow fee, and borrow demand.",
       "healthyStatusNote": "Available inventory remains sufficient while utilization is controlled.",
       "reviewStatusNote": "Borrow conditions warrant management review and continued monitoring.",
-      "borrowDemandNarrative": "Current borrow activity suggests demand for available shares based on utilization, borrow fee, on-loan activity, and available inventory.",
+      "borrowDemandNarrative": "Current borrow activity suggests demand for available shares based on utilization, borrow fee, and available inventory.",
       "positiveContributors": [
         "Borrow fee remains visible",
         "Imported inventory can be monitored daily",
@@ -96,9 +96,9 @@
       "negativeContributors": [
         "Large remaining inventory",
         "Low utilization data currently available",
-        "No on-loan sample data yet"
+        "No institutional lending feed yet"
       ],
-      "aiLendingAnalysis": "Current imported data indicates lending pressure. Borrow fees are visible, but available inventory remains meaningful and utilization/on-loan inputs are not yet supported by complete institutional data. Management should monitor borrow fee changes, availability drops, and future utilization feeds as primary indicators."
+      "aiLendingAnalysis": "Current imported data indicates lending pressure. Borrow fees are visible, but available inventory remains meaningful and institutional lending inputs are not yet supported by complete provider data. Management should monitor borrow fee changes, availability drops, and future utilization feeds as primary indicators."
     },
     "smartMoney": {
       "pageDescription": "Institutional ownership, shareholder changes, insider activity, and options positioning research.",
