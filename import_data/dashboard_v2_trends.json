@@ -1,0 +1,3677 @@
+{
+  "ticker": "CURR",
+  "asOfDate": "2026-05-31",
+  "importedAt": "2026-06-08T06:50:17.173Z",
+  "source": "Dashboard v2 dummy trend data",
+  "sourcePlatform": "Internal Sample Data",
+  "recordType": "dashboardV2TrendSeries",
+  "category": "dashboard",
+  "recordCount": 365,
+  "status": "ready",
+  "notes": "One year of controlled dummy daily trend data for Dashboard v2. Replace with production feed later while preserving data[] shape.",
+  "data": [
+    {
+      "date": "2025-06-01",
+      "price": 1.02,
+      "feeRate": 84.72,
+      "tradeVolume": 176717,
+      "shortableShares": 1232016,
+      "averageDuration": 5.4,
+      "utilization": 58.07,
+      "margin": 36.36
+    },
+    {
+      "date": "2025-06-02",
+      "price": 1.09,
+      "feeRate": 84.44,
+      "tradeVolume": 176946,
+      "shortableShares": 1199412,
+      "averageDuration": 6.5,
+      "utilization": 58.91,
+      "margin": 36.71
+    },
+    {
+      "date": "2025-06-03",
+      "price": 1.05,
+      "feeRate": 84.37,
+      "tradeVolume": 190973,
+      "shortableShares": 1219496,
+      "averageDuration": 6.4,
+      "utilization": 60.31,
+      "margin": 37.03
+    },
+    {
+      "date": "2025-06-04",
+      "price": 1.09,
+      "feeRate": 82.9,
+      "tradeVolume": 144182,
+      "shortableShares": 1199686,
+      "averageDuration": 7.3,
+      "utilization": 60.25,
+      "margin": 36.55
+    },
+    {
+      "date": "2025-06-05",
+      "price": 1.09,
+      "feeRate": 80.61,
+      "tradeVolume": 140156,
+      "shortableShares": 1236782,
+      "averageDuration": 8,
+      "utilization": 58.96,
+      "margin": 36.86
+    },
+    {
+      "date": "2025-06-06",
+      "price": 1.11,
+      "feeRate": 80.62,
+      "tradeVolume": 157201,
+      "shortableShares": 1225667,
+      "averageDuration": 7.6,
+      "utilization": 61.31,
+      "margin": 37.29
+    },
+    {
+      "date": "2025-06-07",
+      "price": 1.14,
+      "feeRate": 81.12,
+      "tradeVolume": 172351,
+      "shortableShares": 1237673,
+      "averageDuration": 8,
+      "utilization": 61.18,
+      "margin": 39.28
+    },
+    {
+      "date": "2025-06-08",
+      "price": 1.12,
+      "feeRate": 80.33,
+      "tradeVolume": 157159,
+      "shortableShares": 1148619,
+      "averageDuration": 7.7,
+      "utilization": 63.05,
+      "margin": 39.08
+    },
+    {
+      "date": "2025-06-09",
+      "price": 1.07,
+      "feeRate": 78.45,
+      "tradeVolume": 170777,
+      "shortableShares": 1131318,
+      "averageDuration": 8.4,
+      "utilization": 64.58,
+      "margin": 38.67
+    },
+    {
+      "date": "2025-06-10",
+      "price": 1.1,
+      "feeRate": 79.77,
+      "tradeVolume": 187934,
+      "shortableShares": 1149781,
+      "averageDuration": 8.3,
+      "utilization": 63.65,
+      "margin": 38.94
+    },
+    {
+      "date": "2025-06-11",
+      "price": 1.14,
+      "feeRate": 78.89,
+      "tradeVolume": 263005,
+      "shortableShares": 1165886,
+      "averageDuration": 8.5,
+      "utilization": 64.49,
+      "margin": 38.79
+    },
+    {
+      "date": "2025-06-12",
+      "price": 1.14,
+      "feeRate": 79.78,
+      "tradeVolume": 254942,
+      "shortableShares": 1132369,
+      "averageDuration": 7.2,
+      "utilization": 63.99,
+      "margin": 39.35
+    },
+    {
+      "date": "2025-06-13",
+      "price": 1.11,
+      "feeRate": 80.34,
+      "tradeVolume": 237971,
+      "shortableShares": 1147954,
+      "averageDuration": 6.9,
+      "utilization": 65.39,
+      "margin": 39.95
+    },
+    {
+      "date": "2025-06-14",
+      "price": 1.18,
+      "feeRate": 78.74,
+      "tradeVolume": 245634,
+      "shortableShares": 1170635,
+      "averageDuration": 7.3,
+      "utilization": 65.18,
+      "margin": 39.99
+    },
+    {
+      "date": "2025-06-15",
+      "price": 1.18,
+      "feeRate": 78.67,
+      "tradeVolume": 236517,
+      "shortableShares": 1291145,
+      "averageDuration": 7.6,
+      "utilization": 65.74,
+      "margin": 38.36
+    },
+    {
+      "date": "2025-06-16",
+      "price": 1.23,
+      "feeRate": 77.42,
+      "tradeVolume": 253026,
+      "shortableShares": 1274486,
+      "averageDuration": 7.1,
+      "utilization": 62.93,
+      "margin": 38.82
+    },
+    {
+      "date": "2025-06-17",
+      "price": 1.28,
+      "feeRate": 77.83,
+      "tradeVolume": 269854,
+      "shortableShares": 1244437,
+      "averageDuration": 7.5,
+      "utilization": 62.51,
+      "margin": 38.72
+    },
+    {
+      "date": "2025-06-18",
+      "price": 1.26,
+      "feeRate": 76.8,
+      "tradeVolume": 264661,
+      "shortableShares": 1256944,
+      "averageDuration": 7.9,
+      "utilization": 63.29,
+      "margin": 39.23
+    },
+    {
+      "date": "2025-06-19",
+      "price": 1.28,
+      "feeRate": 76.45,
+      "tradeVolume": 2280000,
+      "shortableShares": 1243011,
+      "averageDuration": 9.9,
+      "utilization": 63.99,
+      "margin": 38.75
+    },
+    {
+      "date": "2025-06-20",
+      "price": 1.27,
+      "feeRate": 73.11,
+      "tradeVolume": 204961,
+      "shortableShares": 1273320,
+      "averageDuration": 9.7,
+      "utilization": 63.03,
+      "margin": 38.57
+    },
+    {
+      "date": "2025-06-21",
+      "price": 1.31,
+      "feeRate": 71.87,
+      "tradeVolume": 191943,
+      "shortableShares": 1305676,
+      "averageDuration": 9.3,
+      "utilization": 63.72,
+      "margin": 39.25
+    },
+    {
+      "date": "2025-06-22",
+      "price": 1.31,
+      "feeRate": 71.67,
+      "tradeVolume": 201004,
+      "shortableShares": 1302809,
+      "averageDuration": 9.6,
+      "utilization": 64.64,
+      "margin": 40.66
+    },
+    {
+      "date": "2025-06-23",
+      "price": 1.33,
+      "feeRate": 71.39,
+      "tradeVolume": 172462,
+      "shortableShares": 1195504,
+      "averageDuration": 9.4,
+      "utilization": 68.83,
+      "margin": 40.14
+    },
+    {
+      "date": "2025-06-24",
+      "price": 1.25,
+      "feeRate": 69.64,
+      "tradeVolume": 154205,
+      "shortableShares": 1219069,
+      "averageDuration": 10,
+      "utilization": 68.44,
+      "margin": 40.52
+    },
+    {
+      "date": "2025-06-25",
+      "price": 1.24,
+      "feeRate": 69.33,
+      "tradeVolume": 167630,
+      "shortableShares": 1207173,
+      "averageDuration": 10.6,
+      "utilization": 67.61,
+      "margin": 40.16
+    },
+    {
+      "date": "2025-06-26",
+      "price": 1.26,
+      "feeRate": 69.22,
+      "tradeVolume": 208565,
+      "shortableShares": 1233208,
+      "averageDuration": 10.6,
+      "utilization": 68.2,
+      "margin": 40.22
+    },
+    {
+      "date": "2025-06-27",
+      "price": 1.28,
+      "feeRate": 71.97,
+      "tradeVolume": 176496,
+      "shortableShares": 1197573,
+      "averageDuration": 9,
+      "utilization": 67.92,
+      "margin": 40.53
+    },
+    {
+      "date": "2025-06-28",
+      "price": 1.25,
+      "feeRate": 70.69,
+      "tradeVolume": 177621,
+      "shortableShares": 1179937,
+      "averageDuration": 9.4,
+      "utilization": 69.11,
+      "margin": 40.39
+    },
+    {
+      "date": "2025-06-29",
+      "price": 1.27,
+      "feeRate": 69.02,
+      "tradeVolume": 151504,
+      "shortableShares": 1215803,
+      "averageDuration": 9.3,
+      "utilization": 70.37,
+      "margin": 40.11
+    },
+    {
+      "date": "2025-06-30",
+      "price": 1.3,
+      "feeRate": 68.6,
+      "tradeVolume": 154493,
+      "shortableShares": 1298046,
+      "averageDuration": 9.8,
+      "utilization": 70.46,
+      "margin": 39.88
+    },
+    {
+      "date": "2025-07-01",
+      "price": 1.42,
+      "feeRate": 67.4,
+      "tradeVolume": 172297,
+      "shortableShares": 1258964,
+      "averageDuration": 9.3,
+      "utilization": 67.07,
+      "margin": 39.78
+    },
+    {
+      "date": "2025-07-02",
+      "price": 1.41,
+      "feeRate": 67.5,
+      "tradeVolume": 173066,
+      "shortableShares": 1275369,
+      "averageDuration": 9.1,
+      "utilization": 68.05,
+      "margin": 40.42
+    },
+    {
+      "date": "2025-07-03",
+      "price": 1.38,
+      "feeRate": 67.67,
+      "tradeVolume": 168230,
+      "shortableShares": 1246343,
+      "averageDuration": 9.8,
+      "utilization": 67.84,
+      "margin": 40.01
+    },
+    {
+      "date": "2025-07-04",
+      "price": 1.4,
+      "feeRate": 66.81,
+      "tradeVolume": 165034,
+      "shortableShares": 1242784,
+      "averageDuration": 11.2,
+      "utilization": 68.91,
+      "margin": 39.78
+    },
+    {
+      "date": "2025-07-05",
+      "price": 1.39,
+      "feeRate": 62.89,
+      "tradeVolume": 166210,
+      "shortableShares": 1255148,
+      "averageDuration": 10.7,
+      "utilization": 67.92,
+      "margin": 39.95
+    },
+    {
+      "date": "2025-07-06",
+      "price": 1.42,
+      "feeRate": 62.83,
+      "tradeVolume": 194551,
+      "shortableShares": 1239180,
+      "averageDuration": 11,
+      "utilization": 67.54,
+      "margin": 39.86
+    },
+    {
+      "date": "2025-07-07",
+      "price": 1.46,
+      "feeRate": 61.73,
+      "tradeVolume": 183188,
+      "shortableShares": 1214123,
+      "averageDuration": 10.7,
+      "utilization": 68.94,
+      "margin": 41.11
+    },
+    {
+      "date": "2025-07-08",
+      "price": 1.46,
+      "feeRate": 61.77,
+      "tradeVolume": 177717,
+      "shortableShares": 1192232,
+      "averageDuration": 10.7,
+      "utilization": 71.9,
+      "margin": 41.07
+    },
+    {
+      "date": "2025-07-09",
+      "price": 1.36,
+      "feeRate": 60.01,
+      "tradeVolume": 186412,
+      "shortableShares": 3500000,
+      "averageDuration": 11,
+      "utilization": 70.81,
+      "margin": 42
+    },
+    {
+      "date": "2025-07-10",
+      "price": 1.39,
+      "feeRate": 58.8,
+      "tradeVolume": 184338,
+      "shortableShares": 1210303,
+      "averageDuration": 10.8,
+      "utilization": 71.57,
+      "margin": 41.1
+    },
+    {
+      "date": "2025-07-11",
+      "price": 1.38,
+      "feeRate": 59.17,
+      "tradeVolume": 232108,
+      "shortableShares": 1177123,
+      "averageDuration": 10.6,
+      "utilization": 70.82,
+      "margin": 41.24
+    },
+    {
+      "date": "2025-07-12",
+      "price": 1.41,
+      "feeRate": 60.93,
+      "tradeVolume": 1560000,
+      "shortableShares": 1154834,
+      "averageDuration": 10.3,
+      "utilization": 70.93,
+      "margin": 41.27
+    },
+    {
+      "date": "2025-07-13",
+      "price": 1.38,
+      "feeRate": 59.16,
+      "tradeVolume": 263902,
+      "shortableShares": 1157354,
+      "averageDuration": 10.2,
+      "utilization": 71.57,
+      "margin": 41.94
+    },
+    {
+      "date": "2025-07-14",
+      "price": 1.37,
+      "feeRate": 59.03,
+      "tradeVolume": 228069,
+      "shortableShares": 1143228,
+      "averageDuration": 10.8,
+      "utilization": 71.27,
+      "margin": 40.36
+    },
+    {
+      "date": "2025-07-15",
+      "price": 1.41,
+      "feeRate": 57.6,
+      "tradeVolume": 230142,
+      "shortableShares": 1213570,
+      "averageDuration": 10.4,
+      "utilization": 70.66,
+      "margin": 40.57
+    },
+    {
+      "date": "2025-07-16",
+      "price": 1.49,
+      "feeRate": 56.94,
+      "tradeVolume": 227497,
+      "shortableShares": 1202503,
+      "averageDuration": 10.1,
+      "utilization": 70.17,
+      "margin": 40.54
+    },
+    {
+      "date": "2025-07-17",
+      "price": 1.46,
+      "feeRate": 56.78,
+      "tradeVolume": 247725,
+      "shortableShares": 1252445,
+      "averageDuration": 10.3,
+      "utilization": 69.94,
+      "margin": 40.62
+    },
+    {
+      "date": "2025-07-18",
+      "price": 1.48,
+      "feeRate": 55.82,
+      "tradeVolume": 182557,
+      "shortableShares": 1187962,
+      "averageDuration": 10.2,
+      "utilization": 71.25,
+      "margin": 40.82
+    },
+    {
+      "date": "2025-07-19",
+      "price": 1.46,
+      "feeRate": 54.61,
+      "tradeVolume": 184096,
+      "shortableShares": 1188205,
+      "averageDuration": 11.4,
+      "utilization": 70.38,
+      "margin": 40.44
+    },
+    {
+      "date": "2025-07-20",
+      "price": 1.46,
+      "feeRate": 53.54,
+      "tradeVolume": 175491,
+      "shortableShares": 1182119,
+      "averageDuration": 11.4,
+      "utilization": 69.88,
+      "margin": 40.3
+    },
+    {
+      "date": "2025-07-21",
+      "price": 1.47,
+      "feeRate": 52.72,
+      "tradeVolume": 170587,
+      "shortableShares": 1215653,
+      "averageDuration": 12.3,
+      "utilization": 70.21,
+      "margin": 40.51
+    },
+    {
+      "date": "2025-07-22",
+      "price": 1.46,
+      "feeRate": 53.29,
+      "tradeVolume": 169478,
+      "shortableShares": 1108306,
+      "averageDuration": 11.4,
+      "utilization": 69.99,
+      "margin": 42.21
+    },
+    {
+      "date": "2025-07-23",
+      "price": 1.45,
+      "feeRate": 51.97,
+      "tradeVolume": 146451,
+      "shortableShares": 1113510,
+      "averageDuration": 11.5,
+      "utilization": 72.58,
+      "margin": 41.7
+    },
+    {
+      "date": "2025-07-24",
+      "price": 1.43,
+      "feeRate": 51.01,
+      "tradeVolume": 131453,
+      "shortableShares": 1103087,
+      "averageDuration": 11.5,
+      "utilization": 72.46,
+      "margin": 42.36
+    },
+    {
+      "date": "2025-07-25",
+      "price": 1.42,
+      "feeRate": 50.8,
+      "tradeVolume": 129812,
+      "shortableShares": 1100001,
+      "averageDuration": 12.1,
+      "utilization": 74.37,
+      "margin": 41.76
+    },
+    {
+      "date": "2025-07-26",
+      "price": 1.46,
+      "feeRate": 50.13,
+      "tradeVolume": 183824,
+      "shortableShares": 1104285,
+      "averageDuration": 10.5,
+      "utilization": 72.47,
+      "margin": 41.59
+    },
+    {
+      "date": "2025-07-27",
+      "price": 1.43,
+      "feeRate": 51.97,
+      "tradeVolume": 154614,
+      "shortableShares": 1072944,
+      "averageDuration": 10.7,
+      "utilization": 72.72,
+      "margin": 42.42
+    },
+    {
+      "date": "2025-07-28",
+      "price": 1.42,
+      "feeRate": 51.46,
+      "tradeVolume": 177935,
+      "shortableShares": 1055739,
+      "averageDuration": 10.7,
+      "utilization": 72.77,
+      "margin": 42.06
+    },
+    {
+      "date": "2025-07-29",
+      "price": 1.43,
+      "feeRate": 52.76,
+      "tradeVolume": 164435,
+      "shortableShares": 1061388,
+      "averageDuration": 10.8,
+      "utilization": 74.13,
+      "margin": 40.45
+    },
+    {
+      "date": "2025-07-30",
+      "price": 1.42,
+      "feeRate": 50.72,
+      "tradeVolume": 167355,
+      "shortableShares": 1160213,
+      "averageDuration": 10.9,
+      "utilization": 70.8,
+      "margin": 40.66
+    },
+    {
+      "date": "2025-07-31",
+      "price": 1.49,
+      "feeRate": 50.62,
+      "tradeVolume": 207327,
+      "shortableShares": 1120582,
+      "averageDuration": 10.6,
+      "utilization": 71.21,
+      "margin": 40.43
+    },
+    {
+      "date": "2025-08-01",
+      "price": 1.49,
+      "feeRate": 50.35,
+      "tradeVolume": 202263,
+      "shortableShares": 1154368,
+      "averageDuration": 10.4,
+      "utilization": 71.11,
+      "margin": 40.76
+    },
+    {
+      "date": "2025-08-02",
+      "price": 1.54,
+      "feeRate": 51.26,
+      "tradeVolume": 149923,
+      "shortableShares": 1109586,
+      "averageDuration": 10.6,
+      "utilization": 71.25,
+      "margin": 40.87
+    },
+    {
+      "date": "2025-08-03",
+      "price": 1.49,
+      "feeRate": 48.06,
+      "tradeVolume": 165826,
+      "shortableShares": 1092439,
+      "averageDuration": 12.3,
+      "utilization": 71.62,
+      "margin": 40.7
+    },
+    {
+      "date": "2025-08-04",
+      "price": 1.49,
+      "feeRate": 48.19,
+      "tradeVolume": 164338,
+      "shortableShares": 1137520,
+      "averageDuration": 11.8,
+      "utilization": 70.81,
+      "margin": 40.78
+    },
+    {
+      "date": "2025-08-05",
+      "price": 1.5,
+      "feeRate": 47.87,
+      "tradeVolume": 183030,
+      "shortableShares": 1108209,
+      "averageDuration": 12.4,
+      "utilization": 70.47,
+      "margin": 41.34
+    },
+    {
+      "date": "2025-08-06",
+      "price": 1.53,
+      "feeRate": 47.78,
+      "tradeVolume": 193054,
+      "shortableShares": 1000963,
+      "averageDuration": 11.8,
+      "utilization": 70.88,
+      "margin": 42.38
+    },
+    {
+      "date": "2025-08-07",
+      "price": 1.44,
+      "feeRate": 47.92,
+      "tradeVolume": 191579,
+      "shortableShares": 1008494,
+      "averageDuration": 11.6,
+      "utilization": 74.4,
+      "margin": 41.54
+    },
+    {
+      "date": "2025-08-08",
+      "price": 1.46,
+      "feeRate": 47.02,
+      "tradeVolume": 198729,
+      "shortableShares": 988246,
+      "averageDuration": 12.5,
+      "utilization": 73.3,
+      "margin": 41.97
+    },
+    {
+      "date": "2025-08-09",
+      "price": 1.45,
+      "feeRate": 46.55,
+      "tradeVolume": 222774,
+      "shortableShares": 1002987,
+      "averageDuration": 12.1,
+      "utilization": 74.64,
+      "margin": 42.18
+    },
+    {
+      "date": "2025-08-10",
+      "price": 1.46,
+      "feeRate": 46.75,
+      "tradeVolume": 263947,
+      "shortableShares": 1004775,
+      "averageDuration": 10.5,
+      "utilization": 73.35,
+      "margin": 42.2
+    },
+    {
+      "date": "2025-08-11",
+      "price": 1.47,
+      "feeRate": 49.69,
+      "tradeVolume": 233814,
+      "shortableShares": 989011,
+      "averageDuration": 10.7,
+      "utilization": 72.98,
+      "margin": 42.12
+    },
+    {
+      "date": "2025-08-12",
+      "price": 1.45,
+      "feeRate": 48.57,
+      "tradeVolume": 250433,
+      "shortableShares": 989333,
+      "averageDuration": 10.5,
+      "utilization": 74.68,
+      "margin": 42.29
+    },
+    {
+      "date": "2025-08-13",
+      "price": 1.44,
+      "feeRate": 49.6,
+      "tradeVolume": 257887,
+      "shortableShares": 1019605,
+      "averageDuration": 10.8,
+      "utilization": 73.89,
+      "margin": 40.1
+    },
+    {
+      "date": "2025-08-14",
+      "price": 1.46,
+      "feeRate": 48.32,
+      "tradeVolume": 256944,
+      "shortableShares": 1080274,
+      "averageDuration": 10.9,
+      "utilization": 70.49,
+      "margin": 39.94
+    },
+    {
+      "date": "2025-08-15",
+      "price": 1.56,
+      "feeRate": 47.85,
+      "tradeVolume": 251720,
+      "shortableShares": 1023988,
+      "averageDuration": 10.7,
+      "utilization": 70.92,
+      "margin": 40.41
+    },
+    {
+      "date": "2025-08-16",
+      "price": 1.53,
+      "feeRate": 49.2,
+      "tradeVolume": 254864,
+      "shortableShares": 2600000,
+      "averageDuration": 10.8,
+      "utilization": 70.41,
+      "margin": 40.09
+    },
+    {
+      "date": "2025-08-17",
+      "price": 1.58,
+      "feeRate": 48.36,
+      "tradeVolume": 169006,
+      "shortableShares": 1057683,
+      "averageDuration": 11.4,
+      "utilization": 71.06,
+      "margin": 40.84
+    },
+    {
+      "date": "2025-08-18",
+      "price": 1.54,
+      "feeRate": 45.22,
+      "tradeVolume": 158452,
+      "shortableShares": 1055716,
+      "averageDuration": 12.4,
+      "utilization": 71.27,
+      "margin": 39.75
+    },
+    {
+      "date": "2025-08-19",
+      "price": 1.54,
+      "feeRate": 45.43,
+      "tradeVolume": 170785,
+      "shortableShares": 1048433,
+      "averageDuration": 11.6,
+      "utilization": 70.88,
+      "margin": 39.8
+    },
+    {
+      "date": "2025-08-20",
+      "price": 1.59,
+      "feeRate": 44.82,
+      "tradeVolume": 152788,
+      "shortableShares": 1056846,
+      "averageDuration": 12.1,
+      "utilization": 71.03,
+      "margin": 41.33
+    },
+    {
+      "date": "2025-08-21",
+      "price": 1.57,
+      "feeRate": 45.21,
+      "tradeVolume": 174515,
+      "shortableShares": 918581,
+      "averageDuration": 12.3,
+      "utilization": 72.16,
+      "margin": 41.74
+    },
+    {
+      "date": "2025-08-22",
+      "price": 1.48,
+      "feeRate": 45.21,
+      "tradeVolume": 127279,
+      "shortableShares": 907372,
+      "averageDuration": 12.3,
+      "utilization": 74.3,
+      "margin": 41.01
+    },
+    {
+      "date": "2025-08-23",
+      "price": 1.5,
+      "feeRate": 44.67,
+      "tradeVolume": 122049,
+      "shortableShares": 935737,
+      "averageDuration": 12.3,
+      "utilization": 72.52,
+      "margin": 41.22
+    },
+    {
+      "date": "2025-08-24",
+      "price": 1.49,
+      "feeRate": 44.59,
+      "tradeVolume": 172653,
+      "shortableShares": 914837,
+      "averageDuration": 12.4,
+      "utilization": 73.4,
+      "margin": 41.32
+    },
+    {
+      "date": "2025-08-25",
+      "price": 1.52,
+      "feeRate": 45.37,
+      "tradeVolume": 184365,
+      "shortableShares": 961275,
+      "averageDuration": 10.3,
+      "utilization": 73.82,
+      "margin": 41.52
+    },
+    {
+      "date": "2025-08-26",
+      "price": 1.53,
+      "feeRate": 47.02,
+      "tradeVolume": 169053,
+      "shortableShares": 893742,
+      "averageDuration": 10.2,
+      "utilization": 73.83,
+      "margin": 40.57
+    },
+    {
+      "date": "2025-08-27",
+      "price": 1.53,
+      "feeRate": 45.21,
+      "tradeVolume": 188619,
+      "shortableShares": 897009,
+      "averageDuration": 10.6,
+      "utilization": 73.65,
+      "margin": 41.01
+    },
+    {
+      "date": "2025-08-28",
+      "price": 1.54,
+      "feeRate": 45.73,
+      "tradeVolume": 204145,
+      "shortableShares": 993942,
+      "averageDuration": 10.4,
+      "utilization": 73.98,
+      "margin": 39.02
+    },
+    {
+      "date": "2025-08-29",
+      "price": 1.58,
+      "feeRate": 45.83,
+      "tradeVolume": 2640000,
+      "shortableShares": 1020905,
+      "averageDuration": 11.1,
+      "utilization": 69.41,
+      "margin": 38.92
+    },
+    {
+      "date": "2025-08-30",
+      "price": 1.65,
+      "feeRate": 45.55,
+      "tradeVolume": 198109,
+      "shortableShares": 977252,
+      "averageDuration": 10.1,
+      "utilization": 69.07,
+      "margin": 39.4
+    },
+    {
+      "date": "2025-08-31",
+      "price": 1.61,
+      "feeRate": 45.1,
+      "tradeVolume": 225219,
+      "shortableShares": 992227,
+      "averageDuration": 10.2,
+      "utilization": 70.03,
+      "margin": 39.27
+    },
+    {
+      "date": "2025-09-01",
+      "price": 1.64,
+      "feeRate": 45.08,
+      "tradeVolume": 160442,
+      "shortableShares": 1001159,
+      "averageDuration": 11.7,
+      "utilization": 69.34,
+      "margin": 39.2
+    },
+    {
+      "date": "2025-09-02",
+      "price": 1.66,
+      "feeRate": 40.75,
+      "tradeVolume": 165949,
+      "shortableShares": 1016646,
+      "averageDuration": 12.2,
+      "utilization": 70.88,
+      "margin": 39.66
+    },
+    {
+      "date": "2025-09-03",
+      "price": 1.67,
+      "feeRate": 40.11,
+      "tradeVolume": 192388,
+      "shortableShares": 960020,
+      "averageDuration": 11.5,
+      "utilization": 68.61,
+      "margin": 38.96
+    },
+    {
+      "date": "2025-09-04",
+      "price": 1.68,
+      "feeRate": 40.63,
+      "tradeVolume": 194957,
+      "shortableShares": 991418,
+      "averageDuration": 11.8,
+      "utilization": 68.69,
+      "margin": 40.78
+    },
+    {
+      "date": "2025-09-05",
+      "price": 1.7,
+      "feeRate": 39.67,
+      "tradeVolume": 198985,
+      "shortableShares": 871052,
+      "averageDuration": 11.9,
+      "utilization": 71.88,
+      "margin": 39.82
+    },
+    {
+      "date": "2025-09-06",
+      "price": 1.58,
+      "feeRate": 40.68,
+      "tradeVolume": 221729,
+      "shortableShares": 869352,
+      "averageDuration": 12.2,
+      "utilization": 72.73,
+      "margin": 40.33
+    },
+    {
+      "date": "2025-09-07",
+      "price": 1.58,
+      "feeRate": 38.32,
+      "tradeVolume": 200088,
+      "shortableShares": 904186,
+      "averageDuration": 11.3,
+      "utilization": 71.21,
+      "margin": 40.5
+    },
+    {
+      "date": "2025-09-08",
+      "price": 1.62,
+      "feeRate": 38.03,
+      "tradeVolume": 272279,
+      "shortableShares": 900998,
+      "averageDuration": 11.8,
+      "utilization": 71.63,
+      "margin": 39.37
+    },
+    {
+      "date": "2025-09-09",
+      "price": 1.61,
+      "feeRate": 40.47,
+      "tradeVolume": 238991,
+      "shortableShares": 902087,
+      "averageDuration": 9.8,
+      "utilization": 71.84,
+      "margin": 39.15
+    },
+    {
+      "date": "2025-09-10",
+      "price": 1.67,
+      "feeRate": 40.85,
+      "tradeVolume": 259647,
+      "shortableShares": 936288,
+      "averageDuration": 9.8,
+      "utilization": 72.26,
+      "margin": 39.94
+    },
+    {
+      "date": "2025-09-11",
+      "price": 1.61,
+      "feeRate": 39.15,
+      "tradeVolume": 266524,
+      "shortableShares": 898480,
+      "averageDuration": 10.4,
+      "utilization": 70.26,
+      "margin": 39.34
+    },
+    {
+      "date": "2025-09-12",
+      "price": 1.63,
+      "feeRate": 39.16,
+      "tradeVolume": 223879,
+      "shortableShares": 1019049,
+      "averageDuration": 10.3,
+      "utilization": 71.19,
+      "margin": 37.94
+    },
+    {
+      "date": "2025-09-13",
+      "price": 1.73,
+      "feeRate": 38.98,
+      "tradeVolume": 214565,
+      "shortableShares": 965816,
+      "averageDuration": 10.3,
+      "utilization": 67.04,
+      "margin": 38.72
+    },
+    {
+      "date": "2025-09-14",
+      "price": 1.77,
+      "feeRate": 38.99,
+      "tradeVolume": 241980,
+      "shortableShares": 1004469,
+      "averageDuration": 10.8,
+      "utilization": 66.85,
+      "margin": 37.83
+    },
+    {
+      "date": "2025-09-15",
+      "price": 1.74,
+      "feeRate": 36.88,
+      "tradeVolume": 216572,
+      "shortableShares": 1022094,
+      "averageDuration": 10.2,
+      "utilization": 67.85,
+      "margin": 37.94
+    },
+    {
+      "date": "2025-09-16",
+      "price": 1.76,
+      "feeRate": 37.36,
+      "tradeVolume": 160198,
+      "shortableShares": 959062,
+      "averageDuration": 12.1,
+      "utilization": 67.58,
+      "margin": 38.3
+    },
+    {
+      "date": "2025-09-17",
+      "price": 1.78,
+      "feeRate": 33.38,
+      "tradeVolume": 185155,
+      "shortableShares": 953375,
+      "averageDuration": 11.2,
+      "utilization": 67.45,
+      "margin": 38.17
+    },
+    {
+      "date": "2025-09-18",
+      "price": 1.8,
+      "feeRate": 32.88,
+      "tradeVolume": 147011,
+      "shortableShares": 1010596,
+      "averageDuration": 11.8,
+      "utilization": 68.4,
+      "margin": 37.17
+    },
+    {
+      "date": "2025-09-19",
+      "price": 1.76,
+      "feeRate": 33.46,
+      "tradeVolume": 145663,
+      "shortableShares": 981350,
+      "averageDuration": 12.1,
+      "utilization": 66.95,
+      "margin": 38.95
+    },
+    {
+      "date": "2025-09-20",
+      "price": 1.8,
+      "feeRate": 32.93,
+      "tradeVolume": 153776,
+      "shortableShares": 901928,
+      "averageDuration": 11,
+      "utilization": 70.77,
+      "margin": 39.15
+    },
+    {
+      "date": "2025-09-21",
+      "price": 1.69,
+      "feeRate": 32.53,
+      "tradeVolume": 142698,
+      "shortableShares": 2600000,
+      "averageDuration": 10.9,
+      "utilization": 68.78,
+      "margin": 38.26
+    },
+    {
+      "date": "2025-09-22",
+      "price": 1.7,
+      "feeRate": 33.11,
+      "tradeVolume": 99250,
+      "shortableShares": 912689,
+      "averageDuration": 11.8,
+      "utilization": 69.85,
+      "margin": 38.97
+    },
+    {
+      "date": "2025-09-23",
+      "price": 1.74,
+      "feeRate": 31.59,
+      "tradeVolume": 176589,
+      "shortableShares": 928299,
+      "averageDuration": 11.3,
+      "utilization": 70.21,
+      "margin": 38.91
+    },
+    {
+      "date": "2025-09-24",
+      "price": 1.75,
+      "feeRate": 34.73,
+      "tradeVolume": 197044,
+      "shortableShares": 960416,
+      "averageDuration": 10,
+      "utilization": 67.88,
+      "margin": 38.07
+    },
+    {
+      "date": "2025-09-25",
+      "price": 1.76,
+      "feeRate": 32.77,
+      "tradeVolume": 175928,
+      "shortableShares": 961093,
+      "averageDuration": 10.8,
+      "utilization": 67.45,
+      "margin": 38.28
+    },
+    {
+      "date": "2025-09-26",
+      "price": 1.8,
+      "feeRate": 33.53,
+      "tradeVolume": 214565,
+      "shortableShares": 908161,
+      "averageDuration": 10.1,
+      "utilization": 69.11,
+      "margin": 37.4
+    },
+    {
+      "date": "2025-09-27",
+      "price": 1.77,
+      "feeRate": 33.68,
+      "tradeVolume": 223665,
+      "shortableShares": 1028304,
+      "averageDuration": 10.3,
+      "utilization": 67.88,
+      "margin": 37.31
+    },
+    {
+      "date": "2025-09-28",
+      "price": 1.89,
+      "feeRate": 31.49,
+      "tradeVolume": 203161,
+      "shortableShares": 1050854,
+      "averageDuration": 10.8,
+      "utilization": 64.97,
+      "margin": 37.35
+    },
+    {
+      "date": "2025-09-29",
+      "price": 1.84,
+      "feeRate": 30.99,
+      "tradeVolume": 221313,
+      "shortableShares": 1004575,
+      "averageDuration": 10.7,
+      "utilization": 66.62,
+      "margin": 36.33
+    },
+    {
+      "date": "2025-09-30",
+      "price": 1.89,
+      "feeRate": 32.34,
+      "tradeVolume": 197748,
+      "shortableShares": 1058517,
+      "averageDuration": 9.8,
+      "utilization": 64.8,
+      "margin": 37.02
+    },
+    {
+      "date": "2025-10-01",
+      "price": 1.91,
+      "feeRate": 31.18,
+      "tradeVolume": 203151,
+      "shortableShares": 1064026,
+      "averageDuration": 11.7,
+      "utilization": 65.05,
+      "margin": 37.08
+    },
+    {
+      "date": "2025-10-02",
+      "price": 1.86,
+      "feeRate": 28.57,
+      "tradeVolume": 212230,
+      "shortableShares": 1021151,
+      "averageDuration": 12.1,
+      "utilization": 65.84,
+      "margin": 37.13
+    },
+    {
+      "date": "2025-10-03",
+      "price": 1.86,
+      "feeRate": 29.98,
+      "tradeVolume": 180801,
+      "shortableShares": 1043805,
+      "averageDuration": 11.3,
+      "utilization": 65.58,
+      "margin": 36.66
+    },
+    {
+      "date": "2025-10-04",
+      "price": 1.91,
+      "feeRate": 28.36,
+      "tradeVolume": 212410,
+      "shortableShares": 998166,
+      "averageDuration": 12.1,
+      "utilization": 63.53,
+      "margin": 37.65
+    },
+    {
+      "date": "2025-10-05",
+      "price": 1.89,
+      "feeRate": 75.6,
+      "tradeVolume": 219222,
+      "shortableShares": 1002162,
+      "averageDuration": 12.2,
+      "utilization": 67.25,
+      "margin": 38.09
+    },
+    {
+      "date": "2025-10-06",
+      "price": 1.82,
+      "feeRate": 105.38,
+      "tradeVolume": 1920000,
+      "shortableShares": 1013737,
+      "averageDuration": 11.5,
+      "utilization": 67.72,
+      "margin": 36.96
+    },
+    {
+      "date": "2025-10-07",
+      "price": 1.88,
+      "feeRate": 105.19,
+      "tradeVolume": 209243,
+      "shortableShares": 959340,
+      "averageDuration": 11.8,
+      "utilization": 65.89,
+      "margin": 36.97
+    },
+    {
+      "date": "2025-10-08",
+      "price": 1.84,
+      "feeRate": 74.38,
+      "tradeVolume": 247527,
+      "shortableShares": 1011609,
+      "averageDuration": 11,
+      "utilization": 67.4,
+      "margin": 37.66
+    },
+    {
+      "date": "2025-10-09",
+      "price": 1.86,
+      "feeRate": 30.7,
+      "tradeVolume": 264266,
+      "shortableShares": 1024198,
+      "averageDuration": 11.1,
+      "utilization": 67.3,
+      "margin": 37.38
+    },
+    {
+      "date": "2025-10-10",
+      "price": 1.89,
+      "feeRate": 31.2,
+      "tradeVolume": 220911,
+      "shortableShares": 1035555,
+      "averageDuration": 11.2,
+      "utilization": 65.58,
+      "margin": 37.77
+    },
+    {
+      "date": "2025-10-11",
+      "price": 1.89,
+      "feeRate": 29.68,
+      "tradeVolume": 219534,
+      "shortableShares": 1015053,
+      "averageDuration": 10.4,
+      "utilization": 66.06,
+      "margin": 36.58
+    },
+    {
+      "date": "2025-10-12",
+      "price": 1.84,
+      "feeRate": 31.12,
+      "tradeVolume": 242603,
+      "shortableShares": 1085096,
+      "averageDuration": 11.2,
+      "utilization": 64.25,
+      "margin": 36.01
+    },
+    {
+      "date": "2025-10-13",
+      "price": 1.96,
+      "feeRate": 31.14,
+      "tradeVolume": 228085,
+      "shortableShares": 1120845,
+      "averageDuration": 11.4,
+      "utilization": 64.11,
+      "margin": 35.64
+    },
+    {
+      "date": "2025-10-14",
+      "price": 1.98,
+      "feeRate": 29.75,
+      "tradeVolume": 237932,
+      "shortableShares": 1057993,
+      "averageDuration": 11.6,
+      "utilization": 64.22,
+      "margin": 35.69
+    },
+    {
+      "date": "2025-10-15",
+      "price": 1.94,
+      "feeRate": 30.29,
+      "tradeVolume": 187981,
+      "shortableShares": 1066575,
+      "averageDuration": 11.2,
+      "utilization": 62.13,
+      "margin": 36.34
+    },
+    {
+      "date": "2025-10-16",
+      "price": 1.99,
+      "feeRate": 28.83,
+      "tradeVolume": 160700,
+      "shortableShares": 1117274,
+      "averageDuration": 12.3,
+      "utilization": 63.61,
+      "margin": 35.86
+    },
+    {
+      "date": "2025-10-17",
+      "price": 1.99,
+      "feeRate": 28.84,
+      "tradeVolume": 139952,
+      "shortableShares": 1106580,
+      "averageDuration": 12.9,
+      "utilization": 63.76,
+      "margin": 35.26
+    },
+    {
+      "date": "2025-10-18",
+      "price": 1.95,
+      "feeRate": 29.06,
+      "tradeVolume": 134558,
+      "shortableShares": 1137612,
+      "averageDuration": 11.9,
+      "utilization": 63.88,
+      "margin": 35.74
+    },
+    {
+      "date": "2025-10-19",
+      "price": 1.97,
+      "feeRate": 27.36,
+      "tradeVolume": 151286,
+      "shortableShares": 1069948,
+      "averageDuration": 12.1,
+      "utilization": 62.95,
+      "margin": 36.5
+    },
+    {
+      "date": "2025-10-20",
+      "price": 1.93,
+      "feeRate": 28.78,
+      "tradeVolume": 125741,
+      "shortableShares": 1040867,
+      "averageDuration": 12.9,
+      "utilization": 65.04,
+      "margin": 36.8
+    },
+    {
+      "date": "2025-10-21",
+      "price": 1.93,
+      "feeRate": 29.03,
+      "tradeVolume": 106905,
+      "shortableShares": 1023301,
+      "averageDuration": 12.8,
+      "utilization": 65.99,
+      "margin": 37.1
+    },
+    {
+      "date": "2025-10-22",
+      "price": 1.94,
+      "feeRate": 29.25,
+      "tradeVolume": 136005,
+      "shortableShares": 1031762,
+      "averageDuration": 13.3,
+      "utilization": 63.67,
+      "margin": 37.1
+    },
+    {
+      "date": "2025-10-23",
+      "price": 1.89,
+      "feeRate": 28.52,
+      "tradeVolume": 174964,
+      "shortableShares": 1077340,
+      "averageDuration": 12.3,
+      "utilization": 63.74,
+      "margin": 36.79
+    },
+    {
+      "date": "2025-10-24",
+      "price": 1.94,
+      "feeRate": 30.45,
+      "tradeVolume": 196237,
+      "shortableShares": 1052509,
+      "averageDuration": 11.8,
+      "utilization": 65.21,
+      "margin": 36.97
+    },
+    {
+      "date": "2025-10-25",
+      "price": 1.97,
+      "feeRate": 31.36,
+      "tradeVolume": 216958,
+      "shortableShares": 1018941,
+      "averageDuration": 11.6,
+      "utilization": 64.65,
+      "margin": 36.17
+    },
+    {
+      "date": "2025-10-26",
+      "price": 2,
+      "feeRate": 29.38,
+      "tradeVolume": 225843,
+      "shortableShares": 1053457,
+      "averageDuration": 11.8,
+      "utilization": 65.49,
+      "margin": 35.8
+    },
+    {
+      "date": "2025-10-27",
+      "price": 2,
+      "feeRate": 29.48,
+      "tradeVolume": 222267,
+      "shortableShares": 1104478,
+      "averageDuration": 12.6,
+      "utilization": 63.05,
+      "margin": 35.95
+    },
+    {
+      "date": "2025-10-28",
+      "price": 2.09,
+      "feeRate": 30.8,
+      "tradeVolume": 236515,
+      "shortableShares": 1126279,
+      "averageDuration": 12.3,
+      "utilization": 61.91,
+      "margin": 35.87
+    },
+    {
+      "date": "2025-10-29",
+      "price": 2.14,
+      "feeRate": 30.32,
+      "tradeVolume": 213048,
+      "shortableShares": 1147593,
+      "averageDuration": 11.8,
+      "utilization": 61.16,
+      "margin": 35.5
+    },
+    {
+      "date": "2025-10-30",
+      "price": 2.1,
+      "feeRate": 31.05,
+      "tradeVolume": 204531,
+      "shortableShares": 1149780,
+      "averageDuration": 12.4,
+      "utilization": 70.3,
+      "margin": 35.67
+    },
+    {
+      "date": "2025-10-31",
+      "price": 2.13,
+      "feeRate": 28.87,
+      "tradeVolume": 214910,
+      "shortableShares": 1131960,
+      "averageDuration": 13.3,
+      "utilization": 71.68,
+      "margin": 35.12
+    },
+    {
+      "date": "2025-11-01",
+      "price": 2.19,
+      "feeRate": 27.81,
+      "tradeVolume": 215219,
+      "shortableShares": 1144756,
+      "averageDuration": 13.8,
+      "utilization": 70.72,
+      "margin": 35.38
+    },
+    {
+      "date": "2025-11-02",
+      "price": 2.2,
+      "feeRate": 27.07,
+      "tradeVolume": 203705,
+      "shortableShares": 1095733,
+      "averageDuration": 14.2,
+      "utilization": 69.49,
+      "margin": 36.09
+    },
+    {
+      "date": "2025-11-03",
+      "price": 2.25,
+      "feeRate": 27.09,
+      "tradeVolume": 210865,
+      "shortableShares": 3950000,
+      "averageDuration": 14.3,
+      "utilization": 70.53,
+      "margin": 36.54
+    },
+    {
+      "date": "2025-11-04",
+      "price": 2.21,
+      "feeRate": 28.19,
+      "tradeVolume": 190529,
+      "shortableShares": 1082588,
+      "averageDuration": 14.1,
+      "utilization": 72.15,
+      "margin": 37.31
+    },
+    {
+      "date": "2025-11-05",
+      "price": 2.2,
+      "feeRate": 27.2,
+      "tradeVolume": 198832,
+      "shortableShares": 1076950,
+      "averageDuration": 14.5,
+      "utilization": 72.8,
+      "margin": 36.72
+    },
+    {
+      "date": "2025-11-06",
+      "price": 2.2,
+      "feeRate": 25.95,
+      "tradeVolume": 223071,
+      "shortableShares": 1053011,
+      "averageDuration": 13.8,
+      "utilization": 73.44,
+      "margin": 37.02
+    },
+    {
+      "date": "2025-11-07",
+      "price": 2.23,
+      "feeRate": 26.69,
+      "tradeVolume": 236684,
+      "shortableShares": 1061645,
+      "averageDuration": 13.6,
+      "utilization": 73.47,
+      "margin": 37.2
+    },
+    {
+      "date": "2025-11-08",
+      "price": 2.29,
+      "feeRate": 27.9,
+      "tradeVolume": 260927,
+      "shortableShares": 1025923,
+      "averageDuration": 13.8,
+      "utilization": 72.83,
+      "margin": 36.23
+    },
+    {
+      "date": "2025-11-09",
+      "price": 2.29,
+      "feeRate": 28.24,
+      "tradeVolume": 233099,
+      "shortableShares": 1039403,
+      "averageDuration": 13.9,
+      "utilization": 73.24,
+      "margin": 36.36
+    },
+    {
+      "date": "2025-11-10",
+      "price": 2.28,
+      "feeRate": 28.56,
+      "tradeVolume": 237876,
+      "shortableShares": 1080899,
+      "averageDuration": 13.7,
+      "utilization": 71.6,
+      "margin": 36.18
+    },
+    {
+      "date": "2025-11-11",
+      "price": 2.33,
+      "feeRate": 28.31,
+      "tradeVolume": 236977,
+      "shortableShares": 1106097,
+      "averageDuration": 13.9,
+      "utilization": 70.84,
+      "margin": 35.99
+    },
+    {
+      "date": "2025-11-12",
+      "price": 2.39,
+      "feeRate": 27.47,
+      "tradeVolume": 192453,
+      "shortableShares": 1150367,
+      "averageDuration": 13.5,
+      "utilization": 71.18,
+      "margin": 35.71
+    },
+    {
+      "date": "2025-11-13",
+      "price": 2.43,
+      "feeRate": 27.52,
+      "tradeVolume": 188148,
+      "shortableShares": 1109128,
+      "averageDuration": 13.9,
+      "utilization": 71.03,
+      "margin": 35.37
+    },
+    {
+      "date": "2025-11-14",
+      "price": 2.47,
+      "feeRate": 25.75,
+      "tradeVolume": 171764,
+      "shortableShares": 1123410,
+      "averageDuration": 14.7,
+      "utilization": 70.28,
+      "margin": 35.98
+    },
+    {
+      "date": "2025-11-15",
+      "price": 2.5,
+      "feeRate": 24.75,
+      "tradeVolume": 154620,
+      "shortableShares": 1129293,
+      "averageDuration": 15.3,
+      "utilization": 70.62,
+      "margin": 35.51
+    },
+    {
+      "date": "2025-11-16",
+      "price": 2.5,
+      "feeRate": 24.71,
+      "tradeVolume": 133494,
+      "shortableShares": 1063404,
+      "averageDuration": 16.2,
+      "utilization": 69.51,
+      "margin": 36.02
+    },
+    {
+      "date": "2025-11-17",
+      "price": 2.53,
+      "feeRate": 24.21,
+      "tradeVolume": 109781,
+      "shortableShares": 1065337,
+      "averageDuration": 15.7,
+      "utilization": 70.05,
+      "margin": 36.71
+    },
+    {
+      "date": "2025-11-18",
+      "price": 2.36,
+      "feeRate": 23.18,
+      "tradeVolume": 128322,
+      "shortableShares": 1047773,
+      "averageDuration": 16.1,
+      "utilization": 71.53,
+      "margin": 37.83
+    },
+    {
+      "date": "2025-11-19",
+      "price": 2.32,
+      "feeRate": 23.11,
+      "tradeVolume": 118348,
+      "shortableShares": 1029412,
+      "averageDuration": 16.4,
+      "utilization": 72.49,
+      "margin": 37.47
+    },
+    {
+      "date": "2025-11-20",
+      "price": 2.31,
+      "feeRate": 21.75,
+      "tradeVolume": 144835,
+      "shortableShares": 1004708,
+      "averageDuration": 15.6,
+      "utilization": 74.09,
+      "margin": 37.14
+    },
+    {
+      "date": "2025-11-21",
+      "price": 2.29,
+      "feeRate": 30.39,
+      "tradeVolume": 2280000,
+      "shortableShares": 975810,
+      "averageDuration": 15.8,
+      "utilization": 72.86,
+      "margin": 37.79
+    },
+    {
+      "date": "2025-11-22",
+      "price": 2.26,
+      "feeRate": 38.83,
+      "tradeVolume": 225864,
+      "shortableShares": 1006125,
+      "averageDuration": 15.7,
+      "utilization": 73.49,
+      "margin": 37.1
+    },
+    {
+      "date": "2025-11-23",
+      "price": 2.25,
+      "feeRate": 44.86,
+      "tradeVolume": 218378,
+      "shortableShares": 968484,
+      "averageDuration": 15.6,
+      "utilization": 73.86,
+      "margin": 37.54
+    },
+    {
+      "date": "2025-11-24",
+      "price": 2.2,
+      "feeRate": 48.85,
+      "tradeVolume": 211377,
+      "shortableShares": 991700,
+      "averageDuration": 15.4,
+      "utilization": 71.84,
+      "margin": 37.75
+    },
+    {
+      "date": "2025-11-25",
+      "price": 2.2,
+      "feeRate": 47.38,
+      "tradeVolume": 240179,
+      "shortableShares": 1025817,
+      "averageDuration": 15.2,
+      "utilization": 72.1,
+      "margin": 36.14
+    },
+    {
+      "date": "2025-11-26",
+      "price": 2.22,
+      "feeRate": 44.59,
+      "tradeVolume": 217699,
+      "shortableShares": 1085960,
+      "averageDuration": 15.9,
+      "utilization": 71.72,
+      "margin": 36.63
+    },
+    {
+      "date": "2025-11-27",
+      "price": 2.23,
+      "feeRate": 38.95,
+      "tradeVolume": 236815,
+      "shortableShares": 1054006,
+      "averageDuration": 15.5,
+      "utilization": 71.32,
+      "margin": 36.53
+    },
+    {
+      "date": "2025-11-28",
+      "price": 2.26,
+      "feeRate": 29.3,
+      "tradeVolume": 246328,
+      "shortableShares": 1023716,
+      "averageDuration": 16.1,
+      "utilization": 70.72,
+      "margin": 37.21
+    },
+    {
+      "date": "2025-11-29",
+      "price": 2.21,
+      "feeRate": 20.61,
+      "tradeVolume": 186281,
+      "shortableShares": 1054116,
+      "averageDuration": 16.9,
+      "utilization": 70,
+      "margin": 37.02
+    },
+    {
+      "date": "2025-11-30",
+      "price": 2.21,
+      "feeRate": 19.93,
+      "tradeVolume": 204336,
+      "shortableShares": 1000221,
+      "averageDuration": 18.1,
+      "utilization": 71.26,
+      "margin": 36.66
+    },
+    {
+      "date": "2025-12-01",
+      "price": 2.2,
+      "feeRate": 19.25,
+      "tradeVolume": 198883,
+      "shortableShares": 1016963,
+      "averageDuration": 17.8,
+      "utilization": 70.26,
+      "margin": 37.49
+    },
+    {
+      "date": "2025-12-02",
+      "price": 2.13,
+      "feeRate": 18.41,
+      "tradeVolume": 221554,
+      "shortableShares": 1019131,
+      "averageDuration": 17.5,
+      "utilization": 71.3,
+      "margin": 38.88
+    },
+    {
+      "date": "2025-12-03",
+      "price": 2.12,
+      "feeRate": 17.46,
+      "tradeVolume": 210517,
+      "shortableShares": 906900,
+      "averageDuration": 18.2,
+      "utilization": 72.71,
+      "margin": 38.32
+    },
+    {
+      "date": "2025-12-04",
+      "price": 2.09,
+      "feeRate": 18.28,
+      "tradeVolume": 192071,
+      "shortableShares": 926454,
+      "averageDuration": 17.6,
+      "utilization": 75,
+      "margin": 38.23
+    },
+    {
+      "date": "2025-12-05",
+      "price": 2.07,
+      "feeRate": 17.13,
+      "tradeVolume": 217033,
+      "shortableShares": 908510,
+      "averageDuration": 18.1,
+      "utilization": 74.23,
+      "margin": 38.26
+    },
+    {
+      "date": "2025-12-06",
+      "price": 2.03,
+      "feeRate": 17.79,
+      "tradeVolume": 262063,
+      "shortableShares": 939156,
+      "averageDuration": 18.4,
+      "utilization": 73.52,
+      "margin": 39.08
+    },
+    {
+      "date": "2025-12-07",
+      "price": 2,
+      "feeRate": 18.8,
+      "tradeVolume": 232704,
+      "shortableShares": 915364,
+      "averageDuration": 16.8,
+      "utilization": 74.84,
+      "margin": 39.16
+    },
+    {
+      "date": "2025-12-08",
+      "price": 2.02,
+      "feeRate": 20.59,
+      "tradeVolume": 220242,
+      "shortableShares": 880961,
+      "averageDuration": 17.3,
+      "utilization": 73.36,
+      "margin": 39.01
+    },
+    {
+      "date": "2025-12-09",
+      "price": 1.97,
+      "feeRate": 19.71,
+      "tradeVolume": 211188,
+      "shortableShares": 920620,
+      "averageDuration": 17.3,
+      "utilization": 74.23,
+      "margin": 38.68
+    },
+    {
+      "date": "2025-12-10",
+      "price": 1.99,
+      "feeRate": 18.9,
+      "tradeVolume": 231185,
+      "shortableShares": 995396,
+      "averageDuration": 18,
+      "utilization": 74.63,
+      "margin": 38.5
+    },
+    {
+      "date": "2025-12-11",
+      "price": 2.01,
+      "feeRate": 19.89,
+      "tradeVolume": 222568,
+      "shortableShares": 947799,
+      "averageDuration": 17.8,
+      "utilization": 71.22,
+      "margin": 37.56
+    },
+    {
+      "date": "2025-12-12",
+      "price": 2.06,
+      "feeRate": 18.44,
+      "tradeVolume": 204966,
+      "shortableShares": 929886,
+      "averageDuration": 17.5,
+      "utilization": 72.2,
+      "margin": 38.56
+    },
+    {
+      "date": "2025-12-13",
+      "price": 2.02,
+      "feeRate": 19.08,
+      "tradeVolume": 179832,
+      "shortableShares": 919072,
+      "averageDuration": 18.4,
+      "utilization": 71.94,
+      "margin": 38.07
+    },
+    {
+      "date": "2025-12-14",
+      "price": 2,
+      "feeRate": 19.31,
+      "tradeVolume": 160131,
+      "shortableShares": 957982,
+      "averageDuration": 19.8,
+      "utilization": 73.3,
+      "margin": 38.5
+    },
+    {
+      "date": "2025-12-15",
+      "price": 2.04,
+      "feeRate": 16.21,
+      "tradeVolume": 111324,
+      "shortableShares": 950370,
+      "averageDuration": 19.2,
+      "utilization": 72.85,
+      "margin": 38.44
+    },
+    {
+      "date": "2025-12-16",
+      "price": 2,
+      "feeRate": 16.99,
+      "tradeVolume": 137162,
+      "shortableShares": 928805,
+      "averageDuration": 19.2,
+      "utilization": 72.04,
+      "margin": 38.32
+    },
+    {
+      "date": "2025-12-17",
+      "price": 2.03,
+      "feeRate": 16.69,
+      "tradeVolume": 123982,
+      "shortableShares": 895550,
+      "averageDuration": 19.2,
+      "utilization": 73.71,
+      "margin": 40.17
+    },
+    {
+      "date": "2025-12-18",
+      "price": 2.04,
+      "feeRate": 17.83,
+      "tradeVolume": 145140,
+      "shortableShares": 872044,
+      "averageDuration": 20,
+      "utilization": 76.55,
+      "margin": 39.97
+    },
+    {
+      "date": "2025-12-19",
+      "price": 1.95,
+      "feeRate": 17.38,
+      "tradeVolume": 147983,
+      "shortableShares": 800549,
+      "averageDuration": 20.1,
+      "utilization": 75.3,
+      "margin": 40.11
+    },
+    {
+      "date": "2025-12-20",
+      "price": 1.98,
+      "feeRate": 16.64,
+      "tradeVolume": 147762,
+      "shortableShares": 851292,
+      "averageDuration": 20,
+      "utilization": 75.05,
+      "margin": 39.71
+    },
+    {
+      "date": "2025-12-21",
+      "price": 1.97,
+      "feeRate": 18.08,
+      "tradeVolume": 221165,
+      "shortableShares": 808270,
+      "averageDuration": 19.6,
+      "utilization": 75.03,
+      "margin": 40.34
+    },
+    {
+      "date": "2025-12-22",
+      "price": 2.01,
+      "feeRate": 20.55,
+      "tradeVolume": 217147,
+      "shortableShares": 822868,
+      "averageDuration": 19.5,
+      "utilization": 76.67,
+      "margin": 40.86
+    },
+    {
+      "date": "2025-12-23",
+      "price": 2,
+      "feeRate": 19.44,
+      "tradeVolume": 225026,
+      "shortableShares": 807536,
+      "averageDuration": 18.5,
+      "utilization": 76.75,
+      "margin": 40.45
+    },
+    {
+      "date": "2025-12-24",
+      "price": 1.99,
+      "feeRate": 19.21,
+      "tradeVolume": 212275,
+      "shortableShares": 3500000,
+      "averageDuration": 19.5,
+      "utilization": 76.36,
+      "margin": 41.11
+    },
+    {
+      "date": "2025-12-25",
+      "price": 2.04,
+      "feeRate": 19.19,
+      "tradeVolume": 236826,
+      "shortableShares": 891916,
+      "averageDuration": 19,
+      "utilization": 75.59,
+      "margin": 39.68
+    },
+    {
+      "date": "2025-12-26",
+      "price": 2.12,
+      "feeRate": 20.62,
+      "tradeVolume": 256536,
+      "shortableShares": 868066,
+      "averageDuration": 19.4,
+      "utilization": 75.13,
+      "margin": 40
+    },
+    {
+      "date": "2025-12-27",
+      "price": 2.09,
+      "feeRate": 20.68,
+      "tradeVolume": 240455,
+      "shortableShares": 865365,
+      "averageDuration": 19.3,
+      "utilization": 73.07,
+      "margin": 39.72
+    },
+    {
+      "date": "2025-12-28",
+      "price": 2.09,
+      "feeRate": 20.34,
+      "tradeVolume": 263478,
+      "shortableShares": 829753,
+      "averageDuration": 19.2,
+      "utilization": 75.07,
+      "margin": 39.77
+    },
+    {
+      "date": "2025-12-29",
+      "price": 2.09,
+      "feeRate": 19.64,
+      "tradeVolume": 207079,
+      "shortableShares": 857918,
+      "averageDuration": 21,
+      "utilization": 73.95,
+      "margin": 40.2
+    },
+    {
+      "date": "2025-12-30",
+      "price": 2.14,
+      "feeRate": 19.21,
+      "tradeVolume": 215433,
+      "shortableShares": 879744,
+      "averageDuration": 20.7,
+      "utilization": 74.74,
+      "margin": 39.87
+    },
+    {
+      "date": "2025-12-31",
+      "price": 2.15,
+      "feeRate": 17.37,
+      "tradeVolume": 199899,
+      "shortableShares": 843741,
+      "averageDuration": 20.8,
+      "utilization": 74.52,
+      "margin": 40.2
+    },
+    {
+      "date": "2026-01-01",
+      "price": 2.14,
+      "feeRate": 19.1,
+      "tradeVolume": 2640000,
+      "shortableShares": 874820,
+      "averageDuration": 20.4,
+      "utilization": 74.15,
+      "margin": 41.77
+    },
+    {
+      "date": "2026-01-02",
+      "price": 2.13,
+      "feeRate": 18.06,
+      "tradeVolume": 205165,
+      "shortableShares": 775492,
+      "averageDuration": 21,
+      "utilization": 77.9,
+      "margin": 41.61
+    },
+    {
+      "date": "2026-01-03",
+      "price": 2.12,
+      "feeRate": 18.7,
+      "tradeVolume": 185042,
+      "shortableShares": 786089,
+      "averageDuration": 21.5,
+      "utilization": 77.38,
+      "margin": 42.05
+    },
+    {
+      "date": "2026-01-04",
+      "price": 2.07,
+      "feeRate": 18.44,
+      "tradeVolume": 188428,
+      "shortableShares": 758889,
+      "averageDuration": 21,
+      "utilization": 77.55,
+      "margin": 42.21
+    },
+    {
+      "date": "2026-01-05",
+      "price": 2.13,
+      "feeRate": 18.03,
+      "tradeVolume": 237872,
+      "shortableShares": 752988,
+      "averageDuration": 21.6,
+      "utilization": 76.62,
+      "margin": 42.06
+    },
+    {
+      "date": "2026-01-06",
+      "price": 2.1,
+      "feeRate": 21.23,
+      "tradeVolume": 221376,
+      "shortableShares": 771044,
+      "averageDuration": 20.1,
+      "utilization": 77.8,
+      "margin": 41.72
+    },
+    {
+      "date": "2026-01-07",
+      "price": 2.13,
+      "feeRate": 20.66,
+      "tradeVolume": 226572,
+      "shortableShares": 742114,
+      "averageDuration": 20.4,
+      "utilization": 78.76,
+      "margin": 42.12
+    },
+    {
+      "date": "2026-01-08",
+      "price": 2.13,
+      "feeRate": 20.68,
+      "tradeVolume": 220544,
+      "shortableShares": 754223,
+      "averageDuration": 20,
+      "utilization": 77.79,
+      "margin": 41.02
+    },
+    {
+      "date": "2026-01-09",
+      "price": 2.13,
+      "feeRate": 19.71,
+      "tradeVolume": 202802,
+      "shortableShares": 844861,
+      "averageDuration": 20,
+      "utilization": 79.04,
+      "margin": 41.6
+    },
+    {
+      "date": "2026-01-10",
+      "price": 2.24,
+      "feeRate": 20.59,
+      "tradeVolume": 177104,
+      "shortableShares": 827252,
+      "averageDuration": 20.4,
+      "utilization": 75.93,
+      "margin": 41.95
+    },
+    {
+      "date": "2026-01-11",
+      "price": 2.23,
+      "feeRate": 21.25,
+      "tradeVolume": 178954,
+      "shortableShares": 847321,
+      "averageDuration": 20,
+      "utilization": 76.47,
+      "margin": 41.57
+    },
+    {
+      "date": "2026-01-12",
+      "price": 2.24,
+      "feeRate": 20.19,
+      "tradeVolume": 124270,
+      "shortableShares": 850062,
+      "averageDuration": 20.2,
+      "utilization": 75.74,
+      "margin": 41.72
+    },
+    {
+      "date": "2026-01-13",
+      "price": 2.22,
+      "feeRate": 21.08,
+      "tradeVolume": 132870,
+      "shortableShares": 834498,
+      "averageDuration": 21.7,
+      "utilization": 75.71,
+      "margin": 42.04
+    },
+    {
+      "date": "2026-01-14",
+      "price": 2.27,
+      "feeRate": 18.11,
+      "tradeVolume": 147484,
+      "shortableShares": 806723,
+      "averageDuration": 21.5,
+      "utilization": 76.47,
+      "margin": 41.61
+    },
+    {
+      "date": "2026-01-15",
+      "price": 2.3,
+      "feeRate": 18.34,
+      "tradeVolume": 138898,
+      "shortableShares": 825727,
+      "averageDuration": 21.9,
+      "utilization": 75.65,
+      "margin": 42.11
+    },
+    {
+      "date": "2026-01-16",
+      "price": 2.28,
+      "feeRate": 17.43,
+      "tradeVolume": 149839,
+      "shortableShares": 751180,
+      "averageDuration": 21.9,
+      "utilization": 76.18,
+      "margin": 42.67
+    },
+    {
+      "date": "2026-01-17",
+      "price": 2.32,
+      "feeRate": 17.13,
+      "tradeVolume": 166777,
+      "shortableShares": 782586,
+      "averageDuration": 21.7,
+      "utilization": 79.32,
+      "margin": 43.9
+    },
+    {
+      "date": "2026-01-18",
+      "price": 2.24,
+      "feeRate": 17.5,
+      "tradeVolume": 155180,
+      "shortableShares": 798975,
+      "averageDuration": 21.3,
+      "utilization": 78.84,
+      "margin": 43.96
+    },
+    {
+      "date": "2026-01-19",
+      "price": 2.27,
+      "feeRate": 16.47,
+      "tradeVolume": 177929,
+      "shortableShares": 770958,
+      "averageDuration": 21.6,
+      "utilization": 79.6,
+      "margin": 43.93
+    },
+    {
+      "date": "2026-01-20",
+      "price": 2.25,
+      "feeRate": 16.62,
+      "tradeVolume": 202756,
+      "shortableShares": 776062,
+      "averageDuration": 20.4,
+      "utilization": 79.77,
+      "margin": 43.41
+    },
+    {
+      "date": "2026-01-21",
+      "price": 2.26,
+      "feeRate": 19.06,
+      "tradeVolume": 251737,
+      "shortableShares": 791914,
+      "averageDuration": 20.9,
+      "utilization": 79.32,
+      "margin": 43.3
+    },
+    {
+      "date": "2026-01-22",
+      "price": 2.29,
+      "feeRate": 18.29,
+      "tradeVolume": 256386,
+      "shortableShares": 761134,
+      "averageDuration": 21.1,
+      "utilization": 78.45,
+      "margin": 43.55
+    },
+    {
+      "date": "2026-01-23",
+      "price": 2.27,
+      "feeRate": 18.62,
+      "tradeVolume": 256601,
+      "shortableShares": 788687,
+      "averageDuration": 20.7,
+      "utilization": 79.13,
+      "margin": 42.77
+    },
+    {
+      "date": "2026-01-24",
+      "price": 2.3,
+      "feeRate": 18.42,
+      "tradeVolume": 237746,
+      "shortableShares": 820944,
+      "averageDuration": 20.7,
+      "utilization": 76.67,
+      "margin": 42.15
+    },
+    {
+      "date": "2026-01-25",
+      "price": 2.39,
+      "feeRate": 17.66,
+      "tradeVolume": 233107,
+      "shortableShares": 894837,
+      "averageDuration": 21,
+      "utilization": 77.73,
+      "margin": 42.91
+    },
+    {
+      "date": "2026-01-26",
+      "price": 2.39,
+      "feeRate": 16.53,
+      "tradeVolume": 241357,
+      "shortableShares": 896346,
+      "averageDuration": 20.4,
+      "utilization": 78.28,
+      "margin": 43.43
+    },
+    {
+      "date": "2026-01-27",
+      "price": 2.41,
+      "feeRate": 16.77,
+      "tradeVolume": 210114,
+      "shortableShares": 892074,
+      "averageDuration": 20.8,
+      "utilization": 77.34,
+      "margin": 43.44
+    },
+    {
+      "date": "2026-01-28",
+      "price": 2.43,
+      "feeRate": 14.25,
+      "tradeVolume": 183593,
+      "shortableShares": 857715,
+      "averageDuration": 21.3,
+      "utilization": 77.49,
+      "margin": 42.99
+    },
+    {
+      "date": "2026-01-29",
+      "price": 2.42,
+      "feeRate": 14.83,
+      "tradeVolume": 208100,
+      "shortableShares": 848812,
+      "averageDuration": 22.4,
+      "utilization": 77.99,
+      "margin": 42.5
+    },
+    {
+      "date": "2026-01-30",
+      "price": 2.41,
+      "feeRate": 14.96,
+      "tradeVolume": 222598,
+      "shortableShares": 863204,
+      "averageDuration": 22.4,
+      "utilization": 76.91,
+      "margin": 42.84
+    },
+    {
+      "date": "2026-01-31",
+      "price": 2.43,
+      "feeRate": 13.79,
+      "tradeVolume": 216930,
+      "shortableShares": 813614,
+      "averageDuration": 22.3,
+      "utilization": 77.78,
+      "margin": 44.54
+    },
+    {
+      "date": "2026-02-01",
+      "price": 2.37,
+      "feeRate": 13.58,
+      "tradeVolume": 193305,
+      "shortableShares": 773738,
+      "averageDuration": 21.7,
+      "utilization": 78.78,
+      "margin": 44.61
+    },
+    {
+      "date": "2026-02-02",
+      "price": 2.41,
+      "feeRate": 13.69,
+      "tradeVolume": 167016,
+      "shortableShares": 820738,
+      "averageDuration": 21.5,
+      "utilization": 81.16,
+      "margin": 44.39
+    },
+    {
+      "date": "2026-02-03",
+      "price": 2.43,
+      "feeRate": 12.44,
+      "tradeVolume": 171637,
+      "shortableShares": 852845,
+      "averageDuration": 21.6,
+      "utilization": 81.12,
+      "margin": 44.27
+    },
+    {
+      "date": "2026-02-04",
+      "price": 2.41,
+      "feeRate": 12.9,
+      "tradeVolume": 226223,
+      "shortableShares": 853071,
+      "averageDuration": 20.8,
+      "utilization": 80.88,
+      "margin": 44.66
+    },
+    {
+      "date": "2026-02-05",
+      "price": 2.42,
+      "feeRate": 13.5,
+      "tradeVolume": 219467,
+      "shortableShares": 825019,
+      "averageDuration": 20,
+      "utilization": 79.62,
+      "margin": 44.4
+    },
+    {
+      "date": "2026-02-06",
+      "price": 2.45,
+      "feeRate": 15.33,
+      "tradeVolume": 201076,
+      "shortableShares": 794077,
+      "averageDuration": 20.7,
+      "utilization": 79.2,
+      "margin": 44.72
+    },
+    {
+      "date": "2026-02-07",
+      "price": 2.42,
+      "feeRate": 15.05,
+      "tradeVolume": 185820,
+      "shortableShares": 816081,
+      "averageDuration": 21.2,
+      "utilization": 79.55,
+      "margin": 43.54
+    },
+    {
+      "date": "2026-02-08",
+      "price": 2.45,
+      "feeRate": 14.61,
+      "tradeVolume": 189636,
+      "shortableShares": 922655,
+      "averageDuration": 21.1,
+      "utilization": 77.75,
+      "margin": 43.51
+    },
+    {
+      "date": "2026-02-09",
+      "price": 2.49,
+      "feeRate": 13.29,
+      "tradeVolume": 168968,
+      "shortableShares": 928131,
+      "averageDuration": 20.5,
+      "utilization": 76.27,
+      "margin": 43.99
+    },
+    {
+      "date": "2026-02-10",
+      "price": 2.56,
+      "feeRate": 12.74,
+      "tradeVolume": 170006,
+      "shortableShares": 915192,
+      "averageDuration": 20,
+      "utilization": 77.68,
+      "margin": 43.57
+    },
+    {
+      "date": "2026-02-11",
+      "price": 2.57,
+      "feeRate": 12.89,
+      "tradeVolume": 124718,
+      "shortableShares": 908274,
+      "averageDuration": 20.2,
+      "utilization": 78.58,
+      "margin": 43.38
+    },
+    {
+      "date": "2026-02-12",
+      "price": 2.57,
+      "feeRate": 11.17,
+      "tradeVolume": 131897,
+      "shortableShares": 933747,
+      "averageDuration": 21.9,
+      "utilization": 78.41,
+      "margin": 43.56
+    },
+    {
+      "date": "2026-02-13",
+      "price": 2.54,
+      "feeRate": 9.76,
+      "tradeVolume": 157742,
+      "shortableShares": 918825,
+      "averageDuration": 21.9,
+      "utilization": 77.29,
+      "margin": 43.27
+    },
+    {
+      "date": "2026-02-14",
+      "price": 2.54,
+      "feeRate": 10.91,
+      "tradeVolume": 149452,
+      "shortableShares": 940286,
+      "averageDuration": 21.7,
+      "utilization": 76.07,
+      "margin": 44.76
+    },
+    {
+      "date": "2026-02-15",
+      "price": 2.55,
+      "feeRate": 11.65,
+      "tradeVolume": 149850,
+      "shortableShares": 867831,
+      "averageDuration": 21.5,
+      "utilization": 76.6,
+      "margin": 44.69
+    },
+    {
+      "date": "2026-02-16",
+      "price": 2.51,
+      "feeRate": 11.46,
+      "tradeVolume": 163647,
+      "shortableShares": 868064,
+      "averageDuration": 21.9,
+      "utilization": 79.95,
+      "margin": 44.8
+    },
+    {
+      "date": "2026-02-17",
+      "price": 2.48,
+      "feeRate": 10.47,
+      "tradeVolume": 159264,
+      "shortableShares": 899587,
+      "averageDuration": 21.6,
+      "utilization": 79.92,
+      "margin": 45.43
+    },
+    {
+      "date": "2026-02-18",
+      "price": 2.52,
+      "feeRate": 9.41,
+      "tradeVolume": 221318,
+      "shortableShares": 874574,
+      "averageDuration": 21.9,
+      "utilization": 79.27,
+      "margin": 45.02
+    },
+    {
+      "date": "2026-02-19",
+      "price": 2.56,
+      "feeRate": 9.92,
+      "tradeVolume": 223858,
+      "shortableShares": 864570,
+      "averageDuration": 20.7,
+      "utilization": 78.82,
+      "margin": 44.79
+    },
+    {
+      "date": "2026-02-20",
+      "price": 2.56,
+      "feeRate": 12.94,
+      "tradeVolume": 232778,
+      "shortableShares": 877588,
+      "averageDuration": 20.7,
+      "utilization": 79.44,
+      "margin": 44.67
+    },
+    {
+      "date": "2026-02-21",
+      "price": 2.53,
+      "feeRate": 13,
+      "tradeVolume": 259994,
+      "shortableShares": 861152,
+      "averageDuration": 21.1,
+      "utilization": 78.72,
+      "margin": 44.83
+    },
+    {
+      "date": "2026-02-22",
+      "price": 2.51,
+      "feeRate": 12.55,
+      "tradeVolume": 247904,
+      "shortableShares": 956430,
+      "averageDuration": 20.7,
+      "utilization": 79.2,
+      "margin": 44.01
+    },
+    {
+      "date": "2026-02-23",
+      "price": 2.53,
+      "feeRate": 12.29,
+      "tradeVolume": 241279,
+      "shortableShares": 953632,
+      "averageDuration": 20.5,
+      "utilization": 76.54,
+      "margin": 43.8
+    },
+    {
+      "date": "2026-02-24",
+      "price": 2.63,
+      "feeRate": 13,
+      "tradeVolume": 237853,
+      "shortableShares": 2600000,
+      "averageDuration": 20.7,
+      "utilization": 76.31,
+      "margin": 44.24
+    },
+    {
+      "date": "2026-02-25",
+      "price": 2.63,
+      "feeRate": 12.53,
+      "tradeVolume": 244041,
+      "shortableShares": 1003562,
+      "averageDuration": 20.4,
+      "utilization": 77.12,
+      "margin": 44.02
+    },
+    {
+      "date": "2026-02-26",
+      "price": 2.62,
+      "feeRate": 13.15,
+      "tradeVolume": 212380,
+      "shortableShares": 980322,
+      "averageDuration": 21.9,
+      "utilization": 76.04,
+      "margin": 43.81
+    },
+    {
+      "date": "2026-02-27",
+      "price": 2.62,
+      "feeRate": 11.03,
+      "tradeVolume": 1560000,
+      "shortableShares": 967641,
+      "averageDuration": 21.8,
+      "utilization": 68.46,
+      "margin": 43.48
+    },
+    {
+      "date": "2026-02-28",
+      "price": 2.64,
+      "feeRate": 11.06,
+      "tradeVolume": 216888,
+      "shortableShares": 961784,
+      "averageDuration": 21.9,
+      "utilization": 68.65,
+      "margin": 44.27
+    },
+    {
+      "date": "2026-03-01",
+      "price": 2.63,
+      "feeRate": 12.01,
+      "tradeVolume": 205395,
+      "shortableShares": 973457,
+      "averageDuration": 22.6,
+      "utilization": 67.85,
+      "margin": 44.29
+    },
+    {
+      "date": "2026-03-02",
+      "price": 2.65,
+      "feeRate": 11.32,
+      "tradeVolume": 193093,
+      "shortableShares": 923551,
+      "averageDuration": 22.2,
+      "utilization": 70.78,
+      "margin": 44.58
+    },
+    {
+      "date": "2026-03-03",
+      "price": 2.58,
+      "feeRate": 11.07,
+      "tradeVolume": 175856,
+      "shortableShares": 912058,
+      "averageDuration": 22,
+      "utilization": 70.44,
+      "margin": 45.25
+    },
+    {
+      "date": "2026-03-04",
+      "price": 2.58,
+      "feeRate": 11.51,
+      "tradeVolume": 199838,
+      "shortableShares": 941173,
+      "averageDuration": 21.9,
+      "utilization": 70.49,
+      "margin": 44.35
+    },
+    {
+      "date": "2026-03-05",
+      "price": 2.61,
+      "feeRate": 11.09,
+      "tradeVolume": 194541,
+      "shortableShares": 929153,
+      "averageDuration": 22.1,
+      "utilization": 71.61,
+      "margin": 44.48
+    },
+    {
+      "date": "2026-03-06",
+      "price": 2.59,
+      "feeRate": 13.96,
+      "tradeVolume": 198435,
+      "shortableShares": 917065,
+      "averageDuration": 21.3,
+      "utilization": 70.58,
+      "margin": 45.15
+    },
+    {
+      "date": "2026-03-07",
+      "price": 2.58,
+      "feeRate": 13.95,
+      "tradeVolume": 216439,
+      "shortableShares": 897927,
+      "averageDuration": 21.1,
+      "utilization": 69.92,
+      "margin": 44.59
+    },
+    {
+      "date": "2026-03-08",
+      "price": 2.6,
+      "feeRate": 14.28,
+      "tradeVolume": 175059,
+      "shortableShares": 948542,
+      "averageDuration": 21.6,
+      "utilization": 69.48,
+      "margin": 44.67
+    },
+    {
+      "date": "2026-03-09",
+      "price": 2.58,
+      "feeRate": 15.56,
+      "tradeVolume": 172393,
+      "shortableShares": 951276,
+      "averageDuration": 21.4,
+      "utilization": 69.63,
+      "margin": 43.59
+    },
+    {
+      "date": "2026-03-10",
+      "price": 2.67,
+      "feeRate": 14.95,
+      "tradeVolume": 189673,
+      "shortableShares": 970094,
+      "averageDuration": 21.3,
+      "utilization": 67.73,
+      "margin": 42.96
+    },
+    {
+      "date": "2026-03-11",
+      "price": 2.67,
+      "feeRate": 14.64,
+      "tradeVolume": 165481,
+      "shortableShares": 1013035,
+      "averageDuration": 21,
+      "utilization": 67.11,
+      "margin": 43.05
+    },
+    {
+      "date": "2026-03-12",
+      "price": 2.68,
+      "feeRate": 14.54,
+      "tradeVolume": 179852,
+      "shortableShares": 957432,
+      "averageDuration": 21.9,
+      "utilization": 67.85,
+      "margin": 43.46
+    },
+    {
+      "date": "2026-03-13",
+      "price": 2.72,
+      "feeRate": 14.94,
+      "tradeVolume": 150455,
+      "shortableShares": 966602,
+      "averageDuration": 22,
+      "utilization": 67.22,
+      "margin": 43.66
+    },
+    {
+      "date": "2026-03-14",
+      "price": 2.7,
+      "feeRate": 13.53,
+      "tradeVolume": 137724,
+      "shortableShares": 1009079,
+      "averageDuration": 22.3,
+      "utilization": 66.59,
+      "margin": 43
+    },
+    {
+      "date": "2026-03-15",
+      "price": 2.69,
+      "feeRate": 13.24,
+      "tradeVolume": 151515,
+      "shortableShares": 974230,
+      "averageDuration": 23.1,
+      "utilization": 65.73,
+      "margin": 43.15
+    },
+    {
+      "date": "2026-03-16",
+      "price": 2.69,
+      "feeRate": 14.13,
+      "tradeVolume": 177211,
+      "shortableShares": 980060,
+      "averageDuration": 22.2,
+      "utilization": 67.2,
+      "margin": 44.04
+    },
+    {
+      "date": "2026-03-17",
+      "price": 2.7,
+      "feeRate": 13.81,
+      "tradeVolume": 194374,
+      "shortableShares": 912919,
+      "averageDuration": 22.5,
+      "utilization": 67.08,
+      "margin": 43.91
+    },
+    {
+      "date": "2026-03-18",
+      "price": 2.66,
+      "feeRate": 13.47,
+      "tradeVolume": 179013,
+      "shortableShares": 873727,
+      "averageDuration": 23.2,
+      "utilization": 67.49,
+      "margin": 44.16
+    },
+    {
+      "date": "2026-03-19",
+      "price": 2.71,
+      "feeRate": 12.92,
+      "tradeVolume": 193008,
+      "shortableShares": 879101,
+      "averageDuration": 22.8,
+      "utilization": 68.72,
+      "margin": 44.48
+    },
+    {
+      "date": "2026-03-20",
+      "price": 2.8,
+      "feeRate": 14.4,
+      "tradeVolume": 234177,
+      "shortableShares": 904860,
+      "averageDuration": 22.9,
+      "utilization": 66.67,
+      "margin": 43.38
+    },
+    {
+      "date": "2026-03-21",
+      "price": 2.85,
+      "feeRate": 14.47,
+      "tradeVolume": 236167,
+      "shortableShares": 917114,
+      "averageDuration": 22,
+      "utilization": 66.78,
+      "margin": 43.36
+    },
+    {
+      "date": "2026-03-22",
+      "price": 2.9,
+      "feeRate": 14.99,
+      "tradeVolume": 251609,
+      "shortableShares": 876042,
+      "averageDuration": 21.5,
+      "utilization": 68,
+      "margin": 44.16
+    },
+    {
+      "date": "2026-03-23",
+      "price": 2.94,
+      "feeRate": 16.22,
+      "tradeVolume": 268561,
+      "shortableShares": 884925,
+      "averageDuration": 21.7,
+      "utilization": 66.65,
+      "margin": 44.14
+    },
+    {
+      "date": "2026-03-24",
+      "price": 3.05,
+      "feeRate": 14.54,
+      "tradeVolume": 231481,
+      "shortableShares": 940260,
+      "averageDuration": 22.2,
+      "utilization": 66.67,
+      "margin": 42.74
+    },
+    {
+      "date": "2026-03-25",
+      "price": 3.11,
+      "feeRate": 14.75,
+      "tradeVolume": 233680,
+      "shortableShares": 931578,
+      "averageDuration": 22.5,
+      "utilization": 64.25,
+      "margin": 42.79
+    },
+    {
+      "date": "2026-03-26",
+      "price": 3.18,
+      "feeRate": 15.93,
+      "tradeVolume": 266184,
+      "shortableShares": 946694,
+      "averageDuration": 22,
+      "utilization": 62.78,
+      "margin": 42.54
+    },
+    {
+      "date": "2026-03-27",
+      "price": 3.28,
+      "feeRate": 14.83,
+      "tradeVolume": 266461,
+      "shortableShares": 965786,
+      "averageDuration": 22.3,
+      "utilization": 62.79,
+      "margin": 41.94
+    },
+    {
+      "date": "2026-03-28",
+      "price": 3.28,
+      "feeRate": 14.91,
+      "tradeVolume": 214180,
+      "shortableShares": 896345,
+      "averageDuration": 23.3,
+      "utilization": 63.49,
+      "margin": 42.15
+    },
+    {
+      "date": "2026-03-29",
+      "price": 3.33,
+      "feeRate": 12.85,
+      "tradeVolume": 215392,
+      "shortableShares": 893928,
+      "averageDuration": 23.3,
+      "utilization": 63.74,
+      "margin": 41.74
+    },
+    {
+      "date": "2026-03-30",
+      "price": 3.42,
+      "feeRate": 11.59,
+      "tradeVolume": 204263,
+      "shortableShares": 943599,
+      "averageDuration": 23.7,
+      "utilization": 62.22,
+      "margin": 42.12
+    },
+    {
+      "date": "2026-03-31",
+      "price": 3.43,
+      "feeRate": 11.64,
+      "tradeVolume": 179322,
+      "shortableShares": 941135,
+      "averageDuration": 24.2,
+      "utilization": 62.37,
+      "margin": 43.25
+    },
+    {
+      "date": "2026-04-01",
+      "price": 3.47,
+      "feeRate": 12.28,
+      "tradeVolume": 184103,
+      "shortableShares": 852629,
+      "averageDuration": 23.3,
+      "utilization": 64.08,
+      "margin": 43.08
+    },
+    {
+      "date": "2026-04-02",
+      "price": 3.44,
+      "feeRate": 12.52,
+      "tradeVolume": 164728,
+      "shortableShares": 854786,
+      "averageDuration": 23.4,
+      "utilization": 63.65,
+      "margin": 43.19
+    },
+    {
+      "date": "2026-04-03",
+      "price": 3.43,
+      "feeRate": 11.19,
+      "tradeVolume": 174679,
+      "shortableShares": 837822,
+      "averageDuration": 24.4,
+      "utilization": 64.02,
+      "margin": 43.18
+    },
+    {
+      "date": "2026-04-04",
+      "price": 3.47,
+      "feeRate": 11.33,
+      "tradeVolume": 211695,
+      "shortableShares": 799199,
+      "averageDuration": 24.5,
+      "utilization": 64.53,
+      "margin": 42.5
+    },
+    {
+      "date": "2026-04-05",
+      "price": 3.51,
+      "feeRate": 12.83,
+      "tradeVolume": 199857,
+      "shortableShares": 811377,
+      "averageDuration": 23.3,
+      "utilization": 62.09,
+      "margin": 42.86
+    },
+    {
+      "date": "2026-04-06",
+      "price": 3.54,
+      "feeRate": 12.45,
+      "tradeVolume": 198296,
+      "shortableShares": 784439,
+      "averageDuration": 23.5,
+      "utilization": 61.89,
+      "margin": 42.9
+    },
+    {
+      "date": "2026-04-07",
+      "price": 3.52,
+      "feeRate": 12.78,
+      "tradeVolume": 192064,
+      "shortableShares": 807389,
+      "averageDuration": 23.5,
+      "utilization": 63.43,
+      "margin": 40.94
+    },
+    {
+      "date": "2026-04-08",
+      "price": 3.54,
+      "feeRate": 13.22,
+      "tradeVolume": 160139,
+      "shortableShares": 876317,
+      "averageDuration": 23.1,
+      "utilization": 63.24,
+      "margin": 41.62
+    },
+    {
+      "date": "2026-04-09",
+      "price": 3.59,
+      "feeRate": 11.07,
+      "tradeVolume": 186174,
+      "shortableShares": 864533,
+      "averageDuration": 23.5,
+      "utilization": 60.18,
+      "margin": 40.78
+    },
+    {
+      "date": "2026-04-10",
+      "price": 3.59,
+      "feeRate": 10.9,
+      "tradeVolume": 200322,
+      "shortableShares": 870421,
+      "averageDuration": 23.2,
+      "utilization": 60.15,
+      "margin": 41.47
+    },
+    {
+      "date": "2026-04-11",
+      "price": 3.6,
+      "feeRate": 12.27,
+      "tradeVolume": 139188,
+      "shortableShares": 868897,
+      "averageDuration": 23.8,
+      "utilization": 59.48,
+      "margin": 40.87
+    },
+    {
+      "date": "2026-04-12",
+      "price": 3.61,
+      "feeRate": 12.11,
+      "tradeVolume": 176762,
+      "shortableShares": 3950000,
+      "averageDuration": 25.2,
+      "utilization": 58.09,
+      "margin": 41.18
+    },
+    {
+      "date": "2026-04-13",
+      "price": 3.54,
+      "feeRate": 9.44,
+      "tradeVolume": 156880,
+      "shortableShares": 846348,
+      "averageDuration": 25.2,
+      "utilization": 58.4,
+      "margin": 41.06
+    },
+    {
+      "date": "2026-04-14",
+      "price": 3.52,
+      "feeRate": 9.45,
+      "tradeVolume": 193932,
+      "shortableShares": 847797,
+      "averageDuration": 25.5,
+      "utilization": 57.41,
+      "margin": 40.8
+    },
+    {
+      "date": "2026-04-15",
+      "price": 3.55,
+      "feeRate": 8.91,
+      "tradeVolume": 182063,
+      "shortableShares": 724196,
+      "averageDuration": 25.7,
+      "utilization": 58.09,
+      "margin": 41.42
+    },
+    {
+      "date": "2026-04-16",
+      "price": 3.52,
+      "feeRate": 7.74,
+      "tradeVolume": 203260,
+      "shortableShares": 765729,
+      "averageDuration": 25.3,
+      "utilization": 60.29,
+      "margin": 41.98
+    },
+    {
+      "date": "2026-04-17",
+      "price": 3.42,
+      "feeRate": 8.09,
+      "tradeVolume": 207644,
+      "shortableShares": 712317,
+      "averageDuration": 25.8,
+      "utilization": 59.81,
+      "margin": 41.43
+    },
+    {
+      "date": "2026-04-18",
+      "price": 3.39,
+      "feeRate": 7.3,
+      "tradeVolume": 205766,
+      "shortableShares": 754792,
+      "averageDuration": 26.1,
+      "utilization": 59.92,
+      "margin": 41.43
+    },
+    {
+      "date": "2026-04-19",
+      "price": 3.35,
+      "feeRate": 8,
+      "tradeVolume": 235948,
+      "shortableShares": 716902,
+      "averageDuration": 24.4,
+      "utilization": 59.78,
+      "margin": 41.37
+    },
+    {
+      "date": "2026-04-20",
+      "price": 3.28,
+      "feeRate": 10.06,
+      "tradeVolume": 262987,
+      "shortableShares": 735450,
+      "averageDuration": 25.3,
+      "utilization": 58.23,
+      "margin": 40.85
+    },
+    {
+      "date": "2026-04-21",
+      "price": 3.26,
+      "feeRate": 9.78,
+      "tradeVolume": 247220,
+      "shortableShares": 727449,
+      "averageDuration": 24.7,
+      "utilization": 58.86,
+      "margin": 40.83
+    },
+    {
+      "date": "2026-04-22",
+      "price": 3.19,
+      "feeRate": 10.03,
+      "tradeVolume": 251192,
+      "shortableShares": 710609,
+      "averageDuration": 25.6,
+      "utilization": 58.83,
+      "margin": 40.05
+    },
+    {
+      "date": "2026-04-23",
+      "price": 3.18,
+      "feeRate": 10.09,
+      "tradeVolume": 251841,
+      "shortableShares": 748909,
+      "averageDuration": 25.2,
+      "utilization": 54.62,
+      "margin": 40
+    },
+    {
+      "date": "2026-04-24",
+      "price": 3.2,
+      "feeRate": 8.91,
+      "tradeVolume": 1920000,
+      "shortableShares": 783766,
+      "averageDuration": 25.8,
+      "utilization": 55.92,
+      "margin": 39.63
+    },
+    {
+      "date": "2026-04-25",
+      "price": 3.15,
+      "feeRate": 9.69,
+      "tradeVolume": 234043,
+      "shortableShares": 749139,
+      "averageDuration": 25.9,
+      "utilization": 54.06,
+      "margin": 39.97
+    },
+    {
+      "date": "2026-04-26",
+      "price": 3.12,
+      "feeRate": 9.89,
+      "tradeVolume": 204244,
+      "shortableShares": 749321,
+      "averageDuration": 25.9,
+      "utilization": 55.39,
+      "margin": 39.41
+    },
+    {
+      "date": "2026-04-27",
+      "price": 3.07,
+      "feeRate": 6.44,
+      "tradeVolume": 201114,
+      "shortableShares": 745896,
+      "averageDuration": 26.7,
+      "utilization": 54.04,
+      "margin": 39.31
+    },
+    {
+      "date": "2026-04-28",
+      "price": 3.05,
+      "feeRate": 7.85,
+      "tradeVolume": 184694,
+      "shortableShares": 713877,
+      "averageDuration": 27.5,
+      "utilization": 54.57,
+      "margin": 39.34
+    },
+    {
+      "date": "2026-04-29",
+      "price": 3.09,
+      "feeRate": 6.5,
+      "tradeVolume": 194414,
+      "shortableShares": 713006,
+      "averageDuration": 27.2,
+      "utilization": 54.21,
+      "margin": 39.8
+    },
+    {
+      "date": "2026-04-30",
+      "price": 3.11,
+      "feeRate": 7.98,
+      "tradeVolume": 169079,
+      "shortableShares": 664560,
+      "averageDuration": 27.5,
+      "utilization": 53.56,
+      "margin": 40.76
+    },
+    {
+      "date": "2026-05-01",
+      "price": 3.01,
+      "feeRate": 7.11,
+      "tradeVolume": 160604,
+      "shortableShares": 662376,
+      "averageDuration": 27.7,
+      "utilization": 54.74,
+      "margin": 40.05
+    },
+    {
+      "date": "2026-05-02",
+      "price": 3.07,
+      "feeRate": 7.92,
+      "tradeVolume": 156226,
+      "shortableShares": 639770,
+      "averageDuration": 27.4,
+      "utilization": 55.81,
+      "margin": 40.2
+    },
+    {
+      "date": "2026-05-03",
+      "price": 3.04,
+      "feeRate": 7.96,
+      "tradeVolume": 167782,
+      "shortableShares": 662361,
+      "averageDuration": 27.6,
+      "utilization": 54.56,
+      "margin": 40.14
+    },
+    {
+      "date": "2026-05-04",
+      "price": 3.09,
+      "feeRate": 7.75,
+      "tradeVolume": 197262,
+      "shortableShares": 628037,
+      "averageDuration": 27.1,
+      "utilization": 54.46,
+      "margin": 40.64
+    },
+    {
+      "date": "2026-05-05",
+      "price": 3.08,
+      "feeRate": 9.17,
+      "tradeVolume": 163592,
+      "shortableShares": 623188,
+      "averageDuration": 27.3,
+      "utilization": 54.25,
+      "margin": 40.16
+    },
+    {
+      "date": "2026-05-06",
+      "price": 3.11,
+      "feeRate": 10.49,
+      "tradeVolume": 162274,
+      "shortableShares": 626390,
+      "averageDuration": 27.2,
+      "utilization": 53.07,
+      "margin": 39.63
+    },
+    {
+      "date": "2026-05-07",
+      "price": 3.12,
+      "feeRate": 9.79,
+      "tradeVolume": 166357,
+      "shortableShares": 657213,
+      "averageDuration": 27.8,
+      "utilization": 52.94,
+      "margin": 39.21
+    },
+    {
+      "date": "2026-05-08",
+      "price": 3.12,
+      "feeRate": 10.11,
+      "tradeVolume": 196635,
+      "shortableShares": 718796,
+      "averageDuration": 27.4,
+      "utilization": 51.21,
+      "margin": 38.36
+    },
+    {
+      "date": "2026-05-09",
+      "price": 3.18,
+      "feeRate": 10.33,
+      "tradeVolume": 190030,
+      "shortableShares": 675838,
+      "averageDuration": 27.6,
+      "utilization": 51.02,
+      "margin": 38.76
+    },
+    {
+      "date": "2026-05-10",
+      "price": 3.23,
+      "feeRate": 9.71,
+      "tradeVolume": 181286,
+      "shortableShares": 3950000,
+      "averageDuration": 27.9,
+      "utilization": 50.15,
+      "margin": 38.27
+    },
+    {
+      "date": "2026-05-11",
+      "price": 3.21,
+      "feeRate": 10,
+      "tradeVolume": 175705,
+      "shortableShares": 685870,
+      "averageDuration": 28.6,
+      "utilization": 50.78,
+      "margin": 39.14
+    },
+    {
+      "date": "2026-05-12",
+      "price": 3.23,
+      "feeRate": 8.89,
+      "tradeVolume": 153678,
+      "shortableShares": 719297,
+      "averageDuration": 29.8,
+      "utilization": 49.51,
+      "margin": 38.94
+    },
+    {
+      "date": "2026-05-13",
+      "price": 3.24,
+      "feeRate": 9.14,
+      "tradeVolume": 177956,
+      "shortableShares": 691856,
+      "averageDuration": 29.3,
+      "utilization": 49.22,
+      "margin": 39.12
+    },
+    {
+      "date": "2026-05-14",
+      "price": 3.23,
+      "feeRate": 8.78,
+      "tradeVolume": 167935,
+      "shortableShares": 661644,
+      "averageDuration": 29.7,
+      "utilization": 49.19,
+      "margin": 39.61
+    },
+    {
+      "date": "2026-05-15",
+      "price": 3.24,
+      "feeRate": 9.74,
+      "tradeVolume": 207804,
+      "shortableShares": 637675,
+      "averageDuration": 29.9,
+      "utilization": 50.09,
+      "margin": 40.2
+    },
+    {
+      "date": "2026-05-16",
+      "price": 3.21,
+      "feeRate": 9.01,
+      "tradeVolume": 206678,
+      "shortableShares": 587444,
+      "averageDuration": 30.6,
+      "utilization": 52,
+      "margin": 39.83
+    },
+    {
+      "date": "2026-05-17",
+      "price": 3.22,
+      "feeRate": 9.14,
+      "tradeVolume": 218740,
+      "shortableShares": 615694,
+      "averageDuration": 30.4,
+      "utilization": 50.42,
+      "margin": 39.43
+    },
+    {
+      "date": "2026-05-18",
+      "price": 3.22,
+      "feeRate": 9.49,
+      "tradeVolume": 1560000,
+      "shortableShares": 588231,
+      "averageDuration": 30.1,
+      "utilization": 50.66,
+      "margin": 40.14
+    },
+    {
+      "date": "2026-05-19",
+      "price": 3.25,
+      "feeRate": 10.63,
+      "tradeVolume": 266849,
+      "shortableShares": 645504,
+      "averageDuration": 29.9,
+      "utilization": 50.46,
+      "margin": 39.51
+    },
+    {
+      "date": "2026-05-20",
+      "price": 3.23,
+      "feeRate": 12.65,
+      "tradeVolume": 255018,
+      "shortableShares": 636151,
+      "averageDuration": 29.3,
+      "utilization": 51.42,
+      "margin": 39.49
+    },
+    {
+      "date": "2026-05-21",
+      "price": 3.24,
+      "feeRate": 11.59,
+      "tradeVolume": 240971,
+      "shortableShares": 650575,
+      "averageDuration": 29.9,
+      "utilization": 50.34,
+      "margin": 40.05
+    },
+    {
+      "date": "2026-05-22",
+      "price": 3.26,
+      "feeRate": 12.11,
+      "tradeVolume": 267377,
+      "shortableShares": 684693,
+      "averageDuration": 29.6,
+      "utilization": 49.18,
+      "margin": 38.34
+    },
+    {
+      "date": "2026-05-23",
+      "price": 3.3,
+      "feeRate": 12.22,
+      "tradeVolume": 242620,
+      "shortableShares": 725072,
+      "averageDuration": 30.7,
+      "utilization": 48.21,
+      "margin": 38.88
+    },
+    {
+      "date": "2026-05-24",
+      "price": 3.37,
+      "feeRate": 13.33,
+      "tradeVolume": 239325,
+      "shortableShares": 705439,
+      "averageDuration": 30.7,
+      "utilization": 46.37,
+      "margin": 37.79
+    },
+    {
+      "date": "2026-05-25",
+      "price": 3.34,
+      "feeRate": 12.63,
+      "tradeVolume": 256579,
+      "shortableShares": 684090,
+      "averageDuration": 31.1,
+      "utilization": 47.14,
+      "margin": 37.8
+    },
+    {
+      "date": "2026-05-26",
+      "price": 3.36,
+      "feeRate": 11.82,
+      "tradeVolume": 188021,
+      "shortableShares": 732128,
+      "averageDuration": 31.8,
+      "utilization": 46.05,
+      "margin": 38.1
+    },
+    {
+      "date": "2026-05-27",
+      "price": 3.37,
+      "feeRate": 11.18,
+      "tradeVolume": 202833,
+      "shortableShares": 696831,
+      "averageDuration": 32.6,
+      "utilization": 47.79,
+      "margin": 37.9
+    },
+    {
+      "date": "2026-05-28",
+      "price": 3.41,
+      "feeRate": 9.73,
+      "tradeVolume": 155324,
+      "shortableShares": 699188,
+      "averageDuration": 32.5,
+      "utilization": 47.3,
+      "margin": 38.74
+    },
+    {
+      "date": "2026-05-29",
+      "price": 3.39,
+      "feeRate": 10.56,
+      "tradeVolume": 148464,
+      "shortableShares": 737602,
+      "averageDuration": 32.3,
+      "utilization": 47.6,
+      "margin": 39.32
+    },
+    {
+      "date": "2026-05-30",
+      "price": 3.37,
+      "feeRate": 9.72,
+      "tradeVolume": 151750,
+      "shortableShares": 634709,
+      "averageDuration": 33.2,
+      "utilization": 48.56,
+      "margin": 40.16
+    },
+    {
+      "date": "2026-05-31",
+      "price": 3.36,
+      "feeRate": 11.35,
+      "tradeVolume": 135775,
+      "shortableShares": 672366,
+      "averageDuration": 32.7,
+      "utilization": 49.72,
+      "margin": 39.79
+    }
+  ],
+  "summary": {
+    "borrowFee": 11.35,
+    "borrowFeeDisplay": "11.35%",
+    "borrowFeeChange": 1.63,
+    "margin": 39.79,
+    "marginDisplay": "39.8%",
+    "availableShares": 672366,
+    "availableSharesDisplay": "672,366",
+    "utilization": 49.72,
+    "utilizationDisplay": "49.7%",
+    "averageDuration": 32.7,
+    "averageDurationDisplay": "32.7d"
+  }
+}

@@ -11,6 +11,7 @@ const groups = [
     label: 'Workspace',
     items: [
       ['Dashboard', 'dashboard'],
+      ['Dashboard (v2)', 'dashboard-v2'],
       ['Short Interest', 'short-interest'],
       ['Lending Pressure', 'lending-pressure'],
       ['Squeeze Readiness', 'squeeze-readiness'],
