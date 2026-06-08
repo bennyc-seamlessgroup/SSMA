@@ -1,7 +1,7 @@
-import { ImportDataTable } from '@/components/ImportDataTable';
 import { InfoTooltip } from '@/components/InfoTooltip';
 import { readImportFile, readLocalImportText } from '@/lib/import-data';
 import type { ReactNode } from 'react';
+import { MentionFeedCards, type MentionFeedRow } from './MentionFeedCards';
 
 type AdanosMention = {
   id?: string | number | null;
@@ -74,11 +74,10 @@ function formatMentionDate(value: unknown) {
 }
 
 function feedRows(feed: AdanosMention[], platformLabel: string) {
-  return feed.map(item => ({
+  return feed.map((item): MentionFeedRow => ({
     timestamp: formatMentionDate(item.timestamp),
     platform: platformLabel,
     author: String(item.author ?? 'N/A'),
-    sentimentScore: numeric(item.sentiment_score).toFixed(3),
     sentiment: sentimentBucket(item.sentiment_score),
     text: String(item.text ?? ''),
     likes: numeric(item.likes).toLocaleString('en-US'),
@@ -192,7 +191,6 @@ export default async function SentimentPage() {
     .map(item => String(item.author ?? 'N/A'));
   const redditRows = feedRows(redditMentions, 'Reddit');
   const xRows = feedRows(xMentions, 'X');
-  const feedColumns = ['timestamp', 'platform', 'author', 'sentimentScore', 'sentiment', 'text', 'likes', 'comments', 'url'];
 
   return (
     <div className="page">
@@ -271,11 +269,7 @@ export default async function SentimentPage() {
             <span>{redditMentions.length} records</span>
           </div>
         </div>
-        <ImportDataTable
-          columns={feedColumns}
-          rows={redditRows}
-          pageSize={10}
-        />
+        <MentionFeedCards rows={redditRows} />
       </section>
 
       <section className="panel">
@@ -289,11 +283,7 @@ export default async function SentimentPage() {
             <span>{xMentions.length} records</span>
           </div>
         </div>
-        <ImportDataTable
-          columns={feedColumns}
-          rows={xRows}
-          pageSize={10}
-        />
+        <MentionFeedCards rows={xRows} />
       </section>
     </div>
   );
