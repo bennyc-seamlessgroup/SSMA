@@ -1,6 +1,6 @@
 import { DashboardV2Chart } from './DashboardV2Chart';
 import { DashboardV2Kpis } from './DashboardV2Kpis';
-import { readImportFile } from '@/lib/import-data';
+import { readImportFile, readLocalImportText, type ImportEnvelope } from '@/lib/import-data';
 
 export const dynamic = 'force-dynamic';
 
@@ -24,10 +24,19 @@ type CompanyEvent = {
   source?: string;
 };
 
+async function readDashboardV2File<T>(relativePath: string): Promise<ImportEnvelope<T>> {
+  try {
+    return await readImportFile<T>(relativePath);
+  } catch (error) {
+    console.error(`Dashboard v2 import read failed for ${relativePath}; using bundled fallback.`, error);
+    return JSON.parse(readLocalImportText(relativePath)) as ImportEnvelope<T>;
+  }
+}
+
 export default async function DashboardV2Page() {
   const [trendEnvelope, eventsEnvelope] = await Promise.all([
-    readImportFile<TrendPoint[]>('dashboard_v2_trends.json'),
-    readImportFile<CompanyEvent[]>('dashboard_v2_events.json'),
+    readDashboardV2File<TrendPoint[]>('dashboard_v2_trends.json'),
+    readDashboardV2File<CompanyEvent[]>('dashboard_v2_events.json'),
   ]);
   const trendData = Array.isArray(trendEnvelope.data) ? trendEnvelope.data : [];
   const events = Array.isArray(eventsEnvelope.data) ? eventsEnvelope.data : [];
