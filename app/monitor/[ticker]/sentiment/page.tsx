@@ -1,20 +1,18 @@
 import { ImportDataTable } from '@/components/ImportDataTable';
 import { InfoTooltip } from '@/components/InfoTooltip';
-import { readImportFile } from '@/lib/import-data';
+import { readImportFile, readLocalImportText } from '@/lib/import-data';
 import type { ReactNode } from 'react';
 
-type SocialMention = {
-  id: string;
-  platform: string;
-  author: string;
-  postedAt: string;
-  sentiment: 'positive' | 'negative' | 'neutral';
-  sentimentScore: number;
-  topic: string;
-  comment: string;
-  sourceLink: string;
-  engagement: number;
-  language: string;
+type AdanosMention = {
+  id?: string | number | null;
+  text?: string | null;
+  timestamp?: string | null;
+  platform?: string | null;
+  sentiment_score?: number | string | null;
+  url?: string | null;
+  author?: string | null;
+  likes?: number | string | null;
+  comments?: number | string | null;
 };
 
 function percent(value: number, total: number) {
@@ -28,6 +26,72 @@ function InfoTitle({ children, text }: { children: ReactNode; text: string }) {
 
 function sourceChip(source: string) {
   return <span className="source-chip ready">Source: {source}</span>;
+}
+
+function asArray(value: unknown): AdanosMention[] {
+  if (Array.isArray(value)) return value as AdanosMention[];
+  if (value && typeof value === 'object' && Array.isArray((value as { data?: unknown }).data)) {
+    return (value as { data: AdanosMention[] }).data;
+  }
+  return [];
+}
+
+async function readAdanosFeed(relativePath: string) {
+  try {
+    return asArray(await readImportFile<AdanosMention[]>(relativePath));
+  } catch (error) {
+    console.error(`Narrative feed read failed for ${relativePath}; using bundled fallback.`, error);
+    return asArray(JSON.parse(readLocalImportText(relativePath)));
+  }
+}
+
+function numeric(value: unknown) {
+  const parsed = typeof value === 'number' ? value : Number(String(value ?? '').replace(/,/g, ''));
+  return Number.isFinite(parsed) ? parsed : 0;
+}
+
+function sentimentBucket(value: unknown): 'positive' | 'negative' | 'neutral' {
+  const score = numeric(value);
+  if (score > 0.1) return 'positive';
+  if (score < -0.1) return 'negative';
+  return 'neutral';
+}
+
+function normalizedSentimentScore(value: unknown) {
+  const score = Math.max(-1, Math.min(1, numeric(value)));
+  return Math.round(((score + 1) / 2) * 100);
+}
+
+function formatMentionDate(value: unknown) {
+  const date = new Date(String(value ?? ''));
+  if (Number.isNaN(date.getTime())) return 'N/A';
+  return new Intl.DateTimeFormat('en-US', {
+    month: 'short',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  }).format(date);
+}
+
+function feedRows(feed: AdanosMention[], platformLabel: string) {
+  return feed.map(item => ({
+    timestamp: formatMentionDate(item.timestamp),
+    platform: platformLabel,
+    author: String(item.author ?? 'N/A'),
+    sentimentScore: numeric(item.sentiment_score).toFixed(3),
+    sentiment: sentimentBucket(item.sentiment_score),
+    text: String(item.text ?? ''),
+    likes: numeric(item.likes).toLocaleString('en-US'),
+    comments: item.comments == null ? 'N/A' : numeric(item.comments).toLocaleString('en-US'),
+    url: String(item.url ?? ''),
+  }));
+}
+
+function countBySentiment(mentions: AdanosMention[]) {
+  return mentions.reduce<Record<'positive' | 'negative' | 'neutral', number>>((acc, item) => {
+    acc[sentimentBucket(item.sentiment_score)] += 1;
+    return acc;
+  }, { positive: 0, negative: 0, neutral: 0 });
 }
 
 function Donut({ segments, total }: { segments: Array<{ label: string; value: number; color: string }>; total: number }) {
@@ -100,63 +164,44 @@ function TrendLine({ values }: { values: number[] }) {
 }
 
 export default async function SentimentPage() {
-  const envelope = await readImportFile<SocialMention[]>('sentiment/social_mentions.json');
-  const mentions = envelope.data;
-  const positive = mentions.filter(item => item.sentiment === 'positive').length;
-  const negative = mentions.filter(item => item.sentiment === 'negative').length;
-  const neutral = mentions.filter(item => item.sentiment === 'neutral').length;
+  const [redditMentions, xMentions] = await Promise.all([
+    readAdanosFeed('adanos-reddit_CURR_consolidated_4_web.json'),
+    readAdanosFeed('adanos-x_CURR_consolidated_4_web.json'),
+  ]);
+  const mentions = [...redditMentions, ...xMentions];
+  const sentimentCounts = countBySentiment(mentions);
+  const positive = sentimentCounts.positive;
+  const negative = sentimentCounts.negative;
+  const neutral = sentimentCounts.neutral;
   const averageScore = mentions.length
-    ? Math.round(mentions.reduce((sum, item) => sum + item.sentimentScore, 0) / mentions.length)
+    ? Math.round(mentions.reduce((sum, item) => sum + normalizedSentimentScore(item.sentiment_score), 0) / mentions.length)
     : 0;
-  const topPlatform = Object.entries(mentions.reduce<Record<string, number>>((acc, item) => {
-    acc[item.platform] = (acc[item.platform] ?? 0) + 1;
-    return acc;
-  }, {})).sort((a, b) => b[1] - a[1])[0]?.[0] ?? 'N/A';
-  const platformCounts = Object.entries(mentions.reduce<Record<string, number>>((acc, item) => {
-    const key = ['X', 'Reddit', 'StockTwits'].includes(item.platform) ? item.platform : 'Other';
-    acc[key] = (acc[key] ?? 0) + 1;
-    return acc;
-  }, {})).sort((a, b) => b[1] - a[1]);
-  const sortedMentions = [...mentions].sort((a, b) => new Date(a.postedAt).getTime() - new Date(b.postedAt).getTime());
+  const platformCounts = [
+    ['X', xMentions.length] as const,
+    ['Reddit', redditMentions.length] as const,
+  ].filter(([, value]) => value > 0).sort((a, b) => b[1] - a[1]);
+  const topPlatform = platformCounts[0]?.[0] ?? 'N/A';
+  const sortedMentions = [...mentions].sort((a, b) => new Date(String(a.timestamp ?? '')).getTime() - new Date(String(b.timestamp ?? '')).getTime());
   const trendValues = sortedMentions.map((_, index) => {
     const sample = sortedMentions.slice(0, index + 1);
-    return Math.round(sample.reduce((sum, item) => sum + item.sentimentScore, 0) / sample.length);
-  });
-  const topicCounts = Object.entries(mentions.reduce<Record<string, number>>((acc, item) => {
-    acc[item.topic] = (acc[item.topic] ?? 0) + 1;
-    return acc;
-  }, {})).sort((a, b) => b[1] - a[1]);
-  const topInfluencers = [...mentions].sort((a, b) => b.engagement - a.engagement).slice(0, 5).map(item => item.author);
-  const bullishNarratives = mentions
-    .filter(item => item.sentiment === 'positive')
-    .sort((a, b) => b.engagement - a.engagement)
-    .slice(0, 4)
-    .map(item => item.topic);
-  const bearishNarratives = mentions
-    .filter(item => item.sentiment === 'negative')
-    .sort((a, b) => b.engagement - a.engagement)
-    .slice(0, 4)
-    .map(item => item.topic);
-
-  const rows = mentions.map(item => ({
-    postedAt: new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }).format(new Date(item.postedAt)),
-    platform: item.platform,
-    author: item.author,
-    sentiment: item.sentiment,
-    sentimentScore: String(item.sentimentScore),
-    topic: item.topic,
-    comment: item.comment,
-    engagement: item.engagement.toLocaleString('en-US'),
-    sourceLink: item.sourceLink,
-  }));
+    return Math.round(sample.reduce((sum, item) => sum + normalizedSentimentScore(item.sentiment_score), 0) / sample.length);
+  }).filter(Number.isFinite);
+  const topAuthors = [...mentions]
+    .sort((a, b) => numeric(b.likes) + numeric(b.comments) - numeric(a.likes) - numeric(a.comments))
+    .slice(0, 5)
+    .map(item => String(item.author ?? 'N/A'));
+  const redditRows = feedRows(redditMentions, 'Reddit');
+  const xRows = feedRows(xMentions, 'X');
+  const feedColumns = ['timestamp', 'platform', 'author', 'sentimentScore', 'sentiment', 'text', 'likes', 'comments', 'url'];
 
   return (
     <div className="page">
       <div className="page__header">
         <div>
           <h1 className="page__title">Sentiment & Narrative Intelligence</h1>
-          <p className="page__desc">Social-media mention scan across public platforms, with sentiment classification and links back to the source posts.</p>
-          <span className="import-file-tag">import_data/sentiment/social_mentions.json</span>
+          <p className="page__desc">Reddit and X mention scan with source posts, sentiment scores, and engagement signals.</p>
+          <span className="import-file-tag">import_data/adanos-reddit_CURR_consolidated_4_web.json</span>
+          <span className="import-file-tag">import_data/adanos-x_CURR_consolidated_4_web.json</span>
         </div>
       </div>
 
@@ -165,9 +210,9 @@ export default async function SentimentPage() {
           <div>
             <span>Overview</span>
             <h2>Market Narrative Overview</h2>
-            <p className="section-subtitle">Visual readout of sentiment, platform activity, discussion momentum, and dominant narratives.</p>
+            <p className="section-subtitle">Visual readout of Reddit and X sentiment, platform activity, and discussion momentum.</p>
           </div>
-          <div className="terminal-section-actions">{sourceChip(envelope.sourcePlatform ?? 'Social Media Engine')}</div>
+          <div className="terminal-section-actions">{sourceChip('Adanos Reddit + X')}</div>
         </div>
 
         <div className="narrative-kpi-grid">
@@ -200,16 +245,16 @@ export default async function SentimentPage() {
         <div className="narrative-insight-grid">
           <div className="terminal-card narrative-card">
             <span>Top Bullish Narratives</span>
-            <ul>{bullishNarratives.map(topic => <li key={topic}>{topic}</li>)}</ul>
+            <p>pending for AI</p>
           </div>
           <div className="terminal-card narrative-card">
             <span>Top Bearish Narratives</span>
-            <ul>{bearishNarratives.map(topic => <li key={topic}>{topic}</li>)}</ul>
+            <p>pending for AI</p>
           </div>
           <div className="terminal-card narrative-card">
             <span>Topics, Influencers, Communities</span>
-            <p><strong>Topics:</strong> {topicCounts.slice(0, 6).map(([topic]) => topic).join(', ')}</p>
-            <p><strong>Influencers:</strong> {topInfluencers.join(', ')}</p>
+            <p><strong>Topics:</strong> pending for AI</p>
+            <p><strong>Influencers:</strong> {topAuthors.join(', ') || 'N/A'}</p>
             <p><strong>Communities:</strong> {platformCounts.map(([platform]) => platform).join(', ')}</p>
           </div>
         </div>
@@ -218,17 +263,35 @@ export default async function SentimentPage() {
       <section className="panel">
         <div className="section__head">
           <h2 className="panel__title with-info">
-            Mention Feed
-            <InfoTooltip text="This table lists imported posts mentioning the company. Use it to see what investors, traders, and market observers are saying, then open the source link for context." />
+            Reddit Feed
+            <InfoTooltip text="This table lists imported Reddit posts mentioning the company. Use it to review author, timestamp, sentiment score, engagement, and source link." />
           </h2>
           <div className="import-source-meta">
-            <span>{envelope.sourcePlatform}</span>
-            <span>{envelope.recordCount} records</span>
+            <span>Adanos Reddit</span>
+            <span>{redditMentions.length} records</span>
           </div>
         </div>
         <ImportDataTable
-          columns={['postedAt', 'platform', 'author', 'sentiment', 'sentimentScore', 'topic', 'comment', 'engagement', 'sourceLink']}
-          rows={rows}
+          columns={feedColumns}
+          rows={redditRows}
+          pageSize={10}
+        />
+      </section>
+
+      <section className="panel">
+        <div className="section__head">
+          <h2 className="panel__title with-info">
+            X Feed
+            <InfoTooltip text="This table lists imported X posts mentioning the company. Use it to review author, timestamp, sentiment score, engagement, and source link." />
+          </h2>
+          <div className="import-source-meta">
+            <span>Adanos X</span>
+            <span>{xMentions.length} records</span>
+          </div>
+        </div>
+        <ImportDataTable
+          columns={feedColumns}
+          rows={xRows}
           pageSize={10}
         />
       </section>
