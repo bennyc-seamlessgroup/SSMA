@@ -15,23 +15,33 @@ type TrendPoint = {
   margin?: number;
 };
 
+type CompanyEvent = {
+  id: string;
+  date: string;
+  type: string;
+  title: string;
+  summary: string;
+  source?: string;
+};
+
 export default async function DashboardV2Page() {
-  const trendEnvelope = await readImportFile<TrendPoint[]>('dashboard_v2_trends.json');
+  const [trendEnvelope, eventsEnvelope] = await Promise.all([
+    readImportFile<TrendPoint[]>('dashboard_v2_trends.json'),
+    readImportFile<CompanyEvent[]>('dashboard_v2_events.json'),
+  ]);
   const trendData = Array.isArray(trendEnvelope.data) ? trendEnvelope.data : [];
+  const events = Array.isArray(eventsEnvelope.data) ? eventsEnvelope.data : [];
 
   return (
     <div className="page dashboard-v2-page">
-      <div className="page__header dashboard-v2-header">
-        <div>
-          <div className="terminal-eyebrow">Borrow Market Dashboard</div>
-          <h1 className="page__title">Dashboard (v2)</h1>
-          <p className="page__desc">Borrow fee, margin, availability, utilization, duration, price, and volume in one market-data view.</p>
-        </div>
+      <div className="dashboard-v2-header">
+        <span>Dashboard (v2)</span>
+        <p>Borrow market dashboard</p>
       </div>
 
       <DashboardV2Kpis data={trendData} />
 
-      <DashboardV2Chart data={trendData} />
+      <DashboardV2Chart data={trendData} events={events} />
     </div>
   );
 }

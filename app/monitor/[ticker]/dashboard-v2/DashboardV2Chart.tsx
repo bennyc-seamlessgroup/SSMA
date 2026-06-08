@@ -16,6 +16,15 @@ type DataPoint = {
   utilization: number;
 };
 
+type CompanyEvent = {
+  id: string;
+  date: string;
+  type: string;
+  title: string;
+  summary: string;
+  source?: string;
+};
+
 type SeriesConfig = {
   label: string;
   axisTitle: string;
@@ -123,7 +132,7 @@ const fallbackPoint: DataPoint = {
   utilization: 60,
 };
 
-export function DashboardV2Chart({ data: sourceData }: { data: DataPoint[] }) {
+export function DashboardV2Chart({ data: sourceData, events: sourceEvents }: { data: DataPoint[]; events: CompanyEvent[] }) {
   const [range, setRange] = useState<RangeKey>('1Y');
   const [enabledMetrics, setEnabledMetrics] = useState<Record<SeriesKey, boolean>>({
     price: true,
@@ -135,6 +144,7 @@ export function DashboardV2Chart({ data: sourceData }: { data: DataPoint[] }) {
   });
   const [hoveredMetric, setHoveredMetric] = useState<SeriesKey | null>(null);
   const [hoverIndex, setHoverIndex] = useState<number | null>(null);
+  const [hoveredEvent, setHoveredEvent] = useState<CompanyEvent | null>(null);
 
   const allData = useMemo(() => {
     const clean = sourceData
@@ -155,6 +165,14 @@ export function DashboardV2Chart({ data: sourceData }: { data: DataPoint[] }) {
     const count = range === '1W' ? 7 : range === '1M' ? 30 : allData.length;
     return allData.slice(-count);
   }, [allData, range]);
+  const visibleEvents = useMemo(() => {
+    const firstDate = data[0]?.date;
+    const lastDate = data[data.length - 1]?.date;
+    if (!firstDate || !lastDate) return [];
+    return sourceEvents
+      .filter(event => event?.date >= firstDate && event.date <= lastDate)
+      .sort((a, b) => a.date.localeCompare(b.date));
+  }, [data, sourceEvents]);
 
   const enabledKeys = seriesOrder.filter(key => enabledMetrics[key]);
   const activeMetric = hoveredMetric && enabledMetrics[hoveredMetric]
@@ -174,6 +192,21 @@ export function DashboardV2Chart({ data: sourceData }: { data: DataPoint[] }) {
     const bottomPanelBottom = 488;
     const plotWidth = width - left - right;
     const xFor = (index: number) => left + (data.length === 1 ? 0 : (index / (data.length - 1)) * plotWidth);
+    const indexForDate = (date: string) => {
+      const exact = data.findIndex(point => point.date === date);
+      if (exact >= 0) return exact;
+      const target = new Date(`${date}T00:00:00Z`).getTime();
+      let nearest = 0;
+      let nearestDistance = Number.POSITIVE_INFINITY;
+      data.forEach((point, index) => {
+        const distance = Math.abs(new Date(`${point.date}T00:00:00Z`).getTime() - target);
+        if (distance < nearestDistance) {
+          nearest = index;
+          nearestDistance = distance;
+        }
+      });
+      return nearest;
+    };
     const domains = Object.fromEntries(seriesOrder.map(key => [key, domainFor(data.map(point => point[key]))])) as Record<SeriesKey, { min: number; max: number }>;
     const paths = Object.fromEntries(seriesOrder.map(key => {
       const domain = domains[key];
@@ -214,8 +247,13 @@ export function DashboardV2Chart({ data: sourceData }: { data: DataPoint[] }) {
       domains,
       paths,
       xTicks,
+      eventMarkers: visibleEvents.map(event => ({
+        event,
+        x: xFor(indexForDate(event.date)),
+        y: topPanelBottom + 20,
+      })),
     };
-  }, [data, range]);
+  }, [data, range, visibleEvents]);
 
   const activeDomain = chart.domains[activeMetric];
   const activeTicks = ticksFor(activeDomain.min, activeDomain.max);
@@ -238,6 +276,7 @@ export function DashboardV2Chart({ data: sourceData }: { data: DataPoint[] }) {
   const clearHover = () => {
     setHoveredMetric(null);
     setHoverIndex(null);
+    setHoveredEvent(null);
   };
 
   const toggle = (key: SeriesKey) => {
@@ -287,7 +326,6 @@ export function DashboardV2Chart({ data: sourceData }: { data: DataPoint[] }) {
           >
             {activeConfig.axisTitle}
           </text>
-          <text className="dashboard-v2-axis-title bottom-panel-title" x="16" y={chart.bottomPanelTop - 14}>Shortable shares / Trade Volume</text>
 
           {activeTicks.map(tick => {
             const y = scale(tick, activeDomain.min, activeDomain.max, activePanelTop, activePanelBottom);
@@ -310,6 +348,24 @@ export function DashboardV2Chart({ data: sourceData }: { data: DataPoint[] }) {
 
           <line className="dashboard-v2-zero-line" x1={chart.left} x2={chart.width - chart.right} y1={chart.topPanelBottom} y2={chart.topPanelBottom} />
           <line className="dashboard-v2-zero-line" x1={chart.left} x2={chart.width - chart.right} y1={chart.bottomPanelBottom} y2={chart.bottomPanelBottom} />
+
+          {chart.eventMarkers.map(marker => (
+            <g
+              className="dashboard-v2-event-marker"
+              key={marker.event.id}
+              role="button"
+              tabIndex={0}
+              aria-label={`${marker.event.type}: ${marker.event.title}`}
+              onMouseEnter={() => setHoveredEvent(marker.event)}
+              onMouseLeave={() => setHoveredEvent(null)}
+              onFocus={() => setHoveredEvent(marker.event)}
+              onBlur={() => setHoveredEvent(null)}
+            >
+              <line x1={marker.x} x2={marker.x} y1={chart.topPanelTop} y2={chart.bottomPanelBottom} />
+              <circle cx={marker.x} cy={marker.y} r="5.5" />
+              <text x={marker.x} y={marker.y + 3} textAnchor="middle">{marker.event.type.charAt(0)}</text>
+            </g>
+          ))}
 
           {enabledKeys.map(key => {
             const isFocused = activeMetric === key;
@@ -368,6 +424,15 @@ export function DashboardV2Chart({ data: sourceData }: { data: DataPoint[] }) {
                 <b>{seriesConfig[key].formatter(hoveredPoint[key])}</b>
               </span>
             ))}
+          </div>
+        )}
+
+        {hoveredEvent && (
+          <div className="dashboard-v2-event-tooltip">
+            <span>{hoveredEvent.type} · {formatFullDate(hoveredEvent.date)}</span>
+            <strong>{hoveredEvent.title}</strong>
+            <p>{hoveredEvent.summary}</p>
+            {hoveredEvent.source && <em>{hoveredEvent.source}</em>}
           </div>
         )}
       </div>

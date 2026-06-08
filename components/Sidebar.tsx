@@ -12,6 +12,7 @@ const groups = [
     items: [
       ['Dashboard', 'dashboard'],
       ['Dashboard (v2)', 'dashboard-v2'],
+      ['Institutional Ownership', 'institutional'],
       ['Short Interest', 'short-interest'],
       ['Lending Pressure', 'lending-pressure'],
       ['Squeeze Readiness', 'squeeze-readiness'],
@@ -31,7 +32,6 @@ const groups = [
       ['Overview (Obsolete)', ''],
       ['News & Filings', 'news'],
       ['Insider Activity', 'insider'],
-      ['Institutional Ownership', 'institutional'],
       ['Shareholder Watch', 'shareholder-watch'],
       ['Options / Gamma', 'options'],
       ['Peer Comparison', 'peer-comparison'],

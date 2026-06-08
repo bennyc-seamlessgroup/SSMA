@@ -67,15 +67,10 @@ export default async function InstitutionalPage({ params }: Readonly<{ params: P
   }));
 
   return (
-    <div className="page">
-      <div className="page__header">
-        <div>
-          <h1 className="page__title">
-            Institutional Ownership
-          </h1>
-          <p>Normalized institutional ownership records.</p>
-          <span className="import-file-tag">import_data/ownership/security_ownership.json</span>
-        </div>
+    <div className="page institutional-page">
+      <div className="compact-page-header">
+        <span>Institutional Ownership</span>
+        <p>Normalized ownership records</p>
       </div>
 
       <section className="panel">

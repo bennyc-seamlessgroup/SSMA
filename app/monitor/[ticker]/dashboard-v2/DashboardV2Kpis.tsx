@@ -1,5 +1,6 @@
 'use client';
 
+import { InfoTooltip } from '@/components/InfoTooltip';
 import { useMemo, useState } from 'react';
 
 type PeriodKey = '1D' | '5D' | '1M' | '3M' | '1Y' | 'YTD';
@@ -19,6 +20,7 @@ type KpiConfig = {
   valueFormatter: (value: number | undefined) => string;
   changeFormatter: (value: number) => string;
   detail: string;
+  explanation: string;
 };
 
 const periods: PeriodKey[] = ['1D', '5D', '1M', '3M', '1Y', 'YTD'];
@@ -30,6 +32,7 @@ const kpis: KpiConfig[] = [
     valueFormatter: value => pct(value, 2),
     changeFormatter: value => signed(value, 2, ' pts'),
     detail: 'Borrow cost trend',
+    explanation: 'Current annualized cost to borrow shares. Higher borrow fees can indicate tighter lending supply or stronger short-side demand.',
   },
   {
     key: 'margin',
@@ -37,6 +40,7 @@ const kpis: KpiConfig[] = [
     valueFormatter: value => pct(value, 1),
     changeFormatter: value => signed(value, 2, ' pts'),
     detail: 'Current maintenance estimate',
+    explanation: 'Estimated margin requirement for maintaining the position. Higher margin can reflect greater perceived financing or risk pressure.',
   },
   {
     key: 'shortableShares',
@@ -44,6 +48,7 @@ const kpis: KpiConfig[] = [
     valueFormatter: value => compact(value),
     changeFormatter: value => signed(value, 0, ' shares'),
     detail: 'Shortable share supply',
+    explanation: 'Number of shares currently available to borrow for shorting. Lower availability can signal tighter lendable supply.',
   },
   {
     key: 'utilization',
@@ -51,6 +56,7 @@ const kpis: KpiConfig[] = [
     valueFormatter: value => pct(value, 1),
     changeFormatter: value => signed(value, 2, ' pts'),
     detail: 'Lending pool utilization',
+    explanation: 'Percentage of lendable inventory currently being used. Higher utilization means more of the borrowable share pool is already committed.',
   },
   {
     key: 'averageDuration',
@@ -58,6 +64,7 @@ const kpis: KpiConfig[] = [
     valueFormatter: value => value === undefined ? 'N/A' : `${value.toLocaleString('en-US', { maximumFractionDigits: 1 })}d`,
     changeFormatter: value => signed(value, 1, 'd'),
     detail: 'Estimated borrow duration',
+    explanation: 'Estimated average number of days borrowed shares remain on loan. Longer duration can indicate more persistent short-side positioning.',
   },
 ];
 
@@ -143,7 +150,7 @@ export function DashboardV2Kpis({ data }: { data: TrendPoint[] }) {
 
           return (
             <article className="dashboard-v2-kpi" key={item.label}>
-              <span>{item.label}</span>
+              <span className="dashboard-v2-kpi-label">{item.label} <InfoTooltip text={item.explanation} /></span>
               <strong>{item.valueFormatter(currentValue)}</strong>
               <div className={`dashboard-v2-kpi-change ${tone}`}>
                 <b>{change === null ? 'No baseline' : item.changeFormatter(change)}</b>
