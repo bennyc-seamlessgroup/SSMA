@@ -18,12 +18,12 @@ type DataPoint = {
 
 type ChartPoint = {
   date: string;
-  price: number;
-  feeRate: number;
-  tradeVolume: number;
-  shortableShares: number;
-  averageDuration: number;
-  utilization: number;
+  price: number | null;
+  feeRate: number | null;
+  tradeVolume: number | null;
+  shortableShares: number | null;
+  averageDuration: number | null;
+  utilization: number | null;
 };
 
 type CompanyEvent = {
@@ -130,16 +130,6 @@ function panelForMetric(metric: SeriesKey) {
   return bottomMetrics.has(metric) ? 'bottom' : 'top';
 }
 
-const fallbackPoint: ChartPoint = {
-  date: '2026-06-01',
-  price: 1,
-  feeRate: 10,
-  tradeVolume: 100000,
-  shortableShares: 1000000,
-  averageDuration: 10,
-  utilization: 60,
-};
-
 function dataCountForPeriod(period: PeriodKey, allData: DataPoint[]) {
   if (period === '1D') return 2;
   if (period === '5D') return 6;
@@ -152,6 +142,37 @@ function dataCountForPeriod(period: PeriodKey, allData: DataPoint[]) {
     return allData.filter(point => point.date.slice(0, 4) === year).length || allData.length;
   }
   return allData.length;
+}
+
+function numericOrNull(value: unknown) {
+  if (value === null || value === undefined || value === '' || value === 'N/A') return null;
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
+function hasMetricValue(points: ChartPoint[], key: SeriesKey) {
+  return points.some(point => point[key] !== null);
+}
+
+function fillMissingPrice(points: ChartPoint[]): ChartPoint[] {
+  if (!hasMetricValue(points, 'price')) return points;
+  const nextValidPrices = points.map(point => point.price);
+  let nextValid: number | null = null;
+  for (let index = nextValidPrices.length - 1; index >= 0; index -= 1) {
+    if (nextValidPrices[index] !== null && nextValidPrices[index]! > 0) {
+      nextValid = nextValidPrices[index];
+    } else {
+      nextValidPrices[index] = nextValid;
+    }
+  }
+
+  let lastValid: number | null = null;
+  return points.map((point, index) => {
+    const validPrice = point.price !== null && point.price > 0 ? point.price : null;
+    const price = validPrice ?? lastValid ?? nextValidPrices[index] ?? null;
+    if (validPrice !== null) lastValid = validPrice;
+    return { ...point, price };
+  });
 }
 
 export function DashboardV2Chart({ data: sourceData, events: sourceEvents, period }: { data: DataPoint[]; events: CompanyEvent[]; period: PeriodKey }) {
@@ -168,19 +189,19 @@ export function DashboardV2Chart({ data: sourceData, events: sourceEvents, perio
   const [hoveredEvent, setHoveredEvent] = useState<CompanyEvent | null>(null);
 
   const allData = useMemo(() => {
-    const clean: ChartPoint[] = sourceData
+    const clean = sourceData
       .filter(point => point && typeof point.date === 'string')
       .map(point => ({
         date: point.date,
-        price: Number(point.price) || 0,
-        feeRate: Number(point.feeRate) || 0,
-        tradeVolume: Number(point.tradeVolume) || 0,
-        shortableShares: Number(point.shortableShares) || 0,
-        averageDuration: Number(point.averageDuration) || 0,
-        utilization: Number(point.utilization) || 0,
+        price: numericOrNull(point.price),
+        feeRate: numericOrNull(point.feeRate),
+        tradeVolume: numericOrNull(point.tradeVolume),
+        shortableShares: numericOrNull(point.shortableShares),
+        averageDuration: numericOrNull(point.averageDuration) ?? 0,
+        utilization: numericOrNull(point.utilization) ?? 0,
       }))
       .sort((a, b) => a.date.localeCompare(b.date));
-    return clean.length ? clean : [fallbackPoint];
+    return fillMissingPrice(clean);
   }, [sourceData]);
   const data = useMemo(() => {
     const count = dataCountForPeriod(period, allData);
@@ -195,10 +216,11 @@ export function DashboardV2Chart({ data: sourceData, events: sourceEvents, perio
       .sort((a, b) => a.date.localeCompare(b.date));
   }, [data, sourceEvents]);
 
-  const enabledKeys = seriesOrder.filter(key => enabledMetrics[key]);
-  const activeMetric = hoveredMetric && enabledMetrics[hoveredMetric]
+  const availableMetrics = useMemo(() => seriesOrder.filter(key => key === 'averageDuration' || key === 'utilization' || hasMetricValue(allData, key)), [allData]);
+  const enabledKeys = availableMetrics.filter(key => enabledMetrics[key]);
+  const activeMetric = hoveredMetric && enabledKeys.includes(hoveredMetric)
     ? hoveredMetric
-    : enabledMetrics[defaultMetric]
+    : enabledKeys.includes(defaultMetric)
       ? defaultMetric
       : enabledKeys[0] ?? defaultMetric;
 
@@ -228,17 +250,22 @@ export function DashboardV2Chart({ data: sourceData, events: sourceEvents, perio
       });
       return nearest;
     };
-    const domains = Object.fromEntries(seriesOrder.map(key => [key, domainFor(data.map(point => point[key]))])) as Record<SeriesKey, { min: number; max: number }>;
-    const paths = Object.fromEntries(seriesOrder.map(key => {
+    const domains = Object.fromEntries(availableMetrics.map(key => [key, domainFor(data.map(point => point[key]).filter((value): value is number => value !== null))])) as Partial<Record<SeriesKey, { min: number; max: number }>>;
+    const paths = Object.fromEntries(availableMetrics.map(key => {
       const domain = domains[key];
+      if (!domain) return [key, { path: '', points: [] }];
       const panelTop = panelForMetric(key) === 'bottom' ? bottomPanelTop : topPanelTop;
       const panelBottom = panelForMetric(key) === 'bottom' ? bottomPanelBottom : topPanelBottom;
-      const points = data.map((point, index) => ({
-        x: xFor(index),
-        y: scale(point[key], domain.min, domain.max, panelTop, panelBottom),
-      }));
-      return [key, { path: pathFor(points), points }];
-    })) as Record<SeriesKey, { path: string; points: Array<{ x: number; y: number }> }>;
+      const points = data.map((point, index) => {
+        const value = point[key];
+        return value === null ? null : {
+          x: xFor(index),
+          y: scale(value, domain.min, domain.max, panelTop, panelBottom),
+        };
+      });
+      const visiblePoints = points.filter((point): point is { x: number; y: number } => point !== null);
+      return [key, { path: pathFor(visiblePoints), points }];
+    })) as Partial<Record<SeriesKey, { path: string; points: Array<{ x: number; y: number } | null> }>>;
 
     const xTicks = data
       .map((point, index) => ({ point, index }))
@@ -275,9 +302,9 @@ export function DashboardV2Chart({ data: sourceData, events: sourceEvents, perio
         y: topPanelBottom + 20,
       })),
     };
-  }, [data, period, visibleEvents]);
+  }, [availableMetrics, data, period, visibleEvents]);
 
-  const activeDomain = chart.domains[activeMetric];
+  const activeDomain = chart.domains[activeMetric] ?? domainFor([0]);
   const activeTicks = ticksFor(activeDomain.min, activeDomain.max);
   const activeConfig = seriesConfig[activeMetric];
   const activePanel = panelForMetric(activeMetric);
@@ -313,6 +340,7 @@ export function DashboardV2Chart({ data: sourceData, events: sourceEvents, perio
         </div>
         <div className="dashboard-v2-legend" aria-label="Chart series toggles">
           {seriesOrder.map(key => (
+            !availableMetrics.includes(key) ? null : (
             <button
               type="button"
               className={`${!enabledMetrics[key] ? 'is-muted' : ''} ${activeMetric === key ? 'is-focused' : ''}`}
@@ -327,10 +355,17 @@ export function DashboardV2Chart({ data: sourceData, events: sourceEvents, perio
               <i style={{ background: seriesConfig[key].color }} />
               {seriesConfig[key].label}
             </button>
+            )
           ))}
         </div>
       </div>
 
+      {!data.length || !enabledKeys.length ? (
+        <div className="dashboard-v2-empty-chart">
+          <strong>No chart data available</strong>
+          <span>The consolidated JSON does not include chartable values for the selected metrics.</span>
+        </div>
+      ) : (
       <div className="dashboard-v2-chart-shell">
         <svg
           viewBox={`0 0 ${chart.width} ${chart.height}`}
@@ -396,12 +431,12 @@ export function DashboardV2Chart({ data: sourceData, events: sourceEvents, perio
               <g key={key}>
                 <path
                   className={`dashboard-v2-line ${isFocused ? 'is-focused' : ''} ${isDimmed ? 'is-dimmed' : ''}`}
-                  d={chart.paths[key].path}
+                  d={chart.paths[key]?.path ?? ''}
                   style={{ stroke: seriesConfig[key].color }}
                 />
                 <path
                   className="dashboard-v2-line-hit"
-                  d={chart.paths[key].path}
+                  d={chart.paths[key]?.path ?? ''}
                   onMouseEnter={() => setHoveredMetric(key)}
                   onFocus={() => setHoveredMetric(key)}
                 />
@@ -413,13 +448,13 @@ export function DashboardV2Chart({ data: sourceData, events: sourceEvents, perio
             <g className="dashboard-v2-hover-layer">
               <line
                 className="dashboard-v2-hover-line"
-                x1={chart.paths[activeMetric].points[hoverIndex ?? 0]?.x}
-                x2={chart.paths[activeMetric].points[hoverIndex ?? 0]?.x}
+                x1={chart.paths[activeMetric]?.points[hoverIndex ?? 0]?.x}
+                x2={chart.paths[activeMetric]?.points[hoverIndex ?? 0]?.x}
                 y1={chart.topPanelTop}
                 y2={chart.bottomPanelBottom}
               />
               {enabledKeys.map(key => {
-                const point = chart.paths[key].points[hoverIndex ?? 0];
+                const point = chart.paths[key]?.points[hoverIndex ?? 0];
                 if (!point) return null;
                 return (
                   <circle
@@ -440,11 +475,13 @@ export function DashboardV2Chart({ data: sourceData, events: sourceEvents, perio
           <div className="dashboard-v2-tooltip">
             <strong>{formatFullDate(hoveredPoint.date)}</strong>
             {tooltipMetricOrder.map(key => (
+              hoveredPoint[key] === null ? null : (
               <span className={key === activeMetric ? 'is-focused' : ''} key={key}>
                 <i style={{ background: seriesConfig[key].color }} />
                 <em>{seriesConfig[key].label}</em>
                 <b>{seriesConfig[key].formatter(hoveredPoint[key])}</b>
               </span>
+              )
             ))}
           </div>
         )}
@@ -458,6 +495,7 @@ export function DashboardV2Chart({ data: sourceData, events: sourceEvents, perio
           </div>
         )}
       </div>
+      )}
     </section>
   );
 }

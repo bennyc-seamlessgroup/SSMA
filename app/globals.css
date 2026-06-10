@@ -7941,6 +7941,23 @@ html:not([data-dev-mode="true"]) .dev-source-inline {
   border-radius: 6px;
 }
 
+.dashboard-v2-empty-chart {
+  display: grid;
+  place-items: center;
+  gap: 8px;
+  min-height: 360px;
+  border: 1px dashed #cbd8e8;
+  border-radius: 12px;
+  background: #f8fbff;
+  color: #65758f;
+  text-align: center;
+}
+
+.dashboard-v2-empty-chart strong {
+  color: #061b31;
+  font-size: 16px;
+}
+
 .dashboard-v2-chart-shell svg {
   display: block;
   width: 100%;
