@@ -29,7 +29,7 @@ export default function LoginPage() {
             <h2>Sign in</h2>
             <p>Credential validation will be connected later. This demo opens the CURR workspace.</p>
           </div>
-          <form className="auth-form" action="/monitor/CURR/dashboard">
+          <form className="auth-form" action="/monitor/CURR/dashboard-v2">
             <label>
               Work email
               <input className="input" type="email" defaultValue="demo@currencintel.com" />

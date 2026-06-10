@@ -41,7 +41,7 @@ export default function CompaniesPage() {
               <span className={`status-pill ${company.status === 'Active' ? 'success' : 'muted'}`}>{company.status}</span>
               <span>{company.recipients}</span>
               <span>{company.sendTime}</span>
-              <Link className="text-link" href={`/monitor/${company.ticker}/dashboard`}>Open</Link>
+              <Link className="text-link" href={`/monitor/${company.ticker}/dashboard-v2`}>Open</Link>
             </div>
           ))}
         </div>

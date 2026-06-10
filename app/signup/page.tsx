@@ -29,7 +29,7 @@ export default function SignupPage() {
             <h2>Create account</h2>
             <p>This is a demo signup screen. Submitting opens the CURR workspace.</p>
           </div>
-          <form className="auth-form" action="/monitor/CURR/dashboard">
+          <form className="auth-form" action="/monitor/CURR/dashboard-v2">
             <label>
               Full name
               <input className="input" defaultValue="Benny Cheung" />

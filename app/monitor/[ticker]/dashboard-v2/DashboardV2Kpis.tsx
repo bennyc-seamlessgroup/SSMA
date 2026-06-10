@@ -1,17 +1,17 @@
 'use client';
 
 import { InfoTooltip } from '@/components/InfoTooltip';
-import { useMemo, useState } from 'react';
+import { useMemo } from 'react';
 
-type PeriodKey = '1D' | '5D' | '1M' | '3M' | '1Y' | 'YTD';
+export type PeriodKey = '1D' | '5D' | '1M' | '3M' | '1Y' | 'YTD';
 
 type TrendPoint = {
   date: string;
-  feeRate: number;
-  shortableShares: number;
-  averageDuration: number;
-  utilization: number;
-  margin?: number;
+  feeRate: number | null;
+  shortableShares: number | null;
+  averageDuration: number | null;
+  utilization: number | null;
+  margin?: number | null;
 };
 
 type KpiConfig = {
@@ -23,7 +23,7 @@ type KpiConfig = {
   explanation: string;
 };
 
-const periods: PeriodKey[] = ['1D', '5D', '1M', '3M', '1Y', 'YTD'];
+export const dashboardV2Periods: PeriodKey[] = ['1D', '5D', '1M', '3M', '1Y', 'YTD'];
 
 const kpis: KpiConfig[] = [
   {
@@ -112,34 +112,18 @@ function comparisonPoint(data: TrendPoint[], period: PeriodKey) {
 }
 
 function toNumber(value: unknown) {
+  if (value === null || value === undefined || value === '') return undefined;
   const parsed = typeof value === 'number' ? value : Number(value);
   return Number.isFinite(parsed) ? parsed : undefined;
 }
 
-export function DashboardV2Kpis({ data }: { data: TrendPoint[] }) {
-  const [period, setPeriod] = useState<PeriodKey>('1D');
+export function DashboardV2Kpis({ data, period }: { data: TrendPoint[]; period: PeriodKey }) {
   const cleanData = useMemo(() => data.filter(point => point?.date).sort((a, b) => a.date.localeCompare(b.date)), [data]);
   const latest = cleanData[cleanData.length - 1];
   const compare = comparisonPoint(cleanData, period);
 
   return (
     <section className="dashboard-v2-kpi-block" aria-label="Borrow market KPIs">
-      <div className="dashboard-v2-kpi-toolbar">
-        <span>Compare vs</span>
-        <div className="dashboard-v2-period-control">
-          {periods.map(item => (
-            <button
-              type="button"
-              key={item}
-              className={period === item ? 'active' : ''}
-              onClick={() => setPeriod(item)}
-            >
-              {item}
-            </button>
-          ))}
-        </div>
-      </div>
-
       <div className="dashboard-v2-kpis">
         {kpis.map(item => {
           const currentValue = toNumber(latest?.[item.key]);

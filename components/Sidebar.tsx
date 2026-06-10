@@ -10,13 +10,12 @@ const groups = [
   {
     label: 'Workspace',
     items: [
-      ['Dashboard', 'dashboard'],
       ['Dashboard (v2)', 'dashboard-v2'],
       ['Institutional Ownership', 'institutional'],
       ['Short Interest', 'short-interest'],
       ['Lending Pressure', 'lending-pressure'],
       ['Squeeze Readiness', 'squeeze-readiness'],
-      ['Internal Float', 'internal-float'],
+      ['Internal Float (V2)', 'internal-float-v2'],
       ['Smart Money', 'smart-money'],
       ['Narrative', 'sentiment'],
       ['Catalysts', 'event-calendar'],
@@ -30,6 +29,8 @@ const groups = [
     muted: true,
     items: [
       ['Overview (Obsolete)', ''],
+      ['Dashboard (Obsolete)', 'dashboard'],
+      ['Internal Float (Obsolete)', 'internal-float'],
       ['News & Filings', 'news'],
       ['Insider Activity', 'insider'],
       ['Shareholder Watch', 'shareholder-watch'],

@@ -2,11 +2,21 @@
 
 import { useMemo, useState } from 'react';
 import type { MouseEvent } from 'react';
+import type { PeriodKey } from './DashboardV2Kpis';
 
-type RangeKey = '1W' | '1M' | '1Y';
 type SeriesKey = 'price' | 'feeRate' | 'tradeVolume' | 'shortableShares' | 'averageDuration' | 'utilization';
 
 type DataPoint = {
+  date: string;
+  price: number | null;
+  feeRate: number | null;
+  tradeVolume: number | null;
+  shortableShares: number | null;
+  averageDuration: number | null;
+  utilization: number | null;
+};
+
+type ChartPoint = {
   date: string;
   price: number;
   feeRate: number;
@@ -36,8 +46,6 @@ const defaultMetric: SeriesKey = 'price';
 
 const seriesOrder: SeriesKey[] = ['price', 'feeRate', 'tradeVolume', 'shortableShares', 'averageDuration', 'utilization'];
 const bottomMetrics = new Set<SeriesKey>(['tradeVolume', 'shortableShares']);
-
-const ranges: RangeKey[] = ['1W', '1M', '1Y'];
 
 const seriesConfig: Record<SeriesKey, SeriesConfig> = {
   price: {
@@ -122,7 +130,7 @@ function panelForMetric(metric: SeriesKey) {
   return bottomMetrics.has(metric) ? 'bottom' : 'top';
 }
 
-const fallbackPoint: DataPoint = {
+const fallbackPoint: ChartPoint = {
   date: '2026-06-01',
   price: 1,
   feeRate: 10,
@@ -132,8 +140,21 @@ const fallbackPoint: DataPoint = {
   utilization: 60,
 };
 
-export function DashboardV2Chart({ data: sourceData, events: sourceEvents }: { data: DataPoint[]; events: CompanyEvent[] }) {
-  const [range, setRange] = useState<RangeKey>('1Y');
+function dataCountForPeriod(period: PeriodKey, allData: DataPoint[]) {
+  if (period === '1D') return 2;
+  if (period === '5D') return 6;
+  if (period === '1M') return 30;
+  if (period === '3M') return 90;
+  if (period === 'YTD') {
+    const latest = allData[allData.length - 1];
+    if (!latest) return allData.length;
+    const year = latest.date.slice(0, 4);
+    return allData.filter(point => point.date.slice(0, 4) === year).length || allData.length;
+  }
+  return allData.length;
+}
+
+export function DashboardV2Chart({ data: sourceData, events: sourceEvents, period }: { data: DataPoint[]; events: CompanyEvent[]; period: PeriodKey }) {
   const [enabledMetrics, setEnabledMetrics] = useState<Record<SeriesKey, boolean>>({
     price: true,
     feeRate: true,
@@ -147,7 +168,7 @@ export function DashboardV2Chart({ data: sourceData, events: sourceEvents }: { d
   const [hoveredEvent, setHoveredEvent] = useState<CompanyEvent | null>(null);
 
   const allData = useMemo(() => {
-    const clean = sourceData
+    const clean: ChartPoint[] = sourceData
       .filter(point => point && typeof point.date === 'string')
       .map(point => ({
         date: point.date,
@@ -162,9 +183,9 @@ export function DashboardV2Chart({ data: sourceData, events: sourceEvents }: { d
     return clean.length ? clean : [fallbackPoint];
   }, [sourceData]);
   const data = useMemo(() => {
-    const count = range === '1W' ? 7 : range === '1M' ? 30 : allData.length;
+    const count = dataCountForPeriod(period, allData);
     return allData.slice(-count);
-  }, [allData, range]);
+  }, [allData, period]);
   const visibleEvents = useMemo(() => {
     const firstDate = data[0]?.date;
     const lastDate = data[data.length - 1]?.date;
@@ -223,13 +244,14 @@ export function DashboardV2Chart({ data: sourceData, events: sourceEvents }: { d
       .map((point, index) => ({ point, index }))
       .filter(({ point, index }) => {
         if (index === 0 || index === data.length - 1) return true;
-        if (range === '1W') return index % 2 === 0;
-        if (range === '1M') return index % 7 === 0;
+        if (period === '1D' || period === '5D') return true;
+        if (period === '1M') return index % 7 === 0;
+        if (period === '3M') return index % 14 === 0;
         return point.date.slice(5, 7) !== data[index - 1]?.date.slice(5, 7);
       })
       .map(({ point, index }, tickIndex) => ({
         x: xFor(index),
-        label: range === '1Y'
+        label: period === '1Y' || period === 'YTD'
           ? (tickIndex === 0 ? point.date.slice(5) : formatMonth(point.date))
           : point.date.slice(5),
       }));
@@ -253,7 +275,7 @@ export function DashboardV2Chart({ data: sourceData, events: sourceEvents }: { d
         y: topPanelBottom + 20,
       })),
     };
-  }, [data, range, visibleEvents]);
+  }, [data, period, visibleEvents]);
 
   const activeDomain = chart.domains[activeMetric];
   const activeTicks = ticksFor(activeDomain.min, activeDomain.max);
@@ -435,19 +457,6 @@ export function DashboardV2Chart({ data: sourceData, events: sourceEvents }: { d
             {hoveredEvent.source && <em>{hoveredEvent.source}</em>}
           </div>
         )}
-      </div>
-
-      <div className="dashboard-v2-range-row" aria-label="Chart date range">
-        {ranges.map(item => (
-          <button
-            type="button"
-            key={item}
-            className={range === item ? 'active' : ''}
-            onClick={() => setRange(item)}
-          >
-            {item}
-          </button>
-        ))}
       </div>
     </section>
   );

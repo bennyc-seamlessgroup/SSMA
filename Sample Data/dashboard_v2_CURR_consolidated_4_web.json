@@ -1,0 +1,963 @@
+{
+  "ticker": "CURR",
+  "asOfDate": "2026-06-05",
+  "importedAt": "2026-06-10T04:59:23.246Z",
+  "source": "Normalized from /Users/bennycheung/Downloads/ortex_CURR_consolidated (2).json",
+  "sourcePlatform": "Ortex",
+  "recordType": "dashboardV2ConsolidatedWeb",
+  "category": "dashboard_v2",
+  "recordCount": 7,
+  "status": "ready_with_missing_fields",
+  "notes": "Dashboard V2 consolidated dataset generated from ORTEX consolidated source. ORTEX source contains price, trade volume, borrow fee, short availability, short interest, days to cover, and short score. Margin, utilization, average duration, and chart events are not present in this ORTEX source and are left as null for backend completion.",
+  "originalFiles": [
+    "ortex_CURR_consolidated (2).json"
+  ],
+  "data": {
+    "current": {
+      "date": "2026-06-05",
+      "price": 3.18,
+      "borrowFee": 31.31,
+      "margin": null,
+      "availableShares": 2433471,
+      "tradeVolume": 160949,
+      "averageDuration": null,
+      "utilization": null,
+      "sourceRecords": {
+        "availability": {
+          "date": "2026-06-05",
+          "shortAvailabilityPct": 72.21,
+          "shortAvailabilityShares": 2433471
+        },
+        "closingPrices": {
+          "date": "2026-06-05",
+          "open": 3.52,
+          "high": 3.63,
+          "low": 3.15,
+          "close": 3.18,
+          "volume": 160949
+        },
+        "borrowFeeAll": {
+          "date": "2026-06-05",
+          "costToBorrowAll": 31.31
+        },
+        "borrowFeeNew": {
+          "date": "2026-06-05",
+          "costToBorrowNew": 35.26
+        },
+        "daysToCover": {
+          "date": "2026-06-05",
+          "daysToCover": 5.2148
+        },
+        "shortInterest": {
+          "date": "2026-06-05",
+          "shortInterestShares": 924620,
+          "shortInterestPcFreeFloat": 2.88642,
+          "shortInterestUsd": 2940292
+        },
+        "shortScore": {
+          "date": "2026-06-05",
+          "score": 69.4839
+        }
+      }
+    },
+    "trends": [
+      {
+        "date": "2026-05-28",
+        "price": 3.19,
+        "feeRate": 31.1,
+        "tradeVolume": 75351,
+        "shortableShares": 2604947,
+        "averageDuration": null,
+        "utilization": null,
+        "margin": null,
+        "sourceRecords": {
+          "availability": {
+            "date": "2026-05-28",
+            "shortAvailabilityPct": 83.43,
+            "shortAvailabilityShares": 2604947
+          },
+          "closingPrices": {
+            "date": "2026-05-28",
+            "open": 3.16,
+            "high": 3.2493,
+            "low": 3.08,
+            "close": 3.19,
+            "volume": 75351
+          },
+          "borrowFeeAll": {
+            "date": "2026-05-28",
+            "costToBorrowAll": 31.1
+          },
+          "borrowFeeNew": {
+            "date": "2026-05-28",
+            "costToBorrowNew": 33.22
+          },
+          "daysToCover": {
+            "date": "2026-05-28",
+            "daysToCover": 5.2027
+          },
+          "shortInterest": {
+            "date": "2026-05-28",
+            "shortInterestShares": 928013,
+            "shortInterestPcFreeFloat": 1.362319,
+            "shortInterestUsd": 2960361
+          },
+          "shortScore": {
+            "date": "2026-05-28",
+            "score": 66.8087
+          }
+        }
+      },
+      {
+        "date": "2026-05-29",
+        "price": 3.14,
+        "feeRate": 31.13,
+        "tradeVolume": 75631,
+        "shortableShares": 2518253,
+        "averageDuration": null,
+        "utilization": null,
+        "margin": null,
+        "sourceRecords": {
+          "availability": {
+            "date": "2026-05-29",
+            "shortAvailabilityPct": 77.8,
+            "shortAvailabilityShares": 2518253
+          },
+          "closingPrices": {
+            "date": "2026-05-29",
+            "open": 3.28,
+            "high": 3.302,
+            "low": 3.12,
+            "close": 3.14,
+            "volume": 75631
+          },
+          "borrowFeeAll": {
+            "date": "2026-05-29",
+            "costToBorrowAll": 31.13
+          },
+          "borrowFeeNew": {
+            "date": "2026-05-29",
+            "costToBorrowNew": 30.33
+          },
+          "daysToCover": {
+            "date": "2026-05-29",
+            "daysToCover": 5.2366
+          },
+          "shortInterest": {
+            "date": "2026-05-29",
+            "shortInterestShares": 926191,
+            "shortInterestPcFreeFloat": 1.359645,
+            "shortInterestUsd": 2908238
+          },
+          "shortScore": {
+            "date": "2026-05-29",
+            "score": 66.9299
+          }
+        }
+      },
+      {
+        "date": "2026-06-01",
+        "price": 3.19,
+        "feeRate": 31.14,
+        "tradeVolume": 42333,
+        "shortableShares": 2552741,
+        "averageDuration": null,
+        "utilization": null,
+        "margin": null,
+        "sourceRecords": {
+          "availability": {
+            "date": "2026-06-01",
+            "shortAvailabilityPct": 80.54,
+            "shortAvailabilityShares": 2552741
+          },
+          "closingPrices": {
+            "date": "2026-06-01",
+            "open": 3.1,
+            "high": 3.2897,
+            "low": 3.1,
+            "close": 3.19,
+            "volume": 42333
+          },
+          "borrowFeeAll": {
+            "date": "2026-06-01",
+            "costToBorrowAll": 31.14
+          },
+          "borrowFeeNew": [],
+          "daysToCover": {
+            "date": "2026-06-01",
+            "daysToCover": 5.2817
+          },
+          "shortInterest": {
+            "date": "2026-06-01",
+            "shortInterestShares": 925040,
+            "shortInterestPcFreeFloat": 2.887731,
+            "shortInterestUsd": 2950876
+          },
+          "shortScore": {
+            "date": "2026-06-01",
+            "score": 67.0156
+          }
+        }
+      },
+      {
+        "date": "2026-06-02",
+        "price": 3.28,
+        "feeRate": 31.16,
+        "tradeVolume": 103873,
+        "shortableShares": 2522799,
+        "averageDuration": null,
+        "utilization": null,
+        "margin": null,
+        "sourceRecords": {
+          "availability": {
+            "date": "2026-06-02",
+            "shortAvailabilityPct": 76.68,
+            "shortAvailabilityShares": 2522799
+          },
+          "closingPrices": {
+            "date": "2026-06-02",
+            "open": 3.21,
+            "high": 3.39,
+            "low": 3.1985,
+            "close": 3.28,
+            "volume": 103873
+          },
+          "borrowFeeAll": {
+            "date": "2026-06-02",
+            "costToBorrowAll": 31.16
+          },
+          "borrowFeeNew": {
+            "date": "2026-06-02",
+            "costToBorrowNew": 33.94
+          },
+          "daysToCover": {
+            "date": "2026-06-02",
+            "daysToCover": 5.3345
+          },
+          "shortInterest": {
+            "date": "2026-06-02",
+            "shortInterestShares": 931706,
+            "shortInterestPcFreeFloat": 2.90854,
+            "shortInterestUsd": 3055994
+          },
+          "shortScore": {
+            "date": "2026-06-02",
+            "score": 69.6201
+          }
+        }
+      },
+      {
+        "date": "2026-06-03",
+        "price": 3.11,
+        "feeRate": 31.38,
+        "tradeVolume": 142301,
+        "shortableShares": 2393008,
+        "averageDuration": null,
+        "utilization": null,
+        "margin": null,
+        "sourceRecords": {
+          "availability": {
+            "date": "2026-06-03",
+            "shortAvailabilityPct": 67.59,
+            "shortAvailabilityShares": 2393008
+          },
+          "closingPrices": {
+            "date": "2026-06-03",
+            "open": 3.37,
+            "high": 3.37,
+            "low": 2.9,
+            "close": 3.11,
+            "volume": 142301
+          },
+          "borrowFeeAll": {
+            "date": "2026-06-03",
+            "costToBorrowAll": 31.38
+          },
+          "borrowFeeNew": {
+            "date": "2026-06-03",
+            "costToBorrowNew": 35.6
+          },
+          "daysToCover": {
+            "date": "2026-06-03",
+            "daysToCover": 5.3431
+          },
+          "shortInterest": {
+            "date": "2026-06-03",
+            "shortInterestShares": 931718,
+            "shortInterestPcFreeFloat": 2.908578,
+            "shortInterestUsd": 2897643
+          },
+          "shortScore": {
+            "date": "2026-06-03",
+            "score": 69.7855
+          }
+        }
+      },
+      {
+        "date": "2026-06-04",
+        "price": 3.51,
+        "feeRate": 31.36,
+        "tradeVolume": 247430,
+        "shortableShares": 2431493,
+        "averageDuration": null,
+        "utilization": null,
+        "margin": null,
+        "sourceRecords": {
+          "availability": {
+            "date": "2026-06-04",
+            "shortAvailabilityPct": 69.11,
+            "shortAvailabilityShares": 2431493
+          },
+          "closingPrices": {
+            "date": "2026-06-04",
+            "open": 3.1,
+            "high": 3.78,
+            "low": 3.1,
+            "close": 3.51,
+            "volume": 247430
+          },
+          "borrowFeeAll": {
+            "date": "2026-06-04",
+            "costToBorrowAll": 31.36
+          },
+          "borrowFeeNew": {
+            "date": "2026-06-04",
+            "costToBorrowNew": 33.85
+          },
+          "daysToCover": {
+            "date": "2026-06-04",
+            "daysToCover": 5.2979
+          },
+          "shortInterest": {
+            "date": "2026-06-04",
+            "shortInterestShares": 936466,
+            "shortInterestPcFreeFloat": 2.9234,
+            "shortInterestUsd": 3286996
+          },
+          "shortScore": {
+            "date": "2026-06-04",
+            "score": 69.7194
+          }
+        }
+      },
+      {
+        "date": "2026-06-05",
+        "price": 3.18,
+        "feeRate": 31.31,
+        "tradeVolume": 160949,
+        "shortableShares": 2433471,
+        "averageDuration": null,
+        "utilization": null,
+        "margin": null,
+        "sourceRecords": {
+          "availability": {
+            "date": "2026-06-05",
+            "shortAvailabilityPct": 72.21,
+            "shortAvailabilityShares": 2433471
+          },
+          "closingPrices": {
+            "date": "2026-06-05",
+            "open": 3.52,
+            "high": 3.63,
+            "low": 3.15,
+            "close": 3.18,
+            "volume": 160949
+          },
+          "borrowFeeAll": {
+            "date": "2026-06-05",
+            "costToBorrowAll": 31.31
+          },
+          "borrowFeeNew": {
+            "date": "2026-06-05",
+            "costToBorrowNew": 35.26
+          },
+          "daysToCover": {
+            "date": "2026-06-05",
+            "daysToCover": 5.2148
+          },
+          "shortInterest": {
+            "date": "2026-06-05",
+            "shortInterestShares": 924620,
+            "shortInterestPcFreeFloat": 2.88642,
+            "shortInterestUsd": 2940292
+          },
+          "shortScore": {
+            "date": "2026-06-05",
+            "score": 69.4839
+          }
+        }
+      }
+    ],
+    "events": [],
+    "missingFromSource": [
+      "margin",
+      "utilization",
+      "averageDuration",
+      "events"
+    ],
+    "derived": {
+      "dashboardV2": {
+        "defaultPeriod": "1Y",
+        "periods": [
+          "1D",
+          "5D",
+          "1M",
+          "3M",
+          "1Y",
+          "YTD"
+        ],
+        "cards": {
+          "1D": {
+            "period": "1D",
+            "latestDate": "2026-06-05",
+            "comparisonDate": "2026-06-04",
+            "cards": {
+              "borrowFee": {
+                "label": "Borrow Fee",
+                "value": 31.31,
+                "valueDisplay": "31.31%",
+                "previousValue": 31.36,
+                "previousDate": "2026-06-04",
+                "change": -0.05,
+                "changeDisplay": "-0.05 pts",
+                "changePercent": -0.16,
+                "changePercentDisplay": "-0.16%",
+                "deltaDisplay": "-0.05 pts(-0.16%)",
+                "tone": "down",
+                "sourceStatus": "available"
+              },
+              "margin": {
+                "label": "Margin",
+                "value": null,
+                "valueDisplay": "N/A",
+                "previousValue": null,
+                "previousDate": "2026-06-04",
+                "change": null,
+                "changeDisplay": "N/A",
+                "changePercent": null,
+                "changePercentDisplay": "N/A",
+                "deltaDisplay": "N/A",
+                "tone": "neutral",
+                "sourceStatus": "missing_from_ortex_source"
+              },
+              "availableShares": {
+                "label": "Available Shares",
+                "value": 2433471,
+                "valueDisplay": "2,433,471",
+                "previousValue": 2431493,
+                "previousDate": "2026-06-04",
+                "change": 1978,
+                "changeDisplay": "+1,978 shares",
+                "changePercent": 0.08,
+                "changePercentDisplay": "+0.08%",
+                "deltaDisplay": "+1,978 shares(+0.08%)",
+                "tone": "up",
+                "sourceStatus": "available"
+              },
+              "utilization": {
+                "label": "Utilization",
+                "value": null,
+                "valueDisplay": "N/A",
+                "previousValue": null,
+                "previousDate": "2026-06-04",
+                "change": null,
+                "changeDisplay": "N/A",
+                "changePercent": null,
+                "changePercentDisplay": "N/A",
+                "deltaDisplay": "N/A",
+                "tone": "neutral",
+                "sourceStatus": "missing_from_ortex_source"
+              },
+              "averageDuration": {
+                "label": "Average Duration",
+                "value": null,
+                "valueDisplay": "N/A",
+                "previousValue": null,
+                "previousDate": "2026-06-04",
+                "change": null,
+                "changeDisplay": "N/A",
+                "changePercent": null,
+                "changePercentDisplay": "N/A",
+                "deltaDisplay": "N/A",
+                "tone": "neutral",
+                "sourceStatus": "missing_from_ortex_source"
+              }
+            }
+          },
+          "5D": {
+            "period": "5D",
+            "latestDate": "2026-06-05",
+            "comparisonDate": "2026-05-29",
+            "cards": {
+              "borrowFee": {
+                "label": "Borrow Fee",
+                "value": 31.31,
+                "valueDisplay": "31.31%",
+                "previousValue": 31.13,
+                "previousDate": "2026-05-29",
+                "change": 0.18,
+                "changeDisplay": "+0.18 pts",
+                "changePercent": 0.58,
+                "changePercentDisplay": "+0.58%",
+                "deltaDisplay": "+0.18 pts(+0.58%)",
+                "tone": "up",
+                "sourceStatus": "available"
+              },
+              "margin": {
+                "label": "Margin",
+                "value": null,
+                "valueDisplay": "N/A",
+                "previousValue": null,
+                "previousDate": "2026-05-29",
+                "change": null,
+                "changeDisplay": "N/A",
+                "changePercent": null,
+                "changePercentDisplay": "N/A",
+                "deltaDisplay": "N/A",
+                "tone": "neutral",
+                "sourceStatus": "missing_from_ortex_source"
+              },
+              "availableShares": {
+                "label": "Available Shares",
+                "value": 2433471,
+                "valueDisplay": "2,433,471",
+                "previousValue": 2518253,
+                "previousDate": "2026-05-29",
+                "change": -84782,
+                "changeDisplay": "-84,782 shares",
+                "changePercent": -3.37,
+                "changePercentDisplay": "-3.37%",
+                "deltaDisplay": "-84,782 shares(-3.37%)",
+                "tone": "down",
+                "sourceStatus": "available"
+              },
+              "utilization": {
+                "label": "Utilization",
+                "value": null,
+                "valueDisplay": "N/A",
+                "previousValue": null,
+                "previousDate": "2026-05-29",
+                "change": null,
+                "changeDisplay": "N/A",
+                "changePercent": null,
+                "changePercentDisplay": "N/A",
+                "deltaDisplay": "N/A",
+                "tone": "neutral",
+                "sourceStatus": "missing_from_ortex_source"
+              },
+              "averageDuration": {
+                "label": "Average Duration",
+                "value": null,
+                "valueDisplay": "N/A",
+                "previousValue": null,
+                "previousDate": "2026-05-29",
+                "change": null,
+                "changeDisplay": "N/A",
+                "changePercent": null,
+                "changePercentDisplay": "N/A",
+                "deltaDisplay": "N/A",
+                "tone": "neutral",
+                "sourceStatus": "missing_from_ortex_source"
+              }
+            }
+          },
+          "1M": {
+            "period": "1M",
+            "latestDate": "2026-06-05",
+            "comparisonDate": "2026-05-28",
+            "cards": {
+              "borrowFee": {
+                "label": "Borrow Fee",
+                "value": 31.31,
+                "valueDisplay": "31.31%",
+                "previousValue": 31.1,
+                "previousDate": "2026-05-28",
+                "change": 0.21,
+                "changeDisplay": "+0.21 pts",
+                "changePercent": 0.68,
+                "changePercentDisplay": "+0.68%",
+                "deltaDisplay": "+0.21 pts(+0.68%)",
+                "tone": "up",
+                "sourceStatus": "available"
+              },
+              "margin": {
+                "label": "Margin",
+                "value": null,
+                "valueDisplay": "N/A",
+                "previousValue": null,
+                "previousDate": "2026-05-28",
+                "change": null,
+                "changeDisplay": "N/A",
+                "changePercent": null,
+                "changePercentDisplay": "N/A",
+                "deltaDisplay": "N/A",
+                "tone": "neutral",
+                "sourceStatus": "missing_from_ortex_source"
+              },
+              "availableShares": {
+                "label": "Available Shares",
+                "value": 2433471,
+                "valueDisplay": "2,433,471",
+                "previousValue": 2604947,
+                "previousDate": "2026-05-28",
+                "change": -171476,
+                "changeDisplay": "-171,476 shares",
+                "changePercent": -6.58,
+                "changePercentDisplay": "-6.58%",
+                "deltaDisplay": "-171,476 shares(-6.58%)",
+                "tone": "down",
+                "sourceStatus": "available"
+              },
+              "utilization": {
+                "label": "Utilization",
+                "value": null,
+                "valueDisplay": "N/A",
+                "previousValue": null,
+                "previousDate": "2026-05-28",
+                "change": null,
+                "changeDisplay": "N/A",
+                "changePercent": null,
+                "changePercentDisplay": "N/A",
+                "deltaDisplay": "N/A",
+                "tone": "neutral",
+                "sourceStatus": "missing_from_ortex_source"
+              },
+              "averageDuration": {
+                "label": "Average Duration",
+                "value": null,
+                "valueDisplay": "N/A",
+                "previousValue": null,
+                "previousDate": "2026-05-28",
+                "change": null,
+                "changeDisplay": "N/A",
+                "changePercent": null,
+                "changePercentDisplay": "N/A",
+                "deltaDisplay": "N/A",
+                "tone": "neutral",
+                "sourceStatus": "missing_from_ortex_source"
+              }
+            }
+          },
+          "3M": {
+            "period": "3M",
+            "latestDate": "2026-06-05",
+            "comparisonDate": "2026-05-28",
+            "cards": {
+              "borrowFee": {
+                "label": "Borrow Fee",
+                "value": 31.31,
+                "valueDisplay": "31.31%",
+                "previousValue": 31.1,
+                "previousDate": "2026-05-28",
+                "change": 0.21,
+                "changeDisplay": "+0.21 pts",
+                "changePercent": 0.68,
+                "changePercentDisplay": "+0.68%",
+                "deltaDisplay": "+0.21 pts(+0.68%)",
+                "tone": "up",
+                "sourceStatus": "available"
+              },
+              "margin": {
+                "label": "Margin",
+                "value": null,
+                "valueDisplay": "N/A",
+                "previousValue": null,
+                "previousDate": "2026-05-28",
+                "change": null,
+                "changeDisplay": "N/A",
+                "changePercent": null,
+                "changePercentDisplay": "N/A",
+                "deltaDisplay": "N/A",
+                "tone": "neutral",
+                "sourceStatus": "missing_from_ortex_source"
+              },
+              "availableShares": {
+                "label": "Available Shares",
+                "value": 2433471,
+                "valueDisplay": "2,433,471",
+                "previousValue": 2604947,
+                "previousDate": "2026-05-28",
+                "change": -171476,
+                "changeDisplay": "-171,476 shares",
+                "changePercent": -6.58,
+                "changePercentDisplay": "-6.58%",
+                "deltaDisplay": "-171,476 shares(-6.58%)",
+                "tone": "down",
+                "sourceStatus": "available"
+              },
+              "utilization": {
+                "label": "Utilization",
+                "value": null,
+                "valueDisplay": "N/A",
+                "previousValue": null,
+                "previousDate": "2026-05-28",
+                "change": null,
+                "changeDisplay": "N/A",
+                "changePercent": null,
+                "changePercentDisplay": "N/A",
+                "deltaDisplay": "N/A",
+                "tone": "neutral",
+                "sourceStatus": "missing_from_ortex_source"
+              },
+              "averageDuration": {
+                "label": "Average Duration",
+                "value": null,
+                "valueDisplay": "N/A",
+                "previousValue": null,
+                "previousDate": "2026-05-28",
+                "change": null,
+                "changeDisplay": "N/A",
+                "changePercent": null,
+                "changePercentDisplay": "N/A",
+                "deltaDisplay": "N/A",
+                "tone": "neutral",
+                "sourceStatus": "missing_from_ortex_source"
+              }
+            }
+          },
+          "1Y": {
+            "period": "1Y",
+            "latestDate": "2026-06-05",
+            "comparisonDate": "2026-05-28",
+            "cards": {
+              "borrowFee": {
+                "label": "Borrow Fee",
+                "value": 31.31,
+                "valueDisplay": "31.31%",
+                "previousValue": 31.1,
+                "previousDate": "2026-05-28",
+                "change": 0.21,
+                "changeDisplay": "+0.21 pts",
+                "changePercent": 0.68,
+                "changePercentDisplay": "+0.68%",
+                "deltaDisplay": "+0.21 pts(+0.68%)",
+                "tone": "up",
+                "sourceStatus": "available"
+              },
+              "margin": {
+                "label": "Margin",
+                "value": null,
+                "valueDisplay": "N/A",
+                "previousValue": null,
+                "previousDate": "2026-05-28",
+                "change": null,
+                "changeDisplay": "N/A",
+                "changePercent": null,
+                "changePercentDisplay": "N/A",
+                "deltaDisplay": "N/A",
+                "tone": "neutral",
+                "sourceStatus": "missing_from_ortex_source"
+              },
+              "availableShares": {
+                "label": "Available Shares",
+                "value": 2433471,
+                "valueDisplay": "2,433,471",
+                "previousValue": 2604947,
+                "previousDate": "2026-05-28",
+                "change": -171476,
+                "changeDisplay": "-171,476 shares",
+                "changePercent": -6.58,
+                "changePercentDisplay": "-6.58%",
+                "deltaDisplay": "-171,476 shares(-6.58%)",
+                "tone": "down",
+                "sourceStatus": "available"
+              },
+              "utilization": {
+                "label": "Utilization",
+                "value": null,
+                "valueDisplay": "N/A",
+                "previousValue": null,
+                "previousDate": "2026-05-28",
+                "change": null,
+                "changeDisplay": "N/A",
+                "changePercent": null,
+                "changePercentDisplay": "N/A",
+                "deltaDisplay": "N/A",
+                "tone": "neutral",
+                "sourceStatus": "missing_from_ortex_source"
+              },
+              "averageDuration": {
+                "label": "Average Duration",
+                "value": null,
+                "valueDisplay": "N/A",
+                "previousValue": null,
+                "previousDate": "2026-05-28",
+                "change": null,
+                "changeDisplay": "N/A",
+                "changePercent": null,
+                "changePercentDisplay": "N/A",
+                "deltaDisplay": "N/A",
+                "tone": "neutral",
+                "sourceStatus": "missing_from_ortex_source"
+              }
+            }
+          },
+          "YTD": {
+            "period": "YTD",
+            "latestDate": "2026-06-05",
+            "comparisonDate": "2026-05-28",
+            "cards": {
+              "borrowFee": {
+                "label": "Borrow Fee",
+                "value": 31.31,
+                "valueDisplay": "31.31%",
+                "previousValue": 31.1,
+                "previousDate": "2026-05-28",
+                "change": 0.21,
+                "changeDisplay": "+0.21 pts",
+                "changePercent": 0.68,
+                "changePercentDisplay": "+0.68%",
+                "deltaDisplay": "+0.21 pts(+0.68%)",
+                "tone": "up",
+                "sourceStatus": "available"
+              },
+              "margin": {
+                "label": "Margin",
+                "value": null,
+                "valueDisplay": "N/A",
+                "previousValue": null,
+                "previousDate": "2026-05-28",
+                "change": null,
+                "changeDisplay": "N/A",
+                "changePercent": null,
+                "changePercentDisplay": "N/A",
+                "deltaDisplay": "N/A",
+                "tone": "neutral",
+                "sourceStatus": "missing_from_ortex_source"
+              },
+              "availableShares": {
+                "label": "Available Shares",
+                "value": 2433471,
+                "valueDisplay": "2,433,471",
+                "previousValue": 2604947,
+                "previousDate": "2026-05-28",
+                "change": -171476,
+                "changeDisplay": "-171,476 shares",
+                "changePercent": -6.58,
+                "changePercentDisplay": "-6.58%",
+                "deltaDisplay": "-171,476 shares(-6.58%)",
+                "tone": "down",
+                "sourceStatus": "available"
+              },
+              "utilization": {
+                "label": "Utilization",
+                "value": null,
+                "valueDisplay": "N/A",
+                "previousValue": null,
+                "previousDate": "2026-05-28",
+                "change": null,
+                "changeDisplay": "N/A",
+                "changePercent": null,
+                "changePercentDisplay": "N/A",
+                "deltaDisplay": "N/A",
+                "tone": "neutral",
+                "sourceStatus": "missing_from_ortex_source"
+              },
+              "averageDuration": {
+                "label": "Average Duration",
+                "value": null,
+                "valueDisplay": "N/A",
+                "previousValue": null,
+                "previousDate": "2026-05-28",
+                "change": null,
+                "changeDisplay": "N/A",
+                "changePercent": null,
+                "changePercentDisplay": "N/A",
+                "deltaDisplay": "N/A",
+                "tone": "neutral",
+                "sourceStatus": "missing_from_ortex_source"
+              }
+            }
+          }
+        },
+        "chart": {
+          "defaultFocusedMetric": "price",
+          "enabledMetrics": [
+            "price",
+            "feeRate",
+            "tradeVolume",
+            "shortableShares",
+            "averageDuration",
+            "utilization"
+          ],
+          "bottomMetrics": [
+            "tradeVolume",
+            "shortableShares"
+          ],
+          "ranges": {
+            "1D": {
+              "period": "1D",
+              "data": [
+                "2026-06-04",
+                "2026-06-05"
+              ]
+            },
+            "5D": {
+              "period": "5D",
+              "data": [
+                "2026-05-29",
+                "2026-06-01",
+                "2026-06-02",
+                "2026-06-03",
+                "2026-06-04",
+                "2026-06-05"
+              ]
+            },
+            "1M": {
+              "period": "1M",
+              "data": [
+                "2026-05-28",
+                "2026-05-29",
+                "2026-06-01",
+                "2026-06-02",
+                "2026-06-03",
+                "2026-06-04",
+                "2026-06-05"
+              ]
+            },
+            "3M": {
+              "period": "3M",
+              "data": [
+                "2026-05-28",
+                "2026-05-29",
+                "2026-06-01",
+                "2026-06-02",
+                "2026-06-03",
+                "2026-06-04",
+                "2026-06-05"
+              ]
+            },
+            "1Y": {
+              "period": "1Y",
+              "data": [
+                "2026-05-28",
+                "2026-05-29",
+                "2026-06-01",
+                "2026-06-02",
+                "2026-06-03",
+                "2026-06-04",
+                "2026-06-05"
+              ]
+            },
+            "YTD": {
+              "period": "YTD",
+              "data": [
+                "2026-05-28",
+                "2026-05-29",
+                "2026-06-01",
+                "2026-06-02",
+                "2026-06-03",
+                "2026-06-04",
+                "2026-06-05"
+              ]
+            }
+          },
+          "missingMetrics": [
+            "averageDuration",
+            "utilization"
+          ]
+        }
+      }
+    }
+  }
+}
