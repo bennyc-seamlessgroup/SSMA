@@ -117,7 +117,16 @@ export function OwnershipTable({ holdings, ticker, companyName }: OwnershipTable
                   <td>{formatOwnershipDate(row.effective_date)}</td>
                   <td>{row.form_type ?? row.source}</td>
                   <td className="investor-cell">{row.fund_name}</td>
-                  <td><button className="ownership-link" type="button" onClick={() => setSelectedHolding(row)} aria-label={`Open ownership chart for ${row.fund_name}`}>View on chart</button></td>
+                  <td>
+                    <button className="ownership-link ownership-chart-icon-button" type="button" onClick={() => setSelectedHolding(row)} aria-label={`Open ownership chart for ${row.fund_name}`} title="View on chart">
+                      <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                        <path d="M4 19h16" />
+                        <path d="M7 16V9" />
+                        <path d="M12 16V5" />
+                        <path d="M17 16v-4" />
+                      </svg>
+                    </button>
+                  </td>
                   <td className="num">{row.shares}</td>
                   <td className="num">{row.shares_change_percent ?? row.shares_change ?? 'N/A'}</td>
                   <td className="num">{row.market_value}</td>
@@ -252,8 +261,8 @@ function OwnershipHistoryChart({ holding, ticker, companyName }: { holding: Inst
     .map((point, index) => ({ point, index }))
     .filter(({ point, index }) => index === 0 || point.date.getUTCMonth() !== points[index - 1]?.date.getUTCMonth())
     .filter((_, index) => index % 2 === 0);
-  const tooltipWidth = 198;
-  const tooltipHeight = 64;
+  const tooltipWidth = 228;
+  const tooltipHeight = 78;
   const tooltipX = tooltip ? Math.min(Math.max(tooltip.x - tooltipWidth / 2, 10), width - tooltipWidth - 10) : 0;
   const tooltipY = tooltip ? Math.max(tooltip.y - tooltipHeight - 14, 10) : 0;
 
@@ -339,8 +348,8 @@ function OwnershipHistoryChart({ holding, ticker, companyName }: { holding: Inst
           <g className="ownership-chart-tooltip" pointerEvents="none">
             <rect x={tooltipX} y={tooltipY} width={tooltipWidth} height={tooltipHeight} rx="6" />
             <text x={tooltipX + 12} y={tooltipY + 20}>{tooltip.date}</text>
-            <text className="ownership-chart-tooltip-label" x={tooltipX + 12} y={tooltipY + 41}>{tooltip.label}:</text>
-            <text className="ownership-chart-tooltip-value" x={tooltipX + 118} y={tooltipY + 41}>{tooltip.value}</text>
+            <text className="ownership-chart-tooltip-label" x={tooltipX + 12} y={tooltipY + 42}>{tooltip.label}</text>
+            <text className="ownership-chart-tooltip-value" x={tooltipX + 12} y={tooltipY + 62}>{tooltip.value}</text>
           </g>
         )}
       </svg>

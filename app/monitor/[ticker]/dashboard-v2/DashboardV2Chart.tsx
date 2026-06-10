@@ -267,7 +267,7 @@ export function DashboardV2Chart({ data: sourceData, events: sourceEvents, perio
       return [key, { path: pathFor(visiblePoints), points }];
     })) as Partial<Record<SeriesKey, { path: string; points: Array<{ x: number; y: number } | null> }>>;
 
-    const xTicks = data
+    const rawXTicks = data
       .map((point, index) => ({ point, index }))
       .filter(({ point, index }) => {
         if (index === 0 || index === data.length - 1) return true;
@@ -279,9 +279,26 @@ export function DashboardV2Chart({ data: sourceData, events: sourceEvents, perio
       .map(({ point, index }, tickIndex) => ({
         x: xFor(index),
         label: period === '1Y' || period === 'YTD'
-          ? (tickIndex === 0 ? point.date.slice(5) : formatMonth(point.date))
+          ? formatMonth(point.date)
           : point.date.slice(5),
       }));
+    const xTicks = rawXTicks
+      .filter((tick, index, ticks) => {
+        const next = ticks[index + 1];
+        const isPenultimate = index === ticks.length - 2;
+        return !(isPenultimate && next && next.x - tick.x < 72);
+      })
+      .map((tick, index, ticks) => {
+        const next = ticks[index + 1];
+        const nextAfter = ticks[index + 2];
+        const monthSpacing = next && nextAfter ? nextAfter.x - next.x : 72;
+        const shouldRepositionFirst = (period === '1Y' || period === 'YTD') && index === 0 && next && next.x - tick.x < monthSpacing * 0.8;
+        return {
+          ...tick,
+          x: shouldRepositionFirst ? Math.max(12, next.x - monthSpacing) : tick.x,
+          textAnchor: (index === ticks.length - 1 ? 'end' : 'middle') as 'start' | 'middle' | 'end',
+        };
+      });
 
     return {
       width,
@@ -399,7 +416,7 @@ export function DashboardV2Chart({ data: sourceData, events: sourceEvents, perio
           {chart.xTicks.map(tick => (
             <g key={`${tick.label}-${tick.x}`}>
               <line className="dashboard-v2-month-line" x1={tick.x} x2={tick.x} y1={chart.topPanelTop} y2={chart.bottomPanelBottom} />
-              <text className="dashboard-v2-x-label" x={tick.x} y={chart.bottomPanelBottom + 28} textAnchor="middle">{tick.label}</text>
+              <text className="dashboard-v2-x-label" x={tick.x} y={chart.bottomPanelBottom + 28} textAnchor={tick.textAnchor}>{tick.label}</text>
             </g>
           ))}
 

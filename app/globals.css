@@ -8715,6 +8715,21 @@ html:not([data-dev-mode="true"]) .dev-source-inline {
   background: #e6f7eb;
   color: #0f6535;
 }
+.ownership-chart-icon-button {
+  min-width: 0;
+  width: 32px;
+  height: 30px;
+  padding: 0;
+}
+.ownership-chart-icon-button svg {
+  width: 17px;
+  height: 17px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
 .ownership-chart-modal-backdrop {
   position: fixed;
   inset: 0;
@@ -8872,9 +8887,11 @@ html:not([data-dev-mode="true"]) .dev-source-inline {
 }
 .ownership-chart-tooltip-label {
   fill: #6b7280;
+  font-size: 11px;
 }
 .ownership-chart-tooltip-value {
   fill: #10251b;
+  font-size: 13px;
   font-weight: 800;
 }
 .institutional-page {

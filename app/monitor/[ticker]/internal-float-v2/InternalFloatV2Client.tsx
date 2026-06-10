@@ -1,5 +1,6 @@
 'use client';
 
+import { InfoTooltip } from '@/components/InfoTooltip';
 import { useMemo, useState } from 'react';
 import type { FloatAdjustments, ManualHolding } from '@/lib/internal-float';
 
@@ -23,7 +24,7 @@ type CustodyRow = { id: string; name: string; shares: number };
 type TokenChain = { id: string; chain: string; shares: number };
 type ProviderRow = { id: string; provider: string; shares: number };
 type CollateralChain = { id: string; chain: string; shares: number };
-type ProtocolRow = { id: string; protocol: string; shares: number; stablecoinBorrowed: string; ltv: number };
+type ProtocolRow = { id: string; protocol: string; shares: number };
 type Segment = { label: string; value: number; color: string };
 type EditPanel = 'private' | 'tokenized' | 'providers' | 'collateral' | 'protocols' | null;
 
@@ -138,7 +139,12 @@ function Waterfall({ officialFloat, privateShares, collateralizedShares, realTra
     <div className="terminal-card float-v2-waterfall">
       {rows.map(row => (
         <div key={row.label} className={row.className}>
-          <span>{row.label}</span>
+          <span className={row.label === 'Real Tradable Float' ? 'with-info' : ''}>
+            {row.label}
+            {row.label === 'Real Tradable Float' && (
+              <InfoTooltip text="Estimated shares that may realistically trade after deducting internal private/strategic holdings and collateralized shares from the official public float." />
+            )}
+          </span>
           <strong>{row.value < 0 ? '-' : ''}{compact(Math.abs(row.value))}</strong>
           <small>{formatPct(pct(Math.abs(row.value), officialFloat))} of official float</small>
         </div>
@@ -177,10 +183,10 @@ export function InternalFloatV2Client({ initialHoldings, initialAdjustments }: {
     { id: 'bnb-c', chain: 'BNB', shares: 300000 },
   ]);
   const [protocolRows, setProtocolRows] = useState<ProtocolRow[]>([
-    { id: 'aave', protocol: 'Aave', shares: 900000, stablecoinBorrowed: '$580K', ltv: 42 },
-    { id: 'kamino', protocol: 'Kamino', shares: 720000, stablecoinBorrowed: '$410K', ltv: 38 },
-    { id: 'euler', protocol: 'Euler', shares: 560000, stablecoinBorrowed: '$330K', ltv: 36 },
-    { id: 'morpho', protocol: 'Morpho', shares: 420000, stablecoinBorrowed: '$260K', ltv: 34 },
+    { id: 'aave', protocol: 'Aave', shares: 900000 },
+    { id: 'kamino', protocol: 'Kamino', shares: 720000 },
+    { id: 'euler', protocol: 'Euler', shares: 560000 },
+    { id: 'morpho', protocol: 'Morpho', shares: 420000 },
   ]);
 
   const privateShares = privateHoldings.filter(row => row.includeInDeduction).reduce((sum, row) => sum + numeric(row.shares), 0);
@@ -325,14 +331,13 @@ export function InternalFloatV2Client({ initialHoldings, initialAdjustments }: {
 
           {editPanel === 'protocols' && (
             <>
-              <button className="button secondary" type="button" onClick={() => setProtocolRows(current => [...current, { id: id('protocol'), protocol: `Protocol ${current.length + 1}`, shares: 0, stablecoinBorrowed: '$0', ltv: 0 }])}>Add Protocol</button>
-              <div className="float-v2-manual-list wide">
+              <button className="button secondary" type="button" onClick={() => setProtocolRows(current => [...current, { id: id('protocol'), protocol: `Protocol ${current.length + 1}`, shares: 0 }])}>Add Protocol</button>
+              <div className="float-v2-manual-list">
                 {protocolRows.map(row => (
                   <article key={row.id}>
                     <label><span>Protocol</span><input className="input" value={row.protocol} onChange={event => patchProtocol(row.id, { protocol: event.target.value })} /></label>
                     <label><span>Shares</span><input className="input numeric-input" type="number" value={row.shares} onChange={event => patchProtocol(row.id, { shares: Number(event.target.value) })} /></label>
-                    <label><span>Borrowed</span><input className="input" value={row.stablecoinBorrowed} onChange={event => patchProtocol(row.id, { stablecoinBorrowed: event.target.value })} /></label>
-                    <label><span>LTV %</span><input className="input numeric-input" type="number" value={row.ltv} onChange={event => patchProtocol(row.id, { ltv: Number(event.target.value) })} /></label>
+                    <small>{formatPct(pct(row.shares, tokenizedShares))} of tokenized shares</small>
                     <button className="button ghost" type="button" onClick={() => setProtocolRows(current => current.filter(item => item.id !== row.id))}>Delete</button>
                   </article>
                 ))}
@@ -381,10 +386,6 @@ export function InternalFloatV2Client({ initialHoldings, initialAdjustments }: {
           <div><span>Section 2</span><h2>Official Float vs Real Tradable Float</h2></div>
         </div>
         <Waterfall officialFloat={ownership.publicFloat} privateShares={privateShares} collateralizedShares={collateralizedShares} realTradableFloat={realTradableFloat} />
-        <div className="terminal-card warning-card float-v2-warning">
-          <h3>Internal Analytical Estimate</h3>
-          <p>Real Tradable Float is an internal analytical estimate and may differ from official public float reported by market data providers.</p>
-        </div>
       </section>
 
       <section className="terminal-section">
@@ -438,7 +439,7 @@ export function InternalFloatV2Client({ initialHoldings, initialAdjustments }: {
                   key: row.id,
                   label: row.protocol,
                   value: row.shares,
-                  extra: `${row.stablecoinBorrowed} borrowed · ${row.ltv}% LTV · ${formatPct(pct(row.shares, tokenizedShares))} tokenized`,
+                  extra: `${formatPct(pct(row.shares, tokenizedShares))} of tokenized shares`,
                 }))}
                 total={ownership.publicFloat}
               />
