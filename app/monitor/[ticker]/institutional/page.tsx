@@ -2,6 +2,7 @@ import { readImportFile } from '@/lib/import-data';
 import type { InstitutionalHolding } from '@/lib/types';
 import { OwnershipTable } from './OwnershipTable';
 import { InfoTooltip } from '@/components/InfoTooltip';
+import { formatImportDataUpdatedAt, getImportDataVersion } from '@/lib/import-data-version';
 
 type SecurityOwnershipRow = {
   investorName?: string | null;
@@ -42,7 +43,10 @@ function changeType(value: unknown): InstitutionalHolding['change_type'] {
 export default async function InstitutionalPage({ params }: Readonly<{ params: Promise<{ ticker: string }> }>) {
   const { ticker } = await params;
   const normalizedTicker = ticker.toUpperCase();
-  const envelope = await readImportFile<SecurityOwnershipRow[]>('ownership/security_ownership.json');
+  const [envelope, importDataVersion] = await Promise.all([
+    readImportFile<SecurityOwnershipRow[]>('ownership/security_ownership.json'),
+    getImportDataVersion(),
+  ]);
   const rows = envelope.data;
   const holdings: InstitutionalHolding[] = rows.map((row, index) => ({
     id: `import-ownership-${index}`,
@@ -71,6 +75,10 @@ export default async function InstitutionalPage({ params }: Readonly<{ params: P
       <div className="compact-page-header">
         <span>Institutional Ownership</span>
         <p>Normalized ownership records</p>
+        <span className="page-header-import-status" aria-label="Latest import data update">
+          <span>Latest import data update</span>
+          <strong>{formatImportDataUpdatedAt(importDataVersion.updatedAt)}</strong>
+        </span>
       </div>
 
       <section className="panel">

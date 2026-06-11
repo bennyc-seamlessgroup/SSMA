@@ -38,6 +38,76 @@ export type FloatAdjustments = {
   internalAdjustedSqueezeScore: number;
 };
 
+export type InternalFloatV2PrivateHolding = {
+  id: string;
+  holderName: string;
+  category: string;
+  shares: number;
+  includeInDeduction: boolean;
+  notes: string;
+};
+
+export type InternalFloatV2CustodyRow = {
+  id: string;
+  name: string;
+  shares: number;
+};
+
+export type InternalFloatV2TokenChain = {
+  id: string;
+  chain: string;
+  shares: number;
+  provider: string;
+};
+
+export type InternalFloatV2CollateralChain = {
+  id: string;
+  chain: string;
+  shares: number;
+  protocol: string;
+};
+
+export type InternalFloatV2UserInput = {
+  userId: string;
+  ticker: string;
+  privateHoldings: InternalFloatV2PrivateHolding[];
+  custodyRows: InternalFloatV2CustodyRow[];
+  tokenChains: InternalFloatV2TokenChain[];
+  collateralChains: InternalFloatV2CollateralChain[];
+};
+
+type InternalFloatV2UserInputsEnvelope = {
+  users: InternalFloatV2UserInput[];
+};
+
+export const defaultInternalFloatV2UserInput: InternalFloatV2UserInput = {
+  userId: 'demo-user',
+  ticker: 'CURR',
+  privateHoldings: [
+    { id: 'founder-management', holderName: 'Founder / management group', category: 'Founder', shares: 5000000, includeInDeduction: true, notes: 'Internal management assumption.' },
+    { id: 'strategic-long-term', holderName: 'Strategic long-term holders', category: 'Strategic Investor', shares: 3000000, includeInDeduction: true, notes: 'Friendly / restricted holder estimate.' },
+  ],
+  custodyRows: [
+    { id: 'bny', name: 'Bank of NY Mellon', shares: 5000000 },
+    { id: 'ibkr', name: 'IBKR', shares: 3600000 },
+    { id: 'citibank', name: 'Citibank', shares: 3100000 },
+    { id: 'futu', name: 'FUTU', shares: 2000000 },
+    { id: 'fidelity', name: 'Fidelity', shares: 1700000 },
+    { id: 'schwab', name: 'Charles Schwab', shares: 1300000 },
+    { id: 'others', name: 'Others', shares: 2964808 },
+  ],
+  tokenChains: [
+    { id: 'eth', chain: 'ETH', shares: 1800000, provider: 'Securitize' },
+    { id: 'sol', chain: 'SOL', shares: 1000000, provider: 'xStocks' },
+    { id: 'bnb', chain: 'BNB', shares: 600000, provider: 'Ondo' },
+  ],
+  collateralChains: [
+    { id: 'eth-c', chain: 'ETH', shares: 900000, protocol: 'Aave' },
+    { id: 'sol-c', chain: 'SOL', shares: 500000, protocol: 'Kamino' },
+    { id: 'bnb-c', chain: 'BNB', shares: 200000, protocol: 'Euler' },
+  ],
+};
+
 export const holderTypeOptions = [
   'CEO',
   'CFO',
@@ -265,6 +335,18 @@ export async function readInternalFloatInputs() {
 
 export async function readInternalFloatAdjustments() {
   return readImportFile<FloatAdjustments>('internal_float/float_adjustments.json');
+}
+
+export async function readInternalFloatV2UserInputs(userId = 'demo-user', ticker = 'CURR'): Promise<InternalFloatV2UserInput> {
+  try {
+    const envelope = await readImportFile<InternalFloatV2UserInputsEnvelope>('internal_float/v2_user_inputs.json');
+    return envelope.data.users.find(row => row.userId === userId && row.ticker === ticker)
+      ?? envelope.data.users.find(row => row.ticker === ticker)
+      ?? envelope.data.users[0]
+      ?? defaultInternalFloatV2UserInput;
+  } catch {
+    return defaultInternalFloatV2UserInput;
+  }
 }
 
 export async function saveInternalFloatInputs(holdings: ManualHolding[]) {

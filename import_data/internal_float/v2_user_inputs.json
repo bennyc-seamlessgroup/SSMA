@@ -1,0 +1,57 @@
+{
+  "ticker": "CURR",
+  "asOfDate": "2026-06-11",
+  "importedAt": "2026-06-11T00:00:00.000Z",
+  "source": "Manual demo seed for Internal Float V2",
+  "sourcePlatform": "Internal Management Input",
+  "recordType": "internalFloatV2UserInputs",
+  "category": "internal_float",
+  "recordCount": 1,
+  "status": "ready",
+  "notes": "Prototype storage for per-user manual inputs. Production may replace this file with a database-backed workflow. Shares outstanding, insiders, institutions, public float, float reduction, and real tradable float are derived outside this manual input file.",
+  "data": {
+    "users": [
+      {
+        "userId": "demo-user",
+        "ticker": "CURR",
+        "privateHoldings": [
+          {
+            "id": "founder-management",
+            "holderName": "Founder / management group",
+            "category": "Founder",
+            "shares": 5000000,
+            "includeInDeduction": true,
+            "notes": "Internal management assumption."
+          },
+          {
+            "id": "strategic-long-term",
+            "holderName": "Strategic long-term holders",
+            "category": "Strategic Investor",
+            "shares": 3000000,
+            "includeInDeduction": true,
+            "notes": "Friendly / restricted holder estimate."
+          }
+        ],
+        "custodyRows": [
+          { "id": "bny", "name": "Bank of NY Mellon", "shares": 5000000 },
+          { "id": "ibkr", "name": "IBKR", "shares": 3600000 },
+          { "id": "citibank", "name": "Citibank", "shares": 3100000 },
+          { "id": "futu", "name": "FUTU", "shares": 2000000 },
+          { "id": "fidelity", "name": "Fidelity", "shares": 1700000 },
+          { "id": "schwab", "name": "Charles Schwab", "shares": 1300000 },
+          { "id": "others", "name": "Others", "shares": 2964808 }
+        ],
+        "tokenChains": [
+          { "id": "eth", "chain": "ETH", "shares": 1800000, "provider": "Securitize" },
+          { "id": "sol", "chain": "SOL", "shares": 1000000, "provider": "xStocks" },
+          { "id": "bnb", "chain": "BNB", "shares": 600000, "provider": "Ondo" }
+        ],
+        "collateralChains": [
+          { "id": "eth-c", "chain": "ETH", "shares": 900000, "protocol": "Aave" },
+          { "id": "sol-c", "chain": "SOL", "shares": 500000, "protocol": "Kamino" },
+          { "id": "bnb-c", "chain": "BNB", "shares": 200000, "protocol": "Euler" }
+        ]
+      }
+    ]
+  }
+}
