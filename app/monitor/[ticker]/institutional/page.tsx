@@ -1,15 +1,18 @@
-import { readImportFile } from '@/lib/import-data';
+import { readImportJson } from '@/lib/import-data';
 import type { InstitutionalHolding } from '@/lib/types';
-import { OwnershipTable } from './OwnershipTable';
-import { InfoTooltip } from '@/components/InfoTooltip';
 import { formatImportDataUpdatedAt, getImportDataVersion } from '@/lib/import-data-version';
+import { InstitutionalTabs } from './InstitutionalTabs';
+import type { ActivistFiling } from './ActivistFilingsTable';
+import { InstitutionalDevTables } from './InstitutionalDevTables';
 
 type SecurityOwnershipRow = {
-  investorName?: string | null;
+  name?: string | null;
   formType?: string | null;
+  formTypeShort?: string | null;
   effectiveDate?: string | null;
   fileDate?: string | null;
   ownershipPercent?: number | string | null;
+  ownershipPercentChange?: number | string | null;
   shares?: number | string | null;
   sharesChange?: number | string | null;
   sharesPercentChange?: number | string | null;
@@ -17,6 +20,19 @@ type SecurityOwnershipRow = {
   valueChange?: number | string | null;
   valuePercentChange?: number | string | null;
   costBasis?: number | string | null;
+  url?: string | null;
+};
+
+type ActivistFilingRow = {
+  name?: string | null;
+  formType?: string | null;
+  effectiveDate?: string | null;
+  fileDate?: string | null;
+  ownershipPercent?: number | string | null;
+  ownershipPercentChange?: number | string | null;
+  shares?: number | string | null;
+  sharesChange?: number | string | null;
+  sharesPercentChange?: number | string | null;
   url?: string | null;
 };
 
@@ -40,23 +56,30 @@ function changeType(value: unknown): InstitutionalHolding['change_type'] {
   return 'unchanged';
 }
 
+function ownershipChangeType(row: Pick<SecurityOwnershipRow, 'sharesChange' | 'sharesPercentChange'>): InstitutionalHolding['change_type'] {
+  const sharesChange = typeof row.sharesChange === 'number' ? row.sharesChange : Number(String(row.sharesChange ?? '').replace(/,/g, ''));
+  const pctChange = typeof row.sharesPercentChange === 'number' ? row.sharesPercentChange : Number(String(row.sharesPercentChange ?? '').replace(/,/g, ''));
+  if (Number.isFinite(pctChange) && pctChange <= -100) return 'exited';
+  return changeType(Number.isFinite(sharesChange) ? sharesChange : row.sharesChange);
+}
+
 export default async function InstitutionalPage({ params }: Readonly<{ params: Promise<{ ticker: string }> }>) {
   const { ticker } = await params;
   const normalizedTicker = ticker.toUpperCase();
-  const [envelope, importDataVersion] = await Promise.all([
-    readImportFile<SecurityOwnershipRow[]>('ownership/security_ownership.json'),
+  const [securityRows, activistRows, importDataVersion] = await Promise.all([
+    readImportJson<SecurityOwnershipRow[]>('fintel_security_ownership_premium_CURR_consolidated_4_web.json'),
+    readImportJson<ActivistFilingRow[]>('fintel_activist_filings_premium_CURR_consolidated_4_web.json'),
     getImportDataVersion(),
   ]);
-  const rows = envelope.data;
-  const holdings: InstitutionalHolding[] = rows.map((row, index) => ({
+  const holdings: InstitutionalHolding[] = securityRows.map((row, index) => ({
     id: `import-ownership-${index}`,
     company_id: `company-${normalizedTicker}`,
-    fund_name: row.investorName ?? 'Unknown holder',
+    fund_name: row.name ?? 'Unknown holder',
     shares: formatNumber(row.shares),
     market_value: formatNumber(row.value),
-    change_type: changeType(row.sharesChange),
+    change_type: ownershipChangeType(row),
     filing_date: row.fileDate ?? 'N/A',
-    source: row.formType ?? envelope.sourcePlatform ?? 'import_data',
+    source: row.formTypeShort ?? row.formType ?? 'Fintel Premium',
     ownership_percent: formatPercent(row.ownershipPercent),
     shares_change: formatNumber(row.sharesChange),
     shares_change_percent: formatPercent(row.sharesPercentChange),
@@ -66,8 +89,21 @@ export default async function InstitutionalPage({ params }: Readonly<{ params: P
     effective_date: row.effectiveDate ?? undefined,
     owner_url: row.url ?? undefined,
     cost_basis: formatNumber(row.costBasis),
-    source_type: 'free_data',
-    source_label: 'import_data/ownership/security_ownership.json',
+    source_type: 'fintel',
+    source_label: 'fintel_security_ownership_premium_CURR_consolidated_4_web.json',
+  }));
+  const activistFilings: ActivistFiling[] = activistRows.map((row, index) => ({
+    id: `activist-filing-${index}`,
+    name: row.name ?? 'Unknown holder',
+    formType: row.formType ?? 'N/A',
+    fileDate: row.fileDate ?? 'N/A',
+    effectiveDate: row.effectiveDate ?? 'N/A',
+    ownershipPercent: formatPercent(row.ownershipPercent),
+    ownershipPercentChange: formatPercent(row.ownershipPercentChange),
+    shares: formatNumber(row.shares),
+    sharesChange: formatNumber(row.sharesChange),
+    sharesPercentChange: formatPercent(row.sharesPercentChange),
+    url: row.url ?? undefined,
   }));
 
   return (
@@ -82,14 +118,13 @@ export default async function InstitutionalPage({ params }: Readonly<{ params: P
       </div>
 
       <section className="panel">
-        <div className="section__head">
-          <h2 className="panel__title with-info">
-            Holder Table
-            <InfoTooltip text="Institutional ownership tables show reported holdings from 13F and ownership filings. They help IR teams identify large holders, position changes, and ownership concentration." />
-          </h2>
-        </div>
-        <OwnershipTable holdings={holdings} ticker={normalizedTicker} companyName="CURRENC Group Inc." />
+        <InstitutionalTabs holdings={holdings} activistFilings={activistFilings} ticker={normalizedTicker} companyName="CURRENC Group Inc." />
       </section>
+
+      <InstitutionalDevTables
+        securityRows={securityRows as Array<Record<string, unknown>>}
+        activistRows={activistRows as Array<Record<string, unknown>>}
+      />
     </div>
   );
 }

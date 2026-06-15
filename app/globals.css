@@ -9483,11 +9483,61 @@ html:not([data-dev-mode="true"]) .dev-source-inline {
   .ownership-toolbar,
   .ownership-summary { flex-direction: column; }
   .ownership-actions { width: 100%; align-items: stretch; }
-  .ownership-search { width: 100%; }
-  .ownership-chart-modal-backdrop { padding: 14px; }
-  .ownership-chart-modal { width: calc(100vw - 28px); padding: 24px 16px 18px; }
-  .ownership-history-chart h2 { padding: 0 28px; font-size: 17px; }
-  .ownership-chart-legend { flex-wrap: wrap; margin-top: 4px; }
+.ownership-search { width: 100%; }
+.ownership-chart-modal-backdrop { padding: 14px; }
+.ownership-chart-modal { width: calc(100vw - 28px); padding: 24px 16px 18px; }
+.ownership-history-chart h2 { padding: 0 28px; font-size: 17px; }
+.ownership-chart-legend { flex-wrap: wrap; margin-top: 4px; }
+}
+
+.institutional-tabs {
+  display: grid;
+  gap: 16px;
+}
+
+.institutional-tabs__bar {
+  display: inline-flex;
+  width: max-content;
+  max-width: 100%;
+  overflow-x: auto;
+  border: 1px solid #dbe6f3;
+  border-radius: 12px;
+  background: #f7faff;
+  padding: 4px;
+}
+
+.institutional-tabs__bar button {
+  display: grid;
+  gap: 2px;
+  min-width: 170px;
+  border: 0;
+  border-radius: 9px;
+  background: transparent;
+  color: #64748d;
+  cursor: pointer;
+  padding: 9px 12px;
+  text-align: left;
+}
+
+.institutional-tabs__bar button.active {
+  background: #fff;
+  color: #061b31;
+  box-shadow: rgba(15,23,42,.08) 0 8px 18px;
+}
+
+.institutional-tabs__bar span {
+  font-size: 13px;
+  font-weight: 900;
+}
+
+.institutional-tabs__bar small {
+  color: #64748d;
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.institutional-tabs__panel {
+  min-width: 0;
 }
 
 .ownership-pagination {

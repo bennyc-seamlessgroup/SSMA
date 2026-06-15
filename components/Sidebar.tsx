@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { UserMenu } from './UserMenu';
 import { DevModeToggle } from './DevModeToggle';
 
@@ -65,6 +65,31 @@ const groups = [
 ];
 
 const importDataSeenKey = 'import-data-seen-version';
+const pageImportSeenKeyPrefix = 'import-data-page-seen-version';
+
+const pageImportFiles: Record<string, string[]> = {
+  'dashboard-v2': ['dashboard_v2_CURR_consolidated_4_web.json'],
+  institutional: [
+    'fintel_security_ownership_premium_CURR_consolidated_4_web.json',
+    'fintel_activist_filings_premium_CURR_consolidated_4_web.json',
+  ],
+  'short-interest': ['ortex_CURR_consolidated_4_web.json'],
+  'lending-pressure': ['lending_pressure_CURR_consolidated_4_web.json'],
+  sentiment: ['adanos-reddit_CURR_consolidated_4_web.json', 'adanos-x_CURR_consolidated_4_web.json'],
+  'event-calendar': ['news_filings/sec_filings.json'],
+};
+
+type ImportFileStatus = {
+  path: string;
+  exists: boolean;
+  updatedAt: string | null;
+  size: number | null;
+  versionKey: string | null;
+};
+
+function pageImportSeenKey(ticker: string, slug: string) {
+  return `${pageImportSeenKeyPrefix}:${ticker}:${slug}`;
+}
 
 export function Sidebar({
   ticker,
@@ -79,10 +104,38 @@ export function Sidebar({
   const router = useRouter();
   const [currentImportDataVersion, setCurrentImportDataVersion] = useState(importDataVersion);
   const [seenImportDataVersion, setSeenImportDataVersion] = useState(importDataVersion);
+  const [currentPageImportVersions, setCurrentPageImportVersions] = useState<Record<string, string>>({});
+  const [seenPageImportVersions, setSeenPageImportVersions] = useState<Record<string, string>>({});
   const [collapsedGroups, setCollapsedGroups] = useState<Record<string, boolean>>(() =>
     Object.fromEntries(groups.filter(group => group.muted).map(group => [group.label, true])),
   );
   const hasImportDataUpdate = currentImportDataVersion !== seenImportDataVersion;
+
+  const fetchPageImportVersions = useCallback(async () => {
+    const versions: Record<string, string> = {};
+
+    await Promise.all(Object.entries(pageImportFiles).map(async ([slug, files]) => {
+      const parts = await Promise.all(files.map(async file => {
+        try {
+          const response = await fetch(`/api/import-data-version?file=${encodeURIComponent(file)}`, { cache: 'no-store' });
+          if (!response.ok) return `${file}:unavailable`;
+
+          const status = await response.json() as ImportFileStatus;
+          const version = status.exists
+            ? status.versionKey ?? status.updatedAt ?? String(status.size ?? 'exists')
+            : 'missing';
+
+          return `${file}:${version}`;
+        } catch {
+          return `${file}:unavailable`;
+        }
+      }));
+
+      versions[slug] = parts.join('|');
+    }));
+
+    return versions;
+  }, []);
 
   useEffect(() => {
     const storedVersion = window.localStorage.getItem(importDataSeenKey);
@@ -96,6 +149,31 @@ export function Sidebar({
   useEffect(() => {
     setCurrentImportDataVersion(importDataVersion);
   }, [importDataVersion]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const initializePageImportVersions = async () => {
+      const latest = await fetchPageImportVersions();
+      if (cancelled) return;
+
+      setCurrentPageImportVersions(latest);
+      setSeenPageImportVersions(Object.fromEntries(Object.entries(latest).map(([slug, version]) => {
+        const key = pageImportSeenKey(ticker, slug);
+        const storedVersion = window.localStorage.getItem(key);
+        if (storedVersion) return [slug, storedVersion];
+
+        window.localStorage.setItem(key, version);
+        return [slug, version];
+      })));
+    };
+
+    initializePageImportVersions();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [fetchPageImportVersions, ticker]);
 
   useEffect(() => {
     let cancelled = false;
@@ -122,9 +200,49 @@ export function Sidebar({
     };
   }, [currentImportDataVersion, router]);
 
+  useEffect(() => {
+    let cancelled = false;
+
+    const checkForPageImportUpdates = async () => {
+      const latest = await fetchPageImportVersions();
+      if (cancelled) return;
+
+      const changed = Object.entries(latest).some(([slug, version]) => {
+        const current = currentPageImportVersions[slug];
+        return current && current !== version;
+      });
+
+      if (changed) {
+        setCurrentPageImportVersions(current => ({ ...current, ...latest }));
+        router.refresh();
+      }
+    };
+
+    const interval = window.setInterval(checkForPageImportUpdates, 10000);
+    return () => {
+      cancelled = true;
+      window.clearInterval(interval);
+    };
+  }, [currentPageImportVersions, fetchPageImportVersions, router]);
+
   const acknowledgeImportDataUpdate = () => {
     window.localStorage.setItem(importDataSeenKey, currentImportDataVersion);
     setSeenImportDataVersion(currentImportDataVersion);
+  };
+
+  const hasPageImportUpdate = (slug: string) => {
+    const current = currentPageImportVersions[slug];
+    if (!current) return false;
+
+    return current !== seenPageImportVersions[slug];
+  };
+
+  const acknowledgePageImportUpdate = (slug: string) => {
+    const current = currentPageImportVersions[slug];
+    if (!current) return;
+
+    window.localStorage.setItem(pageImportSeenKey(ticker, slug), current);
+    setSeenPageImportVersions(versions => ({ ...versions, [slug]: current }));
   };
 
   const toggleGroup = (label: string) => {
@@ -182,15 +300,19 @@ export function Sidebar({
                       {group.items.map(([label, slug]) => {
                         const href = `/monitor/${ticker}${slug ? `/${slug}` : ''}`;
                         const active = pathname === href;
+                        const pageHasImportUpdate = slug ? hasPageImportUpdate(slug) : false;
                         return (
                           <Link
                             key={slug || 'overview'}
                             href={href as any}
                             className={`portal-menu ${active ? 'active' : ''}`}
-                            onClick={acknowledgeImportDataUpdate}
+                            onClick={() => {
+                              acknowledgeImportDataUpdate();
+                              if (slug) acknowledgePageImportUpdate(slug);
+                            }}
                           >
                             <span>{label}</span>
-                            {hasImportDataUpdate && active && <span className="portal-update-dot" aria-label="New import data available" />}
+                            {pageHasImportUpdate && <span className="portal-update-dot" aria-label="New import data available" />}
                           </Link>
                         );
                       })}

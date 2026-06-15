@@ -446,6 +446,10 @@ export async function readImportFile<T = unknown>(relativePath: string) {
   return readJsonFile<ImportEnvelope<T>>(relativePath);
 }
 
+export async function readImportJson<T = unknown>(relativePath: string) {
+  return readJsonFile<T>(relativePath);
+}
+
 export async function readPageContent<T extends Record<string, unknown> = Record<string, unknown>>(pageKey: string): Promise<T> {
   try {
     const envelope = await readImportFile<PageContentMap>('content/page_content.json');
