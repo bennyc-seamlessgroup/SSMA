@@ -1,6 +1,7 @@
 import { Sidebar } from './Sidebar';
 import { MonitorExpertChat } from './MonitorExpertChat';
 import { formatImportDataUpdatedAt } from '@/lib/import-data-version';
+import { AuthGuard } from './AuthGuard';
 
 export function AppShell({
   ticker,
@@ -19,11 +20,13 @@ export function AppShell({
     <div className="portal-page monitor-portal">
       <Sidebar ticker={ticker} companyName={companyName} importDataVersion={importDataVersion} />
       <main className="portal-main main-content">
-        <div className="import-data-status-bar">
-          <span>Latest import data update</span>
-          <strong>{formatImportDataUpdatedAt(importDataUpdatedAt)}</strong>
-        </div>
-        {children}
+        <AuthGuard>
+          <div className="import-data-status-bar">
+            <span>Latest import data update</span>
+            <strong>{formatImportDataUpdatedAt(importDataUpdatedAt)}</strong>
+          </div>
+          {children}
+        </AuthGuard>
       </main>
       <MonitorExpertChat ticker={ticker} />
     </div>

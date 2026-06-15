@@ -1720,6 +1720,41 @@ html:not([data-dev-mode="true"]) .dev-source-inline {
   font-size: 14px;
 }
 
+.auth-error {
+  margin: 0;
+  color: #be123c;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.auth-callback-card,
+.auth-checking {
+  width: min(460px, 100%);
+  display: grid;
+  justify-items: center;
+  gap: 12px;
+  border: 1px solid var(--saas-line);
+  border-radius: 22px;
+  background: #fff;
+  box-shadow: rgba(2, 8, 23, .14) 0 28px 70px -38px;
+  padding: 34px;
+  text-align: center;
+}
+
+.auth-callback-card h1,
+.auth-checking strong {
+  margin: 0;
+  color: #061b31;
+  font-size: 24px;
+}
+
+.auth-callback-card p,
+.auth-checking span {
+  margin: 0;
+  color: #64748d;
+  line-height: 1.5;
+}
+
 /* Workspace profile menu */
 .user-menu {
   position: relative;
@@ -1797,16 +1832,23 @@ html:not([data-dev-mode="true"]) .dev-source-inline {
   display: block;
 }
 
-.user-menu__panel a {
+.user-menu__panel a,
+.user-menu__link-button {
   display: block;
+  width: 100%;
   padding: 10px;
+  border: 0;
   border-radius: 10px;
+  background: transparent;
   color: #273951;
+  cursor: pointer;
   font-size: 14px;
   font-weight: 700;
+  text-align: left;
 }
 
-.user-menu__panel a:hover {
+.user-menu__panel a:hover,
+.user-menu__link-button:hover {
   background: #f1f4ff;
   color: #3152b4;
 }
@@ -6383,6 +6425,138 @@ html:not([data-dev-mode="true"]) .dev-source-inline {
   margin-top: 16px;
 }
 
+.catalysts-page {
+  gap: 18px;
+}
+
+.sec-filings-panel {
+  display: grid;
+  gap: 16px;
+  border: 1px solid #dbe6f3;
+  border-radius: 16px;
+  background: #fff;
+  box-shadow: rgba(23,23,23,.05) 0 14px 34px;
+  padding: 20px;
+}
+
+.sec-filings-panel__head {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.sec-filings-controls {
+  display: grid;
+  grid-template-columns: minmax(180px, .4fr) minmax(280px, 1fr);
+  gap: 12px;
+  width: min(100%, 720px);
+}
+
+.sec-filings-controls label {
+  display: grid;
+  gap: 5px;
+  min-width: 0;
+}
+
+.sec-filings-controls label > span {
+  color: #64748d;
+  font-size: 10px;
+  font-weight: 900;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+}
+
+.sec-filings-count {
+  color: #64748d;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.sec-filings-list {
+  display: grid;
+  border-top: 1px solid #dbe6f3;
+}
+
+.sec-filing-row {
+  display: grid;
+  grid-template-columns: minmax(100px, .18fr) minmax(82px, .12fr) minmax(0, 1fr);
+  gap: 22px;
+  border-bottom: 1px solid #dbe6f3;
+  padding: 14px 4px;
+}
+
+.sec-filing-row time,
+.sec-filing-row > strong {
+  color: #273951;
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.sec-filing-row > strong {
+  font-weight: 900;
+}
+
+.sec-filing-row a,
+.sec-filing-row div > span {
+  color: #166534;
+  font-size: 16px;
+  font-weight: 800;
+  line-height: 1.35;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.sec-filing-row div > span {
+  text-decoration: none;
+}
+
+.sec-filing-row p {
+  margin: 5px 0 0;
+  color: #18273d;
+  font-size: 13px;
+  line-height: 1.55;
+}
+
+.sec-filings-empty {
+  padding: 22px 4px;
+  color: #64748d;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.sec-filings-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.sec-filings-pagination button {
+  border: 1px solid #b8cff0;
+  border-radius: 8px;
+  background: #fff;
+  color: #2453a6;
+  cursor: pointer;
+  font-weight: 800;
+  padding: 8px 11px;
+}
+
+.sec-filings-pagination button:hover:not(:disabled) {
+  background: #edf5ff;
+}
+
+.sec-filings-pagination button:disabled {
+  cursor: not-allowed;
+  opacity: .45;
+}
+
+.sec-filings-pagination span {
+  color: #64748d;
+  font-size: 12px;
+  font-weight: 800;
+  padding: 0 4px;
+}
+
 .price-driver-card,
 .ai-scenario-card,
 .ai-catalyst-card {
@@ -7594,6 +7768,135 @@ html:not([data-dev-mode="true"]) .dev-source-inline {
   color: #8fa0b6;
 }
 
+.user-profile-page {
+  max-width: 1180px;
+}
+
+.user-profile-grid {
+  display: grid;
+  grid-template-columns: minmax(420px, 1.15fr) minmax(320px, .85fr);
+  gap: 24px;
+  align-items: stretch;
+}
+
+.user-profile-card {
+  border: 1px solid #dbe6f3;
+  border-radius: 16px;
+  background: #fff;
+  box-shadow: rgba(15,23,42,.05) 0 12px 30px;
+  padding: 24px;
+}
+
+.user-profile-card__head {
+  border-bottom: 1px solid #dbe6f3;
+  margin-bottom: 22px;
+  padding-bottom: 10px;
+}
+
+.user-profile-card__head h2 {
+  margin: 0;
+  color: #061b31;
+  font-size: 24px;
+  letter-spacing: -.35px;
+}
+
+.user-profile-form {
+  display: grid;
+  gap: 18px;
+}
+
+.user-profile-form label {
+  display: grid;
+  gap: 8px;
+}
+
+.user-profile-form label > span {
+  color: #273951;
+  font-size: 13px;
+  font-weight: 900;
+}
+
+.user-profile-form .textarea {
+  min-height: 112px;
+  resize: vertical;
+}
+
+.user-profile-form .button {
+  width: max-content;
+  min-height: 50px;
+}
+
+.user-profile-message {
+  margin: 14px 0 0;
+  border-radius: 12px;
+  padding: 10px 12px;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.user-profile-message.success {
+  color: #047857;
+  background: #ecfdf5;
+  border: 1px solid #a7f3d0;
+}
+
+.user-profile-message.error {
+  color: #be123c;
+  background: #fff1f2;
+  border: 1px solid #fecdd3;
+}
+
+.user-profile-metadata {
+  display: grid;
+}
+
+.user-profile-metadata > div {
+  display: grid;
+  grid-template-columns: minmax(140px, .65fr) minmax(0, 1fr);
+  gap: 14px;
+  align-items: center;
+  border-bottom: 1px dashed #dbe6f3;
+  padding: 15px 0;
+}
+
+.user-profile-metadata > div:first-child {
+  padding-top: 0;
+}
+
+.user-profile-metadata > div:last-child {
+  border-bottom: 0;
+}
+
+.user-profile-metadata span {
+  color: #64748d;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.user-profile-metadata strong {
+  min-width: 0;
+  color: #061b31;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 14px;
+  overflow-wrap: anywhere;
+}
+
+.profile-status {
+  width: max-content;
+  border-radius: 999px;
+  background: #edf3fb;
+  padding: 4px 9px;
+  color: #64748d !important;
+  font-family: inherit !important;
+  font-size: 11px !important;
+  font-weight: 900;
+}
+
+.profile-status.confirmed {
+  background: #d1fae5;
+  color: #047857 !important;
+}
+
 .settings-table {
   display: grid;
   border: 1px solid #e5edf5;
@@ -7679,6 +7982,10 @@ html:not([data-dev-mode="true"]) .dev-source-inline {
   .catalyst-summary-grid,
   .catalyst-layout,
   .catalyst-heatmap,
+  .sec-filings-panel__head,
+  .sec-filings-controls,
+  .sec-filing-row,
+  .user-profile-grid,
   .lending-pressure-hero-grid,
   .lending-kpi-row,
   .lending-pressure-grid,

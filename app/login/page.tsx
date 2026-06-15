@@ -1,4 +1,6 @@
 import Link from 'next/link';
+import { Suspense } from 'react';
+import { LoginButton } from '@/components/AuthButtons';
 
 export default function LoginPage() {
   return (
@@ -27,23 +29,13 @@ export default function LoginPage() {
         <div className="auth-card">
           <div className="auth-card__head">
             <h2>Sign in</h2>
-            <p>Credential validation will be connected later. This demo opens the CURR workspace.</p>
+            <p>Use SSMA secure authentication to open the CURR workspace.</p>
           </div>
-          <form className="auth-form" action="/monitor/CURR/dashboard-v2">
-            <label>
-              Work email
-              <input className="input" type="email" defaultValue="demo@currencintel.com" />
-            </label>
-            <label>
-              Password
-              <input className="input" type="password" defaultValue="demo-password" />
-            </label>
-            <div className="auth-form__row">
-              <label className="auth-check"><input type="checkbox" defaultChecked /> Keep me signed in</label>
-              <a href="#">Forgot password?</a>
-            </div>
-            <button className="button light-primary large" type="submit">Open Workspace</button>
-          </form>
+          <div className="auth-form">
+            <Suspense fallback={<button className="button light-primary large" type="button" disabled>Preparing secure sign in...</button>}>
+              <LoginButton>Open secure sign in</LoginButton>
+            </Suspense>
+          </div>
           <div className="auth-card__footer">
             <span>New to Currenc Intelligence?</span>
             <Link href="/signup">Create demo account</Link>

@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { SignupButton } from '@/components/AuthButtons';
 
 export default function SignupPage() {
   return (
@@ -27,33 +28,11 @@ export default function SignupPage() {
         <div className="auth-card">
           <div className="auth-card__head">
             <h2>Create account</h2>
-            <p>This is a demo signup screen. Submitting opens the CURR workspace.</p>
+            <p>Create your account through SSMA secure authentication.</p>
           </div>
-          <form className="auth-form" action="/monitor/CURR/dashboard-v2">
-            <label>
-              Full name
-              <input className="input" defaultValue="Benny Cheung" />
-            </label>
-            <label>
-              Work email
-              <input className="input" type="email" defaultValue="demo@currencintel.com" />
-            </label>
-            <label>
-              Company ticker
-              <input className="input" defaultValue="CURR" />
-            </label>
-            <label>
-              Role
-              <select className="select" defaultValue="Investor Relations">
-                <option>CEO / Executive</option>
-                <option>CFO / Finance</option>
-                <option>Investor Relations</option>
-                <option>Board Member</option>
-                <option>Capital Markets Advisor</option>
-              </select>
-            </label>
-            <button className="button light-primary large" type="submit">Create Demo Workspace</button>
-          </form>
+          <div className="auth-form">
+            <SignupButton>Create secure account</SignupButton>
+          </div>
           <div className="auth-card__footer">
             <span>Already have access?</span>
             <Link href="/login">Sign in</Link>

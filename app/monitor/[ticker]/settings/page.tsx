@@ -11,7 +11,7 @@ const settingGroups = [
   {
     title: 'Account',
     rows: [
-      ['Profile', 'Demo user, email, and display preferences', null],
+      ['Profile', 'User profile fields synced through the authentication API', 'user-profile'],
       ['Role & Permissions', 'Manage executives, IR users, advisors, and viewer access', 'role-permissions'],
       ['Billing & Plan', 'Subscription coverage, seats, invoice routing, and retention', 'billing'],
     ],

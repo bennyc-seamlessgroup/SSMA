@@ -2,10 +2,17 @@
 
 import Link from 'next/link';
 import { useEffect, useRef, useState } from 'react';
+import { getCurrentUser, signOut } from '@/lib/auth-client';
 
 export function UserMenu({ ticker }: { ticker: string }) {
   const [isOpen, setIsOpen] = useState(false);
+  const [email, setEmail] = useState('Signed in');
   const menuRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    const user = getCurrentUser();
+    if (typeof user?.email === 'string') setEmail(user.email);
+  }, []);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -36,7 +43,7 @@ export function UserMenu({ ticker }: { ticker: string }) {
       <button className="user-menu__button" onClick={() => setIsOpen(open => !open)} aria-expanded={isOpen}>
         <span className="user-avatar">BC</span>
         <span className="user-menu__meta">
-          <strong>Demo User</strong>
+          <strong>{email.includes('@') ? email.split('@')[0] : 'User'}</strong>
           <small>IR Admin</small>
         </span>
       </button>
@@ -45,13 +52,17 @@ export function UserMenu({ ticker }: { ticker: string }) {
         <div className="user-menu__panel">
           <div className="user-menu__head">
             <strong>Currenc Intelligence</strong>
-            <span>demo@currencintel.com</span>
+            <span>{email}</span>
           </div>
+          <Link href={`/monitor/${ticker}/user-profile`} onClick={() => setIsOpen(false)}>User Profile</Link>
           <Link href={`/monitor/${ticker}/companies`} onClick={() => setIsOpen(false)}>Company Management</Link>
           <Link href={`/monitor/${ticker}/settings`} onClick={() => setIsOpen(false)}>Settings</Link>
           <Link href={`/monitor/${ticker}/billing`} onClick={() => setIsOpen(false)}>Billing & Plan</Link>
           <Link href={`/monitor/${ticker}/email-settings`} onClick={() => setIsOpen(false)}>Delivery Settings</Link>
-          <Link href="/login" onClick={() => setIsOpen(false)}>Sign out</Link>
+          <button className="user-menu__link-button" type="button" onClick={() => {
+            setIsOpen(false);
+            signOut();
+          }}>Sign out</button>
         </div>
       )}
     </div>

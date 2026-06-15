@@ -18,7 +18,7 @@ const groups = [
       ['Internal Float (V2)', 'internal-float-v2'],
       ['Smart Money', 'smart-money'],
       ['Narrative', 'sentiment'],
-      ['Catalysts', 'event-calendar'],
+      ['SEC Filings', 'event-calendar'],
       ['Price Scenarios', 'price-scenario'],
       ['Market Defense', 'market-defense'],
       ['Premium', 'premium-intelligence'],
