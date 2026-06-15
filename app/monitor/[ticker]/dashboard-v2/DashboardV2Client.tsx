@@ -10,7 +10,7 @@ type TrendPoint = {
   feeRate: number | null;
   tradeVolume: number | null;
   shortableShares: number | null;
-  averageDuration: number | null;
+  daysToCover: number | null;
   utilization: number | null;
   margin?: number | null;
 };

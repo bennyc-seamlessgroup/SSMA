@@ -1,9 +1,10 @@
-import { readImportJson } from '@/lib/import-data';
+import { readImportFile, readImportJson, readLocalImportText, type ImportEnvelope } from '@/lib/import-data';
 import type { InstitutionalHolding } from '@/lib/types';
 import { formatImportDataUpdatedAt, getImportDataVersion } from '@/lib/import-data-version';
 import { InstitutionalTabs } from './InstitutionalTabs';
 import type { ActivistFiling } from './ActivistFilingsTable';
 import { InstitutionalDevTables } from './InstitutionalDevTables';
+import { InstitutionalOverview, type InstitutionalOverviewData } from './InstitutionalOverview';
 
 type SecurityOwnershipRow = {
   name?: string | null;
@@ -36,6 +37,16 @@ type ActivistFilingRow = {
   url?: string | null;
 };
 
+const institutionalOverviewFile = 'institutional_ownership_CURR_consolidated_4_web.json';
+
+async function readInstitutionalOverviewFile(): Promise<ImportEnvelope<InstitutionalOverviewData>> {
+  try {
+    return await readImportFile<InstitutionalOverviewData>(institutionalOverviewFile);
+  } catch {
+    return JSON.parse(readLocalImportText(institutionalOverviewFile)) as ImportEnvelope<InstitutionalOverviewData>;
+  }
+}
+
 function formatNumber(value: unknown, options?: Intl.NumberFormatOptions) {
   const numeric = typeof value === 'number' ? value : Number(String(value ?? '').replace(/,/g, ''));
   if (!Number.isFinite(numeric)) return value ? String(value) : 'N/A';
@@ -66,9 +77,10 @@ function ownershipChangeType(row: Pick<SecurityOwnershipRow, 'sharesChange' | 's
 export default async function InstitutionalPage({ params }: Readonly<{ params: Promise<{ ticker: string }> }>) {
   const { ticker } = await params;
   const normalizedTicker = ticker.toUpperCase();
-  const [securityRows, activistRows, importDataVersion] = await Promise.all([
+  const [securityRows, activistRows, overviewEnvelope, importDataVersion] = await Promise.all([
     readImportJson<SecurityOwnershipRow[]>('fintel_security_ownership_premium_CURR_consolidated_4_web.json'),
     readImportJson<ActivistFilingRow[]>('fintel_activist_filings_premium_CURR_consolidated_4_web.json'),
+    readInstitutionalOverviewFile(),
     getImportDataVersion(),
   ]);
   const holdings: InstitutionalHolding[] = securityRows.map((row, index) => ({
@@ -117,11 +129,18 @@ export default async function InstitutionalPage({ params }: Readonly<{ params: P
         </span>
       </div>
 
+      <InstitutionalOverview data={overviewEnvelope.data} ticker={normalizedTicker} />
+
       <section className="panel">
         <InstitutionalTabs holdings={holdings} activistFilings={activistFilings} ticker={normalizedTicker} companyName="CURRENC Group Inc." />
       </section>
 
       <InstitutionalDevTables
+        overview={(overviewEnvelope.data.overview ?? null) as Record<string, unknown> | null}
+        ownershipStructure={(overviewEnvelope.data.ownership_structure ?? []) as Array<Record<string, unknown>>}
+        insiderBars={(overviewEnvelope.data.insider_bars ?? []) as Array<Record<string, unknown>>}
+        institutionBars={(overviewEnvelope.data.institution_bars ?? []) as Array<Record<string, unknown>>}
+        publicFloatBreakdown={(overviewEnvelope.data.public_float_breakdown ?? []) as Array<Record<string, unknown>>}
         securityRows={securityRows as Array<Record<string, unknown>>}
         activistRows={activistRows as Array<Record<string, unknown>>}
       />

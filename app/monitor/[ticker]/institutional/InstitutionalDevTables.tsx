@@ -4,10 +4,16 @@ import { ImportDataTable } from '@/components/ImportDataTable';
 import { ImportDataTabs } from '@/components/ImportDataTabs';
 
 type InstitutionalDevTablesProps = {
+  overview: Record<string, unknown> | null;
+  ownershipStructure: Array<Record<string, unknown>>;
+  insiderBars: Array<Record<string, unknown>>;
+  institutionBars: Array<Record<string, unknown>>;
+  publicFloatBreakdown: Array<Record<string, unknown>>;
   securityRows: Array<Record<string, unknown>>;
   activistRows: Array<Record<string, unknown>>;
 };
 
+const overviewFile = 'institutional_ownership_CURR_consolidated_4_web.json';
 const securityFile = 'fintel_security_ownership_premium_CURR_consolidated_4_web.json';
 const activistFile = 'fintel_activist_filings_premium_CURR_consolidated_4_web.json';
 
@@ -54,8 +60,71 @@ function toTableRows(rows: Array<Record<string, unknown>>, columns: string[]) {
   return rows.map(row => Object.fromEntries(columns.map(column => [column, formatValue(row[column])])));
 }
 
-export function InstitutionalDevTables({ securityRows, activistRows }: InstitutionalDevTablesProps) {
+function overviewRows(overview: Record<string, unknown> | null) {
+  return overview
+    ? Object.entries(overview).map(([field, value]) => ({ field, value: formatValue(value) }))
+    : [];
+}
+
+function columnsFor(rows: Array<Record<string, unknown>>, fallback: string[]) {
+  const columns = Array.from(new Set(rows.flatMap(row => Object.keys(row))));
+  return columns.length ? columns : fallback;
+}
+
+export function InstitutionalDevTables({
+  overview,
+  ownershipStructure,
+  insiderBars,
+  institutionBars,
+  publicFloatBreakdown,
+  securityRows,
+  activistRows,
+}: InstitutionalDevTablesProps) {
+  const ownershipStructureColumns = columnsFor(ownershipStructure, ['key', 'label', 'shares', 'percent', 'color']);
+  const insiderBarColumns = columnsFor(insiderBars, ['name', 'shares', 'ownershipPercentOfInsiders', 'ownershipPercentOfSharesOutstanding']);
+  const institutionBarColumns = columnsFor(institutionBars, ['name', 'shares', 'value', 'ownershipPercentOfInstitutional', 'ownershipPercentOfSharesOutstanding']);
+  const publicFloatBreakdownColumns = columnsFor(publicFloatBreakdown, ['key', 'label', 'shares', 'percent', 'color', 'source']);
   const tabs = [
+    {
+      id: 'overview',
+      title: 'Overview',
+      file: overviewFile,
+      sourcePlatform: 'Backend Derived',
+      recordCount: overview ? 1 : 0,
+      status: 'ready',
+    },
+    {
+      id: 'ownership-structure',
+      title: 'Ownership Structure',
+      file: overviewFile,
+      sourcePlatform: 'Backend Derived',
+      recordCount: ownershipStructure.length,
+      status: 'ready',
+    },
+    {
+      id: 'insider-bars',
+      title: 'Insider Bars',
+      file: overviewFile,
+      sourcePlatform: 'Backend Derived',
+      recordCount: insiderBars.length,
+      status: 'ready',
+    },
+    {
+      id: 'institution-bars',
+      title: 'Institution Bars',
+      file: overviewFile,
+      sourcePlatform: 'Backend Derived',
+      recordCount: institutionBars.length,
+      status: 'ready',
+    },
+    {
+      id: 'public-float-breakdown',
+      title: 'Public Float',
+      file: overviewFile,
+      sourcePlatform: 'Backend Derived',
+      recordCount: publicFloatBreakdown.length,
+      status: 'ready',
+    },
     {
       id: 'security-ownership',
       title: 'Security Ownership',
@@ -80,13 +149,19 @@ export function InstitutionalDevTables({ securityRows, activistRows }: Instituti
         <div>
           <span>Development Data</span>
           <h2>Institutional Ownership Import Tables</h2>
-          <p className="section-subtitle">Raw records from the Fintel ownership and activist filing import files.</p>
+          <p className="section-subtitle">Backend-derived overview fields plus raw records from the Fintel ownership and activist filing import files.</p>
+          <span className="import-file-tag">{overviewFile}</span>
           <span className="import-file-tag">{securityFile}</span>
           <span className="import-file-tag">{activistFile}</span>
         </div>
       </div>
 
       <ImportDataTabs tabs={tabs}>
+        <ImportDataTable columns={['field', 'value']} rows={overviewRows(overview)} pageSize={25} />
+        <ImportDataTable columns={ownershipStructureColumns} rows={toTableRows(ownershipStructure, ownershipStructureColumns)} pageSize={25} />
+        <ImportDataTable columns={insiderBarColumns} rows={toTableRows(insiderBars, insiderBarColumns)} pageSize={25} />
+        <ImportDataTable columns={institutionBarColumns} rows={toTableRows(institutionBars, institutionBarColumns)} pageSize={25} />
+        <ImportDataTable columns={publicFloatBreakdownColumns} rows={toTableRows(publicFloatBreakdown, publicFloatBreakdownColumns)} pageSize={25} />
         <ImportDataTable columns={securityColumns} rows={toTableRows(securityRows, securityColumns)} pageSize={25} />
         <ImportDataTable columns={activistColumns} rows={toTableRows(activistRows, activistColumns)} pageSize={25} />
       </ImportDataTabs>

@@ -1,0 +1,273 @@
+{
+  "source": "Fintel Premium + ORTEX + Internal Float V2",
+  "sourcePlatform": "Fintel Premium + ORTEX + Internal Management Input",
+  "importedAt": "2026-06-15T07:48:25.999Z",
+  "status": "ready",
+  "data": {
+    "overview": {
+      "institutional_owners": 13,
+      "insider_owners": 3,
+      "shares_outstanding": 58030000,
+      "public_float_shares": 32664808,
+      "institutional_shares_long": 1022193,
+      "insider_shares_long": 11774964,
+      "institutional_ownership_percent": 1.7614906083060484,
+      "insider_ownership_percent": 20.29116663794589,
+      "public_float_percent": 56.28951921419956,
+      "institutional_value_thousands_usd": 2619.334,
+      "average_portfolio_allocation_percent": 0.02240782692307692,
+      "ownership_structure_total_shares": 45461965
+    },
+    "ownership_structure": [
+      {
+        "key": "insiders",
+        "label": "Insiders",
+        "shares": 11774964,
+        "percent": 25.90069302987673,
+        "color": "#2f5bb8"
+      },
+      {
+        "key": "institutions",
+        "label": "Institutions",
+        "shares": 1022193,
+        "percent": 2.24845758426852,
+        "color": "#14916f"
+      },
+      {
+        "key": "public_float",
+        "label": "Public Float",
+        "shares": 32664808,
+        "percent": 71.85084938585474,
+        "color": "#df9514"
+      }
+    ],
+    "insider_bars": [
+      {
+        "name": "Wong Nga Man",
+        "shares": 4501309,
+        "latestFileDate": "2025-07-25",
+        "latestEffectiveDate": "2025-07-25",
+        "formType": "SCHEDULE 13G/A",
+        "ownershipPercentOfInsiders": 38.227794157162606,
+        "ownershipPercentOfSharesOutstanding": 7.756865414440807
+      },
+      {
+        "name": "Wong Man San",
+        "shares": 3795837,
+        "latestFileDate": "2025-10-07",
+        "latestEffectiveDate": "2025-10-07",
+        "formType": "SCHEDULE 13G",
+        "ownershipPercentOfInsiders": 32.23650620078329,
+        "ownershipPercentOfSharesOutstanding": 6.541163191452696
+      },
+      {
+        "name": "Huang Yafangzhou",
+        "shares": 3477818,
+        "latestFileDate": "2025-07-25",
+        "latestEffectiveDate": "2025-07-25",
+        "formType": "SCHEDULE 13G/A",
+        "ownershipPercentOfInsiders": 29.53569964205411,
+        "ownershipPercentOfSharesOutstanding": 5.993138032052387
+      }
+    ],
+    "institution_bars": [
+      {
+        "name": "Morgan Stanley",
+        "shares": 729215,
+        "value": 1910543,
+        "latestFileDate": "2026-05-15",
+        "latestEffectiveDate": "2026-03-31",
+        "formType": "13F",
+        "ownershipPercentOfInstitutional": 71.33828934457583,
+        "ownershipPercentOfSharesOutstanding": 1.256617266930898
+      },
+      {
+        "name": "Two Sigma Investments, Lp",
+        "shares": 59536,
+        "value": 155984,
+        "latestFileDate": "2026-05-15",
+        "latestEffectiveDate": "2026-03-31",
+        "formType": "13F",
+        "ownershipPercentOfInstitutional": 5.824340413209638,
+        "ownershipPercentOfSharesOutstanding": 0.10259520937446148
+      },
+      {
+        "name": "Citadel Advisors Llc",
+        "shares": 58345,
+        "value": 152864,
+        "latestFileDate": "2026-05-15",
+        "latestEffectiveDate": "2026-03-31",
+        "formType": "13F",
+        "ownershipPercentOfInstitutional": 5.707826212858041,
+        "ownershipPercentOfSharesOutstanding": 0.1005428226779252
+      },
+      {
+        "name": "Kestra Advisory Services, LLC",
+        "shares": 57910,
+        "value": 151724,
+        "latestFileDate": "2026-04-30",
+        "latestEffectiveDate": "2026-03-31",
+        "formType": "13F",
+        "ownershipPercentOfInstitutional": 5.665270648497887,
+        "ownershipPercentOfSharesOutstanding": 0.09979321040840944
+      },
+      {
+        "name": "Geode Capital Management, Llc",
+        "shares": 39561,
+        "value": 103649,
+        "latestFileDate": "2026-05-15",
+        "latestEffectiveDate": "2026-03-31",
+        "formType": "13F",
+        "ownershipPercentOfInstitutional": 3.8702084635680345,
+        "ownershipPercentOfSharesOutstanding": 0.06817335860761675
+      },
+      {
+        "name": "XTX Topco Ltd",
+        "shares": 37849,
+        "value": 99164,
+        "latestFileDate": "2026-05-15",
+        "latestEffectiveDate": "2026-03-31",
+        "formType": "13F",
+        "ownershipPercentOfInstitutional": 3.702725414867838,
+        "ownershipPercentOfSharesOutstanding": 0.06522316043425813
+      },
+      {
+        "name": "Millennium Management Llc",
+        "shares": 26086,
+        "value": 9562,
+        "latestFileDate": "2026-05-15",
+        "latestEffectiveDate": "2026-03-31",
+        "formType": "13F",
+        "ownershipPercentOfInstitutional": 2.551964257239093,
+        "ownershipPercentOfSharesOutstanding": 0.04495261071859383
+      },
+      {
+        "name": "Quadrature Capital Ltd",
+        "shares": 10497,
+        "value": 27502,
+        "latestFileDate": "2026-05-15",
+        "latestEffectiveDate": "2026-03-31",
+        "formType": "13F",
+        "ownershipPercentOfInstitutional": 1.026909791008156,
+        "ownershipPercentOfSharesOutstanding": 0.01808891952438394
+      },
+      {
+        "name": "UBS Group AG",
+        "shares": 2178,
+        "value": 5706,
+        "latestFileDate": "2026-05-05",
+        "latestEffectiveDate": "2026-03-31",
+        "formType": "13F",
+        "ownershipPercentOfInstitutional": 0.21307130845153507,
+        "ownershipPercentOfSharesOutstanding": 0.0037532310873686025
+      },
+      {
+        "name": "Cwm, Llc",
+        "shares": 822,
+        "value": 2154,
+        "latestFileDate": "2026-05-14",
+        "latestEffectiveDate": "2026-03-31",
+        "formType": "13F",
+        "ownershipPercentOfInstitutional": 0.08041534230815511,
+        "ownershipPercentOfSharesOutstanding": 0.0014165087023953128
+      },
+      {
+        "name": "Jpmorgan Chase & Co",
+        "shares": 118,
+        "value": 282,
+        "latestFileDate": "2026-05-13",
+        "latestEffectiveDate": "2026-03-31",
+        "formType": "13F/A",
+        "ownershipPercentOfInstitutional": 0.01154380826321448,
+        "ownershipPercentOfSharesOutstanding": 0.0002033430983973807
+      },
+      {
+        "name": "SBI Securities Co., Ltd.",
+        "shares": 75,
+        "value": 197,
+        "latestFileDate": "2026-04-28",
+        "latestEffectiveDate": "2026-03-31",
+        "formType": "13F",
+        "ownershipPercentOfInstitutional": 0.007337166268992255,
+        "ownershipPercentOfSharesOutstanding": 0.00012924349474409787
+      },
+      {
+        "name": "Citigroup Inc",
+        "shares": 1,
+        "value": 3,
+        "latestFileDate": "2026-05-11",
+        "latestEffectiveDate": "2026-03-31",
+        "formType": "13F",
+        "ownershipPercentOfInstitutional": 0.00009782888358656341,
+        "ownershipPercentOfSharesOutstanding": 0.0000017232465965879719
+      }
+    ],
+    "public_float_breakdown": [
+      {
+        "key": "traditional",
+        "label": "Traditional",
+        "shares": 19664808,
+        "percent": 60.20181719727237,
+        "color": "#2f5bb8",
+        "source": "Internal Float V2 user inputs"
+      },
+      {
+        "key": "private_strategic",
+        "label": "Private / Strategic",
+        "shares": 8000000,
+        "percent": 24.491189417063158,
+        "color": "#8d9aaa",
+        "source": "Internal Float V2 user inputs"
+      },
+      {
+        "key": "tokenized",
+        "label": "Tokenized",
+        "shares": 3400000,
+        "percent": 10.408755502251843,
+        "color": "#747bdc",
+        "source": "Internal Float V2 user inputs"
+      },
+      {
+        "key": "collateralized",
+        "label": "Collateralized",
+        "shares": 1600000,
+        "percent": 4.898237883412632,
+        "color": "#df9514",
+        "source": "Internal Float V2 user inputs"
+      }
+    ],
+    "source_metadata": {
+      "shares_outstanding": {
+        "provider": "ORTEX",
+        "endpoint": "https://api.ortex.com/api/v1/stock/us/curr/shares_outstanding",
+        "requestedRange": "today - 1 calendar day (yesterday)",
+        "effectiveDate": null,
+        "value": 58030000,
+        "valueStatus": "placeholder_from_existing_portal_assumption",
+        "normalizedOutputPath": "data.overview.shares_outstanding"
+      }
+    }
+  },
+  "sourceInputs": {
+    "shares_outstanding": {
+      "provider": "ORTEX",
+      "endpoint": "https://api.ortex.com/api/v1/stock/us/curr/shares_outstanding",
+      "range": "today - 1 calendar day (yesterday)",
+      "fallbackRule": "Use latest available row on or before yesterday when yesterday has no provider row.",
+      "normalizedOutputPath": "data.overview.shares_outstanding",
+      "sampleValueStatus": "placeholder_from_existing_portal_assumption"
+    },
+    "security_ownership": {
+      "provider": "Fintel Premium",
+      "file": "fintel_security_ownership_premium_CURR_consolidated_4_web.json"
+    },
+    "activist_filings": {
+      "provider": "Fintel Premium",
+      "file": "fintel_activist_filings_premium_CURR_consolidated_4_web.json"
+    },
+    "internal_float_inputs": {
+      "provider": "Internal Float V2",
+      "file": "internal_float/v2_user_inputs.json"
+    }
+  }
+}

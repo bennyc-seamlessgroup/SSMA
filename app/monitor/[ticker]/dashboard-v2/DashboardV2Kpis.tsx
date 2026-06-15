@@ -9,7 +9,7 @@ type TrendPoint = {
   date: string;
   feeRate: number | null;
   shortableShares: number | null;
-  averageDuration: number | null;
+  daysToCover: number | null;
   utilization: number | null;
   margin?: number | null;
 };
@@ -59,12 +59,12 @@ const kpis: KpiConfig[] = [
     explanation: 'Percentage of lendable inventory currently being used. Higher utilization means more of the borrowable share pool is already committed.',
   },
   {
-    key: 'averageDuration',
-    label: 'Average Duration',
+    key: 'daysToCover',
+    label: 'Days to Cover',
     valueFormatter: value => value === undefined ? 'N/A' : `${value.toLocaleString('en-US', { maximumFractionDigits: 1 })}d`,
     changeFormatter: value => signed(value, 1, 'd'),
-    detail: 'Estimated borrow duration',
-    explanation: 'Estimated average number of days borrowed shares remain on loan. Longer duration can indicate more persistent short-side positioning.',
+    detail: 'Short interest coverage',
+    explanation: 'Estimated number of trading days it would take short sellers to cover current short interest based on average trading volume.',
   },
 ];
 

@@ -9478,6 +9478,362 @@ html:not([data-dev-mode="true"]) .dev-source-inline {
 .institutional-page {
   padding-top: 0;
 }
+
+.institutional-overview {
+  display: grid;
+  gap: 16px;
+}
+
+.institutional-overview__kpis {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.institutional-overview__kpis article,
+.institutional-chart-card {
+  min-width: 0;
+  border: 1px solid #dbe6f3;
+  border-radius: 14px;
+  background: #fff;
+  box-shadow: rgba(15, 23, 42, .04) 0 14px 28px;
+}
+
+.institutional-overview__kpis article {
+  display: grid;
+  gap: 8px;
+  padding: 16px;
+}
+
+.institutional-overview__kpis span,
+.institutional-chart-card__head span {
+  color: #66758d;
+  font-size: 11px;
+  font-weight: 900;
+  letter-spacing: .13em;
+  text-transform: uppercase;
+}
+
+.institutional-overview__kpis strong {
+  color: #061b31;
+  font-size: clamp(23px, 2.5vw, 32px);
+  line-height: 1;
+  font-weight: 950;
+  letter-spacing: 0;
+}
+
+.institutional-overview__kpis small,
+.institutional-chart-card__head small {
+  color: #49617d;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.institutional-overview__charts {
+  display: grid;
+  grid-template-columns: minmax(320px, .9fr) minmax(380px, 1.1fr);
+  gap: 16px;
+  align-items: stretch;
+}
+
+.institutional-chart-card {
+  display: grid;
+  align-content: start;
+  gap: 18px;
+  padding: 18px;
+}
+
+.institutional-chart-card__head {
+  display: grid;
+  gap: 4px;
+}
+
+.institutional-donut-layout {
+  display: grid;
+  grid-template-columns: minmax(180px, 240px) minmax(0, 1fr);
+  align-items: center;
+  gap: 24px;
+  min-width: 0;
+}
+
+.institutional-donut {
+  position: relative;
+  display: grid;
+  width: min(240px, 100%);
+  aspect-ratio: 1;
+  place-items: center;
+  border-radius: 999px;
+  box-shadow: inset 0 0 0 1px #dbe6f3;
+}
+
+.institutional-donut > div {
+  display: grid;
+  width: 44%;
+  aspect-ratio: 1;
+  place-items: center;
+  border-radius: 999px;
+  background: #fff;
+  color: #061b31;
+  text-align: center;
+  box-shadow: rgba(15, 23, 42, .1) 0 8px 18px;
+}
+
+.institutional-donut strong {
+  font-size: 25px;
+  line-height: 1;
+}
+
+.institutional-donut span {
+  color: #66758d;
+  font-size: 11px;
+  font-weight: 900;
+}
+
+.institutional-value-legend {
+  display: grid;
+  min-width: 0;
+}
+
+.institutional-value-legend div {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) max-content max-content;
+  align-items: center;
+  gap: 10px;
+  border-bottom: 1px solid #e2eaf4;
+  padding: 11px 0;
+  min-width: 0;
+}
+
+.institutional-value-legend.interactive {
+  position: relative;
+  gap: 8px;
+}
+
+.institutional-value-legend.interactive button {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) max-content max-content;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  min-width: 0;
+  border: 1px solid transparent;
+  border-radius: 10px;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  padding: 11px 10px;
+  text-align: left;
+}
+
+.institutional-value-legend.interactive button:hover,
+.institutional-value-legend.interactive button.active {
+  border-color: #c7d8f2;
+  background: #f8fbff;
+  box-shadow: rgba(47, 91, 184, .08) 0 8px 16px;
+}
+
+.institutional-value-legend.interactive button.active::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  right: -43px;
+  width: 42px;
+  height: 2px;
+  background: linear-gradient(90deg, #2f5bb8, rgba(47, 91, 184, 0));
+  transform: translateY(-50%);
+}
+
+.institutional-value-legend span {
+  display: inline-flex;
+  min-width: 0;
+  align-items: center;
+  gap: 9px;
+  color: #273951;
+  font-weight: 900;
+  overflow-wrap: anywhere;
+}
+
+.institutional-value-legend i {
+  width: 10px;
+  height: 10px;
+  flex: 0 0 auto;
+  border-radius: 999px;
+}
+
+.institutional-value-legend strong {
+  color: #061b31;
+  font-weight: 950;
+  white-space: nowrap;
+}
+
+.institutional-value-legend small,
+.institutional-ranked-bars small {
+  display: inline-flex;
+  width: max-content;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid #dbe6f3;
+  border-radius: 999px;
+  background: #f8fbff;
+  padding: 2px 8px;
+  color: #64748d;
+  font-size: 11px;
+  font-weight: 900;
+  line-height: 1.2;
+  white-space: nowrap;
+}
+
+.institutional-detail-card {
+  position: relative;
+}
+
+.institutional-detail-card::before {
+  content: "";
+  position: absolute;
+  top: 78px;
+  left: -1px;
+  width: 1px;
+  height: 40px;
+  background: #2f5bb8;
+  opacity: .35;
+}
+
+.institutional-public-float-panel {
+  display: grid;
+  grid-template-columns: minmax(170px, 220px) minmax(0, 1fr);
+  align-items: center;
+  gap: 20px;
+  min-width: 0;
+}
+
+.institutional-donut.mini {
+  width: min(220px, 100%);
+}
+
+.institutional-donut.mini strong {
+  font-size: 24px;
+}
+
+.institutional-value-legend.compact {
+  gap: 0;
+}
+
+.institutional-internal-float-link {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  border: 1px solid #dbe6f3;
+  border-radius: 12px;
+  background: #f8fbff;
+  padding: 13px 14px;
+}
+
+.institutional-internal-float-link p {
+  margin: 0;
+  color: #405875;
+  font-size: 13px;
+  font-weight: 750;
+  line-height: 1.45;
+}
+
+.institutional-ranked-bars {
+  display: grid;
+  gap: 12px;
+  min-width: 0;
+}
+
+.institutional-ranked-bars > div {
+  display: grid;
+  grid-template-columns: minmax(120px, .58fr) minmax(130px, 1fr) max-content minmax(92px, .28fr);
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.institutional-ranked-bars span {
+  min-width: 0;
+  color: #273951;
+  font-size: 13px;
+  font-weight: 900;
+  overflow-wrap: anywhere;
+}
+
+.institutional-ranked-bars > div > div {
+  min-width: 0;
+  height: 16px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: #edf3fb;
+}
+
+.institutional-ranked-bars i {
+  display: block;
+  height: 100%;
+  min-width: 4px;
+  border-radius: inherit;
+  background: #2f5bb8;
+}
+
+.institutional-ranked-bars strong {
+  color: #061b31;
+  font-size: 13px;
+  font-weight: 950;
+  text-align: right;
+  white-space: nowrap;
+}
+
+@media (max-width: 1280px) {
+  .institutional-overview__kpis {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 1120px) {
+  .institutional-overview__kpis {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .institutional-overview__charts {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 720px) {
+  .institutional-overview__kpis {
+    grid-template-columns: 1fr;
+  }
+
+  .institutional-donut-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .institutional-value-legend.interactive button.active::after,
+  .institutional-detail-card::before {
+    display: none;
+  }
+
+  .institutional-public-float-panel,
+  .institutional-internal-float-link {
+    grid-template-columns: 1fr;
+  }
+
+  .institutional-internal-float-link {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .institutional-ranked-bars > div {
+    grid-template-columns: 1fr;
+    gap: 6px;
+  }
+
+  .institutional-ranked-bars strong {
+    text-align: left;
+  }
+}
+
 @media (max-width: 900px) {
   .ownership-page { padding: 14px; border-radius: 12px; }
   .ownership-toolbar,

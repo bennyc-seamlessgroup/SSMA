@@ -1,52 +1,52 @@
 {
   "ticker": "CURR",
-  "asOfDate": "2026-06-08",
-  "importedAt": "2026-06-10T08:57:05.572Z",
+  "asOfDate": "2026-06-11",
+  "importedAt": "2026-06-15T09:07:56.395Z",
   "source": "Normalized from Sample Data/ortex_CURR_consolidated.json",
   "sourcePlatform": "Ortex",
   "recordType": "dashboardV2ConsolidatedWeb",
   "category": "dashboard_v2",
-  "recordCount": 261,
+  "recordCount": 262,
   "status": "ready_with_missing_fields",
-  "notes": "Dashboard V2 consolidated dataset generated from ORTEX consolidated source. ORTEX source contains price, trade volume, borrow fee, short availability, short interest, days to cover, and short score. Margin, utilization, average duration, and chart events are not present in this ORTEX source and are left as null for backend completion.",
+  "notes": "Dashboard V2 consolidated dataset generated from ORTEX consolidated source. ORTEX source contains price, trade volume, borrow fee, short availability, short interest, days to cover, and short score. Margin and chart events are not present in this ORTEX source and are left as null for backend completion.",
   "originalFiles": [
     "ortex_CURR_consolidated.json"
   ],
   "data": {
     "current": {
-      "date": "2026-06-08",
-      "price": 2.97,
-      "borrowFee": 31.33,
+      "date": "2026-06-11",
+      "price": 3.08,
+      "borrowFee": 31.2,
       "margin": null,
-      "availableShares": 2484134,
-      "tradeVolume": 266597,
-      "averageDuration": null,
-      "utilization": null,
+      "availableShares": 2491973,
+      "tradeVolume": 116108,
+      "daysToCover": 4.8079,
+      "utilization": 76.49,
       "sourceRecords": {
         "availability": {
-          "date": "2026-06-08",
-          "shortAvailabilityPct": 75.88,
-          "shortAvailabilityShares": 2484134
+          "date": "2026-06-11",
+          "shortAvailabilityPct": 76.49,
+          "shortAvailabilityShares": 2491973
         },
         "closingPrices": {
-          "date": "2026-06-08",
-          "open": 3.18,
-          "high": 3.19,
-          "low": 2.94,
-          "close": 2.97,
-          "volume": 266597
+          "date": "2026-06-11",
+          "open": 2.93,
+          "high": 3.15,
+          "low": 2.91,
+          "close": 3.08,
+          "volume": 116108
         },
         "borrowFeeAll": {
-          "date": "2026-06-08",
-          "costToBorrowAll": 31.33
+          "date": "2026-06-11",
+          "costToBorrowAll": 31.2
         },
         "borrowFeeNew": {
-          "date": "2026-06-08",
-          "costToBorrowNew": 29.92
+          "date": "2026-06-11",
+          "costToBorrowNew": 32.61
         },
         "daysToCover": {
-          "date": "2026-06-08",
-          "daysToCover": 5.1638
+          "date": "2026-06-11",
+          "daysToCover": 4.8079
         },
         "europeanTotalOpenPositions": {
           "shortInterestShares": 0,
@@ -54,139 +54,29 @@
           "shortInterestValue": 0,
           "currency": "USD",
           "creditsUsed": 0.3,
-          "creditsLeft": 9469.85
+          "creditsLeft": 9413.05
         },
         "shortInterest": {
-          "date": "2026-06-08",
-          "shortInterestShares": 924285,
-          "shortInterestPcFreeFloat": 2.886433,
-          "shortInterestUsd": 2745125
+          "date": "2026-06-11",
+          "shortInterestShares": 864306,
+          "shortInterestPcFreeFloat": 2.699126,
+          "shortInterestUsd": 2662062
         },
         "shortScore": {
-          "date": "2026-06-08",
-          "score": 69.4047
+          "date": "2026-06-11",
+          "score": 68.4425
         }
       }
     },
     "trends": [
-      {
-        "date": "2025-06-09",
-        "price": 0.508,
-        "feeRate": 124.35,
-        "tradeVolume": 1255766,
-        "shortableShares": 2372719,
-        "averageDuration": null,
-        "utilization": null,
-        "margin": null,
-        "sourceRecords": {
-          "availability": {
-            "date": "2025-06-09",
-            "shortAvailabilityPct": 721.52,
-            "shortAvailabilityShares": 2372719
-          },
-          "closingPrices": {
-            "date": "2025-06-09",
-            "open": 0.5,
-            "high": 0.5269,
-            "low": 0.485,
-            "close": 0.508,
-            "volume": 1255766
-          },
-          "borrowFeeAll": {
-            "date": "2025-06-09",
-            "costToBorrowAll": 124.35
-          },
-          "borrowFeeNew": {
-            "date": "2025-06-09",
-            "costToBorrowNew": 124.35
-          },
-          "daysToCover": {
-            "date": "2025-06-09",
-            "daysToCover": 0.0396
-          },
-          "europeanTotalOpenPositions": {
-            "shortInterestShares": 0,
-            "shortInterestPcFreeFloat": 0,
-            "shortInterestValue": 0,
-            "currency": "USD",
-            "creditsUsed": 0.3,
-            "creditsLeft": 9619.05
-          },
-          "shortInterest": {
-            "date": "2025-06-09",
-            "shortInterestShares": 34964,
-            "shortInterestPcFreeFloat": 0.255041,
-            "shortInterestUsd": 17761
-          },
-          "shortScore": {
-            "date": "2025-06-09",
-            "score": 48.7795
-          }
-        }
-      },
-      {
-        "date": "2025-06-10",
-        "price": 0.498,
-        "feeRate": 125.86,
-        "tradeVolume": 1559142,
-        "shortableShares": 2304684,
-        "averageDuration": null,
-        "utilization": null,
-        "margin": null,
-        "sourceRecords": {
-          "availability": {
-            "date": "2025-06-10",
-            "shortAvailabilityPct": 614.36,
-            "shortAvailabilityShares": 2304684
-          },
-          "closingPrices": {
-            "date": "2025-06-10",
-            "open": 0.48,
-            "high": 0.5087,
-            "low": 0.48,
-            "close": 0.498,
-            "volume": 1559142
-          },
-          "borrowFeeAll": {
-            "date": "2025-06-10",
-            "costToBorrowAll": 125.86
-          },
-          "borrowFeeNew": {
-            "date": "2025-06-10",
-            "costToBorrowNew": 117.15
-          },
-          "daysToCover": {
-            "date": "2025-06-10",
-            "daysToCover": 0.1709
-          },
-          "europeanTotalOpenPositions": {
-            "shortInterestShares": 0,
-            "shortInterestPcFreeFloat": 0,
-            "shortInterestValue": 0,
-            "currency": "USD",
-            "creditsUsed": 0.3,
-            "creditsLeft": 9619.05
-          },
-          "shortInterest": {
-            "date": "2025-06-10",
-            "shortInterestShares": 153207,
-            "shortInterestPcFreeFloat": 1.11755,
-            "shortInterestUsd": 76297
-          },
-          "shortScore": {
-            "date": "2025-06-10",
-            "score": 51.5532
-          }
-        }
-      },
       {
         "date": "2025-06-11",
         "price": 0.48,
         "feeRate": 92.31,
         "tradeVolume": 954897,
         "shortableShares": 2331357,
-        "averageDuration": null,
-        "utilization": null,
+        "daysToCover": 0.1101,
+        "utilization": 1377.22,
         "margin": null,
         "sourceRecords": {
           "availability": {
@@ -240,8 +130,8 @@
         "feeRate": 100.29,
         "tradeVolume": 419118,
         "shortableShares": 2239412,
-        "averageDuration": null,
-        "utilization": null,
+        "daysToCover": 0.1282,
+        "utilization": 999.26,
         "margin": null,
         "sourceRecords": {
           "availability": {
@@ -295,8 +185,8 @@
         "feeRate": 100.58,
         "tradeVolume": 571602,
         "shortableShares": 2311350,
-        "averageDuration": null,
-        "utilization": null,
+        "daysToCover": 0.1627,
+        "utilization": 693.68,
         "margin": null,
         "sourceRecords": {
           "availability": {
@@ -350,8 +240,8 @@
         "feeRate": 99.72,
         "tradeVolume": 563625,
         "shortableShares": 2142476,
-        "averageDuration": null,
-        "utilization": null,
+        "daysToCover": 0.1347,
+        "utilization": 945.52,
         "margin": null,
         "sourceRecords": {
           "availability": {
@@ -405,8 +295,8 @@
         "feeRate": 93.04,
         "tradeVolume": 893383,
         "shortableShares": 2384644,
-        "averageDuration": null,
-        "utilization": null,
+        "daysToCover": 0.1568,
+        "utilization": 847.15,
         "margin": null,
         "sourceRecords": {
           "availability": {
@@ -460,8 +350,8 @@
         "feeRate": 89.76,
         "tradeVolume": 3332587,
         "shortableShares": 2258803,
-        "averageDuration": null,
-        "utilization": null,
+        "daysToCover": 0.1383,
+        "utilization": 900.04,
         "margin": null,
         "sourceRecords": {
           "availability": {
@@ -515,8 +405,8 @@
         "feeRate": 87.74,
         "tradeVolume": null,
         "shortableShares": 2417078,
-        "averageDuration": null,
-        "utilization": null,
+        "daysToCover": 0.134,
+        "utilization": 1005.86,
         "margin": null,
         "sourceRecords": {
           "availability": {
@@ -562,8 +452,8 @@
         "feeRate": 77.36,
         "tradeVolume": 3264583,
         "shortableShares": 2460886,
-        "averageDuration": null,
-        "utilization": null,
+        "daysToCover": 0.1248,
+        "utilization": 1057.68,
         "margin": null,
         "sourceRecords": {
           "availability": {
@@ -617,8 +507,8 @@
         "feeRate": 75.42,
         "tradeVolume": 119245241,
         "shortableShares": 4530578,
-        "averageDuration": null,
-        "utilization": null,
+        "daysToCover": 0.0574,
+        "utilization": 1171.67,
         "margin": null,
         "sourceRecords": {
           "availability": {
@@ -672,8 +562,8 @@
         "feeRate": 99.92,
         "tradeVolume": 20864560,
         "shortableShares": 6108406,
-        "averageDuration": null,
-        "utilization": null,
+        "daysToCover": 0.5033,
+        "utilization": 28.19,
         "margin": null,
         "sourceRecords": {
           "availability": {
@@ -727,8 +617,8 @@
         "feeRate": 102.57,
         "tradeVolume": 5157541,
         "shortableShares": 5630477,
-        "averageDuration": null,
-        "utilization": null,
+        "daysToCover": 0.485,
+        "utilization": 24.95,
         "margin": null,
         "sourceRecords": {
           "availability": {
@@ -782,8 +672,8 @@
         "feeRate": 119.52,
         "tradeVolume": 1110912,
         "shortableShares": 6121383,
-        "averageDuration": null,
-        "utilization": null,
+        "daysToCover": 0.6103,
+        "utilization": 5.83,
         "margin": null,
         "sourceRecords": {
           "availability": {
@@ -837,8 +727,8 @@
         "feeRate": 117.62,
         "tradeVolume": 1593068,
         "shortableShares": 5672555,
-        "averageDuration": null,
-        "utilization": null,
+        "daysToCover": 0.569,
+        "utilization": 4.84,
         "margin": null,
         "sourceRecords": {
           "availability": {
@@ -892,8 +782,8 @@
         "feeRate": 106.39,
         "tradeVolume": 3221406,
         "shortableShares": 4899886,
-        "averageDuration": null,
-        "utilization": null,
+        "daysToCover": 0.4258,
+        "utilization": 21.74,
         "margin": null,
         "sourceRecords": {
           "availability": {
@@ -947,8 +837,8 @@
         "feeRate": 104.82,
         "tradeVolume": 3662730,
         "shortableShares": 5039456,
-        "averageDuration": null,
-        "utilization": null,
+        "daysToCover": 0.4001,
+        "utilization": 31.63,
         "margin": null,
         "sourceRecords": {
           "availability": {
@@ -1002,8 +892,8 @@
         "feeRate": 100.12,
         "tradeVolume": 2516076,
         "shortableShares": 3694012,
-        "averageDuration": null,
-        "utilization": null,
+        "daysToCover": 0.2795,
+        "utilization": 42.06,
         "margin": null,
         "sourceRecords": {
           "availability": {
@@ -1057,8 +947,8 @@
         "feeRate": 103.61,
         "tradeVolume": 797630,
         "shortableShares": 3955554,
-        "averageDuration": null,
-        "utilization": null,
+        "daysToCover": 0.2931,
+        "utilization": 43.57,
         "margin": null,
         "sourceRecords": {
           "availability": {
@@ -1112,8 +1002,8 @@
         "feeRate": 102.51,
         "tradeVolume": null,
         "shortableShares": 4080989,
-        "averageDuration": null,
-        "utilization": null,
+        "daysToCover": 0.2885,
+        "utilization": 48.12,
         "margin": null,
         "sourceRecords": {
           "availability": {
@@ -1159,8 +1049,8 @@
         "feeRate": 103,
         "tradeVolume": 33206997,
         "shortableShares": 3616508,
-        "averageDuration": null,
-        "utilization": null,
+        "daysToCover": 0.2415,
+        "utilization": 36.46,
         "margin": null,
         "sourceRecords": {
           "availability": {
@@ -1214,8 +1104,8 @@
         "feeRate": 127.18,
         "tradeVolume": 3933846,
         "shortableShares": 5250141,
-        "averageDuration": null,
-        "utilization": null,
+        "daysToCover": 0.4232,
+        "utilization": 5.1,
         "margin": null,
         "sourceRecords": {
           "availability": {
@@ -1269,8 +1159,8 @@
         "feeRate": 127.4,
         "tradeVolume": 2404453,
         "shortableShares": 4864129,
-        "averageDuration": null,
-        "utilization": null,
+        "daysToCover": 0.385,
+        "utilization": 6.73,
         "margin": null,
         "sourceRecords": {
           "availability": {
@@ -1324,8 +1214,8 @@
         "feeRate": 124.64,
         "tradeVolume": 3140998,
         "shortableShares": 4706327,
-        "averageDuration": null,
-        "utilization": null,
+        "daysToCover": 0.5038,
+        "utilization": 5.12,
         "margin": null,
         "sourceRecords": {
           "availability": {
@@ -1379,8 +1269,8 @@
         "feeRate": 121.84,
         "tradeVolume": 1470014,
         "shortableShares": 8517297,
-        "averageDuration": null,
-        "utilization": null,
+        "daysToCover": 0.4726,
+        "utilization": 101.22,
         "margin": null,
         "sourceRecords": {
           "availability": {
@@ -1434,8 +1324,8 @@
         "feeRate": 118.52,
         "tradeVolume": 773611,
         "shortableShares": 4718509,
-        "averageDuration": null,
-        "utilization": null,
+        "daysToCover": 0.3484,
+        "utilization": 48.61,
         "margin": null,
         "sourceRecords": {
           "availability": {
@@ -1489,8 +1379,8 @@
         "feeRate": 118.22,
         "tradeVolume": 419001,
         "shortableShares": 3594769,
-        "averageDuration": null,
-        "utilization": null,
+        "daysToCover": 0.316,
+        "utilization": 23.97,
         "margin": null,
         "sourceRecords": {
           "availability": {
@@ -1544,8 +1434,8 @@
         "feeRate": 114.99,
         "tradeVolume": 319991,
         "shortableShares": 3508281,
-        "averageDuration": null,
-        "utilization": null,
+        "daysToCover": 0.3225,
+        "utilization": 25.88,
         "margin": null,
         "sourceRecords": {
           "availability": {
@@ -1599,8 +1489,8 @@
         "feeRate": 116.44,
         "tradeVolume": 330055,
         "shortableShares": 3244418,
-        "averageDuration": null,
-        "utilization": null,
+        "daysToCover": 0.3173,
+        "utilization": 18.07,
         "margin": null,
         "sourceRecords": {
           "availability": {
@@ -1654,8 +1544,8 @@
         "feeRate": 117,
         "tradeVolume": 549177,
         "shortableShares": 2826962,
-        "averageDuration": null,
-        "utilization": null,
+        "daysToCover": 0.2629,
+        "utilization": 22.32,
         "margin": null,
         "sourceRecords": {
           "availability": {
@@ -1709,8 +1599,8 @@
         "feeRate": 119.66,
         "tradeVolume": 1059749,
         "shortableShares": 2968950,
-        "averageDuration": null,
-        "utilization": null,
+        "daysToCover": 0.2838,
+        "utilization": 19.24,
         "margin": null,
         "sourceRecords": {
           "availability": {
@@ -1764,8 +1654,8 @@
         "feeRate": 113.58,
         "tradeVolume": 1888772,
         "shortableShares": 2656104,
-        "averageDuration": null,
-        "utilization": null,
+        "daysToCover": 0.2159,
+        "utilization": 36.36,
         "margin": null,
         "sourceRecords": {
           "availability": {
@@ -1819,8 +1709,8 @@
         "feeRate": 106.58,
         "tradeVolume": 1129082,
         "shortableShares": 2867916,
-        "averageDuration": null,
-        "utilization": null,
+        "daysToCover": 0.2233,
+        "utilization": 42.3,
         "margin": null,
         "sourceRecords": {
           "availability": {
@@ -1874,8 +1764,8 @@
         "feeRate": 101.18,
         "tradeVolume": 534466,
         "shortableShares": 2659775,
-        "averageDuration": null,
-        "utilization": null,
+        "daysToCover": 0.2663,
+        "utilization": 52.97,
         "margin": null,
         "sourceRecords": {
           "availability": {
@@ -1929,8 +1819,8 @@
         "feeRate": 101.92,
         "tradeVolume": 519153,
         "shortableShares": 2487682,
-        "averageDuration": null,
-        "utilization": null,
+        "daysToCover": 0.2627,
+        "utilization": 45.25,
         "margin": null,
         "sourceRecords": {
           "availability": {
@@ -1984,8 +1874,8 @@
         "feeRate": 102.62,
         "tradeVolume": 643990,
         "shortableShares": 2291828,
-        "averageDuration": null,
-        "utilization": null,
+        "daysToCover": 0.2363,
+        "utilization": 53.38,
         "margin": null,
         "sourceRecords": {
           "availability": {
@@ -2039,8 +1929,8 @@
         "feeRate": 105.1,
         "tradeVolume": 1147195,
         "shortableShares": 5397335,
-        "averageDuration": null,
-        "utilization": null,
+        "daysToCover": 0.2393,
+        "utilization": 253.13,
         "margin": null,
         "sourceRecords": {
           "availability": {
@@ -2094,8 +1984,8 @@
         "feeRate": 104.54,
         "tradeVolume": 340339,
         "shortableShares": 2290427,
-        "averageDuration": null,
-        "utilization": null,
+        "daysToCover": 0.2273,
+        "utilization": 60.31,
         "margin": null,
         "sourceRecords": {
           "availability": {
@@ -2149,8 +2039,8 @@
         "feeRate": 109.25,
         "tradeVolume": 316620,
         "shortableShares": 2124067,
-        "averageDuration": null,
-        "utilization": null,
+        "daysToCover": 0.2166,
+        "utilization": 58.6,
         "margin": null,
         "sourceRecords": {
           "availability": {
@@ -2204,8 +2094,8 @@
         "feeRate": 102.63,
         "tradeVolume": 695546,
         "shortableShares": 4612979,
-        "averageDuration": null,
-        "utilization": null,
+        "daysToCover": 0.2023,
+        "utilization": 277.55,
         "margin": null,
         "sourceRecords": {
           "availability": {
@@ -2259,8 +2149,8 @@
         "feeRate": 100.77,
         "tradeVolume": 195415,
         "shortableShares": 5934569,
-        "averageDuration": null,
-        "utilization": null,
+        "daysToCover": 0.1671,
+        "utilization": 543.78,
         "margin": null,
         "sourceRecords": {
           "availability": {
@@ -2314,8 +2204,8 @@
         "feeRate": 102.47,
         "tradeVolume": 147697,
         "shortableShares": 2725711,
-        "averageDuration": null,
-        "utilization": null,
+        "daysToCover": 0.1722,
+        "utilization": 182.22,
         "margin": null,
         "sourceRecords": {
           "availability": {
@@ -2369,8 +2259,8 @@
         "feeRate": 106.87,
         "tradeVolume": 335712,
         "shortableShares": 1762255,
-        "averageDuration": null,
-        "utilization": null,
+        "daysToCover": 0.1779,
+        "utilization": 73.46,
         "margin": null,
         "sourceRecords": {
           "availability": {
@@ -2424,8 +2314,8 @@
         "feeRate": 107.42,
         "tradeVolume": 121587,
         "shortableShares": 1630635,
-        "averageDuration": null,
-        "utilization": null,
+        "daysToCover": 0.1596,
+        "utilization": 89.6,
         "margin": null,
         "sourceRecords": {
           "availability": {
@@ -2479,8 +2369,8 @@
         "feeRate": 103.2,
         "tradeVolume": 237966,
         "shortableShares": 1693956,
-        "averageDuration": null,
-        "utilization": null,
+        "daysToCover": 0.157,
+        "utilization": 102.47,
         "margin": null,
         "sourceRecords": {
           "availability": {
@@ -2534,8 +2424,8 @@
         "feeRate": 104.88,
         "tradeVolume": 63133,
         "shortableShares": 1702973,
-        "averageDuration": null,
-        "utilization": null,
+        "daysToCover": 0.1718,
+        "utilization": 92.65,
         "margin": null,
         "sourceRecords": {
           "availability": {
@@ -2589,8 +2479,8 @@
         "feeRate": 105.48,
         "tradeVolume": 487984,
         "shortableShares": 1691414,
-        "averageDuration": null,
-        "utilization": null,
+        "daysToCover": 0.173,
+        "utilization": 89.92,
         "margin": null,
         "sourceRecords": {
           "availability": {
@@ -2644,8 +2534,8 @@
         "feeRate": 101.33,
         "tradeVolume": 281008,
         "shortableShares": 1645880,
-        "averageDuration": null,
-        "utilization": null,
+        "daysToCover": 0.1581,
+        "utilization": 115.73,
         "margin": null,
         "sourceRecords": {
           "availability": {
@@ -2699,8 +2589,8 @@
         "feeRate": 87.26,
         "tradeVolume": 1455970,
         "shortableShares": 17306028,
-        "averageDuration": null,
-        "utilization": null,
+        "daysToCover": 0.1543,
+        "utilization": 2247.79,
         "margin": null,
         "sourceRecords": {
           "availability": {
@@ -2754,8 +2644,8 @@
         "feeRate": 98.73,
         "tradeVolume": 237735,
         "shortableShares": 1533177,
-        "averageDuration": null,
-        "utilization": null,
+        "daysToCover": 0.14,
+        "utilization": 150.14,
         "margin": null,
         "sourceRecords": {
           "availability": {
@@ -2809,8 +2699,8 @@
         "feeRate": 96.27,
         "tradeVolume": 488100,
         "shortableShares": 1493109,
-        "averageDuration": null,
-        "utilization": null,
+        "daysToCover": 0.1261,
+        "utilization": 201.62,
         "margin": null,
         "sourceRecords": {
           "availability": {
@@ -2864,8 +2754,8 @@
         "feeRate": 93.62,
         "tradeVolume": 243854,
         "shortableShares": 1505492,
-        "averageDuration": null,
-        "utilization": null,
+        "daysToCover": 0.1239,
+        "utilization": 216.96,
         "margin": null,
         "sourceRecords": {
           "availability": {
@@ -2919,8 +2809,8 @@
         "feeRate": 98.99,
         "tradeVolume": 144005,
         "shortableShares": 4357561,
-        "averageDuration": null,
-        "utilization": null,
+        "daysToCover": 0.1303,
+        "utilization": 727.45,
         "margin": null,
         "sourceRecords": {
           "availability": {
@@ -2974,8 +2864,8 @@
         "feeRate": 90.95,
         "tradeVolume": 108035,
         "shortableShares": 2620165,
-        "averageDuration": null,
-        "utilization": null,
+        "daysToCover": 0.1158,
+        "utilization": 559.94,
         "margin": null,
         "sourceRecords": {
           "availability": {
@@ -3029,8 +2919,8 @@
         "feeRate": 87.11,
         "tradeVolume": 176840,
         "shortableShares": 2274374,
-        "averageDuration": null,
-        "utilization": null,
+        "daysToCover": 0.121,
+        "utilization": 418.4,
         "margin": null,
         "sourceRecords": {
           "availability": {
@@ -3084,8 +2974,8 @@
         "feeRate": 79.75,
         "tradeVolume": 145868,
         "shortableShares": 1816870,
-        "averageDuration": null,
-        "utilization": null,
+        "daysToCover": 0.1054,
+        "utilization": 491.57,
         "margin": null,
         "sourceRecords": {
           "availability": {
@@ -3139,8 +3029,8 @@
         "feeRate": 78.29,
         "tradeVolume": 209259,
         "shortableShares": 2362261,
-        "averageDuration": null,
-        "utilization": null,
+        "daysToCover": 0.139,
+        "utilization": 629.27,
         "margin": null,
         "sourceRecords": {
           "availability": {
@@ -3194,8 +3084,8 @@
         "feeRate": 76.75,
         "tradeVolume": 130191,
         "shortableShares": 1573977,
-        "averageDuration": null,
-        "utilization": null,
+        "daysToCover": 0.1511,
+        "utilization": 325.84,
         "margin": null,
         "sourceRecords": {
           "availability": {
@@ -3249,8 +3139,8 @@
         "feeRate": 76.79,
         "tradeVolume": 148034,
         "shortableShares": 1452486,
-        "averageDuration": null,
-        "utilization": null,
+        "daysToCover": 0.1441,
+        "utilization": 375.41,
         "margin": null,
         "sourceRecords": {
           "availability": {
@@ -3304,8 +3194,8 @@
         "feeRate": 74.88,
         "tradeVolume": 152311,
         "shortableShares": 1497998,
-        "averageDuration": null,
-        "utilization": null,
+        "daysToCover": 0.1502,
+        "utilization": 332.42,
         "margin": null,
         "sourceRecords": {
           "availability": {
@@ -3359,8 +3249,8 @@
         "feeRate": 72.56,
         "tradeVolume": null,
         "shortableShares": 1556403,
-        "averageDuration": null,
-        "utilization": null,
+        "daysToCover": 0.1507,
+        "utilization": 349.28,
         "margin": null,
         "sourceRecords": {
           "availability": {
@@ -3406,8 +3296,8 @@
         "feeRate": 75.76,
         "tradeVolume": 34674,
         "shortableShares": 4615083,
-        "averageDuration": null,
-        "utilization": null,
+        "daysToCover": 0.1538,
+        "utilization": 1166.07,
         "margin": null,
         "sourceRecords": {
           "availability": {
@@ -3461,8 +3351,8 @@
         "feeRate": 71.66,
         "tradeVolume": 45592,
         "shortableShares": 1469526,
-        "averageDuration": null,
-        "utilization": null,
+        "daysToCover": 0.1504,
+        "utilization": 338.75,
         "margin": null,
         "sourceRecords": {
           "availability": {
@@ -3516,8 +3406,8 @@
         "feeRate": 69,
         "tradeVolume": 272978,
         "shortableShares": 1574534,
-        "averageDuration": null,
-        "utilization": null,
+        "daysToCover": 0.1456,
+        "utilization": 426.5,
         "margin": null,
         "sourceRecords": {
           "availability": {
@@ -3571,8 +3461,8 @@
         "feeRate": 64.65,
         "tradeVolume": 75747,
         "shortableShares": 1690048,
-        "averageDuration": null,
-        "utilization": null,
+        "daysToCover": 0.157,
+        "utilization": 341.2,
         "margin": null,
         "sourceRecords": {
           "availability": {
@@ -3626,8 +3516,8 @@
         "feeRate": 62.71,
         "tradeVolume": 80072,
         "shortableShares": 1683736,
-        "averageDuration": null,
-        "utilization": null,
+        "daysToCover": 0.1609,
+        "utilization": 314.96,
         "margin": null,
         "sourceRecords": {
           "availability": {
@@ -3681,8 +3571,8 @@
         "feeRate": 55.14,
         "tradeVolume": 202571,
         "shortableShares": 2065825,
-        "averageDuration": null,
-        "utilization": null,
+        "daysToCover": 0.1715,
+        "utilization": 333.67,
         "margin": null,
         "sourceRecords": {
           "availability": {
@@ -3736,8 +3626,8 @@
         "feeRate": 51.05,
         "tradeVolume": 46255,
         "shortableShares": 1595117,
-        "averageDuration": null,
-        "utilization": null,
+        "daysToCover": 0.1429,
+        "utilization": 476.15,
         "margin": null,
         "sourceRecords": {
           "availability": {
@@ -3791,8 +3681,8 @@
         "feeRate": 50.4,
         "tradeVolume": 80332,
         "shortableShares": 5363970,
-        "averageDuration": null,
-        "utilization": null,
+        "daysToCover": 0.1481,
+        "utilization": 1609.6,
         "margin": null,
         "sourceRecords": {
           "availability": {
@@ -3846,8 +3736,8 @@
         "feeRate": 50.49,
         "tradeVolume": 220993,
         "shortableShares": 2007382,
-        "averageDuration": null,
-        "utilization": null,
+        "daysToCover": 0.1385,
+        "utilization": 729.09,
         "margin": null,
         "sourceRecords": {
           "availability": {
@@ -3901,8 +3791,8 @@
         "feeRate": 50.62,
         "tradeVolume": 34717,
         "shortableShares": 5364045,
-        "averageDuration": null,
-        "utilization": null,
+        "daysToCover": 0.1332,
+        "utilization": 2567.94,
         "margin": null,
         "sourceRecords": {
           "availability": {
@@ -3956,8 +3846,8 @@
         "feeRate": 51.76,
         "tradeVolume": 84880,
         "shortableShares": 1409803,
-        "averageDuration": null,
-        "utilization": null,
+        "daysToCover": 0.1331,
+        "utilization": 616.16,
         "margin": null,
         "sourceRecords": {
           "availability": {
@@ -4011,8 +3901,8 @@
         "feeRate": 52.3,
         "tradeVolume": 37842,
         "shortableShares": 1408380,
-        "averageDuration": null,
-        "utilization": null,
+        "daysToCover": 0.1331,
+        "utilization": 670.63,
         "margin": null,
         "sourceRecords": {
           "availability": {
@@ -4066,8 +3956,8 @@
         "feeRate": 52.4,
         "tradeVolume": 59949,
         "shortableShares": 1494249,
-        "averageDuration": null,
-        "utilization": null,
+        "daysToCover": 0.1315,
+        "utilization": 770.49,
         "margin": null,
         "sourceRecords": {
           "availability": {
@@ -4121,8 +4011,8 @@
         "feeRate": 52.39,
         "tradeVolume": 340483,
         "shortableShares": 1515458,
-        "averageDuration": null,
-        "utilization": null,
+        "daysToCover": 0.1314,
+        "utilization": 852.78,
         "margin": null,
         "sourceRecords": {
           "availability": {
@@ -4176,8 +4066,8 @@
         "feeRate": 51.93,
         "tradeVolume": 98681,
         "shortableShares": 1566840,
-        "averageDuration": null,
-        "utilization": null,
+        "daysToCover": 0.2772,
+        "utilization": 1115.02,
         "margin": null,
         "sourceRecords": {
           "availability": {
@@ -4231,8 +4121,8 @@
         "feeRate": 50.97,
         "tradeVolume": 47029,
         "shortableShares": 1552057,
-        "averageDuration": null,
-        "utilization": null,
+        "daysToCover": 0.344,
+        "utilization": 1241.96,
         "margin": null,
         "sourceRecords": {
           "availability": {
@@ -4286,8 +4176,8 @@
         "feeRate": 51.37,
         "tradeVolume": 137705,
         "shortableShares": 1569465,
-        "averageDuration": null,
-        "utilization": null,
+        "daysToCover": 0.3461,
+        "utilization": 1118.94,
         "margin": null,
         "sourceRecords": {
           "availability": {
@@ -4341,8 +4231,8 @@
         "feeRate": 50.82,
         "tradeVolume": 74523,
         "shortableShares": 1578357,
-        "averageDuration": null,
-        "utilization": null,
+        "daysToCover": 0.3474,
+        "utilization": 1211.41,
         "margin": null,
         "sourceRecords": {
           "availability": {
@@ -4396,8 +4286,8 @@
         "feeRate": 51.43,
         "tradeVolume": 109696,
         "shortableShares": 1607643,
-        "averageDuration": null,
-        "utilization": null,
+        "daysToCover": 0.3525,
+        "utilization": 1288.82,
         "margin": null,
         "sourceRecords": {
           "availability": {
@@ -4451,8 +4341,8 @@
         "feeRate": 50.92,
         "tradeVolume": 289662,
         "shortableShares": 1560423,
-        "averageDuration": null,
-        "utilization": null,
+        "daysToCover": 0.3677,
+        "utilization": 1239.93,
         "margin": null,
         "sourceRecords": {
           "availability": {
@@ -4506,8 +4396,8 @@
         "feeRate": 48.61,
         "tradeVolume": 268126,
         "shortableShares": 1365255,
-        "averageDuration": null,
-        "utilization": null,
+        "daysToCover": 0.3569,
+        "utilization": 2444.46,
         "margin": null,
         "sourceRecords": {
           "availability": {
@@ -4561,8 +4451,8 @@
         "feeRate": 47.41,
         "tradeVolume": 209507,
         "shortableShares": 1340520,
-        "averageDuration": null,
-        "utilization": null,
+        "daysToCover": 0.3711,
+        "utilization": 2278.66,
         "margin": null,
         "sourceRecords": {
           "availability": {
@@ -4616,8 +4506,8 @@
         "feeRate": 44.29,
         "tradeVolume": 121591,
         "shortableShares": 1301240,
-        "averageDuration": null,
-        "utilization": null,
+        "daysToCover": 0.3792,
+        "utilization": 1909.45,
         "margin": null,
         "sourceRecords": {
           "availability": {
@@ -4671,8 +4561,8 @@
         "feeRate": 43.38,
         "tradeVolume": 521618,
         "shortableShares": 1276939,
-        "averageDuration": null,
-        "utilization": null,
+        "daysToCover": 0.3766,
+        "utilization": 1838.99,
         "margin": null,
         "sourceRecords": {
           "availability": {
@@ -4726,8 +4616,8 @@
         "feeRate": 42.81,
         "tradeVolume": 152442,
         "shortableShares": 1476405,
-        "averageDuration": null,
-        "utilization": null,
+        "daysToCover": 0.7951,
+        "utilization": 1755.43,
         "margin": null,
         "sourceRecords": {
           "availability": {
@@ -4781,8 +4671,8 @@
         "feeRate": 43.78,
         "tradeVolume": 159539,
         "shortableShares": 1271446,
-        "averageDuration": null,
-        "utilization": null,
+        "daysToCover": 0.8642,
+        "utilization": 2839.35,
         "margin": null,
         "sourceRecords": {
           "availability": {
@@ -4836,8 +4726,8 @@
         "feeRate": 41.96,
         "tradeVolume": 185251,
         "shortableShares": 1320304,
-        "averageDuration": null,
-        "utilization": null,
+        "daysToCover": 0.9401,
+        "utilization": 3034.63,
         "margin": null,
         "sourceRecords": {
           "availability": {
@@ -4891,8 +4781,8 @@
         "feeRate": 52.18,
         "tradeVolume": 124427,
         "shortableShares": 1334745,
-        "averageDuration": null,
-        "utilization": null,
+        "daysToCover": 0.8181,
+        "utilization": 810.34,
         "margin": null,
         "sourceRecords": {
           "availability": {
@@ -4946,8 +4836,8 @@
         "feeRate": 69.3,
         "tradeVolume": 144430,
         "shortableShares": 1251110,
-        "averageDuration": null,
-        "utilization": null,
+        "daysToCover": 0.8045,
+        "utilization": 1112.83,
         "margin": null,
         "sourceRecords": {
           "availability": {
@@ -5001,8 +4891,8 @@
         "feeRate": 43.71,
         "tradeVolume": 71854,
         "shortableShares": 893609,
-        "averageDuration": null,
-        "utilization": null,
+        "daysToCover": 0.8331,
+        "utilization": 766.27,
         "margin": null,
         "sourceRecords": {
           "availability": {
@@ -5056,8 +4946,8 @@
         "feeRate": 40.55,
         "tradeVolume": 60421,
         "shortableShares": 1329425,
-        "averageDuration": null,
-        "utilization": null,
+        "daysToCover": 0.8968,
+        "utilization": 899.9,
         "margin": null,
         "sourceRecords": {
           "availability": {
@@ -5111,8 +5001,8 @@
         "feeRate": 40.05,
         "tradeVolume": 567323,
         "shortableShares": 1338302,
-        "averageDuration": null,
-        "utilization": null,
+        "daysToCover": 0.8532,
+        "utilization": 1086.9,
         "margin": null,
         "sourceRecords": {
           "availability": {
@@ -5166,8 +5056,8 @@
         "feeRate": 41.07,
         "tradeVolume": 616320,
         "shortableShares": 1321586,
-        "averageDuration": null,
-        "utilization": null,
+        "daysToCover": 0.8779,
+        "utilization": 869.93,
         "margin": null,
         "sourceRecords": {
           "availability": {
@@ -5221,8 +5111,8 @@
         "feeRate": 39.77,
         "tradeVolume": 342055,
         "shortableShares": 1197077,
-        "averageDuration": null,
-        "utilization": null,
+        "daysToCover": 0.7936,
+        "utilization": 1445.49,
         "margin": null,
         "sourceRecords": {
           "availability": {
@@ -5272,8 +5162,8 @@
         "feeRate": 39.44,
         "tradeVolume": 127554,
         "shortableShares": 1252467,
-        "averageDuration": null,
-        "utilization": null,
+        "daysToCover": 0.8551,
+        "utilization": 1281.56,
         "margin": null,
         "sourceRecords": {
           "availability": {
@@ -5327,8 +5217,8 @@
         "feeRate": 39.98,
         "tradeVolume": 186042,
         "shortableShares": 1189601,
-        "averageDuration": null,
-        "utilization": null,
+        "daysToCover": 0.924,
+        "utilization": 1355.06,
         "margin": null,
         "sourceRecords": {
           "availability": {
@@ -5378,8 +5268,8 @@
         "feeRate": 39.36,
         "tradeVolume": 408511,
         "shortableShares": 6892709,
-        "averageDuration": null,
-        "utilization": null,
+        "daysToCover": 0.9791,
+        "utilization": 7622.4,
         "margin": null,
         "sourceRecords": {
           "availability": {
@@ -5433,8 +5323,8 @@
         "feeRate": 39.21,
         "tradeVolume": 174825,
         "shortableShares": 3958495,
-        "averageDuration": null,
-        "utilization": null,
+        "daysToCover": 0.9704,
+        "utilization": 5281.61,
         "margin": null,
         "sourceRecords": {
           "availability": {
@@ -5484,8 +5374,8 @@
         "feeRate": 39.13,
         "tradeVolume": 139109,
         "shortableShares": 1264667,
-        "averageDuration": null,
-        "utilization": null,
+        "daysToCover": 0.5096,
+        "utilization": 1481.7,
         "margin": null,
         "sourceRecords": {
           "availability": {
@@ -5539,8 +5429,8 @@
         "feeRate": 39.04,
         "tradeVolume": 338160,
         "shortableShares": 1118402,
-        "averageDuration": null,
-        "utilization": null,
+        "daysToCover": 0.4829,
+        "utilization": 1705.16,
         "margin": null,
         "sourceRecords": {
           "availability": {
@@ -5594,8 +5484,8 @@
         "feeRate": 37.75,
         "tradeVolume": 1582871,
         "shortableShares": 7132378,
-        "averageDuration": null,
-        "utilization": null,
+        "daysToCover": 0.534,
+        "utilization": 7459.01,
         "margin": null,
         "sourceRecords": {
           "availability": {
@@ -5649,8 +5539,8 @@
         "feeRate": 38.87,
         "tradeVolume": 884578,
         "shortableShares": 2938504,
-        "averageDuration": null,
-        "utilization": null,
+        "daysToCover": 0.3494,
+        "utilization": 9999,
         "margin": null,
         "sourceRecords": {
           "availability": {
@@ -5704,8 +5594,8 @@
         "feeRate": 38.99,
         "tradeVolume": 515039,
         "shortableShares": 76084675,
-        "averageDuration": null,
-        "utilization": null,
+        "daysToCover": 0.3532,
+        "utilization": 9999,
         "margin": null,
         "sourceRecords": {
           "availability": {
@@ -5759,8 +5649,8 @@
         "feeRate": 37.91,
         "tradeVolume": 1223699,
         "shortableShares": 1254499,
-        "averageDuration": null,
-        "utilization": null,
+        "daysToCover": 0.3375,
+        "utilization": 9999,
         "margin": null,
         "sourceRecords": {
           "availability": {
@@ -5814,8 +5704,8 @@
         "feeRate": 45.63,
         "tradeVolume": 31669228,
         "shortableShares": 21989830,
-        "averageDuration": null,
-        "utilization": null,
+        "daysToCover": 0.3544,
+        "utilization": 5767.77,
         "margin": null,
         "sourceRecords": {
           "availability": {
@@ -5869,8 +5759,8 @@
         "feeRate": 41.49,
         "tradeVolume": 1919954,
         "shortableShares": 11187878,
-        "averageDuration": null,
-        "utilization": null,
+        "daysToCover": 1.3835,
+        "utilization": 446.7,
         "margin": null,
         "sourceRecords": {
           "availability": {
@@ -5924,8 +5814,8 @@
         "feeRate": 41.96,
         "tradeVolume": 1461179,
         "shortableShares": 2607333,
-        "averageDuration": null,
-        "utilization": null,
+        "daysToCover": 1.1548,
+        "utilization": 51.5,
         "margin": null,
         "sourceRecords": {
           "availability": {
@@ -5979,8 +5869,8 @@
         "feeRate": 43.51,
         "tradeVolume": 505025,
         "shortableShares": 1969046,
-        "averageDuration": null,
-        "utilization": null,
+        "daysToCover": 0.7359,
+        "utilization": 88.89,
         "margin": null,
         "sourceRecords": {
           "availability": {
@@ -6034,8 +5924,8 @@
         "feeRate": 36.78,
         "tradeVolume": 780507,
         "shortableShares": 2098389,
-        "averageDuration": null,
-        "utilization": null,
+        "daysToCover": 0.8703,
+        "utilization": 63.97,
         "margin": null,
         "sourceRecords": {
           "availability": {
@@ -6089,8 +5979,8 @@
         "feeRate": 36.55,
         "tradeVolume": 1166733,
         "shortableShares": 2140195,
-        "averageDuration": null,
-        "utilization": null,
+        "daysToCover": 0.6537,
+        "utilization": 127.42,
         "margin": null,
         "sourceRecords": {
           "availability": {
@@ -6144,8 +6034,8 @@
         "feeRate": 36.61,
         "tradeVolume": 410406,
         "shortableShares": 2016792,
-        "averageDuration": null,
-        "utilization": null,
+        "daysToCover": 0.5339,
+        "utilization": 114.31,
         "margin": null,
         "sourceRecords": {
           "availability": {
@@ -6199,8 +6089,8 @@
         "feeRate": 37.3,
         "tradeVolume": 469123,
         "shortableShares": 2301542,
-        "averageDuration": null,
-        "utilization": null,
+        "daysToCover": 0.6586,
+        "utilization": 98.86,
         "margin": null,
         "sourceRecords": {
           "availability": {
@@ -6254,8 +6144,8 @@
         "feeRate": 36.56,
         "tradeVolume": 490995,
         "shortableShares": 2193511,
-        "averageDuration": null,
-        "utilization": null,
+        "daysToCover": 0.5894,
+        "utilization": 114.85,
         "margin": null,
         "sourceRecords": {
           "availability": {
@@ -6309,8 +6199,8 @@
         "feeRate": 36.95,
         "tradeVolume": 392627,
         "shortableShares": 2025373,
-        "averageDuration": null,
-        "utilization": null,
+        "daysToCover": 0.5587,
+        "utilization": 108.34,
         "margin": null,
         "sourceRecords": {
           "availability": {
@@ -6364,8 +6254,8 @@
         "feeRate": 35.32,
         "tradeVolume": 815646,
         "shortableShares": 2195619,
-        "averageDuration": null,
-        "utilization": null,
+        "daysToCover": 0.4704,
+        "utilization": 164.99,
         "margin": null,
         "sourceRecords": {
           "availability": {
@@ -6419,8 +6309,8 @@
         "feeRate": 35.34,
         "tradeVolume": 344887,
         "shortableShares": 2331107,
-        "averageDuration": null,
-        "utilization": null,
+        "daysToCover": 0.4662,
+        "utilization": 183.29,
         "margin": null,
         "sourceRecords": {
           "availability": {
@@ -6474,8 +6364,8 @@
         "feeRate": 34.04,
         "tradeVolume": 272314,
         "shortableShares": 2491334,
-        "averageDuration": null,
-        "utilization": null,
+        "daysToCover": 0.5336,
+        "utilization": 165.22,
         "margin": null,
         "sourceRecords": {
           "availability": {
@@ -6529,8 +6419,8 @@
         "feeRate": 33.46,
         "tradeVolume": 650421,
         "shortableShares": 2586033,
-        "averageDuration": null,
-        "utilization": null,
+        "daysToCover": 0.5837,
+        "utilization": 149.92,
         "margin": null,
         "sourceRecords": {
           "availability": {
@@ -6584,8 +6474,8 @@
         "feeRate": 34.42,
         "tradeVolume": 86115,
         "shortableShares": 1799130,
-        "averageDuration": null,
-        "utilization": null,
+        "daysToCover": 0.4496,
+        "utilization": 124.04,
         "margin": null,
         "sourceRecords": {
           "availability": {
@@ -6639,8 +6529,8 @@
         "feeRate": 34.6,
         "tradeVolume": 458834,
         "shortableShares": 1920987,
-        "averageDuration": null,
-        "utilization": null,
+        "daysToCover": 0.4688,
+        "utilization": 128.48,
         "margin": null,
         "sourceRecords": {
           "availability": {
@@ -6694,8 +6584,8 @@
         "feeRate": 34.1,
         "tradeVolume": 414141,
         "shortableShares": 1813449,
-        "averageDuration": null,
-        "utilization": null,
+        "daysToCover": 0.5156,
+        "utilization": 163.03,
         "margin": null,
         "sourceRecords": {
           "availability": {
@@ -6749,8 +6639,8 @@
         "feeRate": 34.35,
         "tradeVolume": 138999,
         "shortableShares": 1867207,
-        "averageDuration": null,
-        "utilization": null,
+        "daysToCover": 0.5609,
+        "utilization": 143.17,
         "margin": null,
         "sourceRecords": {
           "availability": {
@@ -6804,8 +6694,8 @@
         "feeRate": 34.18,
         "tradeVolume": null,
         "shortableShares": 1957177,
-        "averageDuration": null,
-        "utilization": null,
+        "daysToCover": 0.5649,
+        "utilization": 153.5,
         "margin": null,
         "sourceRecords": {
           "availability": {
@@ -6851,8 +6741,8 @@
         "feeRate": 35.73,
         "tradeVolume": 179081,
         "shortableShares": 1676622,
-        "averageDuration": null,
-        "utilization": null,
+        "daysToCover": 0.5371,
+        "utilization": 131.34,
         "margin": null,
         "sourceRecords": {
           "availability": {
@@ -6906,8 +6796,8 @@
         "feeRate": 34.99,
         "tradeVolume": 175079,
         "shortableShares": 1677835,
-        "averageDuration": null,
-        "utilization": null,
+        "daysToCover": 0.558,
+        "utilization": 119.68,
         "margin": null,
         "sourceRecords": {
           "availability": {
@@ -6961,8 +6851,8 @@
         "feeRate": 34.92,
         "tradeVolume": 132647,
         "shortableShares": 1812835,
-        "averageDuration": null,
-        "utilization": null,
+        "daysToCover": 0.6468,
+        "utilization": 97.23,
         "margin": null,
         "sourceRecords": {
           "availability": {
@@ -7016,8 +6906,8 @@
         "feeRate": 34.91,
         "tradeVolume": 257701,
         "shortableShares": 1726322,
-        "averageDuration": null,
-        "utilization": null,
+        "daysToCover": 0.6235,
+        "utilization": 95.49,
         "margin": null,
         "sourceRecords": {
           "availability": {
@@ -7071,8 +6961,8 @@
         "feeRate": 34.12,
         "tradeVolume": 73318,
         "shortableShares": 1555564,
-        "averageDuration": null,
-        "utilization": null,
+        "daysToCover": 0.5088,
+        "utilization": 128.57,
         "margin": null,
         "sourceRecords": {
           "availability": {
@@ -7126,8 +7016,8 @@
         "feeRate": 33.68,
         "tradeVolume": 146625,
         "shortableShares": 1637110,
-        "averageDuration": null,
-        "utilization": null,
+        "daysToCover": 0.4716,
+        "utilization": 165.22,
         "margin": null,
         "sourceRecords": {
           "availability": {
@@ -7181,8 +7071,8 @@
         "feeRate": 33.26,
         "tradeVolume": 235921,
         "shortableShares": 1728129,
-        "averageDuration": null,
-        "utilization": null,
+        "daysToCover": 0.5027,
+        "utilization": 156.53,
         "margin": null,
         "sourceRecords": {
           "availability": {
@@ -7236,8 +7126,8 @@
         "feeRate": 32.64,
         "tradeVolume": 191091,
         "shortableShares": 1866232,
-        "averageDuration": null,
-        "utilization": null,
+        "daysToCover": 0.6002,
+        "utilization": 151.49,
         "margin": null,
         "sourceRecords": {
           "availability": {
@@ -7291,8 +7181,8 @@
         "feeRate": 32.44,
         "tradeVolume": 139955,
         "shortableShares": 2030558,
-        "averageDuration": null,
-        "utilization": null,
+        "daysToCover": 0.5944,
+        "utilization": 176.7,
         "margin": null,
         "sourceRecords": {
           "availability": {
@@ -7346,8 +7236,8 @@
         "feeRate": 32.47,
         "tradeVolume": 112937,
         "shortableShares": 2180382,
-        "averageDuration": null,
-        "utilization": null,
+        "daysToCover": 0.6086,
+        "utilization": 187.18,
         "margin": null,
         "sourceRecords": {
           "availability": {
@@ -7401,8 +7291,8 @@
         "feeRate": 32.4,
         "tradeVolume": 159901,
         "shortableShares": 2273998,
-        "averageDuration": null,
-        "utilization": null,
+        "daysToCover": 0.6137,
+        "utilization": 196.5,
         "margin": null,
         "sourceRecords": {
           "availability": {
@@ -7456,8 +7346,8 @@
         "feeRate": 32.86,
         "tradeVolume": 314342,
         "shortableShares": 2525408,
-        "averageDuration": null,
-        "utilization": null,
+        "daysToCover": 0.6349,
+        "utilization": 211.94,
         "margin": null,
         "sourceRecords": {
           "availability": {
@@ -7511,8 +7401,8 @@
         "feeRate": 33.09,
         "tradeVolume": 240760,
         "shortableShares": 2536406,
-        "averageDuration": null,
-        "utilization": null,
+        "daysToCover": 0.6444,
+        "utilization": 205.83,
         "margin": null,
         "sourceRecords": {
           "availability": {
@@ -7566,8 +7456,8 @@
         "feeRate": 32.86,
         "tradeVolume": 303899,
         "shortableShares": 3366943,
-        "averageDuration": null,
-        "utilization": null,
+        "daysToCover": 0.6698,
+        "utilization": 282.8,
         "margin": null,
         "sourceRecords": {
           "availability": {
@@ -7621,8 +7511,8 @@
         "feeRate": 33.14,
         "tradeVolume": 252824,
         "shortableShares": 3683816,
-        "averageDuration": null,
-        "utilization": null,
+        "daysToCover": 0.7115,
+        "utilization": 284.71,
         "margin": null,
         "sourceRecords": {
           "availability": {
@@ -7676,8 +7566,8 @@
         "feeRate": 31.93,
         "tradeVolume": 80737,
         "shortableShares": 3514776,
-        "averageDuration": null,
-        "utilization": null,
+        "daysToCover": 0.7874,
+        "utilization": 223.78,
         "margin": null,
         "sourceRecords": {
           "availability": {
@@ -7731,8 +7621,8 @@
         "feeRate": 31.64,
         "tradeVolume": 201566,
         "shortableShares": 3530588,
-        "averageDuration": null,
-        "utilization": null,
+        "daysToCover": 0.7767,
+        "utilization": 230.22,
         "margin": null,
         "sourceRecords": {
           "availability": {
@@ -7786,8 +7676,8 @@
         "feeRate": 31.81,
         "tradeVolume": 285626,
         "shortableShares": 3082892,
-        "averageDuration": null,
-        "utilization": null,
+        "daysToCover": 0.7726,
+        "utilization": 188.73,
         "margin": null,
         "sourceRecords": {
           "availability": {
@@ -7841,8 +7731,8 @@
         "feeRate": 32.45,
         "tradeVolume": 54579,
         "shortableShares": 2985979,
-        "averageDuration": null,
-        "utilization": null,
+        "daysToCover": 0.8477,
+        "utilization": 191.05,
         "margin": null,
         "sourceRecords": {
           "availability": {
@@ -7896,8 +7786,8 @@
         "feeRate": 32.4,
         "tradeVolume": null,
         "shortableShares": 3115366,
-        "averageDuration": null,
-        "utilization": null,
+        "daysToCover": 0.8488,
+        "utilization": 203.66,
         "margin": null,
         "sourceRecords": {
           "availability": {
@@ -7943,8 +7833,8 @@
         "feeRate": 33.29,
         "tradeVolume": 168417,
         "shortableShares": 2128215,
-        "averageDuration": null,
-        "utilization": null,
+        "daysToCover": 0.8657,
+        "utilization": 101.28,
         "margin": null,
         "sourceRecords": {
           "availability": {
@@ -7998,8 +7888,8 @@
         "feeRate": 35.22,
         "tradeVolume": 228248,
         "shortableShares": 2349787,
-        "averageDuration": null,
-        "utilization": null,
+        "daysToCover": 0.9213,
+        "utilization": 103.63,
         "margin": null,
         "sourceRecords": {
           "availability": {
@@ -8053,8 +7943,8 @@
         "feeRate": 33.44,
         "tradeVolume": 81235,
         "shortableShares": 2979240,
-        "averageDuration": null,
-        "utilization": null,
+        "daysToCover": 0.9087,
+        "utilization": 164.53,
         "margin": null,
         "sourceRecords": {
           "availability": {
@@ -8108,8 +7998,8 @@
         "feeRate": 33.15,
         "tradeVolume": 113076,
         "shortableShares": 2916642,
-        "averageDuration": null,
-        "utilization": null,
+        "daysToCover": 0.8956,
+        "utilization": 165.07,
         "margin": null,
         "sourceRecords": {
           "availability": {
@@ -8163,8 +8053,8 @@
         "feeRate": 32.51,
         "tradeVolume": null,
         "shortableShares": 2985808,
-        "averageDuration": null,
-        "utilization": null,
+        "daysToCover": 0.8975,
+        "utilization": 171.35,
         "margin": null,
         "sourceRecords": {
           "availability": {
@@ -8210,8 +8100,8 @@
         "feeRate": 32.57,
         "tradeVolume": 1953262,
         "shortableShares": 2713502,
-        "averageDuration": null,
-        "utilization": null,
+        "daysToCover": 0.8611,
+        "utilization": 152.25,
         "margin": null,
         "sourceRecords": {
           "availability": {
@@ -8265,8 +8155,8 @@
         "feeRate": 32.71,
         "tradeVolume": 132136,
         "shortableShares": 4284186,
-        "averageDuration": null,
-        "utilization": null,
+        "daysToCover": 0.9235,
+        "utilization": 260.82,
         "margin": null,
         "sourceRecords": {
           "availability": {
@@ -8320,8 +8210,8 @@
         "feeRate": 32.42,
         "tradeVolume": 100584,
         "shortableShares": 4110191,
-        "averageDuration": null,
-        "utilization": null,
+        "daysToCover": 0.9227,
+        "utilization": 247.1,
         "margin": null,
         "sourceRecords": {
           "availability": {
@@ -8375,8 +8265,8 @@
         "feeRate": 32.63,
         "tradeVolume": 77195,
         "shortableShares": 3964626,
-        "averageDuration": null,
-        "utilization": null,
+        "daysToCover": 0.9537,
+        "utilization": 220.57,
         "margin": null,
         "sourceRecords": {
           "availability": {
@@ -8430,8 +8320,8 @@
         "feeRate": 32.9,
         "tradeVolume": 58330,
         "shortableShares": 4126992,
-        "averageDuration": null,
-        "utilization": null,
+        "daysToCover": 0.9642,
+        "utilization": 229.25,
         "margin": null,
         "sourceRecords": {
           "availability": {
@@ -8485,8 +8375,8 @@
         "feeRate": 32.61,
         "tradeVolume": 49951,
         "shortableShares": 4078377,
-        "averageDuration": null,
-        "utilization": null,
+        "daysToCover": 0.9519,
+        "utilization": 231.97,
         "margin": null,
         "sourceRecords": {
           "availability": {
@@ -8540,8 +8430,8 @@
         "feeRate": 32.83,
         "tradeVolume": 177383,
         "shortableShares": 4499084,
-        "averageDuration": null,
-        "utilization": null,
+        "daysToCover": 0.9781,
+        "utilization": 260.44,
         "margin": null,
         "sourceRecords": {
           "availability": {
@@ -8595,8 +8485,8 @@
         "feeRate": 32.94,
         "tradeVolume": 192254,
         "shortableShares": 4433411,
-        "averageDuration": null,
-        "utilization": null,
+        "daysToCover": 0.9533,
+        "utilization": 267.02,
         "margin": null,
         "sourceRecords": {
           "availability": {
@@ -8650,8 +8540,8 @@
         "feeRate": 33.16,
         "tradeVolume": 182699,
         "shortableShares": 4795000,
-        "averageDuration": null,
-        "utilization": null,
+        "daysToCover": 0.9856,
+        "utilization": 282.46,
         "margin": null,
         "sourceRecords": {
           "availability": {
@@ -8705,8 +8595,8 @@
         "feeRate": 33.24,
         "tradeVolume": 112331,
         "shortableShares": 4560901,
-        "averageDuration": null,
-        "utilization": null,
+        "daysToCover": 1.0119,
+        "utilization": 255.06,
         "margin": null,
         "sourceRecords": {
           "availability": {
@@ -8760,8 +8650,8 @@
         "feeRate": 32.82,
         "tradeVolume": 120171,
         "shortableShares": 5050385,
-        "averageDuration": null,
-        "utilization": null,
+        "daysToCover": 1.1237,
+        "utilization": 242.62,
         "margin": null,
         "sourceRecords": {
           "availability": {
@@ -8815,8 +8705,8 @@
         "feeRate": 32.74,
         "tradeVolume": null,
         "shortableShares": 5521969,
-        "averageDuration": null,
-        "utilization": null,
+        "daysToCover": 1.1238,
+        "utilization": 275.71,
         "margin": null,
         "sourceRecords": {
           "availability": {
@@ -8862,8 +8752,8 @@
         "feeRate": 33.48,
         "tradeVolume": 90430,
         "shortableShares": 2962139,
-        "averageDuration": null,
-        "utilization": null,
+        "daysToCover": 1.15,
+        "utilization": 95.88,
         "margin": null,
         "sourceRecords": {
           "availability": {
@@ -8917,8 +8807,8 @@
         "feeRate": 33.59,
         "tradeVolume": 242920,
         "shortableShares": 3430857,
-        "averageDuration": null,
-        "utilization": null,
+        "daysToCover": 1.1649,
+        "utilization": 123.91,
         "margin": null,
         "sourceRecords": {
           "availability": {
@@ -8972,8 +8862,8 @@
         "feeRate": 33.7,
         "tradeVolume": 74412,
         "shortableShares": 4013046,
-        "averageDuration": null,
-        "utilization": null,
+        "daysToCover": 1.2411,
+        "utilization": 141.55,
         "margin": null,
         "sourceRecords": {
           "availability": {
@@ -9027,8 +8917,8 @@
         "feeRate": 33.66,
         "tradeVolume": 181264,
         "shortableShares": 3634993,
-        "averageDuration": null,
-        "utilization": null,
+        "daysToCover": 1.2044,
+        "utilization": 127.33,
         "margin": null,
         "sourceRecords": {
           "availability": {
@@ -9082,8 +8972,8 @@
         "feeRate": 33.48,
         "tradeVolume": 290711,
         "shortableShares": 3495312,
-        "averageDuration": null,
-        "utilization": null,
+        "daysToCover": 1.1571,
+        "utilization": 130.75,
         "margin": null,
         "sourceRecords": {
           "availability": {
@@ -9137,8 +9027,8 @@
         "feeRate": 35.35,
         "tradeVolume": 105320,
         "shortableShares": 3621042,
-        "averageDuration": null,
-        "utilization": null,
+        "daysToCover": 1.5379,
+        "utilization": 116.36,
         "margin": null,
         "sourceRecords": {
           "availability": {
@@ -9192,8 +9082,8 @@
         "feeRate": 35.04,
         "tradeVolume": 71223,
         "shortableShares": 3749842,
-        "averageDuration": null,
-        "utilization": null,
+        "daysToCover": 1.507,
+        "utilization": 136.94,
         "margin": null,
         "sourceRecords": {
           "availability": {
@@ -9247,8 +9137,8 @@
         "feeRate": 33.34,
         "tradeVolume": 95165,
         "shortableShares": 6037282,
-        "averageDuration": null,
-        "utilization": null,
+        "daysToCover": 1.6084,
+        "utilization": 248.97,
         "margin": null,
         "sourceRecords": {
           "availability": {
@@ -9302,8 +9192,8 @@
         "feeRate": 32.48,
         "tradeVolume": 189525,
         "shortableShares": 4250599,
-        "averageDuration": null,
-        "utilization": null,
+        "daysToCover": 1.698,
+        "utilization": 133.25,
         "margin": null,
         "sourceRecords": {
           "availability": {
@@ -9357,8 +9247,8 @@
         "feeRate": 32.97,
         "tradeVolume": 58542,
         "shortableShares": 4293972,
-        "averageDuration": null,
-        "utilization": null,
+        "daysToCover": 4.5727,
+        "utilization": 126.66,
         "margin": null,
         "sourceRecords": {
           "availability": {
@@ -9412,8 +9302,8 @@
         "feeRate": 34.31,
         "tradeVolume": 266811,
         "shortableShares": 4185954,
-        "averageDuration": null,
-        "utilization": null,
+        "daysToCover": 5.031,
+        "utilization": 118.75,
         "margin": null,
         "sourceRecords": {
           "availability": {
@@ -9467,8 +9357,8 @@
         "feeRate": 33.85,
         "tradeVolume": 68261,
         "shortableShares": 4375888,
-        "averageDuration": null,
-        "utilization": null,
+        "daysToCover": 5.4965,
+        "utilization": 126.3,
         "margin": null,
         "sourceRecords": {
           "availability": {
@@ -9522,8 +9412,8 @@
         "feeRate": 32.99,
         "tradeVolume": 124189,
         "shortableShares": 9527153,
-        "averageDuration": null,
-        "utilization": null,
+        "daysToCover": 5.5731,
+        "utilization": 399.79,
         "margin": null,
         "sourceRecords": {
           "availability": {
@@ -9577,8 +9467,8 @@
         "feeRate": 34.02,
         "tradeVolume": 172114,
         "shortableShares": 4836649,
-        "averageDuration": null,
-        "utilization": null,
+        "daysToCover": 6.1102,
+        "utilization": 134.64,
         "margin": null,
         "sourceRecords": {
           "availability": {
@@ -9632,8 +9522,8 @@
         "feeRate": 34.63,
         "tradeVolume": 590851,
         "shortableShares": 2950968,
-        "averageDuration": null,
-        "utilization": null,
+        "daysToCover": 6.216,
+        "utilization": 47.58,
         "margin": null,
         "sourceRecords": {
           "availability": {
@@ -9687,8 +9577,8 @@
         "feeRate": 34.85,
         "tradeVolume": 528397,
         "shortableShares": 2724104,
-        "averageDuration": null,
-        "utilization": null,
+        "daysToCover": 5.0621,
+        "utilization": 45.57,
         "margin": null,
         "sourceRecords": {
           "availability": {
@@ -9742,8 +9632,8 @@
         "feeRate": 35.54,
         "tradeVolume": 626327,
         "shortableShares": 2708384,
-        "averageDuration": null,
-        "utilization": null,
+        "daysToCover": 4.7916,
+        "utilization": 53.39,
         "margin": null,
         "sourceRecords": {
           "availability": {
@@ -9797,8 +9687,8 @@
         "feeRate": 35.22,
         "tradeVolume": 130120,
         "shortableShares": 3829178,
-        "averageDuration": null,
-        "utilization": null,
+        "daysToCover": 5.1782,
+        "utilization": 102.26,
         "margin": null,
         "sourceRecords": {
           "availability": {
@@ -9852,8 +9742,8 @@
         "feeRate": 34.9,
         "tradeVolume": 159342,
         "shortableShares": 3579048,
-        "averageDuration": null,
-        "utilization": null,
+        "daysToCover": 5.1019,
+        "utilization": 96.77,
         "margin": null,
         "sourceRecords": {
           "availability": {
@@ -9907,8 +9797,8 @@
         "feeRate": 34.4,
         "tradeVolume": null,
         "shortableShares": 3872808,
-        "averageDuration": null,
-        "utilization": null,
+        "daysToCover": 5.4705,
+        "utilization": 109.61,
         "margin": null,
         "sourceRecords": {
           "availability": {
@@ -9954,8 +9844,8 @@
         "feeRate": 34.72,
         "tradeVolume": 212312,
         "shortableShares": 3240631,
-        "averageDuration": null,
-        "utilization": null,
+        "daysToCover": 5.2956,
+        "utilization": 85.37,
         "margin": null,
         "sourceRecords": {
           "availability": {
@@ -10009,8 +9899,8 @@
         "feeRate": 35.8,
         "tradeVolume": 135792,
         "shortableShares": 3307015,
-        "averageDuration": null,
-        "utilization": null,
+        "daysToCover": 5.7469,
+        "utilization": 72.27,
         "margin": null,
         "sourceRecords": {
           "availability": {
@@ -10064,8 +9954,8 @@
         "feeRate": 35.69,
         "tradeVolume": 41777,
         "shortableShares": 3365033,
-        "averageDuration": null,
-        "utilization": null,
+        "daysToCover": 5.7516,
+        "utilization": 85.97,
         "margin": null,
         "sourceRecords": {
           "availability": {
@@ -10119,8 +10009,8 @@
         "feeRate": 34.27,
         "tradeVolume": 96089,
         "shortableShares": 4461249,
-        "averageDuration": null,
-        "utilization": null,
+        "daysToCover": 5.7394,
+        "utilization": 146.99,
         "margin": null,
         "sourceRecords": {
           "availability": {
@@ -10174,8 +10064,8 @@
         "feeRate": 34.26,
         "tradeVolume": 115509,
         "shortableShares": 2987069,
-        "averageDuration": null,
-        "utilization": null,
+        "daysToCover": 5.8865,
+        "utilization": 65.76,
         "margin": null,
         "sourceRecords": {
           "availability": {
@@ -10229,8 +10119,8 @@
         "feeRate": 34.32,
         "tradeVolume": 104542,
         "shortableShares": 2898946,
-        "averageDuration": null,
-        "utilization": null,
+        "daysToCover": 5.9574,
+        "utilization": 63.66,
         "margin": null,
         "sourceRecords": {
           "availability": {
@@ -10284,8 +10174,8 @@
         "feeRate": 33.94,
         "tradeVolume": 182152,
         "shortableShares": 2916677,
-        "averageDuration": null,
-        "utilization": null,
+        "daysToCover": 5.1866,
+        "utilization": 63.55,
         "margin": null,
         "sourceRecords": {
           "availability": {
@@ -10339,8 +10229,8 @@
         "feeRate": 34.15,
         "tradeVolume": 85455,
         "shortableShares": 2712820,
-        "averageDuration": null,
-        "utilization": null,
+        "daysToCover": 4.8907,
+        "utilization": 61.42,
         "margin": null,
         "sourceRecords": {
           "availability": {
@@ -10394,8 +10284,8 @@
         "feeRate": 34.1,
         "tradeVolume": 173460,
         "shortableShares": 7554433,
-        "averageDuration": null,
-        "utilization": null,
+        "daysToCover": 4.7764,
+        "utilization": 362.15,
         "margin": null,
         "sourceRecords": {
           "availability": {
@@ -10449,8 +10339,8 @@
         "feeRate": 34.05,
         "tradeVolume": 154546,
         "shortableShares": 2704991,
-        "averageDuration": null,
-        "utilization": null,
+        "daysToCover": 4.6837,
+        "utilization": 69.6,
         "margin": null,
         "sourceRecords": {
           "availability": {
@@ -10504,8 +10394,8 @@
         "feeRate": 33.05,
         "tradeVolume": 135407,
         "shortableShares": 2734805,
-        "averageDuration": null,
-        "utilization": null,
+        "daysToCover": 4.349,
+        "utilization": 86.89,
         "margin": null,
         "sourceRecords": {
           "availability": {
@@ -10559,8 +10449,8 @@
         "feeRate": 32.98,
         "tradeVolume": 160336,
         "shortableShares": 2726771,
-        "averageDuration": null,
-        "utilization": null,
+        "daysToCover": 4.2679,
+        "utilization": 92.29,
         "margin": null,
         "sourceRecords": {
           "availability": {
@@ -10614,8 +10504,8 @@
         "feeRate": 33.61,
         "tradeVolume": 92495,
         "shortableShares": 2762476,
-        "averageDuration": null,
-        "utilization": null,
+        "daysToCover": 4.1181,
+        "utilization": 102.83,
         "margin": null,
         "sourceRecords": {
           "availability": {
@@ -10665,8 +10555,8 @@
         "feeRate": 33.31,
         "tradeVolume": 125575,
         "shortableShares": 7099083,
-        "averageDuration": null,
-        "utilization": null,
+        "daysToCover": 4.0789,
+        "utilization": 428.27,
         "margin": null,
         "sourceRecords": {
           "availability": {
@@ -10720,8 +10610,8 @@
         "feeRate": 32.72,
         "tradeVolume": 156834,
         "shortableShares": 3929963,
-        "averageDuration": null,
-        "utilization": null,
+        "daysToCover": 4.0484,
+        "utilization": 197.36,
         "margin": null,
         "sourceRecords": {
           "availability": {
@@ -10775,8 +10665,8 @@
         "feeRate": 32.7,
         "tradeVolume": 135971,
         "shortableShares": 2824736,
-        "averageDuration": null,
-        "utilization": null,
+        "daysToCover": 4.0767,
+        "utilization": 108.54,
         "margin": null,
         "sourceRecords": {
           "availability": {
@@ -10830,8 +10720,8 @@
         "feeRate": 31.31,
         "tradeVolume": 39430,
         "shortableShares": 2684729,
-        "averageDuration": null,
-        "utilization": null,
+        "daysToCover": 3.9819,
+        "utilization": 105.72,
         "margin": null,
         "sourceRecords": {
           "availability": {
@@ -10885,8 +10775,8 @@
         "feeRate": 31.3,
         "tradeVolume": 255210,
         "shortableShares": 2611715,
-        "averageDuration": null,
-        "utilization": null,
+        "daysToCover": 3.9179,
+        "utilization": 101.16,
         "margin": null,
         "sourceRecords": {
           "availability": {
@@ -10940,8 +10830,8 @@
         "feeRate": 31.25,
         "tradeVolume": 48400,
         "shortableShares": 2632513,
-        "averageDuration": null,
-        "utilization": null,
+        "daysToCover": 3.9696,
+        "utilization": 101.84,
         "margin": null,
         "sourceRecords": {
           "availability": {
@@ -10995,8 +10885,8 @@
         "feeRate": 31.19,
         "tradeVolume": 139659,
         "shortableShares": 2660136,
-        "averageDuration": null,
-        "utilization": null,
+        "daysToCover": 4.0248,
+        "utilization": 104.16,
         "margin": null,
         "sourceRecords": {
           "availability": {
@@ -11050,8 +10940,8 @@
         "feeRate": 31.22,
         "tradeVolume": 95893,
         "shortableShares": 2583361,
-        "averageDuration": null,
-        "utilization": null,
+        "daysToCover": 4.1223,
+        "utilization": 95.6,
         "margin": null,
         "sourceRecords": {
           "availability": {
@@ -11105,8 +10995,8 @@
         "feeRate": 31.18,
         "tradeVolume": 50369,
         "shortableShares": 2591007,
-        "averageDuration": null,
-        "utilization": null,
+        "daysToCover": 4.2452,
+        "utilization": 94.49,
         "margin": null,
         "sourceRecords": {
           "availability": {
@@ -11160,8 +11050,8 @@
         "feeRate": 31.15,
         "tradeVolume": 33466,
         "shortableShares": 2566887,
-        "averageDuration": null,
-        "utilization": null,
+        "daysToCover": 4.3358,
+        "utilization": 92.29,
         "margin": null,
         "sourceRecords": {
           "availability": {
@@ -11215,8 +11105,8 @@
         "feeRate": 31.23,
         "tradeVolume": 163039,
         "shortableShares": 2500210,
-        "averageDuration": null,
-        "utilization": null,
+        "daysToCover": 4.2876,
+        "utilization": 88.14,
         "margin": null,
         "sourceRecords": {
           "availability": {
@@ -11270,8 +11160,8 @@
         "feeRate": 31.19,
         "tradeVolume": 143317,
         "shortableShares": 2534313,
-        "averageDuration": null,
-        "utilization": null,
+        "daysToCover": 4.2979,
+        "utilization": 91.32,
         "margin": null,
         "sourceRecords": {
           "availability": {
@@ -11325,8 +11215,8 @@
         "feeRate": 31.27,
         "tradeVolume": 50062,
         "shortableShares": 2474114,
-        "averageDuration": null,
-        "utilization": null,
+        "daysToCover": 4.5125,
+        "utilization": 85.6,
         "margin": null,
         "sourceRecords": {
           "availability": {
@@ -11380,8 +11270,8 @@
         "feeRate": 31.25,
         "tradeVolume": 122586,
         "shortableShares": 2444673,
-        "averageDuration": null,
-        "utilization": null,
+        "daysToCover": 4.5389,
+        "utilization": 80.79,
         "margin": null,
         "sourceRecords": {
           "availability": {
@@ -11435,8 +11325,8 @@
         "feeRate": 31.19,
         "tradeVolume": 57139,
         "shortableShares": 2484608,
-        "averageDuration": null,
-        "utilization": null,
+        "daysToCover": 4.4957,
+        "utilization": 84.71,
         "margin": null,
         "sourceRecords": {
           "availability": {
@@ -11490,8 +11380,8 @@
         "feeRate": 31.18,
         "tradeVolume": 110765,
         "shortableShares": 2520213,
-        "averageDuration": null,
-        "utilization": null,
+        "daysToCover": 4.5465,
+        "utilization": 86.01,
         "margin": null,
         "sourceRecords": {
           "availability": {
@@ -11545,8 +11435,8 @@
         "feeRate": 31.21,
         "tradeVolume": 60568,
         "shortableShares": 2493537,
-        "averageDuration": null,
-        "utilization": null,
+        "daysToCover": 4.6755,
+        "utilization": 81.29,
         "margin": null,
         "sourceRecords": {
           "availability": {
@@ -11600,8 +11490,8 @@
         "feeRate": 31.18,
         "tradeVolume": 481713,
         "shortableShares": 2435214,
-        "averageDuration": null,
-        "utilization": null,
+        "daysToCover": 4.5876,
+        "utilization": 73.49,
         "margin": null,
         "sourceRecords": {
           "availability": {
@@ -11655,8 +11545,8 @@
         "feeRate": 30.98,
         "tradeVolume": 146791,
         "shortableShares": 2357828,
-        "averageDuration": null,
-        "utilization": null,
+        "daysToCover": 4.5926,
+        "utilization": 67.17,
         "margin": null,
         "sourceRecords": {
           "availability": {
@@ -11710,8 +11600,8 @@
         "feeRate": 31.04,
         "tradeVolume": 208370,
         "shortableShares": 2345973,
-        "averageDuration": null,
-        "utilization": null,
+        "daysToCover": 4.4218,
+        "utilization": 70.25,
         "margin": null,
         "sourceRecords": {
           "availability": {
@@ -11765,8 +11655,8 @@
         "feeRate": 30.92,
         "tradeVolume": null,
         "shortableShares": 2547455,
-        "averageDuration": null,
-        "utilization": null,
+        "daysToCover": 5.323,
+        "utilization": 84.87,
         "margin": null,
         "sourceRecords": {
           "availability": {
@@ -11812,8 +11702,8 @@
         "feeRate": 31.06,
         "tradeVolume": 205253,
         "shortableShares": 2531382,
-        "averageDuration": null,
-        "utilization": null,
+        "daysToCover": 5.263,
+        "utilization": 84.53,
         "margin": null,
         "sourceRecords": {
           "availability": {
@@ -11867,8 +11757,8 @@
         "feeRate": 31.08,
         "tradeVolume": 151210,
         "shortableShares": 2581676,
-        "averageDuration": null,
-        "utilization": null,
+        "daysToCover": 5.0996,
+        "utilization": 94.18,
         "margin": null,
         "sourceRecords": {
           "availability": {
@@ -11922,8 +11812,8 @@
         "feeRate": 31.14,
         "tradeVolume": 195090,
         "shortableShares": 2576248,
-        "averageDuration": null,
-        "utilization": null,
+        "daysToCover": 5.1235,
+        "utilization": 89.94,
         "margin": null,
         "sourceRecords": {
           "availability": {
@@ -11977,8 +11867,8 @@
         "feeRate": 31.14,
         "tradeVolume": 199359,
         "shortableShares": 2553727,
-        "averageDuration": null,
-        "utilization": null,
+        "daysToCover": 5.0125,
+        "utilization": 90,
         "margin": null,
         "sourceRecords": {
           "availability": {
@@ -12032,8 +11922,8 @@
         "feeRate": 31.01,
         "tradeVolume": 567883,
         "shortableShares": 2440242,
-        "averageDuration": null,
-        "utilization": null,
+        "daysToCover": 4.6082,
+        "utilization": 76.76,
         "margin": null,
         "sourceRecords": {
           "availability": {
@@ -12087,8 +11977,8 @@
         "feeRate": 31.11,
         "tradeVolume": 185898,
         "shortableShares": 5108616,
-        "averageDuration": null,
-        "utilization": null,
+        "daysToCover": 4.5613,
+        "utilization": 273.97,
         "margin": null,
         "sourceRecords": {
           "availability": {
@@ -12142,8 +12032,8 @@
         "feeRate": 31.07,
         "tradeVolume": 304221,
         "shortableShares": 2452448,
-        "averageDuration": null,
-        "utilization": null,
+        "daysToCover": 4.512,
+        "utilization": 79.58,
         "margin": null,
         "sourceRecords": {
           "availability": {
@@ -12193,8 +12083,8 @@
         "feeRate": 31.16,
         "tradeVolume": 131439,
         "shortableShares": 2306352,
-        "averageDuration": null,
-        "utilization": null,
+        "daysToCover": 4.6621,
+        "utilization": 63.68,
         "margin": null,
         "sourceRecords": {
           "availability": {
@@ -12248,8 +12138,8 @@
         "feeRate": 31.17,
         "tradeVolume": 263184,
         "shortableShares": 2244236,
-        "averageDuration": null,
-        "utilization": null,
+        "daysToCover": 4.5714,
+        "utilization": 60.25,
         "margin": null,
         "sourceRecords": {
           "availability": {
@@ -12303,8 +12193,8 @@
         "feeRate": 31.19,
         "tradeVolume": 82499,
         "shortableShares": 2285910,
-        "averageDuration": null,
-        "utilization": null,
+        "daysToCover": 4.6054,
+        "utilization": 62.52,
         "margin": null,
         "sourceRecords": {
           "availability": {
@@ -12358,8 +12248,8 @@
         "feeRate": 31.21,
         "tradeVolume": 94233,
         "shortableShares": 2336887,
-        "averageDuration": null,
-        "utilization": null,
+        "daysToCover": 4.5645,
+        "utilization": 66.17,
         "margin": null,
         "sourceRecords": {
           "availability": {
@@ -12413,8 +12303,8 @@
         "feeRate": 31.19,
         "tradeVolume": 257113,
         "shortableShares": 2334610,
-        "averageDuration": null,
-        "utilization": null,
+        "daysToCover": 4.4811,
+        "utilization": 66.58,
         "margin": null,
         "sourceRecords": {
           "availability": {
@@ -12468,8 +12358,8 @@
         "feeRate": 31.15,
         "tradeVolume": 80755,
         "shortableShares": 5068030,
-        "averageDuration": null,
-        "utilization": null,
+        "daysToCover": 4.6384,
+        "utilization": 253.78,
         "margin": null,
         "sourceRecords": {
           "availability": {
@@ -12523,8 +12413,8 @@
         "feeRate": 31.01,
         "tradeVolume": 88733,
         "shortableShares": 2545207,
-        "averageDuration": null,
-        "utilization": null,
+        "daysToCover": 4.5553,
+        "utilization": 81.03,
         "margin": null,
         "sourceRecords": {
           "availability": {
@@ -12578,8 +12468,8 @@
         "feeRate": 30.96,
         "tradeVolume": 114183,
         "shortableShares": 2570553,
-        "averageDuration": null,
-        "utilization": null,
+        "daysToCover": 5.6315,
+        "utilization": 80.94,
         "margin": null,
         "sourceRecords": {
           "availability": {
@@ -12633,8 +12523,8 @@
         "feeRate": 30.8,
         "tradeVolume": 102098,
         "shortableShares": 2573249,
-        "averageDuration": null,
-        "utilization": null,
+        "daysToCover": 5.8193,
+        "utilization": 77.47,
         "margin": null,
         "sourceRecords": {
           "availability": {
@@ -12688,8 +12578,8 @@
         "feeRate": 30.76,
         "tradeVolume": 109897,
         "shortableShares": 2547976,
-        "averageDuration": null,
-        "utilization": null,
+        "daysToCover": 5.8446,
+        "utilization": 74.6,
         "margin": null,
         "sourceRecords": {
           "availability": {
@@ -12743,8 +12633,8 @@
         "feeRate": 30.78,
         "tradeVolume": 92531,
         "shortableShares": 2511276,
-        "averageDuration": null,
-        "utilization": null,
+        "daysToCover": 5.7958,
+        "utilization": 73.57,
         "margin": null,
         "sourceRecords": {
           "availability": {
@@ -12798,8 +12688,8 @@
         "feeRate": 30.57,
         "tradeVolume": 172930,
         "shortableShares": 2707072,
-        "averageDuration": null,
-        "utilization": null,
+        "daysToCover": 5.7136,
+        "utilization": 88.88,
         "margin": null,
         "sourceRecords": {
           "availability": {
@@ -12849,8 +12739,8 @@
         "feeRate": 30.6,
         "tradeVolume": 155877,
         "shortableShares": 2835462,
-        "averageDuration": null,
-        "utilization": null,
+        "daysToCover": 5.556,
+        "utilization": 106.44,
         "margin": null,
         "sourceRecords": {
           "availability": {
@@ -12900,8 +12790,8 @@
         "feeRate": 30.32,
         "tradeVolume": 138089,
         "shortableShares": 5655842,
-        "averageDuration": null,
-        "utilization": null,
+        "daysToCover": 5.5183,
+        "utilization": 311.38,
         "margin": null,
         "sourceRecords": {
           "availability": {
@@ -12955,8 +12845,8 @@
         "feeRate": 30.89,
         "tradeVolume": 326612,
         "shortableShares": 2672262,
-        "averageDuration": null,
-        "utilization": null,
+        "daysToCover": 5.4635,
+        "utilization": 95.55,
         "margin": null,
         "sourceRecords": {
           "availability": {
@@ -13010,8 +12900,8 @@
         "feeRate": 30.85,
         "tradeVolume": 589765,
         "shortableShares": 2643225,
-        "averageDuration": null,
-        "utilization": null,
+        "daysToCover": 5.2236,
+        "utilization": 92.75,
         "margin": null,
         "sourceRecords": {
           "availability": {
@@ -13065,8 +12955,8 @@
         "feeRate": 30.95,
         "tradeVolume": 530189,
         "shortableShares": 2577940,
-        "averageDuration": null,
-        "utilization": null,
+        "daysToCover": 5.0765,
+        "utilization": 86.22,
         "margin": null,
         "sourceRecords": {
           "availability": {
@@ -13120,8 +13010,8 @@
         "feeRate": 30.72,
         "tradeVolume": 493904,
         "shortableShares": 2811278,
-        "averageDuration": null,
-        "utilization": null,
+        "daysToCover": 4.8785,
+        "utilization": 106.62,
         "margin": null,
         "sourceRecords": {
           "availability": {
@@ -13175,8 +13065,8 @@
         "feeRate": 31.05,
         "tradeVolume": 429481,
         "shortableShares": 2522694,
-        "averageDuration": null,
-        "utilization": null,
+        "daysToCover": 4.7393,
+        "utilization": 83.81,
         "margin": null,
         "sourceRecords": {
           "availability": {
@@ -13230,8 +13120,8 @@
         "feeRate": 31.07,
         "tradeVolume": 225167,
         "shortableShares": 2500525,
-        "averageDuration": null,
-        "utilization": null,
+        "daysToCover": 4.8573,
+        "utilization": 82.53,
         "margin": null,
         "sourceRecords": {
           "availability": {
@@ -13285,8 +13175,8 @@
         "feeRate": 31.07,
         "tradeVolume": 213728,
         "shortableShares": 2479508,
-        "averageDuration": null,
-        "utilization": null,
+        "daysToCover": 5.0364,
+        "utilization": 81.06,
         "margin": null,
         "sourceRecords": {
           "availability": {
@@ -13336,8 +13226,8 @@
         "feeRate": 31.08,
         "tradeVolume": 189756,
         "shortableShares": 2465209,
-        "averageDuration": null,
-        "utilization": null,
+        "daysToCover": 5.0397,
+        "utilization": 78.61,
         "margin": null,
         "sourceRecords": {
           "availability": {
@@ -13391,8 +13281,8 @@
         "feeRate": 31.07,
         "tradeVolume": 309523,
         "shortableShares": 2447700,
-        "averageDuration": null,
-        "utilization": null,
+        "daysToCover": 4.967,
+        "utilization": 77.61,
         "margin": null,
         "sourceRecords": {
           "availability": {
@@ -13446,8 +13336,8 @@
         "feeRate": 30.97,
         "tradeVolume": 392876,
         "shortableShares": 2548423,
-        "averageDuration": null,
-        "utilization": null,
+        "daysToCover": 4.7721,
+        "utilization": 86.35,
         "margin": null,
         "sourceRecords": {
           "availability": {
@@ -13497,8 +13387,8 @@
         "feeRate": 31.04,
         "tradeVolume": 180944,
         "shortableShares": 3157778,
-        "averageDuration": null,
-        "utilization": null,
+        "daysToCover": 4.8033,
+        "utilization": 129.75,
         "margin": null,
         "sourceRecords": {
           "availability": {
@@ -13552,8 +13442,8 @@
         "feeRate": 31.02,
         "tradeVolume": 154858,
         "shortableShares": 2561824,
-        "averageDuration": null,
-        "utilization": null,
+        "daysToCover": 4.8598,
+        "utilization": 83.18,
         "margin": null,
         "sourceRecords": {
           "availability": {
@@ -13607,8 +13497,8 @@
         "feeRate": 31.31,
         "tradeVolume": 128213,
         "shortableShares": 2368937,
-        "averageDuration": null,
-        "utilization": null,
+        "daysToCover": 4.8715,
+        "utilization": 67.25,
         "margin": null,
         "sourceRecords": {
           "availability": {
@@ -13662,8 +13552,8 @@
         "feeRate": 31.26,
         "tradeVolume": 72742,
         "shortableShares": 2429420,
-        "averageDuration": null,
-        "utilization": null,
+        "daysToCover": 4.8501,
+        "utilization": 72.94,
         "margin": null,
         "sourceRecords": {
           "availability": {
@@ -13717,8 +13607,8 @@
         "feeRate": 31.22,
         "tradeVolume": null,
         "shortableShares": 2468908,
-        "averageDuration": null,
-        "utilization": null,
+        "daysToCover": 4.9095,
+        "utilization": 75.23,
         "margin": null,
         "sourceRecords": {
           "availability": {
@@ -13764,8 +13654,8 @@
         "feeRate": 31.21,
         "tradeVolume": 146245,
         "shortableShares": 2439567,
-        "averageDuration": null,
-        "utilization": null,
+        "daysToCover": 4.9076,
+        "utilization": 72.43,
         "margin": null,
         "sourceRecords": {
           "availability": {
@@ -13819,8 +13709,8 @@
         "feeRate": 31.23,
         "tradeVolume": 100978,
         "shortableShares": 2466930,
-        "averageDuration": null,
-        "utilization": null,
+        "daysToCover": 5.1896,
+        "utilization": 74.1,
         "margin": null,
         "sourceRecords": {
           "availability": {
@@ -13874,8 +13764,8 @@
         "feeRate": 31.1,
         "tradeVolume": 75351,
         "shortableShares": 2604947,
-        "averageDuration": null,
-        "utilization": null,
+        "daysToCover": 5.2027,
+        "utilization": 83.43,
         "margin": null,
         "sourceRecords": {
           "availability": {
@@ -13929,8 +13819,8 @@
         "feeRate": 31.13,
         "tradeVolume": 75631,
         "shortableShares": 2518253,
-        "averageDuration": null,
-        "utilization": null,
+        "daysToCover": 5.2366,
+        "utilization": 77.8,
         "margin": null,
         "sourceRecords": {
           "availability": {
@@ -13984,8 +13874,8 @@
         "feeRate": 31.14,
         "tradeVolume": 42333,
         "shortableShares": 2552741,
-        "averageDuration": null,
-        "utilization": null,
+        "daysToCover": 5.2817,
+        "utilization": 80.54,
         "margin": null,
         "sourceRecords": {
           "availability": {
@@ -14035,8 +13925,8 @@
         "feeRate": 31.16,
         "tradeVolume": 103873,
         "shortableShares": 2522799,
-        "averageDuration": null,
-        "utilization": null,
+        "daysToCover": 5.3345,
+        "utilization": 76.68,
         "margin": null,
         "sourceRecords": {
           "availability": {
@@ -14090,8 +13980,8 @@
         "feeRate": 31.38,
         "tradeVolume": 142301,
         "shortableShares": 2393008,
-        "averageDuration": null,
-        "utilization": null,
+        "daysToCover": 5.3431,
+        "utilization": 67.59,
         "margin": null,
         "sourceRecords": {
           "availability": {
@@ -14145,8 +14035,8 @@
         "feeRate": 31.36,
         "tradeVolume": 247430,
         "shortableShares": 2431493,
-        "averageDuration": null,
-        "utilization": null,
+        "daysToCover": 5.2979,
+        "utilization": 69.11,
         "margin": null,
         "sourceRecords": {
           "availability": {
@@ -14200,8 +14090,8 @@
         "feeRate": 31.31,
         "tradeVolume": 160949,
         "shortableShares": 2433471,
-        "averageDuration": null,
-        "utilization": null,
+        "daysToCover": 5.2148,
+        "utilization": 72.21,
         "margin": null,
         "sourceRecords": {
           "availability": {
@@ -14255,8 +14145,8 @@
         "feeRate": 31.33,
         "tradeVolume": 266597,
         "shortableShares": 2484134,
-        "averageDuration": null,
-        "utilization": null,
+        "daysToCover": 5.1638,
+        "utilization": 75.88,
         "margin": null,
         "sourceRecords": {
           "availability": {
@@ -14303,13 +14193,176 @@
             "score": 69.4047
           }
         }
+      },
+      {
+        "date": "2026-06-09",
+        "price": 2.96,
+        "feeRate": 31.24,
+        "tradeVolume": 177609,
+        "shortableShares": 2448317,
+        "daysToCover": 4.808,
+        "utilization": 73.56,
+        "margin": null,
+        "sourceRecords": {
+          "availability": {
+            "date": "2026-06-09",
+            "shortAvailabilityPct": 73.56,
+            "shortAvailabilityShares": 2448317
+          },
+          "closingPrices": {
+            "date": "2026-06-09",
+            "open": 2.97,
+            "high": 3.12,
+            "low": 2.91,
+            "close": 2.96,
+            "volume": 177609
+          },
+          "borrowFeeAll": {
+            "date": "2026-06-09",
+            "costToBorrowAll": 31.24
+          },
+          "borrowFeeNew": {
+            "date": "2026-06-09",
+            "costToBorrowNew": 18.85
+          },
+          "daysToCover": {
+            "date": "2026-06-09",
+            "daysToCover": 4.808
+          },
+          "europeanTotalOpenPositions": {
+            "shortInterestShares": 0,
+            "shortInterestPcFreeFloat": 0,
+            "shortInterestValue": 0,
+            "currency": "USD",
+            "creditsUsed": 0.3,
+            "creditsLeft": 9436.6
+          },
+          "shortInterest": {
+            "date": "2026-06-09",
+            "shortInterestShares": 863683,
+            "shortInterestPcFreeFloat": 2.69718,
+            "shortInterestUsd": 2556500
+          },
+          "shortScore": {
+            "date": "2026-06-09",
+            "score": 68.4646
+          }
+        }
+      },
+      {
+        "date": "2026-06-10",
+        "price": 2.93,
+        "feeRate": 31.4,
+        "tradeVolume": 187255,
+        "shortableShares": 2450377,
+        "daysToCover": 4.8383,
+        "utilization": 69.58,
+        "margin": null,
+        "sourceRecords": {
+          "availability": {
+            "date": "2026-06-10",
+            "shortAvailabilityPct": 69.58,
+            "shortAvailabilityShares": 2450377
+          },
+          "closingPrices": {
+            "date": "2026-06-10",
+            "open": 2.98,
+            "high": 3.08,
+            "low": 2.82,
+            "close": 2.93,
+            "volume": 187255
+          },
+          "borrowFeeAll": {
+            "date": "2026-06-10",
+            "costToBorrowAll": 31.4
+          },
+          "borrowFeeNew": {
+            "date": "2026-06-10",
+            "costToBorrowNew": 36.19
+          },
+          "daysToCover": {
+            "date": "2026-06-10",
+            "daysToCover": 4.8383
+          },
+          "europeanTotalOpenPositions": {
+            "shortInterestShares": 0,
+            "shortInterestPcFreeFloat": 0,
+            "shortInterestValue": 0,
+            "currency": "USD",
+            "creditsUsed": 0.3,
+            "creditsLeft": 9429.95
+          },
+          "shortInterest": {
+            "date": "2026-06-10",
+            "shortInterestShares": 880129,
+            "shortInterestPcFreeFloat": 2.748539,
+            "shortInterestUsd": 2578777
+          },
+          "shortScore": {
+            "date": "2026-06-10",
+            "score": 68.6578
+          }
+        }
+      },
+      {
+        "date": "2026-06-11",
+        "price": 3.08,
+        "feeRate": 31.2,
+        "tradeVolume": 116108,
+        "shortableShares": 2491973,
+        "daysToCover": 4.8079,
+        "utilization": 76.49,
+        "margin": null,
+        "sourceRecords": {
+          "availability": {
+            "date": "2026-06-11",
+            "shortAvailabilityPct": 76.49,
+            "shortAvailabilityShares": 2491973
+          },
+          "closingPrices": {
+            "date": "2026-06-11",
+            "open": 2.93,
+            "high": 3.15,
+            "low": 2.91,
+            "close": 3.08,
+            "volume": 116108
+          },
+          "borrowFeeAll": {
+            "date": "2026-06-11",
+            "costToBorrowAll": 31.2
+          },
+          "borrowFeeNew": {
+            "date": "2026-06-11",
+            "costToBorrowNew": 32.61
+          },
+          "daysToCover": {
+            "date": "2026-06-11",
+            "daysToCover": 4.8079
+          },
+          "europeanTotalOpenPositions": {
+            "shortInterestShares": 0,
+            "shortInterestPcFreeFloat": 0,
+            "shortInterestValue": 0,
+            "currency": "USD",
+            "creditsUsed": 0.3,
+            "creditsLeft": 9413.05
+          },
+          "shortInterest": {
+            "date": "2026-06-11",
+            "shortInterestShares": 864306,
+            "shortInterestPcFreeFloat": 2.699126,
+            "shortInterestUsd": 2662062
+          },
+          "shortScore": {
+            "date": "2026-06-11",
+            "score": 68.4425
+          }
+        }
       }
     ],
     "events": [],
     "missingFromSource": [
       "margin",
-      "utilization",
-      "averageDuration",
       "events"
     ],
     "derived": {
@@ -14326,21 +14379,21 @@
         "cards": {
           "1D": {
             "period": "1D",
-            "latestDate": "2026-06-08",
-            "comparisonDate": "2026-06-05",
+            "latestDate": "2026-06-11",
+            "comparisonDate": "2026-06-10",
             "cards": {
               "borrowFee": {
                 "label": "Borrow Fee",
-                "value": 31.33,
-                "valueDisplay": "31.33%",
-                "previousValue": 31.31,
-                "previousDate": "2026-06-05",
-                "change": 0.02,
-                "changeDisplay": "+0.02 pts",
-                "changePercent": 0.06,
-                "changePercentDisplay": "+0.06%",
-                "deltaDisplay": "+0.02 pts(+0.06%)",
-                "tone": "up",
+                "value": 31.2,
+                "valueDisplay": "31.20%",
+                "previousValue": 31.4,
+                "previousDate": "2026-06-10",
+                "change": -0.2,
+                "changeDisplay": "-0.20 pts",
+                "changePercent": -0.64,
+                "changePercentDisplay": "-0.64%",
+                "deltaDisplay": "-0.20 pts(-0.64%)",
+                "tone": "down",
                 "sourceStatus": "available"
               },
               "margin": {
@@ -14348,7 +14401,7 @@
                 "value": null,
                 "valueDisplay": "N/A",
                 "previousValue": null,
-                "previousDate": "2026-06-05",
+                "previousDate": "2026-06-10",
                 "change": null,
                 "changeDisplay": "N/A",
                 "changePercent": null,
@@ -14359,64 +14412,64 @@
               },
               "availableShares": {
                 "label": "Available Shares",
-                "value": 2484134,
-                "valueDisplay": "2,484,134",
-                "previousValue": 2433471,
-                "previousDate": "2026-06-05",
-                "change": 50663,
-                "changeDisplay": "+50,663 shares",
-                "changePercent": 2.08,
-                "changePercentDisplay": "+2.08%",
-                "deltaDisplay": "+50,663 shares(+2.08%)",
+                "value": 2491973,
+                "valueDisplay": "2,491,973",
+                "previousValue": 2450377,
+                "previousDate": "2026-06-10",
+                "change": 41596,
+                "changeDisplay": "+41,596 shares",
+                "changePercent": 1.7,
+                "changePercentDisplay": "+1.70%",
+                "deltaDisplay": "+41,596 shares(+1.70%)",
                 "tone": "up",
                 "sourceStatus": "available"
               },
               "utilization": {
                 "label": "Utilization",
-                "value": null,
-                "valueDisplay": "N/A",
-                "previousValue": null,
-                "previousDate": "2026-06-05",
-                "change": null,
-                "changeDisplay": "N/A",
-                "changePercent": null,
-                "changePercentDisplay": "N/A",
-                "deltaDisplay": "N/A",
-                "tone": "neutral",
-                "sourceStatus": "missing_from_ortex_source"
+                "value": 76.49,
+                "valueDisplay": "76.49%",
+                "previousValue": 69.58,
+                "previousDate": "2026-06-10",
+                "change": 6.91,
+                "changeDisplay": "+6.91 pts",
+                "changePercent": 9.93,
+                "changePercentDisplay": "+9.93%",
+                "deltaDisplay": "+6.91 pts(+9.93%)",
+                "tone": "up",
+                "sourceStatus": "available"
               },
-              "averageDuration": {
-                "label": "Average Duration",
-                "value": null,
-                "valueDisplay": "N/A",
-                "previousValue": null,
-                "previousDate": "2026-06-05",
-                "change": null,
-                "changeDisplay": "N/A",
-                "changePercent": null,
-                "changePercentDisplay": "N/A",
-                "deltaDisplay": "N/A",
-                "tone": "neutral",
-                "sourceStatus": "missing_from_ortex_source"
+              "daysToCover": {
+                "label": "Days to Cover",
+                "value": 4.8079,
+                "valueDisplay": "4.81d",
+                "previousValue": 4.8383,
+                "previousDate": "2026-06-10",
+                "change": -0.03,
+                "changeDisplay": "-0.03 days",
+                "changePercent": -0.63,
+                "changePercentDisplay": "-0.63%",
+                "deltaDisplay": "-0.03 days(-0.63%)",
+                "tone": "down",
+                "sourceStatus": "available"
               }
             }
           },
           "5D": {
             "period": "5D",
-            "latestDate": "2026-06-08",
-            "comparisonDate": "2026-06-03",
+            "latestDate": "2026-06-11",
+            "comparisonDate": "2026-06-05",
             "cards": {
               "borrowFee": {
                 "label": "Borrow Fee",
-                "value": 31.33,
-                "valueDisplay": "31.33%",
-                "previousValue": 31.38,
-                "previousDate": "2026-06-03",
-                "change": -0.05,
-                "changeDisplay": "-0.05 pts",
-                "changePercent": -0.16,
-                "changePercentDisplay": "-0.16%",
-                "deltaDisplay": "-0.05 pts(-0.16%)",
+                "value": 31.2,
+                "valueDisplay": "31.20%",
+                "previousValue": 31.31,
+                "previousDate": "2026-06-05",
+                "change": -0.11,
+                "changeDisplay": "-0.11 pts",
+                "changePercent": -0.35,
+                "changePercentDisplay": "-0.35%",
+                "deltaDisplay": "-0.11 pts(-0.35%)",
                 "tone": "down",
                 "sourceStatus": "available"
               },
@@ -14425,7 +14478,7 @@
                 "value": null,
                 "valueDisplay": "N/A",
                 "previousValue": null,
-                "previousDate": "2026-06-03",
+                "previousDate": "2026-06-05",
                 "change": null,
                 "changeDisplay": "N/A",
                 "changePercent": null,
@@ -14436,64 +14489,64 @@
               },
               "availableShares": {
                 "label": "Available Shares",
-                "value": 2484134,
-                "valueDisplay": "2,484,134",
-                "previousValue": 2393008,
-                "previousDate": "2026-06-03",
-                "change": 91126,
-                "changeDisplay": "+91,126 shares",
-                "changePercent": 3.81,
-                "changePercentDisplay": "+3.81%",
-                "deltaDisplay": "+91,126 shares(+3.81%)",
+                "value": 2491973,
+                "valueDisplay": "2,491,973",
+                "previousValue": 2433471,
+                "previousDate": "2026-06-05",
+                "change": 58502,
+                "changeDisplay": "+58,502 shares",
+                "changePercent": 2.4,
+                "changePercentDisplay": "+2.40%",
+                "deltaDisplay": "+58,502 shares(+2.40%)",
                 "tone": "up",
                 "sourceStatus": "available"
               },
               "utilization": {
                 "label": "Utilization",
-                "value": null,
-                "valueDisplay": "N/A",
-                "previousValue": null,
-                "previousDate": "2026-06-03",
-                "change": null,
-                "changeDisplay": "N/A",
-                "changePercent": null,
-                "changePercentDisplay": "N/A",
-                "deltaDisplay": "N/A",
-                "tone": "neutral",
-                "sourceStatus": "missing_from_ortex_source"
+                "value": 76.49,
+                "valueDisplay": "76.49%",
+                "previousValue": 72.21,
+                "previousDate": "2026-06-05",
+                "change": 4.28,
+                "changeDisplay": "+4.28 pts",
+                "changePercent": 5.93,
+                "changePercentDisplay": "+5.93%",
+                "deltaDisplay": "+4.28 pts(+5.93%)",
+                "tone": "up",
+                "sourceStatus": "available"
               },
-              "averageDuration": {
-                "label": "Average Duration",
-                "value": null,
-                "valueDisplay": "N/A",
-                "previousValue": null,
-                "previousDate": "2026-06-03",
-                "change": null,
-                "changeDisplay": "N/A",
-                "changePercent": null,
-                "changePercentDisplay": "N/A",
-                "deltaDisplay": "N/A",
-                "tone": "neutral",
-                "sourceStatus": "missing_from_ortex_source"
+              "daysToCover": {
+                "label": "Days to Cover",
+                "value": 4.8079,
+                "valueDisplay": "4.81d",
+                "previousValue": 5.2148,
+                "previousDate": "2026-06-05",
+                "change": -0.41,
+                "changeDisplay": "-0.41 days",
+                "changePercent": -7.8,
+                "changePercentDisplay": "-7.80%",
+                "deltaDisplay": "-0.41 days(-7.80%)",
+                "tone": "down",
+                "sourceStatus": "available"
               }
             }
           },
           "1M": {
             "period": "1M",
-            "latestDate": "2026-06-08",
-            "comparisonDate": "2026-05-08",
+            "latestDate": "2026-06-11",
+            "comparisonDate": "2026-05-11",
             "cards": {
               "borrowFee": {
                 "label": "Borrow Fee",
-                "value": 31.33,
-                "valueDisplay": "31.33%",
-                "previousValue": 30.72,
-                "previousDate": "2026-05-08",
-                "change": 0.61,
-                "changeDisplay": "+0.61 pts",
-                "changePercent": 1.99,
-                "changePercentDisplay": "+1.99%",
-                "deltaDisplay": "+0.61 pts(+1.99%)",
+                "value": 31.2,
+                "valueDisplay": "31.20%",
+                "previousValue": 31.05,
+                "previousDate": "2026-05-11",
+                "change": 0.15,
+                "changeDisplay": "+0.15 pts",
+                "changePercent": 0.48,
+                "changePercentDisplay": "+0.48%",
+                "deltaDisplay": "+0.15 pts(+0.48%)",
                 "tone": "up",
                 "sourceStatus": "available"
               },
@@ -14502,7 +14555,7 @@
                 "value": null,
                 "valueDisplay": "N/A",
                 "previousValue": null,
-                "previousDate": "2026-05-08",
+                "previousDate": "2026-05-11",
                 "change": null,
                 "changeDisplay": "N/A",
                 "changePercent": null,
@@ -14513,64 +14566,64 @@
               },
               "availableShares": {
                 "label": "Available Shares",
-                "value": 2484134,
-                "valueDisplay": "2,484,134",
-                "previousValue": 2811278,
-                "previousDate": "2026-05-08",
-                "change": -327144,
-                "changeDisplay": "-327,144 shares",
-                "changePercent": -11.64,
-                "changePercentDisplay": "-11.64%",
-                "deltaDisplay": "-327,144 shares(-11.64%)",
+                "value": 2491973,
+                "valueDisplay": "2,491,973",
+                "previousValue": 2522694,
+                "previousDate": "2026-05-11",
+                "change": -30721,
+                "changeDisplay": "-30,721 shares",
+                "changePercent": -1.22,
+                "changePercentDisplay": "-1.22%",
+                "deltaDisplay": "-30,721 shares(-1.22%)",
                 "tone": "down",
                 "sourceStatus": "available"
               },
               "utilization": {
                 "label": "Utilization",
-                "value": null,
-                "valueDisplay": "N/A",
-                "previousValue": null,
-                "previousDate": "2026-05-08",
-                "change": null,
-                "changeDisplay": "N/A",
-                "changePercent": null,
-                "changePercentDisplay": "N/A",
-                "deltaDisplay": "N/A",
-                "tone": "neutral",
-                "sourceStatus": "missing_from_ortex_source"
+                "value": 76.49,
+                "valueDisplay": "76.49%",
+                "previousValue": 83.81,
+                "previousDate": "2026-05-11",
+                "change": -7.32,
+                "changeDisplay": "-7.32 pts",
+                "changePercent": -8.73,
+                "changePercentDisplay": "-8.73%",
+                "deltaDisplay": "-7.32 pts(-8.73%)",
+                "tone": "down",
+                "sourceStatus": "available"
               },
-              "averageDuration": {
-                "label": "Average Duration",
-                "value": null,
-                "valueDisplay": "N/A",
-                "previousValue": null,
-                "previousDate": "2026-05-08",
-                "change": null,
-                "changeDisplay": "N/A",
-                "changePercent": null,
-                "changePercentDisplay": "N/A",
-                "deltaDisplay": "N/A",
-                "tone": "neutral",
-                "sourceStatus": "missing_from_ortex_source"
+              "daysToCover": {
+                "label": "Days to Cover",
+                "value": 4.8079,
+                "valueDisplay": "4.81d",
+                "previousValue": 4.7393,
+                "previousDate": "2026-05-11",
+                "change": 0.07,
+                "changeDisplay": "+0.07 days",
+                "changePercent": 1.45,
+                "changePercentDisplay": "+1.45%",
+                "deltaDisplay": "+0.07 days(+1.45%)",
+                "tone": "up",
+                "sourceStatus": "available"
               }
             }
           },
           "3M": {
             "period": "3M",
-            "latestDate": "2026-06-08",
-            "comparisonDate": "2026-03-06",
+            "latestDate": "2026-06-11",
+            "comparisonDate": "2026-03-11",
             "cards": {
               "borrowFee": {
                 "label": "Borrow Fee",
-                "value": 31.33,
-                "valueDisplay": "31.33%",
-                "previousValue": 33.31,
-                "previousDate": "2026-03-06",
-                "change": -1.98,
-                "changeDisplay": "-1.98 pts",
-                "changePercent": -5.94,
-                "changePercentDisplay": "-5.94%",
-                "deltaDisplay": "-1.98 pts(-5.94%)",
+                "value": 31.2,
+                "valueDisplay": "31.20%",
+                "previousValue": 31.31,
+                "previousDate": "2026-03-11",
+                "change": -0.11,
+                "changeDisplay": "-0.11 pts",
+                "changePercent": -0.35,
+                "changePercentDisplay": "-0.35%",
+                "deltaDisplay": "-0.11 pts(-0.35%)",
                 "tone": "down",
                 "sourceStatus": "available"
               },
@@ -14579,7 +14632,7 @@
                 "value": null,
                 "valueDisplay": "N/A",
                 "previousValue": null,
-                "previousDate": "2026-03-06",
+                "previousDate": "2026-03-11",
                 "change": null,
                 "changeDisplay": "N/A",
                 "changePercent": null,
@@ -14590,64 +14643,64 @@
               },
               "availableShares": {
                 "label": "Available Shares",
-                "value": 2484134,
-                "valueDisplay": "2,484,134",
-                "previousValue": 7099083,
-                "previousDate": "2026-03-06",
-                "change": -4614949,
-                "changeDisplay": "-4,614,949 shares",
-                "changePercent": -65.01,
-                "changePercentDisplay": "-65.01%",
-                "deltaDisplay": "-4,614,949 shares(-65.01%)",
+                "value": 2491973,
+                "valueDisplay": "2,491,973",
+                "previousValue": 2684729,
+                "previousDate": "2026-03-11",
+                "change": -192756,
+                "changeDisplay": "-192,756 shares",
+                "changePercent": -7.18,
+                "changePercentDisplay": "-7.18%",
+                "deltaDisplay": "-192,756 shares(-7.18%)",
                 "tone": "down",
                 "sourceStatus": "available"
               },
               "utilization": {
                 "label": "Utilization",
-                "value": null,
-                "valueDisplay": "N/A",
-                "previousValue": null,
-                "previousDate": "2026-03-06",
-                "change": null,
-                "changeDisplay": "N/A",
-                "changePercent": null,
-                "changePercentDisplay": "N/A",
-                "deltaDisplay": "N/A",
-                "tone": "neutral",
-                "sourceStatus": "missing_from_ortex_source"
+                "value": 76.49,
+                "valueDisplay": "76.49%",
+                "previousValue": 105.72,
+                "previousDate": "2026-03-11",
+                "change": -29.23,
+                "changeDisplay": "-29.23 pts",
+                "changePercent": -27.65,
+                "changePercentDisplay": "-27.65%",
+                "deltaDisplay": "-29.23 pts(-27.65%)",
+                "tone": "down",
+                "sourceStatus": "available"
               },
-              "averageDuration": {
-                "label": "Average Duration",
-                "value": null,
-                "valueDisplay": "N/A",
-                "previousValue": null,
-                "previousDate": "2026-03-06",
-                "change": null,
-                "changeDisplay": "N/A",
-                "changePercent": null,
-                "changePercentDisplay": "N/A",
-                "deltaDisplay": "N/A",
-                "tone": "neutral",
-                "sourceStatus": "missing_from_ortex_source"
+              "daysToCover": {
+                "label": "Days to Cover",
+                "value": 4.8079,
+                "valueDisplay": "4.81d",
+                "previousValue": 3.9819,
+                "previousDate": "2026-03-11",
+                "change": 0.83,
+                "changeDisplay": "+0.83 days",
+                "changePercent": 20.74,
+                "changePercentDisplay": "+20.74%",
+                "deltaDisplay": "+0.83 days(+20.74%)",
+                "tone": "up",
+                "sourceStatus": "available"
               }
             }
           },
           "1Y": {
             "period": "1Y",
-            "latestDate": "2026-06-08",
-            "comparisonDate": "2025-06-09",
+            "latestDate": "2026-06-11",
+            "comparisonDate": "2025-06-11",
             "cards": {
               "borrowFee": {
                 "label": "Borrow Fee",
-                "value": 31.33,
-                "valueDisplay": "31.33%",
-                "previousValue": 124.35,
-                "previousDate": "2025-06-09",
-                "change": -93.02,
-                "changeDisplay": "-93.02 pts",
-                "changePercent": -74.8,
-                "changePercentDisplay": "-74.80%",
-                "deltaDisplay": "-93.02 pts(-74.80%)",
+                "value": 31.2,
+                "valueDisplay": "31.20%",
+                "previousValue": 92.31,
+                "previousDate": "2025-06-11",
+                "change": -61.11,
+                "changeDisplay": "-61.11 pts",
+                "changePercent": -66.2,
+                "changePercentDisplay": "-66.20%",
+                "deltaDisplay": "-61.11 pts(-66.20%)",
                 "tone": "down",
                 "sourceStatus": "available"
               },
@@ -14656,7 +14709,7 @@
                 "value": null,
                 "valueDisplay": "N/A",
                 "previousValue": null,
-                "previousDate": "2025-06-09",
+                "previousDate": "2025-06-11",
                 "change": null,
                 "changeDisplay": "N/A",
                 "changePercent": null,
@@ -14667,64 +14720,64 @@
               },
               "availableShares": {
                 "label": "Available Shares",
-                "value": 2484134,
-                "valueDisplay": "2,484,134",
-                "previousValue": 2372719,
-                "previousDate": "2025-06-09",
-                "change": 111415,
-                "changeDisplay": "+111,415 shares",
-                "changePercent": 4.7,
-                "changePercentDisplay": "+4.70%",
-                "deltaDisplay": "+111,415 shares(+4.70%)",
+                "value": 2491973,
+                "valueDisplay": "2,491,973",
+                "previousValue": 2331357,
+                "previousDate": "2025-06-11",
+                "change": 160616,
+                "changeDisplay": "+160,616 shares",
+                "changePercent": 6.89,
+                "changePercentDisplay": "+6.89%",
+                "deltaDisplay": "+160,616 shares(+6.89%)",
                 "tone": "up",
                 "sourceStatus": "available"
               },
               "utilization": {
                 "label": "Utilization",
-                "value": null,
-                "valueDisplay": "N/A",
-                "previousValue": null,
-                "previousDate": "2025-06-09",
-                "change": null,
-                "changeDisplay": "N/A",
-                "changePercent": null,
-                "changePercentDisplay": "N/A",
-                "deltaDisplay": "N/A",
-                "tone": "neutral",
-                "sourceStatus": "missing_from_ortex_source"
+                "value": 76.49,
+                "valueDisplay": "76.49%",
+                "previousValue": 1377.22,
+                "previousDate": "2025-06-11",
+                "change": -1300.73,
+                "changeDisplay": "-1300.73 pts",
+                "changePercent": -94.45,
+                "changePercentDisplay": "-94.45%",
+                "deltaDisplay": "-1300.73 pts(-94.45%)",
+                "tone": "down",
+                "sourceStatus": "available"
               },
-              "averageDuration": {
-                "label": "Average Duration",
-                "value": null,
-                "valueDisplay": "N/A",
-                "previousValue": null,
-                "previousDate": "2025-06-09",
-                "change": null,
-                "changeDisplay": "N/A",
-                "changePercent": null,
-                "changePercentDisplay": "N/A",
-                "deltaDisplay": "N/A",
-                "tone": "neutral",
-                "sourceStatus": "missing_from_ortex_source"
+              "daysToCover": {
+                "label": "Days to Cover",
+                "value": 4.8079,
+                "valueDisplay": "4.81d",
+                "previousValue": 0.1101,
+                "previousDate": "2025-06-11",
+                "change": 4.7,
+                "changeDisplay": "+4.70 days",
+                "changePercent": 4266.85,
+                "changePercentDisplay": "+4266.85%",
+                "deltaDisplay": "+4.70 days(+4266.85%)",
+                "tone": "up",
+                "sourceStatus": "available"
               }
             }
           },
           "YTD": {
             "period": "YTD",
-            "latestDate": "2026-06-08",
+            "latestDate": "2026-06-11",
             "comparisonDate": "2026-01-01",
             "cards": {
               "borrowFee": {
                 "label": "Borrow Fee",
-                "value": 31.33,
-                "valueDisplay": "31.33%",
+                "value": 31.2,
+                "valueDisplay": "31.20%",
                 "previousValue": 32.51,
                 "previousDate": "2026-01-01",
-                "change": -1.18,
-                "changeDisplay": "-1.18 pts",
-                "changePercent": -3.63,
-                "changePercentDisplay": "-3.63%",
-                "deltaDisplay": "-1.18 pts(-3.63%)",
+                "change": -1.31,
+                "changeDisplay": "-1.31 pts",
+                "changePercent": -4.03,
+                "changePercentDisplay": "-4.03%",
+                "deltaDisplay": "-1.31 pts(-4.03%)",
                 "tone": "down",
                 "sourceStatus": "available"
               },
@@ -14744,45 +14797,45 @@
               },
               "availableShares": {
                 "label": "Available Shares",
-                "value": 2484134,
-                "valueDisplay": "2,484,134",
+                "value": 2491973,
+                "valueDisplay": "2,491,973",
                 "previousValue": 2985808,
                 "previousDate": "2026-01-01",
-                "change": -501674,
-                "changeDisplay": "-501,674 shares",
-                "changePercent": -16.8,
-                "changePercentDisplay": "-16.80%",
-                "deltaDisplay": "-501,674 shares(-16.80%)",
+                "change": -493835,
+                "changeDisplay": "-493,835 shares",
+                "changePercent": -16.54,
+                "changePercentDisplay": "-16.54%",
+                "deltaDisplay": "-493,835 shares(-16.54%)",
                 "tone": "down",
                 "sourceStatus": "available"
               },
               "utilization": {
                 "label": "Utilization",
-                "value": null,
-                "valueDisplay": "N/A",
-                "previousValue": null,
+                "value": 76.49,
+                "valueDisplay": "76.49%",
+                "previousValue": 171.35,
                 "previousDate": "2026-01-01",
-                "change": null,
-                "changeDisplay": "N/A",
-                "changePercent": null,
-                "changePercentDisplay": "N/A",
-                "deltaDisplay": "N/A",
-                "tone": "neutral",
-                "sourceStatus": "missing_from_ortex_source"
+                "change": -94.86,
+                "changeDisplay": "-94.86 pts",
+                "changePercent": -55.36,
+                "changePercentDisplay": "-55.36%",
+                "deltaDisplay": "-94.86 pts(-55.36%)",
+                "tone": "down",
+                "sourceStatus": "available"
               },
-              "averageDuration": {
-                "label": "Average Duration",
-                "value": null,
-                "valueDisplay": "N/A",
-                "previousValue": null,
+              "daysToCover": {
+                "label": "Days to Cover",
+                "value": 4.8079,
+                "valueDisplay": "4.81d",
+                "previousValue": 0.8975,
                 "previousDate": "2026-01-01",
-                "change": null,
-                "changeDisplay": "N/A",
-                "changePercent": null,
-                "changePercentDisplay": "N/A",
-                "deltaDisplay": "N/A",
-                "tone": "neutral",
-                "sourceStatus": "missing_from_ortex_source"
+                "change": 3.91,
+                "changeDisplay": "+3.91 days",
+                "changePercent": 435.7,
+                "changePercentDisplay": "+435.70%",
+                "deltaDisplay": "+3.91 days(+435.70%)",
+                "tone": "up",
+                "sourceStatus": "available"
               }
             }
           }
@@ -14794,7 +14847,7 @@
             "feeRate",
             "tradeVolume",
             "shortableShares",
-            "averageDuration",
+            "daysToCover",
             "utilization"
           ],
           "bottomMetrics": [
@@ -14805,23 +14858,23 @@
             "1D": {
               "period": "1D",
               "dates": [
-                "2026-06-05",
-                "2026-06-08"
+                "2026-06-10",
+                "2026-06-11"
               ]
             },
             "5D": {
               "period": "5D",
               "dates": [
-                "2026-06-03",
-                "2026-06-04",
                 "2026-06-05",
-                "2026-06-08"
+                "2026-06-08",
+                "2026-06-09",
+                "2026-06-10",
+                "2026-06-11"
               ]
             },
             "1M": {
               "period": "1M",
               "dates": [
-                "2026-05-08",
                 "2026-05-11",
                 "2026-05-12",
                 "2026-05-13",
@@ -14842,15 +14895,15 @@
                 "2026-06-03",
                 "2026-06-04",
                 "2026-06-05",
-                "2026-06-08"
+                "2026-06-08",
+                "2026-06-09",
+                "2026-06-10",
+                "2026-06-11"
               ]
             },
             "3M": {
               "period": "3M",
               "dates": [
-                "2026-03-06",
-                "2026-03-09",
-                "2026-03-10",
                 "2026-03-11",
                 "2026-03-12",
                 "2026-03-13",
@@ -14914,14 +14967,15 @@
                 "2026-06-03",
                 "2026-06-04",
                 "2026-06-05",
-                "2026-06-08"
+                "2026-06-08",
+                "2026-06-09",
+                "2026-06-10",
+                "2026-06-11"
               ]
             },
             "1Y": {
               "period": "1Y",
               "dates": [
-                "2025-06-09",
-                "2025-06-10",
                 "2025-06-11",
                 "2025-06-12",
                 "2025-06-13",
@@ -15180,7 +15234,10 @@
                 "2026-06-03",
                 "2026-06-04",
                 "2026-06-05",
-                "2026-06-08"
+                "2026-06-08",
+                "2026-06-09",
+                "2026-06-10",
+                "2026-06-11"
               ]
             },
             "YTD": {
@@ -15298,13 +15355,15 @@
                 "2026-06-03",
                 "2026-06-04",
                 "2026-06-05",
-                "2026-06-08"
+                "2026-06-08",
+                "2026-06-09",
+                "2026-06-10",
+                "2026-06-11"
               ]
             }
           },
           "missingMetrics": [
-            "averageDuration",
-            "utilization"
+            "margin"
           ]
         }
       }

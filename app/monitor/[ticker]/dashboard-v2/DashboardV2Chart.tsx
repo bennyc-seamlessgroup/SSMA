@@ -4,7 +4,7 @@ import { useMemo, useState } from 'react';
 import type { MouseEvent } from 'react';
 import type { PeriodKey } from './DashboardV2Kpis';
 
-type SeriesKey = 'price' | 'feeRate' | 'tradeVolume' | 'shortableShares' | 'averageDuration' | 'utilization';
+type SeriesKey = 'price' | 'feeRate' | 'tradeVolume' | 'shortableShares' | 'daysToCover' | 'utilization';
 
 type DataPoint = {
   date: string;
@@ -12,7 +12,7 @@ type DataPoint = {
   feeRate: number | null;
   tradeVolume: number | null;
   shortableShares: number | null;
-  averageDuration: number | null;
+  daysToCover: number | null;
   utilization: number | null;
 };
 
@@ -22,7 +22,7 @@ type ChartPoint = {
   feeRate: number | null;
   tradeVolume: number | null;
   shortableShares: number | null;
-  averageDuration: number | null;
+  daysToCover: number | null;
   utilization: number | null;
 };
 
@@ -44,7 +44,7 @@ type SeriesConfig = {
 
 const defaultMetric: SeriesKey = 'price';
 
-const seriesOrder: SeriesKey[] = ['price', 'feeRate', 'tradeVolume', 'shortableShares', 'averageDuration', 'utilization'];
+const seriesOrder: SeriesKey[] = ['price', 'feeRate', 'tradeVolume', 'shortableShares', 'daysToCover', 'utilization'];
 const bottomMetrics = new Set<SeriesKey>(['tradeVolume', 'shortableShares']);
 
 const seriesConfig: Record<SeriesKey, SeriesConfig> = {
@@ -72,9 +72,9 @@ const seriesConfig: Record<SeriesKey, SeriesConfig> = {
     color: '#ff9f12',
     formatter: value => formatCompact(value),
   },
-  averageDuration: {
-    label: 'Average Duration',
-    axisTitle: 'Average Duration (Days)',
+  daysToCover: {
+    label: 'Days to Cover',
+    axisTitle: 'Days to Cover',
     color: '#6f7bd9',
     formatter: value => `${value.toLocaleString('en-US', { maximumFractionDigits: 1 })}d`,
   },
@@ -181,7 +181,7 @@ export function DashboardV2Chart({ data: sourceData, events: sourceEvents, perio
     feeRate: true,
     tradeVolume: true,
     shortableShares: true,
-    averageDuration: true,
+    daysToCover: true,
     utilization: true,
   });
   const [hoveredMetric, setHoveredMetric] = useState<SeriesKey | null>(null);
@@ -197,7 +197,7 @@ export function DashboardV2Chart({ data: sourceData, events: sourceEvents, perio
         feeRate: numericOrNull(point.feeRate),
         tradeVolume: numericOrNull(point.tradeVolume),
         shortableShares: numericOrNull(point.shortableShares),
-        averageDuration: numericOrNull(point.averageDuration) ?? 0,
+        daysToCover: numericOrNull(point.daysToCover) ?? 0,
         utilization: numericOrNull(point.utilization) ?? 0,
       }))
       .sort((a, b) => a.date.localeCompare(b.date));
@@ -216,7 +216,7 @@ export function DashboardV2Chart({ data: sourceData, events: sourceEvents, perio
       .sort((a, b) => a.date.localeCompare(b.date));
   }, [data, sourceEvents]);
 
-  const availableMetrics = useMemo(() => seriesOrder.filter(key => key === 'averageDuration' || key === 'utilization' || hasMetricValue(allData, key)), [allData]);
+  const availableMetrics = useMemo(() => seriesOrder.filter(key => key === 'daysToCover' || key === 'utilization' || hasMetricValue(allData, key)), [allData]);
   const enabledKeys = availableMetrics.filter(key => enabledMetrics[key]);
   const activeMetric = hoveredMetric && enabledKeys.includes(hoveredMetric)
     ? hoveredMetric

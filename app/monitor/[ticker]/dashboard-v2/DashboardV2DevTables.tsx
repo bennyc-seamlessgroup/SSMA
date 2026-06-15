@@ -42,7 +42,7 @@ function ObjectTable({ data }: { data: Record<string, unknown> | null }) {
 }
 
 function TrendsTable({ trends }: { trends: Array<Record<string, unknown>> }) {
-  const columns = ['date', 'price', 'feeRate', 'tradeVolume', 'shortableShares', 'averageDuration', 'utilization', 'margin'];
+  const columns = ['date', 'price', 'feeRate', 'tradeVolume', 'shortableShares', 'daysToCover', 'utilization', 'margin'];
   return trends.length
     ? <ImportDataTable columns={columns} rows={toRows(trends, columns)} pageSize={25} />
     : <p className="page__desc import-empty">No trend records imported yet.</p>;

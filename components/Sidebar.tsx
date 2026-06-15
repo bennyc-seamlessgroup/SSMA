@@ -70,6 +70,7 @@ const pageImportSeenKeyPrefix = 'import-data-page-seen-version';
 const pageImportFiles: Record<string, string[]> = {
   'dashboard-v2': ['dashboard_v2_CURR_consolidated_4_web.json'],
   institutional: [
+    'institutional_ownership_CURR_consolidated_4_web.json',
     'fintel_security_ownership_premium_CURR_consolidated_4_web.json',
     'fintel_activist_filings_premium_CURR_consolidated_4_web.json',
   ],

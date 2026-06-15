@@ -36,8 +36,6 @@ The provided ORTEX source contains:
 The provided ORTEX source does **not** contain these Dashboard V2 fields:
 
 - `margin`
-- `utilization`
-- `averageDuration`
 - chart event markers
 
 Those fields are included in the output as `null` and listed under:
@@ -46,7 +44,11 @@ Those fields are included in the output as `null` and listed under:
 data.missingFromSource
 ```
 
-The backend should populate them later from the correct source if the Dashboard V2 UI should display those KPIs/lines.
+Important mapping update:
+
+- Dashboard V2 `utilization` should be populated from ORTEX `shortAvailabilityPct`.
+- Dashboard V2 `daysToCover` should be populated from ORTEX Days to Cover.
+- Only `margin` and chart event markers remain missing from the current ORTEX source.
 
 ## Target Output Shape
 
@@ -110,8 +112,8 @@ Required row shape:
   "feeRate": 31.31,
   "tradeVolume": 160949,
   "shortableShares": 2433471,
-  "averageDuration": null,
-  "utilization": null,
+  "daysToCover": 5.3431,
+  "utilization": 67.59,
   "margin": null,
   "sourceRecords": {}
 }
@@ -126,8 +128,8 @@ Required row shape:
 | `tradeVolume` | `[].records.closing_prices.volume` | Available |
 | `feeRate` | `[].records.ctb_all.costToBorrowAll` | Available |
 | `shortableShares` | `[].records.availability.shortAvailabilityShares` | Available |
-| `averageDuration` | N/A | Missing from source |
-| `utilization` | N/A | Missing from source |
+| `utilization` | `[].records.availability.shortAvailabilityPct` | Available. This is labeled `Utilization` in Dashboard V2, but sourced from ORTEX Short Availability %. |
+| `daysToCover` | `[].records.days_to_cover.daysToCover` or `[].records.daysToCover.daysToCover` depending on source normalization | Available. This is displayed as `Days to Cover` in Dashboard V2. |
 | `margin` | N/A | Missing from source |
 | `events` | N/A | Missing from source |
 
@@ -173,8 +175,8 @@ Output mapping:
 | `data.current.availableShares` | `latestRow.shortableShares` |
 | `data.current.tradeVolume` | `latestRow.tradeVolume` |
 | `data.current.margin` | `latestRow.margin`, currently `null` |
-| `data.current.averageDuration` | `latestRow.averageDuration`, currently `null` |
-| `data.current.utilization` | `latestRow.utilization`, currently `null` |
+| `data.current.daysToCover` | `latestRow.daysToCover`, populated from ORTEX Days to Cover |
+| `data.current.utilization` | `latestRow.utilization`, populated from ORTEX Short Availability % |
 
 ## 3. KPI Compare Periods
 
@@ -202,7 +204,7 @@ Each period should contain:
     "margin": {},
     "availableShares": {},
     "utilization": {},
-    "averageDuration": {}
+    "daysToCover": {}
   }
 }
 ```
@@ -275,8 +277,8 @@ When the source has limited history, use the earliest available row as the compa
 | `borrowFee` | `data.trends[].feeRate` | Available | `31.31%`, change in `pts` |
 | `availableShares` | `data.trends[].shortableShares` | Available | `2,433,471`, change in `shares` |
 | `margin` | `data.trends[].margin` | Missing | `N/A` until backend supplies |
-| `utilization` | `data.trends[].utilization` | Missing | `N/A` until backend supplies |
-| `averageDuration` | `data.trends[].averageDuration` | Missing | `N/A` until backend supplies |
+| `utilization` | `data.trends[].utilization` from ORTEX `shortAvailabilityPct` | Available | `67.59%`, change in `pts` |
+| `daysToCover` | `data.trends[].daysToCover` from ORTEX Days to Cover | Available | `5.34d`, change in `days` |
 
 ## 4. Chart Data
 
@@ -294,8 +296,8 @@ The Trend Overview chart can use:
 | Borrow Fee | `feeRate` | Available |
 | Trade Volume | `tradeVolume` | Available |
 | Shortable Shares | `shortableShares` | Available |
-| Average Duration | `averageDuration` | Missing |
-| Utilization | `utilization` | Missing |
+| Days to Cover | `daysToCover` from ORTEX Days to Cover | Available |
+| Utilization | `utilization` from ORTEX Short Availability % | Available |
 
 For the `1Y` chart selector, `data.trends[]` should include at least 365 previous days of rows ending at `data.current.date`. If the backend has trading-day-only data, provide all available trading days over the prior year. Do not provide only the latest few rows unless the file is clearly marked as a sample.
 
@@ -315,11 +317,11 @@ Expected shape:
     "feeRate",
     "tradeVolume",
     "shortableShares",
-    "averageDuration",
+    "daysToCover",
     "utilization"
   ],
   "bottomMetrics": ["tradeVolume", "shortableShares"],
-  "missingMetrics": ["averageDuration", "utilization"],
+  "missingMetrics": ["margin"],
   "ranges": {
     "1D": { "period": "1D", "data": [] },
     "5D": { "period": "5D", "data": [] },
@@ -358,8 +360,11 @@ Future event shape:
 
 ## Backend Notes
 
-- Do not invent values for `margin`, `utilization`, `averageDuration`, or events from this ORTEX file.
-- If another provider supplies those values, merge them into `data.trends[]` by `date`.
+- Do not invent values for `margin` or events from this ORTEX file.
+- Populate `utilization` from ORTEX short availability percent: `records.availability.shortAvailabilityPct`.
+- Populate `daysToCover` from ORTEX days to cover: `records.days_to_cover.daysToCover` or normalized `records.daysToCover.daysToCover`.
+- If another provider later supplies a different utilization-style metric, decide whether to add a new field name instead of silently changing this Dashboard V2 definition.
+- If another provider supplies missing values, merge them into `data.trends[]` by `date`.
 - Production should include at least 365 previous days of `data.trends[]` rows to support the `1Y` chart and `1Y` comparison period.
 - Keep raw chart values numeric.
 - Keep display strings only in derived fields ending with `Display`.
