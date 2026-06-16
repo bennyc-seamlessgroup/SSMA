@@ -9253,7 +9253,7 @@ html:not([data-dev-mode="true"]) .dev-source-inline {
   text-align: left;
   color: #6b7280;
   font-size: 11px;
-  font-weight: 800;
+  font-weight: 700;
   line-height: 1.2;
   white-space: normal;
   background: #fff;
@@ -9266,7 +9266,7 @@ html:not([data-dev-mode="true"]) .dev-source-inline {
 .security-cell,
 .investor-cell {
   color: #10251b;
-  font-weight: 700;
+  font-weight: 600;
   line-height: 1.25;
 }
 .security-cell strong,
@@ -9282,7 +9282,7 @@ html:not([data-dev-mode="true"]) .dev-source-inline {
   padding: 0 10px;
   color: #157f45;
   font-size: 11px;
-  font-weight: 900;
+  font-weight: 700;
   border-radius: 5px;
   border: 1px solid #cce8d5;
   background: #f2fbf5;
@@ -9479,6 +9479,14 @@ html:not([data-dev-mode="true"]) .dev-source-inline {
   padding-top: 0;
 }
 
+.institutional-update-note {
+  margin: -6px 0 16px;
+  color: #5f718b;
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1.45;
+}
+
 .institutional-overview {
   display: grid;
   gap: 16px;
@@ -9509,7 +9517,7 @@ html:not([data-dev-mode="true"]) .dev-source-inline {
 .institutional-chart-card__head span {
   color: #66758d;
   font-size: 11px;
-  font-weight: 900;
+  font-weight: 800;
   letter-spacing: .13em;
   text-transform: uppercase;
 }
@@ -9518,7 +9526,7 @@ html:not([data-dev-mode="true"]) .dev-source-inline {
   color: #061b31;
   font-size: clamp(23px, 2.5vw, 32px);
   line-height: 1;
-  font-weight: 950;
+  font-weight: 800;
   letter-spacing: 0;
 }
 
@@ -9526,7 +9534,7 @@ html:not([data-dev-mode="true"]) .dev-source-inline {
 .institutional-chart-card__head small {
   color: #49617d;
   font-size: 12px;
-  font-weight: 800;
+  font-weight: 600;
 }
 
 .institutional-overview__charts {
@@ -9549,10 +9557,10 @@ html:not([data-dev-mode="true"]) .dev-source-inline {
 }
 
 .institutional-donut-layout {
-  display: grid;
-  grid-template-columns: minmax(180px, 240px) minmax(0, 1fr);
+  display: flex;
+  flex-direction: column;
   align-items: center;
-  gap: 24px;
+  gap: 16px;
   min-width: 0;
 }
 
@@ -9580,17 +9588,19 @@ html:not([data-dev-mode="true"]) .dev-source-inline {
 
 .institutional-donut strong {
   font-size: 25px;
+  font-weight: 800;
   line-height: 1;
 }
 
 .institutional-donut span {
   color: #66758d;
   font-size: 11px;
-  font-weight: 900;
+  font-weight: 700;
 }
 
 .institutional-value-legend {
   display: grid;
+  width: 100%;
   min-width: 0;
 }
 
@@ -9612,7 +9622,7 @@ html:not([data-dev-mode="true"]) .dev-source-inline {
 .institutional-value-legend.interactive button {
   position: relative;
   display: grid;
-  grid-template-columns: minmax(0, 1fr) max-content max-content;
+  grid-template-columns: minmax(150px, 1fr) max-content max-content;
   align-items: center;
   gap: 10px;
   width: 100%;
@@ -9637,11 +9647,12 @@ html:not([data-dev-mode="true"]) .dev-source-inline {
   content: "";
   position: absolute;
   top: 50%;
-  right: -43px;
-  width: 42px;
+  right: -38px;
+  width: 38px;
   height: 2px;
   background: linear-gradient(90deg, #2f5bb8, rgba(47, 91, 184, 0));
   transform: translateY(-50%);
+  pointer-events: none;
 }
 
 .institutional-value-legend span {
@@ -9650,7 +9661,7 @@ html:not([data-dev-mode="true"]) .dev-source-inline {
   align-items: center;
   gap: 9px;
   color: #273951;
-  font-weight: 900;
+  font-weight: 700;
   overflow-wrap: anywhere;
 }
 
@@ -9663,7 +9674,7 @@ html:not([data-dev-mode="true"]) .dev-source-inline {
 
 .institutional-value-legend strong {
   color: #061b31;
-  font-weight: 950;
+  font-weight: 700;
   white-space: nowrap;
 }
 
@@ -9679,7 +9690,7 @@ html:not([data-dev-mode="true"]) .dev-source-inline {
   padding: 2px 8px;
   color: #64748d;
   font-size: 11px;
-  font-weight: 900;
+  font-weight: 700;
   line-height: 1.2;
   white-space: nowrap;
 }
@@ -9734,7 +9745,7 @@ html:not([data-dev-mode="true"]) .dev-source-inline {
   margin: 0;
   color: #405875;
   font-size: 13px;
-  font-weight: 750;
+  font-weight: 500;
   line-height: 1.45;
 }
 
@@ -9756,7 +9767,7 @@ html:not([data-dev-mode="true"]) .dev-source-inline {
   min-width: 0;
   color: #273951;
   font-size: 13px;
-  font-weight: 900;
+  font-weight: 700;
   overflow-wrap: anywhere;
 }
 
@@ -9779,7 +9790,7 @@ html:not([data-dev-mode="true"]) .dev-source-inline {
 .institutional-ranked-bars strong {
   color: #061b31;
   font-size: 13px;
-  font-weight: 950;
+  font-weight: 700;
   text-align: right;
   white-space: nowrap;
 }
@@ -9797,6 +9808,10 @@ html:not([data-dev-mode="true"]) .dev-source-inline {
 
   .institutional-overview__charts {
     grid-template-columns: 1fr;
+  }
+
+  .institutional-value-legend.interactive button.active::after {
+    display: none;
   }
 }
 
