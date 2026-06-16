@@ -4691,6 +4691,30 @@ html:not([data-dev-mode="true"]) .dev-source-inline {
   overflow: auto;
 }
 
+.float-v2-api-message {
+  margin: 0 0 14px;
+  border: 1px solid #dbe6f3;
+  border-radius: 10px;
+  background: #f8fbff;
+  color: #405875;
+  padding: 10px 12px;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.4;
+}
+
+.float-v2-api-message.success {
+  border-color: #bfe8cf;
+  background: #f0fbf4;
+  color: #116536;
+}
+
+.float-v2-api-message.error {
+  border-color: #ffd1d8;
+  background: #fff5f6;
+  color: #b4233b;
+}
+
 .float-v2-manual-list article {
   display: grid;
   grid-template-columns: minmax(150px, 1fr) 130px minmax(170px, .85fr) minmax(140px, .7fr) auto;

@@ -1,7 +1,8 @@
 'use client';
 
 import { InfoTooltip } from '@/components/InfoTooltip';
-import { useMemo, useState } from 'react';
+import { authenticatedFetch } from '@/lib/auth-client';
+import { useEffect, useMemo, useState } from 'react';
 import type { FloatAdjustments, InternalFloatV2UserInput, ManualHolding } from '@/lib/internal-float';
 
 type OwnershipData = {
@@ -30,6 +31,12 @@ const colors = ['#2453a6', '#0f8a6a', '#d89018', '#6f7bd9', '#8896a8', '#c2415b'
 const privateCategories = ['Founder', 'CEO', 'Management', 'Insider', 'Strategic Investor', 'Family Office', 'Long-Term Holder', 'Other'];
 const tokenizationProviderOptions = ['Securitize', 'xStocks', 'Ondo', 'bStocks'];
 const protocolOptions = ['Aave', 'Euler', 'Kamino', 'Morpho'];
+
+const userInputEndpoints: Record<Exclude<EditPanel, null>, string> = {
+  private: '/user-inputs/private-holdings',
+  tokenized: '/user-inputs/token-chains',
+  collateral: '/user-inputs/collateral-chains',
+};
 
 function numeric(value: unknown) {
   const parsed = typeof value === 'number' ? value : Number(String(value ?? '').replace(/[$,%]/g, '').replace(/,/g, ''));
@@ -186,9 +193,39 @@ export function InternalFloatV2Client({ initialHoldings, initialAdjustments, ini
   const [editPanel, setEditPanel] = useState<EditPanel>(null);
   const [ownership] = useState<OwnershipData>(() => seedOwnership(initialHoldings, initialAdjustments));
   const [privateHoldings, setPrivateHoldings] = useState<PrivateHolding[]>(() => initialUserInputs.privateHoldings);
-  const [custodyRows] = useState<CustodyRow[]>(() => initialUserInputs.custodyRows);
+  const [custodyRows, setCustodyRows] = useState<CustodyRow[]>(() => initialUserInputs.custodyRows);
   const [tokenChains, setTokenChains] = useState<TokenChain[]>(() => initialUserInputs.tokenChains);
   const [collateralChains, setCollateralChains] = useState<CollateralChain[]>(() => initialUserInputs.collateralChains);
+  const [apiStatus, setApiStatus] = useState<'idle' | 'loading' | 'saving' | 'saved' | 'error'>('idle');
+  const [apiMessage, setApiMessage] = useState('');
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadUserInputs() {
+      setApiStatus('loading');
+      try {
+        const data = await authenticatedFetch('/user-inputs') as InternalFloatV2UserInput;
+        if (cancelled) return;
+        if (Array.isArray(data.privateHoldings)) setPrivateHoldings(data.privateHoldings);
+        if (Array.isArray(data.custodyRows)) setCustodyRows(data.custodyRows);
+        if (Array.isArray(data.tokenChains)) setTokenChains(data.tokenChains);
+        if (Array.isArray(data.collateralChains)) setCollateralChains(data.collateralChains);
+        setApiStatus('idle');
+        setApiMessage('');
+      } catch (error) {
+        if (cancelled) return;
+        setApiStatus('error');
+        setApiMessage(error instanceof Error ? error.message : 'Unable to load user inputs from API.');
+      }
+    }
+
+    loadUserInputs();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const privateShares = privateHoldings.filter(row => row.includeInDeduction).reduce((sum, row) => sum + numeric(row.shares), 0);
   const tokenizedShares = tokenChains.reduce((sum, row) => sum + row.shares, 0);
@@ -244,6 +281,38 @@ export function InternalFloatV2Client({ initialHoldings, initialAdjustments, ini
     setCollateralChains(current => current.map(row => row.id === id ? { ...row, ...patch } : row));
   }
 
+  async function saveEditPanel() {
+    if (!editPanel) return;
+
+    const payload = editPanel === 'private'
+      ? privateHoldings
+      : editPanel === 'tokenized'
+        ? tokenChains
+        : collateralChains;
+
+    setApiStatus('saving');
+    setApiMessage('');
+
+    try {
+      const updated = await authenticatedFetch(userInputEndpoints[editPanel], {
+        method: 'PUT',
+        body: JSON.stringify(payload),
+      }) as InternalFloatV2UserInput;
+
+      if (Array.isArray(updated.privateHoldings)) setPrivateHoldings(updated.privateHoldings);
+      if (Array.isArray(updated.custodyRows)) setCustodyRows(updated.custodyRows);
+      if (Array.isArray(updated.tokenChains)) setTokenChains(updated.tokenChains);
+      if (Array.isArray(updated.collateralChains)) setCollateralChains(updated.collateralChains);
+
+      setApiStatus('saved');
+      setApiMessage('Saved. Institutional ownership consolidation will refresh shortly.');
+      setEditPanel(null);
+    } catch (error) {
+      setApiStatus('error');
+      setApiMessage(error instanceof Error ? error.message : 'Unable to save user inputs.');
+    }
+  }
+
   function renderEditModal() {
     if (!editPanel) return null;
 
@@ -263,6 +332,7 @@ export function InternalFloatV2Client({ initialHoldings, initialAdjustments, ini
             </div>
             <button className="icon-button" type="button" aria-label="Close edit modal" onClick={() => setEditPanel(null)}>x</button>
           </div>
+          {apiMessage && <p className={`float-v2-api-message ${apiStatus === 'error' ? 'error' : 'success'}`}>{apiMessage}</p>}
 
           {editPanel === 'private' && (
             <>
@@ -317,7 +387,10 @@ export function InternalFloatV2Client({ initialHoldings, initialAdjustments, ini
           )}
 
           <div className="modal-actions">
-            <button className="button primary" type="button" onClick={() => setEditPanel(null)}>Done</button>
+            <button className="button secondary" type="button" onClick={() => setEditPanel(null)} disabled={apiStatus === 'saving'}>Cancel</button>
+            <button className="button primary" type="button" onClick={saveEditPanel} disabled={apiStatus === 'saving'}>
+              {apiStatus === 'saving' ? 'Saving...' : 'Save Changes'}
+            </button>
           </div>
         </div>
       </div>
@@ -333,6 +406,9 @@ export function InternalFloatV2Client({ initialHoldings, initialAdjustments, ini
             <h2>Executive Summary</h2>
           </div>
         </div>
+        {apiStatus === 'loading' && <p className="float-v2-api-message">Loading saved user inputs...</p>}
+        {apiStatus === 'error' && apiMessage && !editPanel && <p className="float-v2-api-message error">{apiMessage}</p>}
+        {apiStatus === 'saved' && apiMessage && !editPanel && <p className="float-v2-api-message success">{apiMessage}</p>}
 
         <div className="float-v2-kpis">
           <div className="terminal-card terminal-stat"><span>Shares Outstanding</span><strong>{formatNumber(ownership.sharesOutstanding)}</strong><small>Total issued share base</small></div>
