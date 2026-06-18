@@ -160,6 +160,310 @@ body { min-height: 100vh; }
   background: rgba(2, 8, 20, .18);
 }
 
+.report-archive-page {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.report-archive-summary {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: stretch;
+  gap: 16px;
+  padding: 20px;
+  border: 1px solid #cfe0f3;
+  border-radius: 16px;
+  background: linear-gradient(135deg, #ffffff 0%, #f7fbff 68%, #eef6ff 100%);
+  box-shadow: 0 18px 48px rgba(15, 23, 42, .05);
+}
+
+.report-archive-summary__copy {
+  min-width: 0;
+}
+
+.report-archive-kicker {
+  display: inline-flex;
+  color: #2457b8;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: .16em;
+  text-transform: uppercase;
+}
+
+.report-archive-summary h2 {
+  margin: 6px 0 8px;
+  color: #061b31;
+  font-size: 24px;
+  line-height: 1.15;
+}
+
+.report-archive-summary p {
+  max-width: 760px;
+  margin: 0;
+  color: #445c7c;
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+.report-archive-summary__stats {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(92px, 1fr));
+  gap: 10px;
+}
+
+.report-archive-summary__stats div {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  justify-content: center;
+  gap: 4px;
+  padding: 14px;
+  border: 1px solid #d7e5f5;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, .78);
+}
+
+.report-archive-summary__stats span,
+.report-window-card__head span,
+.report-window-card__latest span,
+.report-history-group__label span {
+  color: #6a7d9a;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+}
+
+.report-archive-summary__stats strong {
+  color: #061b31;
+  font-size: 22px;
+  line-height: 1.1;
+  white-space: nowrap;
+}
+
+.report-window-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.report-window-card {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 14px;
+  padding: 18px;
+  border: 1px solid #cfe0f3;
+  border-radius: 16px;
+  background: #ffffff;
+  box-shadow: 0 16px 40px rgba(15, 23, 42, .045);
+}
+
+.report-window-card__head,
+.report-window-card__actions,
+.report-history-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.report-window-card__head h2 {
+  margin: 4px 0 0;
+  color: #061b31;
+  font-size: 18px;
+  line-height: 1.2;
+}
+
+.report-window-card__head strong {
+  flex: 0 0 auto;
+  padding: 7px 10px;
+  border-radius: 999px;
+  background: #eaf3ff;
+  color: #2457b8;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.report-window-card p {
+  min-height: 66px;
+  margin: 0;
+  color: #445c7c;
+  font-size: 13px;
+  line-height: 1.55;
+}
+
+.report-window-card__latest {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 4px;
+  padding: 12px;
+  border: 1px solid #e1ebf7;
+  border-radius: 12px;
+  background: #f8fbff;
+}
+
+.report-window-card__latest strong {
+  color: #061b31;
+  font-size: 14px;
+  line-height: 1.35;
+}
+
+.report-window-card__latest small,
+.report-history-row small,
+.report-window-card__actions span {
+  color: #6a7d9a;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.report-history-panel {
+  padding: 18px;
+}
+
+.report-history-head {
+  align-items: flex-start;
+}
+
+.report-history-head > span {
+  flex: 0 0 auto;
+  color: #6a7d9a;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.report-history-toolbar {
+  display: grid;
+  grid-template-columns: minmax(240px, 1fr) auto;
+  gap: 12px;
+  margin: 0 0 16px;
+}
+
+.report-history-toolbar .input {
+  min-height: 42px;
+  border-color: #d7e5f5;
+  background: #f8fbff;
+  color: #061b31;
+}
+
+.report-history-filter {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.report-history-filter button {
+  min-height: 42px;
+  padding: 0 14px;
+  border: 1px solid #bfd5f0;
+  border-radius: 10px;
+  background: #ffffff;
+  color: #2457b8;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.report-history-filter button.active {
+  border-color: #2457b8;
+  background: #2457b8;
+  color: #ffffff;
+}
+
+.report-history-list {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.report-history-group {
+  display: grid;
+  grid-template-columns: 180px minmax(0, 1fr);
+  gap: 14px;
+  padding-top: 14px;
+  border-top: 1px solid #e1ebf7;
+}
+
+.report-history-group:first-child {
+  padding-top: 0;
+  border-top: 0;
+}
+
+.report-history-group__label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.report-history-group__label strong {
+  color: #061b31;
+  font-size: 15px;
+}
+
+.report-history-group__rows {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.report-history-row {
+  min-width: 0;
+  padding: 12px 14px;
+  border: 1px solid #e1ebf7;
+  border-radius: 12px;
+  background: #f8fbff;
+  color: inherit;
+  text-decoration: none;
+  transition: border-color .18s ease, box-shadow .18s ease, transform .18s ease;
+}
+
+.report-history-row:hover {
+  border-color: #9fc2f3;
+  box-shadow: 0 10px 24px rgba(37, 99, 235, .1);
+  transform: translateY(-1px);
+}
+
+.report-history-row span {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.report-history-row strong {
+  overflow: hidden;
+  color: #061b31;
+  font-size: 14px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.report-history-row em {
+  flex: 0 0 auto;
+  color: #2457b8;
+  font-size: 12px;
+  font-style: normal;
+  font-weight: 800;
+}
+
+.report-history-empty {
+  padding: 20px;
+  border: 1px dashed #bfd5f0;
+  border-radius: 12px;
+  background: #f8fbff;
+  color: #6a7d9a;
+  font-weight: 700;
+  text-align: center;
+}
+
+.report-history-pagination {
+  margin-top: 18px;
+}
+
 .mini-stats { display:flex; gap: 8px; flex-wrap: wrap; }
 
 .input { background: rgba(4,10,20,.6); }
@@ -169,6 +473,43 @@ body { min-height: 100vh; }
 @media (max-width: 760px) {
   .landing { padding: 18px 14px 48px; }
   .portal-grid.cols-2, .portal-grid.cols-3 { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 1100px) {
+  .report-archive-summary,
+  .report-window-grid,
+  .report-history-group {
+    grid-template-columns: 1fr;
+  }
+
+  .report-archive-summary__stats {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .report-window-card p {
+    min-height: 0;
+  }
+}
+
+@media (max-width: 680px) {
+  .report-archive-summary__stats {
+    grid-template-columns: 1fr;
+  }
+
+  .report-history-toolbar {
+    grid-template-columns: 1fr;
+  }
+
+  .report-window-card__head,
+  .report-window-card__actions,
+  .report-history-row {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .report-history-row strong {
+    white-space: normal;
+  }
 }
 
 /* SaaS marketing + portal redesign */

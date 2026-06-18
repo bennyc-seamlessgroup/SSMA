@@ -1,0 +1,304 @@
+@page {
+  size: A4;
+  margin: 0;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: #eaf0f8;
+  color: #081d35;
+  font-family: Inter, Arial, sans-serif;
+}
+
+.page {
+  width: 210mm;
+  height: 297mm;
+  margin: 0 auto;
+  background: #fff;
+  page-break-after: always;
+  position: relative;
+  overflow: hidden;
+  padding: 17mm 16mm;
+}
+
+.cover {
+  background: linear-gradient(135deg, #071426, #12355f);
+  color: #fff;
+}
+
+.brand {
+  color: #d7b54a;
+  letter-spacing: 6px;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.cover h1 {
+  font-size: 39px;
+  line-height: 1.05;
+  margin: 58px 0 16px;
+}
+
+.sub {
+  font-size: 16px;
+  line-height: 1.5;
+  color: #d7e2f1;
+  max-width: 650px;
+}
+
+.coverbox {
+  position: absolute;
+  left: 16mm;
+  right: 16mm;
+  bottom: 28mm;
+  border: 1px solid rgba(255, 255, 255, .18);
+  border-radius: 18px;
+  padding: 22px;
+  background: rgba(255, 255, 255, .07);
+  display: grid;
+  grid-template-columns: 1.4fr 1fr;
+  gap: 16px;
+}
+
+.footer {
+  position: absolute;
+  left: 16mm;
+  right: 16mm;
+  bottom: 8mm;
+  display: flex;
+  justify-content: space-between;
+  color: #7d8aa0;
+  font-size: 10px;
+}
+
+.cover .footer {
+  color: #b9c9df;
+}
+
+.kicker {
+  color: #2457b8;
+  letter-spacing: 3px;
+  font-size: 11px;
+  font-weight: 900;
+  text-transform: uppercase;
+  margin: 0 0 7px;
+}
+
+.title {
+  font-size: 25px;
+  margin: 0;
+  color: #081d35;
+}
+
+.top {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 15px;
+}
+
+.badge {
+  background: #fff2cb;
+  color: #7a5200;
+  border: 1px solid #e5c55f;
+  border-radius: 999px;
+  padding: 7px 11px;
+  font-size: 11px;
+  font-weight: 900;
+}
+
+.grid {
+  display: grid;
+  gap: 11px;
+}
+
+.grid2 {
+  grid-template-columns: 1fr 1fr;
+}
+
+.grid3 {
+  grid-template-columns: repeat(3, 1fr);
+}
+
+.card {
+  border: 1px solid #d9e4f2;
+  border-radius: 14px;
+  background: #fff;
+  padding: 14px;
+  margin-bottom: 12px;
+}
+
+.kpi .label {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 1.8px;
+  color: #63728a;
+  font-weight: 900;
+}
+
+.kpi .value {
+  font-size: 23px;
+  font-weight: 900;
+  margin: 8px 0 3px;
+}
+
+.kpi .delta {
+  font-size: 11px;
+  color: #49617f;
+  font-weight: 700;
+}
+
+.alert {
+  display: flex;
+  gap: 9px;
+  border-bottom: 1px solid #eef3f9;
+  padding: 8px 0;
+  font-size: 13px;
+  line-height: 1.35;
+}
+
+.alert:last-child {
+  border-bottom: 0;
+}
+
+.dot {
+  width: 21px;
+  height: 21px;
+  border-radius: 50%;
+  background: #2457b8;
+  color: #fff;
+  font-size: 11px;
+  font-weight: 900;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+}
+
+.summary {
+  font-size: 13px;
+  line-height: 1.55;
+  color: #233b5c;
+}
+
+.pending {
+  display: inline-block;
+  margin-bottom: 9px;
+  border-radius: 999px;
+  background: #fff2cb;
+  border: 1px solid #e5c55f;
+  color: #7a5200;
+  font-size: 10px;
+  font-weight: 900;
+  letter-spacing: 1px;
+  padding: 5px 9px;
+}
+
+.chart-card {
+  padding: 10px;
+}
+
+.chart {
+  width: 100%;
+  height: 220px;
+  display: block;
+}
+
+.chart-title {
+  font-size: 13px;
+  font-weight: 800;
+  fill: #081d35;
+}
+
+.chart-subtitle,
+.axis-label {
+  font-size: 10px;
+  fill: #6a778b;
+  font-weight: 700;
+}
+
+.chart-latest {
+  font-size: 12px;
+  fill: #2457b8;
+  font-weight: 900;
+}
+
+.gridline {
+  stroke: #e7edf5;
+  stroke-width: 1;
+}
+
+.axis {
+  stroke: #c8d4e4;
+  stroke-width: 1.2;
+}
+
+.chart-line {
+  fill: none;
+  stroke-width: 3.2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.empty-chart {
+  height: 220px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #7d8aa0;
+  background: #f7f9fc;
+  border-radius: 10px;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+
+.table th {
+  text-align: left;
+  font-size: 10px;
+  color: #61728b;
+  background: #f4f7fb;
+  padding: 8px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.table td {
+  padding: 9px 8px;
+  border-bottom: 1px solid #edf2f8;
+}
+
+.small {
+  font-size: 12px;
+  color: #536780;
+  line-height: 1.45;
+}
+
+.note {
+  background: #f8f2dc;
+  border-left: 4px solid #d7b54a;
+  border-radius: 10px;
+  padding: 11px 12px;
+  font-size: 12px;
+  line-height: 1.45;
+  color: #403507;
+}
+
+.toc {
+  margin-top: 38px;
+}
+
+.toc div {
+  display: flex;
+  justify-content: space-between;
+  border-bottom: 1px solid rgba(255, 255, 255, .18);
+  padding: 12px 0;
+  color: #d7e2f1;
+}

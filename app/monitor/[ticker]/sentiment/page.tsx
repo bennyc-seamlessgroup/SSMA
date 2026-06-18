@@ -1,5 +1,5 @@
 import { InfoTooltip } from '@/components/InfoTooltip';
-import { readImportFile, readLocalImportText } from '@/lib/import-data';
+import { readImportJson, readLocalImportText } from '@/lib/import-data';
 import type { ReactNode } from 'react';
 import { MentionFeedCards, type MentionFeedRow } from './MentionFeedCards';
 
@@ -33,12 +33,15 @@ function asArray(value: unknown): AdanosMention[] {
   if (value && typeof value === 'object' && Array.isArray((value as { data?: unknown }).data)) {
     return (value as { data: AdanosMention[] }).data;
   }
+  if (value && typeof value === 'object' && Array.isArray((value as { mentions?: unknown }).mentions)) {
+    return (value as { mentions: AdanosMention[] }).mentions;
+  }
   return [];
 }
 
 async function readAdanosFeed(relativePath: string) {
   try {
-    return asArray(await readImportFile<AdanosMention[]>(relativePath));
+    return asArray(await readImportJson<AdanosMention[] | { data?: AdanosMention[]; mentions?: AdanosMention[] }>(relativePath));
   } catch (error) {
     console.error(`Narrative feed read failed for ${relativePath}; using bundled fallback.`, error);
     return asArray(JSON.parse(readLocalImportText(relativePath)));
@@ -198,8 +201,8 @@ export default async function SentimentPage() {
         <div>
           <h1 className="page__title">Sentiment & Narrative Intelligence</h1>
           <p className="page__desc">Reddit and X mention scan with source posts, sentiment scores, and engagement signals.</p>
-          <span className="import-file-tag">import_data/adanos-reddit_CURR_consolidated_4_web.json</span>
-          <span className="import-file-tag">import_data/adanos-x_CURR_consolidated_4_web.json</span>
+          <span className="import-file-tag">adanos-reddit_CURR_consolidated_4_web.json</span>
+          <span className="import-file-tag">adanos-x_CURR_consolidated_4_web.json</span>
         </div>
       </div>
 

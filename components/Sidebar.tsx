@@ -19,8 +19,7 @@ const groups = [
       ['Narrative', 'sentiment'],
       ['SEC Filings', 'event-calendar'],
       ['Price Scenarios', 'price-scenario'],
-      ['Market Defense', 'market-defense'],
-      ['Premium', 'premium-intelligence'],
+      ['Report Archive', 'reports'],
     ],
   },
   {
@@ -36,13 +35,14 @@ const groups = [
       ['Shareholder Watch', 'shareholder-watch'],
       ['Options / Gamma', 'options'],
       ['Peer Comparison', 'peer-comparison'],
+      ['Market Defense', 'market-defense'],
+      ['Premium', 'premium-intelligence'],
     ],
   },
   {
     label: 'AI Reports',
     muted: true,
     items: [
-      ['Archive', 'reports'],
       ['Daily Brief', 'daily-brief'],
       ['Ownership Report', 'ownership-report'],
       ['Short Interest Report', 'short-interest-report'],
@@ -256,7 +256,7 @@ export function Sidebar({
         <span className="brand-mark">CI</span>
         <span className="portal-brand__text">
           <strong>Currenc Intelligence</strong>
-          <small>Short Squeeze Monitoring &amp; Analysis</small>
+          <small>Short Monitoring &amp; Analysis</small>
         </span>
       </Link>
 

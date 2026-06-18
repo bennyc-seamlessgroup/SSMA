@@ -1,93 +1,110 @@
-import { ImportDataTable } from '@/components/ImportDataTable';
-import { InfoTooltip } from '@/components/InfoTooltip';
-import { SettingsBackLink } from '@/components/SettingsBackLink';
 import { buildDashboard } from '@/lib/mock-data';
+import type { ReportRecord } from '@/lib/types';
+import { ReportArchiveHistory } from './ReportArchiveHistory';
+
+const reportWindowMeta: Record<ReportRecord['report_type'], { label: string; shortLabel: string; description: string; tone: string }> = {
+  '8AM': {
+    label: 'Pre-Market Brief',
+    shortLabel: '8:00 AM',
+    description: 'Opening risk, overnight changes, and management talking points before the market opens.',
+    tone: 'Morning',
+  },
+  '1150AM': {
+    label: 'Midday Flow Report',
+    shortLabel: '11:50 AM',
+    description: 'Intraday trading flow, pressure changes, and items to monitor into the close.',
+    tone: 'Midday',
+  },
+  '7PM': {
+    label: 'Post-Market Digest',
+    shortLabel: '7:00 PM',
+    description: 'Closing summary, escalation items, and next-session watchlist for executives.',
+    tone: 'Close',
+  },
+};
 
 function formatDate(value: string) {
   return new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' }).format(new Date(value));
+}
+
+function formatReportDate(value: string) {
+  return new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric', year: 'numeric' }).format(new Date(value));
 }
 
 export default async function ReportsArchivePage({ params }: Readonly<{ params: Promise<{ ticker: string }> }>) {
   const { ticker } = await params;
   const normalizedTicker = ticker?.toUpperCase() ?? 'CURR';
   const { company, reports } = buildDashboard(normalizedTicker);
-  const tableRows = reports.map(report => ({
-    report: report.title,
-    window: report.report_time,
-    reportType: report.report_type,
-    generated: formatDate(report.generated_at),
-    status: 'Sent',
-    download: `/api/reports/archive/${company.ticker}/${report.report_type}`,
-  }));
+  const reportGroups = (['8AM', '1150AM', '7PM'] as const)
+    .map(type => ({
+      type,
+      meta: reportWindowMeta[type],
+      reports: reports
+        .filter(report => report.report_type === type)
+        .sort((a, b) => new Date(b.generated_at).getTime() - new Date(a.generated_at).getTime()),
+    }))
+    .filter(group => group.reports.length > 0);
+  const latestReport = [...reports].sort((a, b) => new Date(b.generated_at).getTime() - new Date(a.generated_at).getTime())[0];
 
   return (
-    <div className="page">
-      <div className="page__header">
+    <div className="page report-archive-page">
+      <div className="page__header dashboard-command-header">
         <div>
           <h1 className="page__title">Report Archive</h1>
-          <p className="page__desc">Review generated intelligence reports, download PDFs, and confirm archive coverage for {company.ticker}.</p>
+          <p className="page__desc">Search and download generated daily intelligence reports for {company.ticker}.</p>
         </div>
-        <SettingsBackLink ticker={company.ticker} />
       </div>
 
-      <section className="grid cols-4">
-        <div className="metric">
-          <div className="metric__label with-info">Archived reports <InfoTooltip text="Number of reports currently available in the workspace archive." /></div>
-          <div className="metric__value">{reports.length}</div>
-          <div className="metric__note">available downloads</div>
+      <section className="report-archive-summary">
+        <div className="report-archive-summary__copy">
+          <span className="report-archive-kicker">Report History</span>
+          <h2>Daily reports grouped by delivery window</h2>
+          <p>Use the grouped cards to find the right daily report quickly, then download the archived PDF from the matching window.</p>
         </div>
-        <div className="metric">
-          <div className="metric__label with-info">Daily windows <InfoTooltip text="Scheduled report windows that can generate recurring intelligence reports." /></div>
-          <div className="metric__value">3</div>
-          <div className="metric__note">pre-market, midday, post-market</div>
-        </div>
-        <div className="metric">
-          <div className="metric__label with-info">Retention <InfoTooltip text="How long generated reports remain available for audit, review, and client delivery records." /></div>
-          <div className="metric__value">12 mo</div>
-          <div className="metric__note">workspace policy</div>
-        </div>
-        <div className="metric">
-          <div className="metric__label with-info">Formats <InfoTooltip text="Export formats currently supported by the report archive." /></div>
-          <div className="metric__value">PDF</div>
-          <div className="metric__note">downloadable report files</div>
+        <div className="report-archive-summary__stats" aria-label="Report archive summary">
+          <div>
+            <span>Reports</span>
+            <strong>{reports.length}</strong>
+          </div>
+          <div>
+            <span>Daily windows</span>
+            <strong>3</strong>
+          </div>
+          <div>
+            <span>Latest</span>
+            <strong>{latestReport ? formatReportDate(latestReport.generated_at) : 'N/A'}</strong>
+          </div>
         </div>
       </section>
 
-      <section className="panel">
-        <div className="section__head">
-          <h2 className="panel__title with-info">
-            Report History
-            <InfoTooltip text="Search, sort, and download previously generated reports for this company workspace." />
-          </h2>
-        </div>
-        <ImportDataTable
-          columns={['report', 'window', 'reportType', 'generated', 'status', 'download']}
-          rows={tableRows}
-        />
+      <section className="report-window-grid" aria-label="Daily report windows">
+        {reportGroups.map(group => {
+          const primaryReport = group.reports[0];
+          return (
+            <article className="report-window-card" key={group.type}>
+              <div className="report-window-card__head">
+                <div>
+                  <span>{group.meta.tone}</span>
+                  <h2>{group.meta.label}</h2>
+                </div>
+                <strong>{group.meta.shortLabel}</strong>
+              </div>
+              <p>{group.meta.description}</p>
+              <div className="report-window-card__latest">
+                <span>Latest report</span>
+                <strong>{primaryReport.title}</strong>
+                <small>{formatDate(primaryReport.generated_at)}</small>
+              </div>
+              <div className="report-window-card__actions">
+                <a className="button secondary" href={`/api/reports/archive/${company.ticker}/${group.type}`}>Download latest</a>
+                <span>{group.reports.length} archived</span>
+              </div>
+            </article>
+          );
+        })}
       </section>
 
-      <section className="grid cols-2">
-        <div className="panel">
-          <div className="section__head">
-            <h2 className="panel__title with-info">Archive Policy <InfoTooltip text="Rules that determine report retention, supported file formats, and audit traceability." /></h2>
-          </div>
-          <div className="section-list">
-            <div className="section"><strong>Retention period</strong><p className="page__desc">Reports are retained for 12 months in this demo workspace.</p></div>
-            <div className="section"><strong>Audit trail</strong><p className="page__desc">Generated timestamp, report window, status, and download route are stored with each archive item.</p></div>
-            <div className="section"><strong>Future connector</strong><p className="page__desc">Generated report metadata can later be written into <span className="import-file-tag">import_data/reports</span>.</p></div>
-          </div>
-        </div>
-        <div className="panel">
-          <div className="section__head">
-            <h2 className="panel__title with-info">Operations <InfoTooltip text="Workflow controls for report export, sharing, and operational review." /></h2>
-          </div>
-          <div className="section-list">
-            <div className="section"><strong>CSV export</strong><p className="page__desc">Planned for operations and finance reporting.</p></div>
-            <div className="section"><strong>Secure sharing</strong><p className="page__desc">Planned for internal executive and IR team review.</p></div>
-            <div className="section"><strong>Approval workflow</strong><p className="page__desc">Reports can be aligned with delivery approval settings before sending.</p></div>
-          </div>
-        </div>
-      </section>
+      <ReportArchiveHistory ticker={company.ticker} reports={reports} reportWindowMeta={reportWindowMeta} />
     </div>
   );
 }

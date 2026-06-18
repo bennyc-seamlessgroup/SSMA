@@ -127,7 +127,7 @@ export default function LandingPage() {
       <section className="defense-hero">
         <div className="hero-copy defense-hero__copy">
           <div className="eyebrow">Listed-company market defense intelligence</div>
-          <h1>AI-Powered Short Squeeze Monitoring & Market Defense for Public Companies</h1>
+          <h1>AI-Powered Short Monitoring & Market Defense for Public Companies</h1>
           <p>
             Monitor short pressure, borrow cost, institutional behavior, and social sentiment -
             then turn fragmented market data into executive-ready reports delivered three times daily.
@@ -144,7 +144,7 @@ export default function LandingPage() {
           </div>
         </div>
 
-        <div className="defense-dashboard" aria-label="Short squeeze monitoring dashboard preview">
+        <div className="defense-dashboard" aria-label="Short monitoring dashboard preview">
           <div className="defense-dashboard__topbar">
             <div>
               <span>CURR / NASDAQ</span>
