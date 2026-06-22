@@ -65,8 +65,8 @@ function formatNumber(value: unknown, options?: Intl.NumberFormatOptions) {
 function compact(value: unknown) {
   const numeric = typeof value === 'number' ? value : Number(value);
   if (!Number.isFinite(numeric)) return 'N/A';
-  if (Math.abs(numeric) >= 1_000_000) return `${(numeric / 1_000_000).toLocaleString('en-US', { maximumFractionDigits: 1 })}M`;
-  if (Math.abs(numeric) >= 1_000) return `${(numeric / 1_000).toLocaleString('en-US', { maximumFractionDigits: 1 })}K`;
+  if (Math.abs(numeric) >= 1_000_000) return `${(numeric / 1_000_000).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}M`;
+  if (Math.abs(numeric) >= 1_000) return `${(numeric / 1_000).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}K`;
   return formatNumber(numeric);
 }
 

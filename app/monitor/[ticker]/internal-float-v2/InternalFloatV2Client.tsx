@@ -55,7 +55,7 @@ function formatNumber(value: unknown, options?: Intl.NumberFormatOptions) {
 }
 
 function compact(value: number) {
-  return value.toLocaleString('en-US', { notation: 'compact', maximumFractionDigits: 1 });
+  return value.toLocaleString('en-US', { notation: 'compact', minimumFractionDigits: Math.abs(value) >= 1_000 ? 2 : 0, maximumFractionDigits: Math.abs(value) >= 1_000 ? 2 : 0 });
 }
 
 function pct(part: number, total: number) {
