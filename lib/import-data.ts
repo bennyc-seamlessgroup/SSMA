@@ -546,7 +546,7 @@ export async function buildImportDashboard() {
     readImportFile('options/put_call_ratio.json'),
     readImportFile('options/gamma_exposure.json'),
     readImportFile('options/expiration_wall.json'),
-    readImportFile('news_filings/sec_filings.json'),
+    readImportFile('news_filings/CURR_sec_filings.json'),
     readImportFile('alerts/alerts.json'),
     readImportFile('price/technical_summary.json'),
   ]);

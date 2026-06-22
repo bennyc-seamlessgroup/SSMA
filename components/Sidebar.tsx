@@ -77,7 +77,7 @@ const pageImportFiles: Record<string, string[]> = {
   'short-interest': ['ortex_CURR_consolidated_4_web.json'],
   'lending-pressure': ['lending_pressure_CURR_consolidated_4_web.json'],
   sentiment: ['adanos-reddit_CURR_consolidated_4_web.json', 'adanos-x_CURR_consolidated_4_web.json'],
-  'event-calendar': ['news_filings/sec_filings.json'],
+  'event-calendar': ['news_filings/CURR_sec_filings.json'],
 };
 
 type ImportFileStatus = {
@@ -280,6 +280,7 @@ export function Sidebar({
               {showDevelopmentDivider && (
                 <>
                   <DevModeToggle />
+                  <Link className="portal-backend-link dev-only" href="/operations/sec-filings">Backend Portal</Link>
                   <div className="portal-sidebar__dev-divider dev-only">Development use only</div>
                 </>
               )}

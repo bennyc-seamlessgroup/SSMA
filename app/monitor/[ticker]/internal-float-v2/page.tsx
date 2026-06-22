@@ -1,7 +1,8 @@
 import { ImportDataTable } from '@/components/ImportDataTable';
+import { readImportFile } from '@/lib/import-data';
 import { calculateFloatAdjustments, readInternalFloatInputs, readInternalFloatV2UserInputs, type FloatAdjustments, type InternalFloatV2UserInput } from '@/lib/internal-float';
 import { formatImportDataUpdatedAt, getImportDataVersion } from '@/lib/import-data-version';
-import { InternalFloatV2Client } from './InternalFloatV2Client';
+import { InternalFloatV2Client, type InstitutionalOwnershipOverview } from './InternalFloatV2Client';
 
 function formatTableValue(value: unknown) {
   if (typeof value === 'number') return value.toLocaleString('en-US');
@@ -27,7 +28,7 @@ function buildUserInputRows(userInputs: InternalFloatV2UserInput) {
     });
   };
 
-  pushRows('Private / Strategic Holdings', userInputs.privateHoldings);
+  pushRows('Management / Strategic Holdings', userInputs.privateHoldings);
   pushRows('Traditional Custody Rows', userInputs.custodyRows);
   pushRows('Tokenized Chains & Providers', userInputs.tokenChains);
   pushRows('Collateralized Chains & Protocols', userInputs.collateralChains);
@@ -37,10 +38,11 @@ function buildUserInputRows(userInputs: InternalFloatV2UserInput) {
 export default async function InternalFloatV2Page() {
   const holdingsEnvelope = await readInternalFloatInputs();
   const holdings = holdingsEnvelope.data;
-  const [adjustments, v2UserInputs, importDataVersion] = await Promise.all([
+  const [adjustments, v2UserInputs, importDataVersion, institutionalOwnershipEnvelope] = await Promise.all([
     calculateFloatAdjustments(holdings) as Promise<FloatAdjustments>,
     readInternalFloatV2UserInputs(),
     getImportDataVersion(),
+    readImportFile<{ overview?: InstitutionalOwnershipOverview }>('institutional_ownership_CURR_consolidated_4_web.json'),
   ]);
   const devRows = buildUserInputRows(v2UserInputs);
 
@@ -64,12 +66,17 @@ export default async function InternalFloatV2Page() {
         <strong><span aria-hidden="true">💡</span> Tips</strong>
         <ul>
           <li>Start with official shares outstanding and public float.</li>
-          <li>Add private / strategic holdings, tokenized shares, and collateralized shares.</li>
+          <li>Add management / strategic holdings, tokenized shares, and collateralized shares.</li>
           <li>Use each section&apos;s Edit button to test assumptions and update real tradable float instantly.</li>
         </ul>
       </section>
 
-      <InternalFloatV2Client initialHoldings={holdings} initialAdjustments={adjustments} initialUserInputs={v2UserInputs} />
+      <InternalFloatV2Client
+        initialHoldings={holdings}
+        initialAdjustments={adjustments}
+        initialUserInputs={v2UserInputs}
+        institutionalOverview={institutionalOwnershipEnvelope.data.overview}
+      />
 
       <section className="terminal-section import-data-dev-panel">
         <div className="terminal-section__head">

@@ -127,7 +127,7 @@ export function InstitutionalDevTables({
     },
     {
       id: 'security-ownership',
-      title: 'Security Ownership',
+      title: 'Security Ownership History',
       file: securityFile,
       sourcePlatform: 'Fintel Premium',
       recordCount: securityRows.length,
@@ -149,7 +149,7 @@ export function InstitutionalDevTables({
         <div>
           <span>Development Data</span>
           <h2>Institutional Ownership Import Tables</h2>
-          <p className="section-subtitle">Backend-derived overview fields plus raw records from the Fintel ownership and activist filing import files.</p>
+          <p className="section-subtitle">Backend-derived chart fields plus raw historical ownership and activist filing records used by this page.</p>
           <span className="import-file-tag">{overviewFile}</span>
           <span className="import-file-tag">{securityFile}</span>
           <span className="import-file-tag">{activistFile}</span>

@@ -77,7 +77,7 @@ options/gamma_exposure.json
 options/expiration_wall.json
 alerts/alerts.json
 news_filings/news.json
-news_filings/sec_filings.json
+news_filings/CURR_sec_filings.json
 sentiment/social_mentions.json
 internal_float/float_adjustments.json
 reports/dashboard_metrics.json

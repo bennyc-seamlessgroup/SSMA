@@ -12,6 +12,13 @@ type OwnershipData = {
   publicFloat: number;
 };
 
+export type InstitutionalOwnershipOverview = {
+  shares_outstanding?: number | string | null;
+  public_float_shares?: number | string | null;
+  institutional_shares_long?: number | string | null;
+  insider_shares_long?: number | string | null;
+};
+
 type PrivateHolding = {
   id: string;
   holderName: string;
@@ -63,13 +70,13 @@ function id(prefix: string) {
   return `${prefix}-${Date.now()}-${Math.random().toString(16).slice(2)}`;
 }
 
-function seedOwnership(holdings: ManualHolding[], adjustments: FloatAdjustments): OwnershipData {
+function seedOwnership(holdings: ManualHolding[], adjustments: FloatAdjustments, institutionalOverview?: InstitutionalOwnershipOverview): OwnershipData {
   const insiderTypes = new Set(['CEO', 'CFO', 'Founder', 'Director', 'Management', 'Affiliated Entity']);
   const institutionTypes = new Set(['Major Shareholder', 'Strategic Investor', 'Friendly Holder', 'Friendly Long-Term Holder']);
-  const sharesOutstanding = numeric(adjustments.officialSharesOutstanding) || 58030000;
-  const publicFloat = numeric(adjustments.officialFreeFloat) || 32664808;
-  const insiderShares = holdings.filter(row => insiderTypes.has(row.holderType)).reduce((sum, row) => sum + numeric(row.numberOfShares), 0) || 15000000;
-  const institutionShares = holdings.filter(row => institutionTypes.has(row.holderType)).reduce((sum, row) => sum + numeric(row.numberOfShares), 0) || 10000000;
+  const sharesOutstanding = numeric(institutionalOverview?.shares_outstanding) || numeric(adjustments.officialSharesOutstanding) || 58030000;
+  const publicFloat = numeric(institutionalOverview?.public_float_shares) || numeric(adjustments.officialFreeFloat) || 32664808;
+  const insiderShares = numeric(institutionalOverview?.insider_shares_long) || holdings.filter(row => insiderTypes.has(row.holderType)).reduce((sum, row) => sum + numeric(row.numberOfShares), 0) || 15000000;
+  const institutionShares = numeric(institutionalOverview?.institutional_shares_long) || holdings.filter(row => institutionTypes.has(row.holderType)).reduce((sum, row) => sum + numeric(row.numberOfShares), 0) || 10000000;
   return { sharesOutstanding, insiderShares, institutionShares, publicFloat };
 }
 
@@ -85,7 +92,7 @@ function seedPrivateHoldings(holdings: ManualHolding[]): PrivateHolding[] {
 
   return rows.length ? rows : [
     { id: 'founder', holderName: 'Founder / management group', category: 'Founder', shares: 5000000, includeInDeduction: true, notes: 'Internal management assumption.' },
-    { id: 'strategic', holderName: 'Strategic long-term holders', category: 'Strategic Investor', shares: 3000000, includeInDeduction: true, notes: 'Friendly / restricted holder estimate.' },
+    { id: 'strategic', holderName: 'Strategic long-term holders', category: 'Strategic Investor', shares: 3000000, includeInDeduction: true, notes: 'Management / strategic holder estimate.' },
   ];
 }
 
@@ -166,7 +173,7 @@ function RankedBars({ rows, total, showExtra = false }: { rows: Array<{ key?: st
 function Waterfall({ officialFloat, privateShares, tokenizedShares, collateralizedShares, realTradableFloat }: { officialFloat: number; privateShares: number; tokenizedShares: number; collateralizedShares: number; realTradableFloat: number }) {
   const rows = [
     { label: 'Official Float', value: officialFloat, className: '' },
-    { label: 'Private Friendly Holders', value: -privateShares, className: 'down' },
+    { label: 'Management / Strategic', value: -privateShares, className: 'down' },
     { label: 'Tokenized Shares', value: -tokenizedShares, className: 'down' },
     { label: 'Collateralized Shares', value: -collateralizedShares, className: 'down' },
     { label: 'Real Tradable Float', value: realTradableFloat, className: 'end' },
@@ -178,7 +185,7 @@ function Waterfall({ officialFloat, privateShares, tokenizedShares, collateraliz
           <span className={row.label === 'Real Tradable Float' ? 'with-info' : ''}>
             {row.label}
             {row.label === 'Real Tradable Float' && (
-              <InfoTooltip text="Estimated shares that may realistically trade after deducting internal private/strategic holdings and collateralized shares from the official public float." />
+              <InfoTooltip text="Estimated shares that may realistically trade after deducting internal management/strategic holdings, tokenized shares, and collateralized shares from the official public float." />
             )}
           </span>
           <strong>{row.value < 0 ? '-' : ''}{compact(Math.abs(row.value))}</strong>
@@ -189,9 +196,19 @@ function Waterfall({ officialFloat, privateShares, tokenizedShares, collateraliz
   );
 }
 
-export function InternalFloatV2Client({ initialHoldings, initialAdjustments, initialUserInputs }: { initialHoldings: ManualHolding[]; initialAdjustments: FloatAdjustments; initialUserInputs: InternalFloatV2UserInput }) {
+export function InternalFloatV2Client({
+  initialHoldings,
+  initialAdjustments,
+  initialUserInputs,
+  institutionalOverview,
+}: {
+  initialHoldings: ManualHolding[];
+  initialAdjustments: FloatAdjustments;
+  initialUserInputs: InternalFloatV2UserInput;
+  institutionalOverview?: InstitutionalOwnershipOverview;
+}) {
   const [editPanel, setEditPanel] = useState<EditPanel>(null);
-  const [ownership] = useState<OwnershipData>(() => seedOwnership(initialHoldings, initialAdjustments));
+  const [ownership] = useState<OwnershipData>(() => seedOwnership(initialHoldings, initialAdjustments, institutionalOverview));
   const [privateHoldings, setPrivateHoldings] = useState<PrivateHolding[]>(() => initialUserInputs.privateHoldings);
   const [custodyRows, setCustodyRows] = useState<CustodyRow[]>(() => initialUserInputs.custodyRows);
   const [tokenChains, setTokenChains] = useState<TokenChain[]>(() => initialUserInputs.tokenChains);
@@ -233,16 +250,17 @@ export function InternalFloatV2Client({ initialHoldings, initialAdjustments, ini
   const realTradableFloat = Math.max(0, ownership.publicFloat - privateShares - tokenizedShares - collateralizedShares);
   const floatReductionPercent = pct(ownership.publicFloat - realTradableFloat, ownership.publicFloat);
   const privateFloatShares = Math.min(privateShares, ownership.publicFloat);
+  const internalFloatShares = privateFloatShares + tokenizedShares + collateralizedShares;
   const traditionalShares = Math.max(0, ownership.publicFloat - privateFloatShares - tokenizedShares - collateralizedShares);
 
   const ownershipSegments = [
     { label: 'Insiders', value: ownership.insiderShares, color: colors[0] },
     { label: 'Institutions', value: ownership.institutionShares, color: colors[1] },
-    { label: 'Public Float', value: ownership.publicFloat, color: colors[2] },
+    { label: 'Public Float', value: traditionalShares, color: colors[2] },
+    { label: 'Internal Float', value: internalFloatShares, color: colors[3] },
   ];
-  const publicFloatSegments = [
-    { label: 'Traditional', value: traditionalShares, color: colors[0] },
-    { label: 'Private / Strategic', value: privateFloatShares, color: colors[4] },
+  const internalFloatSegments = [
+    { label: 'Management / Strategic', value: privateFloatShares, color: colors[4] },
     { label: 'Tokenized', value: tokenizedShares, color: colors[3] },
     { label: 'Collateralized', value: collateralizedShares, color: colors[2] },
   ];
@@ -261,13 +279,13 @@ export function InternalFloatV2Client({ initialHoldings, initialAdjustments, ini
     { level: 0, label: 'Shares Outstanding', value: ownership.sharesOutstanding },
     { level: 1, label: 'Insiders', value: ownership.insiderShares },
     { level: 1, label: 'Institutions', value: ownership.institutionShares },
-    { level: 1, label: 'Public Float', value: ownership.publicFloat },
-    { level: 2, label: 'Traditional', value: traditionalShares },
-    { level: 2, label: 'Private / Strategic', value: privateFloatShares },
+    { level: 1, label: 'Public Float', value: traditionalShares },
+    { level: 1, label: 'Internal Float', value: internalFloatShares },
+    { level: 2, label: 'Management / Strategic', value: privateFloatShares },
     { level: 2, label: 'Tokenized', value: tokenizedShares },
-    { level: 3, label: 'Collateralized', value: collateralizedShares },
-    { level: 2, label: 'Real Tradable Float', value: realTradableFloat },
-  ], [collateralizedShares, ownership, privateFloatShares, realTradableFloat, tokenizedShares, traditionalShares]);
+    { level: 2, label: 'Collateralized', value: collateralizedShares },
+    { level: 1, label: 'Real Tradable Float', value: realTradableFloat },
+  ], [collateralizedShares, internalFloatShares, ownership, privateFloatShares, realTradableFloat, tokenizedShares, traditionalShares]);
 
   function patchPrivate(id: string, patch: Partial<PrivateHolding>) {
     setPrivateHoldings(current => current.map(row => row.id === id ? { ...row, ...patch } : row));
@@ -317,7 +335,7 @@ export function InternalFloatV2Client({ initialHoldings, initialAdjustments, ini
     if (!editPanel) return null;
 
     const titleMap: Record<Exclude<EditPanel, null>, string> = {
-      private: 'Edit Private / Strategic Holdings',
+      private: 'Edit Management / Strategic Holdings',
       tokenized: 'Edit Tokenized Shares & Providers',
       collateral: 'Edit Collateralized Shares & Protocols',
     };
@@ -413,7 +431,7 @@ export function InternalFloatV2Client({ initialHoldings, initialAdjustments, ini
         <div className="float-v2-kpis">
           <div className="terminal-card terminal-stat"><span>Shares Outstanding</span><strong>{formatNumber(ownership.sharesOutstanding)}</strong><small>Total issued share base</small></div>
           <div className="terminal-card terminal-stat float-v2-formula-stat">
-            <span className="with-info">Public Float → Real Tradable Float <InfoTooltip text="Real tradable float deducts private/strategic holdings, tokenized shares, and collateralized shares from the official public float." /></span>
+            <span className="with-info">Public Float → Real Tradable Float <InfoTooltip text="Real tradable float deducts management/strategic holdings, tokenized shares, and collateralized shares from the official public float." /></span>
             <div className="float-v2-compact-formula">
               <strong>{compact(ownership.publicFloat)}</strong>
               <em>→</em>
@@ -426,10 +444,10 @@ export function InternalFloatV2Client({ initialHoldings, initialAdjustments, ini
       </section>
 
       <section className="terminal-section">
-        <div className="terminal-section__head"><div><span>Section 2</span><h2>Ownership & Public Float Breakdown</h2></div></div>
+        <div className="terminal-section__head"><div><span>Section 2</span><h2>Ownership & Internal Float Breakdown</h2></div></div>
         <div className="float-v2-two-col">
           <Donut title="Ownership Structure" center={compact(ownership.sharesOutstanding)} segments={ownershipSegments} />
-          <Donut title="Public Float" center={compact(ownership.publicFloat)} segments={publicFloatSegments} />
+          <Donut title="Internal Float" center={compact(internalFloatShares)} segments={internalFloatSegments} />
         </div>
       </section>
 
@@ -442,7 +460,7 @@ export function InternalFloatV2Client({ initialHoldings, initialAdjustments, ini
 
       <section className="terminal-section">
         <div className="terminal-section__head">
-          <div><span>Section 4</span><h2>Private / Strategic Holdings</h2><p className="section-subtitle">Internal deduction assumptions used to estimate real tradable float.</p></div>
+          <div><span>Section 4</span><h2>Management / Strategic Holdings</h2><p className="section-subtitle">Internal deduction assumptions used to estimate real tradable float.</p></div>
           <button className="button secondary" type="button" onClick={() => setEditPanel('private')}>Edit</button>
         </div>
         <div className="terminal-card"><RankedBars showExtra rows={privateHoldings.map(row => ({ key: row.id, label: row.holderName, value: row.shares, extra: `${row.category} · ${row.includeInDeduction ? 'deducted from float' : 'not deducted'}` }))} total={ownership.publicFloat} /></div>

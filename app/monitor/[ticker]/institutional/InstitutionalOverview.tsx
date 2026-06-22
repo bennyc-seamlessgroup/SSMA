@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { useState } from 'react';
 
-type OwnershipKey = 'insiders' | 'institutions' | 'public_float';
+type OwnershipKey = 'insiders' | 'institutions' | 'public_float' | 'internal_float';
 
 type InstitutionalOverviewData = {
   overview?: {
@@ -76,6 +76,15 @@ function formatPercent(value: unknown) {
   return `${numeric.toLocaleString('en-US', { maximumFractionDigits: 2 })}%`;
 }
 
+function numeric(value: unknown) {
+  const parsed = typeof value === 'number' ? value : Number(String(value ?? '').replace(/,/g, ''));
+  return Number.isFinite(parsed) ? parsed : 0;
+}
+
+function pct(part: number, total: number) {
+  return total ? (part / total) * 100 : 0;
+}
+
 function ownershipGradient(rows: NonNullable<InstitutionalOverviewData['ownership_structure']>) {
   let cursor = 0;
   return rows.map(row => {
@@ -87,22 +96,50 @@ function ownershipGradient(rows: NonNullable<InstitutionalOverviewData['ownershi
 }
 
 export function InstitutionalOverview({ data, ticker }: { data: InstitutionalOverviewData; ticker: string }) {
-  const [selectedKey, setSelectedKey] = useState<OwnershipKey>('institutions');
+  const [selectedKey, setSelectedKey] = useState<OwnershipKey>('internal_float');
   const overview = data.overview ?? {};
-  const ownershipRows = data.ownership_structure ?? [];
   const institutionRows = data.institution_bars ?? [];
   const insiderRows = data.insider_bars ?? [];
-  const publicFloatRows = data.public_float_breakdown ?? [];
+  const rawPublicFloatRows = data.public_float_breakdown ?? [];
+  const managementStrategicShares = rawPublicFloatRows
+    .filter(row => row.key === 'private_strategic' || /private|strategic|management/i.test(row.label))
+    .reduce((sum, row) => sum + numeric(row.shares), 0);
+  const tokenizedShares = rawPublicFloatRows
+    .filter(row => row.key === 'tokenized' || /token/i.test(row.label))
+    .reduce((sum, row) => sum + numeric(row.shares), 0);
+  const collateralizedShares = rawPublicFloatRows
+    .filter(row => row.key === 'collateralized' || /collateral/i.test(row.label))
+    .reduce((sum, row) => sum + numeric(row.shares), 0);
+  const internalFloatShares = managementStrategicShares + tokenizedShares + collateralizedShares;
+  const publicFloatShares = Math.max(0, numeric(overview.public_float_shares) - internalFloatShares);
+  const ownershipRows = [
+    { key: 'insiders', label: 'Insiders', shares: numeric(overview.insider_shares_long), color: '#2f5bb8' },
+    { key: 'institutions', label: 'Institutions', shares: numeric(overview.institutional_shares_long), color: '#14916f' },
+    { key: 'public_float', label: 'Public Float', shares: publicFloatShares, color: '#df9514' },
+    { key: 'internal_float', label: 'Internal Float', shares: internalFloatShares, color: '#747bdc' },
+  ].map(row => ({
+    ...row,
+    percent: pct(row.shares, numeric(overview.insider_shares_long) + numeric(overview.institutional_shares_long) + publicFloatShares + internalFloatShares),
+  }));
+  const internalFloatRows = [
+    { key: 'management_strategic', label: 'Management / Strategic', shares: managementStrategicShares, percent: pct(managementStrategicShares, internalFloatShares), color: '#8d9aaa', source: 'Internal Float V2 user inputs' },
+    { key: 'tokenized', label: 'Tokenized', shares: tokenizedShares, percent: pct(tokenizedShares, internalFloatShares), color: '#747bdc', source: 'Internal Float V2 user inputs' },
+    { key: 'collateralized', label: 'Collateralized', shares: collateralizedShares, percent: pct(collateralizedShares, internalFloatShares), color: '#df9514', source: 'Internal Float V2 user inputs' },
+  ].filter(row => row.shares > 0);
   const selectedOwnership = ownershipRows.find(row => row.key === selectedKey);
   const rightPanelTitle = selectedKey === 'insiders'
     ? 'Insider Holdings Breakdown'
+    : selectedKey === 'internal_float'
+      ? 'Internal Float Breakdown'
     : selectedKey === 'public_float'
-      ? 'Public Float Breakdown'
+      ? 'Public Float'
       : 'Institution Holdings Breakdown';
   const rightPanelSubtitle = selectedKey === 'insiders'
     ? 'Active activist / insider share count by holder'
+    : selectedKey === 'internal_float'
+      ? 'Management / strategic, tokenized, and collateralized shares'
     : selectedKey === 'public_float'
-      ? 'Internal float categories from management inputs'
+      ? 'Estimated remaining tradable public float after internal deductions'
       : 'Active institution share count by holder';
 
   return (
@@ -139,7 +176,7 @@ export function InstitutionalOverview({ data, ticker }: { data: InstitutionalOve
         <article className="institutional-chart-card">
           <div className="institutional-chart-card__head">
             <span>Ownership Structure</span>
-            <small>Insiders, institutions, and public float</small>
+            <small>Insiders, institutions, public float, and internal float</small>
           </div>
           <div className="institutional-donut-layout">
             <div
@@ -195,20 +232,29 @@ export function InstitutionalOverview({ data, ticker }: { data: InstitutionalOve
             />
           )}
           {selectedKey === 'public_float' && (
+            <div className="institutional-single-metric-panel">
+              <span>Estimated Public Float</span>
+              <strong>{compact(publicFloatShares)}</strong>
+              <small>{formatPercent(pct(publicFloatShares, numeric(overview.shares_outstanding)))} of shares outstanding</small>
+              <p>Public float here excludes management / strategic, tokenized, and collateralized shares tracked in Internal Float.</p>
+              <Link className="button secondary" href={`/monitor/${ticker}/internal-float-v2` as any}>Open Internal Float</Link>
+            </div>
+          )}
+          {selectedKey === 'internal_float' && (
             <>
               <div className="institutional-public-float-panel">
                 <div
                   className="institutional-donut mini"
-                  style={{ background: `conic-gradient(${ownershipGradient(publicFloatRows)})` }}
-                  aria-label="Public float breakdown chart"
+                  style={{ background: `conic-gradient(${ownershipGradient(internalFloatRows)})` }}
+                  aria-label="Internal float breakdown chart"
                 >
                   <div>
-                    <strong>{compact(overview.public_float_shares)}</strong>
+                    <strong>{compact(internalFloatShares)}</strong>
                     <span>Total</span>
                   </div>
                 </div>
                 <div className="institutional-value-legend compact">
-                  {publicFloatRows.map(row => (
+                  {internalFloatRows.map(row => (
                     <div key={row.key}>
                       <span><i style={{ background: row.color }} />{row.label}</span>
                       <strong>{compact(row.shares)}</strong>
@@ -218,7 +264,7 @@ export function InstitutionalOverview({ data, ticker }: { data: InstitutionalOve
                 </div>
               </div>
               <div className="institutional-internal-float-link">
-                <p>Public float assumptions come from Internal Float inputs. Add private holdings, tokenized shares, and collateralized shares there to improve this breakdown.</p>
+                <p>Internal float assumptions come from Internal Float inputs. Add management / strategic holdings, tokenized shares, and collateralized shares there to improve this breakdown.</p>
                 <Link className="button secondary" href={`/monitor/${ticker}/internal-float-v2` as any}>Open Internal Float</Link>
               </div>
             </>

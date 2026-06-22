@@ -16,6 +16,23 @@ The frontend should not calculate these values. It should only display the value
 | `public_float_shares` | Static company config, SEC filings, or market data provider API | Public float used in the ownership structure chart. |
 | `internal_float_inputs` | Internal Float V2 manual input / future database | Used to build the public float breakdown: traditional, private / strategic, tokenized, and collateralized. |
 
+### Institutional Owner Active Row Filter
+
+When deriving institutional ownership metrics from `owners[]`, ignore any row where:
+
+```text
+LOWER(owners[].owners_option) = "call"
+```
+
+Reason: `owners_option = call` means the filing row represents a call option position, not actual shares bought or sold. These rows should not be included in institutional owner counts, share sums, value sums, ownership percentages, ownership structure, or institution bar charts.
+
+Unless a formula explicitly says otherwise, "active institutional rows" means:
+
+```text
+owners[].shares > 0
+AND LOWER(COALESCE(owners[].owners_option, "")) != "call"
+```
+
 ### ORTEX Shares Outstanding Input
 
 The backend should fetch shares outstanding from:
@@ -54,17 +71,17 @@ data.source_metadata.shares_outstanding.value = data.overview.shares_outstanding
 
 | JSON Field Name | Type | Formula / Logic |
 | --- | --- | --- |
-| `institutional_owners` | number | Count unique active institutional owner rows where `owners[].shares > 0`. Formula: `Count(Row) if shares > 0`. |
+| `institutional_owners` | number | Count unique active institutional owner rows. Formula: `Count(Row) where owners[].shares > 0 AND LOWER(COALESCE(owners[].owners_option, "")) != "call"`. |
 | `insider_owners` | number | Count unique active activist / insider rows where `activist_filings[].shares > 0`. |
 | `shares_outstanding` | number | Current shares outstanding from ORTEX shares outstanding API. Use the latest available row on or before yesterday. |
 | `public_float_shares` | number | Passed as a company configuration variable, SEC-derived value, or market data provider value. |
-| `institutional_shares_long` | number | Sum active institutional shares. Formula: `SUM(owners[].shares) where shares > 0`. |
+| `institutional_shares_long` | number | Sum active institutional shares. Formula: `SUM(owners[].shares) where owners[].shares > 0 AND LOWER(COALESCE(owners[].owners_option, "")) != "call"`. |
 | `insider_shares_long` | number | Sum active activist / insider shares. Formula: `SUM(activist_filings[].shares) where shares > 0`. |
 | `institutional_ownership_percent` | number | Institutional shares divided by shares outstanding. Formula: `(institutional_shares_long / shares_outstanding) * 100`. |
 | `insider_ownership_percent` | number | Insider / activist shares divided by shares outstanding. Formula: `(insider_shares_long / shares_outstanding) * 100`. |
 | `public_float_percent` | number | Public float divided by shares outstanding. Formula: `(public_float_shares / shares_outstanding) * 100`. |
-| `institutional_value_thousands_usd` | number | Sum reported institutional filing value and divide by 1,000. Formula: `SUM(owners[].value where shares > 0) / 1000`. |
-| `average_portfolio_allocation_percent` | number | Mean active institutional allocation converted to percent. Formula: `MEAN(owners[].allocation where shares > 0) * 100`. |
+| `institutional_value_thousands_usd` | number | Sum reported institutional filing value and divide by 1,000. Formula: `SUM(owners[].value where owners[].shares > 0 AND LOWER(COALESCE(owners[].owners_option, "")) != "call") / 1000`. |
+| `average_portfolio_allocation_percent` | number | Mean active institutional allocation converted to percent. Formula: `MEAN(owners[].allocation where owners[].shares > 0 AND LOWER(COALESCE(owners[].owners_option, "")) != "call") * 100`. |
 | `ownership_structure_total_shares` | number | Total shown in the donut chart. Formula: `insider_shares_long + institutional_shares_long + public_float_shares`. |
 
 ### `data.ownership_structure[]`
@@ -83,13 +100,13 @@ Used by the donut chart above the two institutional tables.
 
 Used by the institution holdings bar chart.
 
-Group active institutional rows by institution name, then sum shares for each institution.
+Group active institutional rows by institution name, then sum shares for each institution. Exclude `owners_option = call` rows before grouping.
 
 | JSON Field Name | Type | Formula / Logic |
 | --- | --- | --- |
 | `name` | string | Institution name from `owners[].name`. |
-| `shares` | number | Sum shares for that institution. Formula: `SUM(owners[].shares) grouped by owners[].name where shares > 0`. |
-| `value` | number | Sum reported value for that institution. Formula: `SUM(owners[].value) grouped by owners[].name where shares > 0`. |
+| `shares` | number | Sum shares for that institution. Formula: `SUM(owners[].shares) grouped by owners[].name where owners[].shares > 0 AND LOWER(COALESCE(owners[].owners_option, "")) != "call"`. |
+| `value` | number | Sum reported value for that institution. Formula: `SUM(owners[].value) grouped by owners[].name where owners[].shares > 0 AND LOWER(COALESCE(owners[].owners_option, "")) != "call"`. |
 | `latestFileDate` | string | Latest `owners[].fileDate` for that institution. |
 | `latestEffectiveDate` | string | Latest `owners[].effectiveDate` for that institution. |
 | `formType` | string | Latest or representative form type for that institution. Prefer `formTypeShort`, fallback to `formType`. |
@@ -139,6 +156,7 @@ Public float category formulas:
 ## Important Notes
 
 - Exclude fully closed positions from active owner counts and share sums by filtering `shares > 0`.
+- Exclude institutional `owners[]` rows where `LOWER(owners_option) = "call"` because those rows represent call option exposure, not actual share ownership.
 - The Institutional Ownership page treats activist filings as the insider / activist ownership category.
 - The ownership structure legend is interactive. Clicking `Insiders`, `Institutions`, or `Public Float` changes the right-side breakdown panel.
 - `Public Float` should use the same underlying assumptions as Internal Float V2 so both pages stay synchronized.

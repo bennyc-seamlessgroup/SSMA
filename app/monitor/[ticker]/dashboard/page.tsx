@@ -246,7 +246,7 @@ export default async function CompanyDashboardPage() {
   const gammaEnvelope = importEnvelope<Row[]>(consolidatedFiles, 'options/gamma_exposure.json', []);
   const alertsEnvelope = importEnvelope<Row[]>(consolidatedFiles, 'alerts/alerts.json', []);
   const newsEnvelope = importEnvelope<Row[]>(consolidatedFiles, 'news_filings/news.json', []);
-  const filingsEnvelope = importEnvelope<Row[]>(consolidatedFiles, 'news_filings/sec_filings.json', []);
+  const filingsEnvelope = importEnvelope<Row[]>(consolidatedFiles, 'news_filings/CURR_sec_filings.json', []);
   const sentimentEnvelope = importEnvelope<Row[]>(consolidatedFiles, 'sentiment/social_mentions.json', []);
   const internalFloatEnvelope = importEnvelope<Row>(consolidatedFiles, 'internal_float/float_adjustments.json', {});
   const dashboardMetricsEnvelope = importEnvelope<Row>(consolidatedFiles, 'reports/dashboard_metrics.json', {});
