@@ -95,6 +95,22 @@ function ownershipGradient(rows: NonNullable<InstitutionalOverviewData['ownershi
   }).join(', ');
 }
 
+function donutLabels(rows: NonNullable<InstitutionalOverviewData['ownership_structure']>) {
+  let cursor = 0;
+  return rows.map(row => {
+    const start = cursor;
+    const percent = Math.max(0, row.percent);
+    cursor += percent;
+    const angle = ((start + percent / 2) / 100) * Math.PI * 2 - Math.PI / 2;
+    const radius = 35;
+    return {
+      ...row,
+      x: 50 + Math.cos(angle) * radius,
+      y: 50 + Math.sin(angle) * radius,
+    };
+  });
+}
+
 export function InstitutionalOverview({ data, ticker }: { data: InstitutionalOverviewData; ticker: string }) {
   const [selectedKey, setSelectedKey] = useState<OwnershipKey>('internal_float');
   const overview = data.overview ?? {};
@@ -126,6 +142,8 @@ export function InstitutionalOverview({ data, ticker }: { data: InstitutionalOve
     { key: 'tokenized', label: 'Tokenized', shares: tokenizedShares, percent: pct(tokenizedShares, internalFloatShares), color: '#747bdc', source: 'Internal Float V2 user inputs' },
     { key: 'collateralized', label: 'Collateralized', shares: collateralizedShares, percent: pct(collateralizedShares, internalFloatShares), color: '#df9514', source: 'Internal Float V2 user inputs' },
   ].filter(row => row.shares > 0);
+  const ownershipLabelRows = donutLabels(ownershipRows);
+  const internalFloatLabelRows = donutLabels(internalFloatRows);
   const selectedOwnership = ownershipRows.find(row => row.key === selectedKey);
   const rightPanelTitle = selectedKey === 'insiders'
     ? 'Insider Holdings Breakdown'
@@ -184,8 +202,17 @@ export function InstitutionalOverview({ data, ticker }: { data: InstitutionalOve
               style={{ background: `conic-gradient(${ownershipGradient(ownershipRows)})` }}
               aria-label="Ownership structure chart"
             >
-              <div>
-                <strong>{compact(overview.ownership_structure_total_shares)}</strong>
+              {ownershipLabelRows.map(row => row.percent >= 3 && (
+                <span
+                  key={`${row.key}-pct`}
+                  className="institutional-donut__pct"
+                  style={{ left: `${row.x}%`, top: `${row.y}%` }}
+                >
+                  {formatPercent(row.percent)}
+                </span>
+              ))}
+              <div className="institutional-donut__center">
+                <strong>{compact(overview.shares_outstanding)}</strong>
                 <span>Total</span>
               </div>
             </div>
@@ -248,7 +275,16 @@ export function InstitutionalOverview({ data, ticker }: { data: InstitutionalOve
                   style={{ background: `conic-gradient(${ownershipGradient(internalFloatRows)})` }}
                   aria-label="Internal float breakdown chart"
                 >
-                  <div>
+                  {internalFloatLabelRows.map(row => row.percent >= 3 && (
+                    <span
+                      key={`${row.key}-pct`}
+                      className="institutional-donut__pct"
+                      style={{ left: `${row.x}%`, top: `${row.y}%` }}
+                    >
+                      {formatPercent(row.percent)}
+                    </span>
+                  ))}
+                  <div className="institutional-donut__center">
                     <strong>{compact(internalFloatShares)}</strong>
                     <span>Total</span>
                   </div>

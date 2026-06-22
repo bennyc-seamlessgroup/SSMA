@@ -39,6 +39,9 @@ type SecFilingsResponse = {
   log: SecFilingLogEntry[];
 };
 
+type SortKey = 'formType' | 'formDescription' | 'filingDate' | 'reportingDate' | 'accessionNumber';
+type SortDirection = 'asc' | 'desc';
+
 const initialForm = {
   ticker: 'CURR',
   companyName: 'CURRENC Group Inc.',
@@ -54,6 +57,8 @@ const initialForm = {
   notes: '',
   createdBy: 'operations',
 };
+
+const recordsPageSize = 25;
 
 function formatDateTime(value: string) {
   const date = new Date(value);
@@ -116,6 +121,10 @@ export function SecFilingsOperationsClient() {
   const [status, setStatus] = useState<'idle' | 'loading' | 'saving' | 'saved' | 'error'>('loading');
   const [message, setMessage] = useState('');
   const [deletingKey, setDeletingKey] = useState('');
+  const [recordsSearch, setRecordsSearch] = useState('');
+  const [recordsPage, setRecordsPage] = useState(1);
+  const [sortKey, setSortKey] = useState<SortKey>('filingDate');
+  const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
 
   async function loadRecords() {
     setStatus('loading');
@@ -140,6 +149,18 @@ export function SecFilingsOperationsClient() {
 
   function updateField(field: keyof typeof initialForm, value: string) {
     setForm(current => ({ ...current, [field]: value }));
+  }
+
+  function toggleSort(nextKey: SortKey) {
+    setRecordsPage(1);
+    setSortKey(currentKey => {
+      if (currentKey === nextKey) {
+        setSortDirection(currentDirection => currentDirection === 'asc' ? 'desc' : 'asc');
+        return currentKey;
+      }
+      setSortDirection(nextKey === 'filingDate' || nextKey === 'reportingDate' ? 'desc' : 'asc');
+      return nextKey;
+    });
   }
 
   async function saveRecord(event: React.FormEvent<HTMLFormElement>) {
@@ -198,6 +219,44 @@ export function SecFilingsOperationsClient() {
 
   const records = data?.records ?? [];
   const log = data?.log ?? [];
+  const filteredRecords = useMemo(() => {
+    const query = recordsSearch.trim().toLowerCase();
+    const searched = query
+      ? records.filter(record => [
+        record.formType,
+        record.formDescription,
+        record.filingDate,
+        record.reportingDate,
+        record.accessionNumber,
+        record.filingsUrl,
+        record.notes,
+      ].some(value => String(value ?? '').toLowerCase().includes(query)))
+      : records;
+
+    return [...searched].sort((a, b) => {
+      const left = String(a[sortKey] ?? '').toLowerCase();
+      const right = String(b[sortKey] ?? '').toLowerCase();
+      const comparison = left.localeCompare(right, undefined, { numeric: true, sensitivity: 'base' });
+      return sortDirection === 'asc' ? comparison : -comparison;
+    });
+  }, [records, recordsSearch, sortDirection, sortKey]);
+  const recordsPageCount = Math.max(1, Math.ceil(filteredRecords.length / recordsPageSize));
+  const safeRecordsPage = Math.min(recordsPage, recordsPageCount);
+  const pageStartIndex = (safeRecordsPage - 1) * recordsPageSize;
+  const visibleRecords = filteredRecords.slice(pageStartIndex, pageStartIndex + recordsPageSize);
+
+  useEffect(() => {
+    setRecordsPage(1);
+  }, [recordsSearch]);
+
+  useEffect(() => {
+    if (recordsPage > recordsPageCount) setRecordsPage(recordsPageCount);
+  }, [recordsPage, recordsPageCount]);
+
+  function sortLabel(key: SortKey) {
+    if (sortKey !== key) return '↕';
+    return sortDirection === 'asc' ? '↑' : '↓';
+  }
 
   return (
     <div className="ops-sec-grid">
@@ -278,23 +337,37 @@ export function SecFilingsOperationsClient() {
             <span className="ops-eyebrow">Recent Records</span>
             <h2>Saved SEC Filings</h2>
           </div>
-          <span className="ops-record-count">{records.length.toLocaleString()} records</span>
+          <span className="ops-record-count">{filteredRecords.length.toLocaleString()} / {records.length.toLocaleString()} records</span>
+        </div>
+        <div className="ops-record-tools">
+          <label>
+            <span>Search records</span>
+            <input
+              value={recordsSearch}
+              placeholder="Search form, description, date, accession, URL, notes"
+              onChange={event => setRecordsSearch(event.target.value)}
+            />
+          </label>
+          <div>
+            <span>Page {safeRecordsPage} of {recordsPageCount}</span>
+            <small>{filteredRecords.length ? `${(pageStartIndex + 1).toLocaleString()}-${Math.min(pageStartIndex + recordsPageSize, filteredRecords.length).toLocaleString()} shown` : 'No records shown'}</small>
+          </div>
         </div>
         <div className="ops-table-wrap">
           <table className="ops-table">
             <thead>
               <tr>
-                <th>Form type</th>
-                <th>Description</th>
-                <th>Filing date</th>
-                <th>Reporting date</th>
-                <th>Accession number</th>
+                <th><button type="button" onClick={() => toggleSort('formType')}>Form type <span>{sortLabel('formType')}</span></button></th>
+                <th><button type="button" onClick={() => toggleSort('formDescription')}>Description <span>{sortLabel('formDescription')}</span></button></th>
+                <th><button type="button" onClick={() => toggleSort('filingDate')}>Filing date <span>{sortLabel('filingDate')}</span></button></th>
+                <th><button type="button" onClick={() => toggleSort('reportingDate')}>Reporting date <span>{sortLabel('reportingDate')}</span></button></th>
+                <th><button type="button" onClick={() => toggleSort('accessionNumber')}>Accession number <span>{sortLabel('accessionNumber')}</span></button></th>
                 <th>URL</th>
                 <th>Action</th>
               </tr>
             </thead>
             <tbody>
-              {records.slice(0, 12).map(record => (
+              {visibleRecords.map(record => (
                 <tr key={record.id}>
                   <td>{record.formType}</td>
                   <td>{record.formDescription}</td>
@@ -314,9 +387,16 @@ export function SecFilingsOperationsClient() {
                   </td>
                 </tr>
               ))}
-              {!records.length && <tr><td colSpan={7}>No manual SEC filing records saved yet.</td></tr>}
+              {!visibleRecords.length && <tr><td colSpan={7}>No SEC filing records match the current search.</td></tr>}
             </tbody>
           </table>
+        </div>
+        <div className="ops-pagination" aria-label="SEC filing records pagination">
+          <button type="button" disabled={safeRecordsPage <= 1} onClick={() => setRecordsPage(1)}>First</button>
+          <button type="button" disabled={safeRecordsPage <= 1} onClick={() => setRecordsPage(page => Math.max(1, page - 1))}>Previous</button>
+          <span>Page {safeRecordsPage} of {recordsPageCount}</span>
+          <button type="button" disabled={safeRecordsPage >= recordsPageCount} onClick={() => setRecordsPage(page => Math.min(recordsPageCount, page + 1))}>Next</button>
+          <button type="button" disabled={safeRecordsPage >= recordsPageCount} onClick={() => setRecordsPage(recordsPageCount)}>Last</button>
         </div>
       </section>
 
