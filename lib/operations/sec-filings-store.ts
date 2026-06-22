@@ -111,6 +111,34 @@ function normalizeRecord(input: Partial<OperationsSecFilingRecord>): OperationsS
   };
 }
 
+function stableLogId(input: Partial<OperationsSecFilingLogEntry> & Record<string, unknown>, index: number) {
+  const source = [
+    normalizeText(input.savedAt || input.timestamp),
+    normalizeText(input.action),
+    normalizeText(input.recordId),
+    normalizeText(input.accessionNumber),
+    normalizeText(input.formType),
+    String(index),
+  ].join('|');
+  return crypto.createHash('sha256').update(source).digest('hex').slice(0, 16);
+}
+
+function normalizeLogEntry(input: Partial<OperationsSecFilingLogEntry> & Record<string, unknown>, index: number): OperationsSecFilingLogEntry {
+  const actionText = normalizeText(input.action);
+  const action = actionText === 'created' || actionText === 'updated' ? actionText : 'updated';
+
+  return {
+    id: normalizeText(input.id) || stableLogId(input, index),
+    action,
+    recordId: normalizeText(input.recordId) || normalizeText(input.accessionNumber) || 'bulk-update',
+    accessionNumber: normalizeText(input.accessionNumber) || normalizeText(input.recordCount ? `${input.recordCount} records` : ''),
+    formType: normalizeText(input.formType) || actionText || 'SEC FILINGS',
+    filingDate: normalizeText(input.filingDate),
+    savedAt: normalizeText(input.savedAt || input.timestamp) || new Date().toISOString(),
+    savedBy: normalizeText(input.savedBy) || 'operations',
+  };
+}
+
 function accessionFromUrl(value: unknown) {
   const url = normalizeText(value);
   const match = url.match(/\/([^/]+)-index\.htm$/);
@@ -147,7 +175,7 @@ function normalizeFile(parsed: Partial<OperationsSecFilingsFile> & { data?: unkn
     schemaVersion: 1,
     s3Key: parsed.s3Key || s3Key(),
     records,
-    log: Array.isArray(parsed.log) ? parsed.log as OperationsSecFilingLogEntry[] : [],
+    log: Array.isArray(parsed.log) ? parsed.log.map((row, index) => normalizeLogEntry(row as Partial<OperationsSecFilingLogEntry> & Record<string, unknown>, index)) : [],
   };
 }
 

@@ -115,6 +115,7 @@ export function SecFilingsOperationsClient() {
   const [data, setData] = useState<SecFilingsResponse | null>(null);
   const [status, setStatus] = useState<'idle' | 'loading' | 'saving' | 'saved' | 'error'>('loading');
   const [message, setMessage] = useState('');
+  const [deletingKey, setDeletingKey] = useState('');
 
   async function loadRecords() {
     setStatus('loading');
@@ -164,6 +165,34 @@ export function SecFilingsOperationsClient() {
     } catch (error) {
       setStatus('error');
       setMessage(error instanceof Error ? error.message : 'Unable to save SEC filing record.');
+    }
+  }
+
+  async function deleteRecord(record: SecFilingRecord) {
+    const key = record.accessionNumber || record.id;
+    if (!key) {
+      setStatus('error');
+      setMessage('Unable to delete record without accession number or ID.');
+      return;
+    }
+
+    setDeletingKey(key);
+    setStatus('saving');
+    setMessage('');
+
+    try {
+      const query = record.accessionNumber
+        ? `accessionNumber=${encodeURIComponent(record.accessionNumber)}`
+        : `id=${encodeURIComponent(record.id)}`;
+      const payload = await authenticatedFetch(`/sec-filings?${query}`, { method: 'DELETE' });
+      setData(normalizeApiEnvelope(payload));
+      setStatus('saved');
+      setMessage(`Deleted ${record.formType} · ${key}.`);
+    } catch (error) {
+      setStatus('error');
+      setMessage(error instanceof Error ? error.message : 'Unable to delete SEC filing record.');
+    } finally {
+      setDeletingKey('');
     }
   }
 
@@ -261,6 +290,7 @@ export function SecFilingsOperationsClient() {
                 <th>Reporting date</th>
                 <th>Accession number</th>
                 <th>URL</th>
+                <th>Action</th>
               </tr>
             </thead>
             <tbody>
@@ -272,9 +302,19 @@ export function SecFilingsOperationsClient() {
                   <td>{record.reportingDate || 'N/A'}</td>
                   <td>{record.accessionNumber}</td>
                   <td><a href={record.filingsUrl} target="_blank" rel="noreferrer">Open</a></td>
+                  <td>
+                    <button
+                      className="ops-danger-button"
+                      type="button"
+                      disabled={deletingKey === (record.accessionNumber || record.id) || status === 'loading'}
+                      onClick={() => deleteRecord(record)}
+                    >
+                      {deletingKey === (record.accessionNumber || record.id) ? 'Deleting...' : 'Delete'}
+                    </button>
+                  </td>
                 </tr>
               ))}
-              {!records.length && <tr><td colSpan={6}>No manual SEC filing records saved yet.</td></tr>}
+              {!records.length && <tr><td colSpan={7}>No manual SEC filing records saved yet.</td></tr>}
             </tbody>
           </table>
         </div>
@@ -288,8 +328,8 @@ export function SecFilingsOperationsClient() {
           </div>
         </div>
         <div className="ops-log-list">
-          {log.slice(0, 8).map(item => (
-            <div key={item.id}>
+          {log.slice(0, 8).map((item, index) => (
+            <div key={item.id || `${item.savedAt}-${item.action}-${item.accessionNumber}-${index}`}>
               <span>{item.action}</span>
               <strong>{item.formType} · {item.accessionNumber}</strong>
               <small>{item.filingDate} · {formatDateTime(item.savedAt)} · {item.savedBy}</small>

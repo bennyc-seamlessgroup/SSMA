@@ -170,9 +170,9 @@ function RankedBars({ rows, total, showExtra = false }: { rows: Array<{ key?: st
   );
 }
 
-function Waterfall({ officialFloat, privateShares, tokenizedShares, collateralizedShares, realTradableFloat }: { officialFloat: number; privateShares: number; tokenizedShares: number; collateralizedShares: number; realTradableFloat: number }) {
+function Waterfall({ marketFloat, privateShares, tokenizedShares, collateralizedShares, realTradableFloat }: { marketFloat: number; privateShares: number; tokenizedShares: number; collateralizedShares: number; realTradableFloat: number }) {
   const rows = [
-    { label: 'Official Float', value: officialFloat, className: '' },
+    { label: 'Market Float', value: marketFloat, className: '' },
     { label: 'Management / Strategic', value: -privateShares, className: 'down' },
     { label: 'Tokenized Shares', value: -tokenizedShares, className: 'down' },
     { label: 'Collateralized Shares', value: -collateralizedShares, className: 'down' },
@@ -185,11 +185,11 @@ function Waterfall({ officialFloat, privateShares, tokenizedShares, collateraliz
           <span className={row.label === 'Real Tradable Float' ? 'with-info' : ''}>
             {row.label}
             {row.label === 'Real Tradable Float' && (
-              <InfoTooltip text="Estimated shares that may realistically trade after deducting internal management/strategic holdings, tokenized shares, and collateralized shares from the official public float." />
+              <InfoTooltip text="Estimated shares that may realistically trade after deducting internal management/strategic holdings, tokenized shares, and collateralized shares from shares outstanding after insiders and institutions." />
             )}
           </span>
           <strong>{row.value < 0 ? '-' : ''}{compact(Math.abs(row.value))}</strong>
-          <small>{formatPct(pct(Math.abs(row.value), officialFloat))} of official float</small>
+          <small>{formatPct(pct(Math.abs(row.value), marketFloat))} of market float</small>
         </div>
       ))}
     </div>
@@ -247,16 +247,17 @@ export function InternalFloatV2Client({
   const privateShares = privateHoldings.filter(row => row.includeInDeduction).reduce((sum, row) => sum + numeric(row.shares), 0);
   const tokenizedShares = tokenChains.reduce((sum, row) => sum + row.shares, 0);
   const collateralizedShares = collateralChains.reduce((sum, row) => sum + row.shares, 0);
-  const realTradableFloat = Math.max(0, ownership.publicFloat - privateShares - tokenizedShares - collateralizedShares);
-  const floatReductionPercent = pct(ownership.publicFloat - realTradableFloat, ownership.publicFloat);
-  const privateFloatShares = Math.min(privateShares, ownership.publicFloat);
+  const privateFloatShares = privateShares;
   const internalFloatShares = privateFloatShares + tokenizedShares + collateralizedShares;
-  const traditionalShares = Math.max(0, ownership.publicFloat - privateFloatShares - tokenizedShares - collateralizedShares);
+  const floatBeforeInternalAdjustments = Math.max(0, ownership.sharesOutstanding - ownership.insiderShares - ownership.institutionShares);
+  const publicFloatShares = Math.max(0, floatBeforeInternalAdjustments - internalFloatShares);
+  const realTradableFloat = publicFloatShares;
+  const floatReductionPercent = pct(internalFloatShares, floatBeforeInternalAdjustments);
 
   const ownershipSegments = [
     { label: 'Insiders', value: ownership.insiderShares, color: colors[0] },
     { label: 'Institutions', value: ownership.institutionShares, color: colors[1] },
-    { label: 'Public Float', value: traditionalShares, color: colors[2] },
+    { label: 'Real Tradable Float', value: publicFloatShares, color: colors[2] },
     { label: 'Internal Float', value: internalFloatShares, color: colors[3] },
   ];
   const internalFloatSegments = [
@@ -279,13 +280,13 @@ export function InternalFloatV2Client({
     { level: 0, label: 'Shares Outstanding', value: ownership.sharesOutstanding },
     { level: 1, label: 'Insiders', value: ownership.insiderShares },
     { level: 1, label: 'Institutions', value: ownership.institutionShares },
-    { level: 1, label: 'Public Float', value: traditionalShares },
-    { level: 1, label: 'Internal Float', value: internalFloatShares },
-    { level: 2, label: 'Management / Strategic', value: privateFloatShares },
-    { level: 2, label: 'Tokenized', value: tokenizedShares },
-    { level: 2, label: 'Collateralized', value: collateralizedShares },
-    { level: 1, label: 'Real Tradable Float', value: realTradableFloat },
-  ], [collateralizedShares, internalFloatShares, ownership, privateFloatShares, realTradableFloat, tokenizedShares, traditionalShares]);
+    { level: 1, label: 'Market Float', value: floatBeforeInternalAdjustments },
+    { level: 2, label: 'Internal Float', value: internalFloatShares },
+    { level: 3, label: 'Management / Strategic', value: privateFloatShares },
+    { level: 3, label: 'Tokenized', value: tokenizedShares },
+    { level: 3, label: 'Collateralized', value: collateralizedShares },
+    { level: 2, label: 'Real Tradable Float', value: realTradableFloat },
+  ], [collateralizedShares, floatBeforeInternalAdjustments, internalFloatShares, ownership, privateFloatShares, realTradableFloat, tokenizedShares]);
 
   function patchPrivate(id: string, patch: Partial<PrivateHolding>) {
     setPrivateHoldings(current => current.map(row => row.id === id ? { ...row, ...patch } : row));
@@ -431,15 +432,15 @@ export function InternalFloatV2Client({
         <div className="float-v2-kpis">
           <div className="terminal-card terminal-stat"><span>Shares Outstanding</span><strong>{formatNumber(ownership.sharesOutstanding)}</strong><small>Total issued share base</small></div>
           <div className="terminal-card terminal-stat float-v2-formula-stat">
-            <span className="with-info">Public Float → Real Tradable Float <InfoTooltip text="Real tradable float deducts management/strategic holdings, tokenized shares, and collateralized shares from the official public float." /></span>
+            <span className="with-info">Market Float → Real Tradable Float <InfoTooltip text="Market float is shares outstanding minus insiders and institutions. Real tradable float then subtracts management/strategic, tokenized, and collateralized internal float." /></span>
             <div className="float-v2-compact-formula">
-              <strong>{compact(ownership.publicFloat)}</strong>
+              <strong>{compact(floatBeforeInternalAdjustments)}</strong>
               <em>→</em>
               <strong>{compact(realTradableFloat)}</strong>
             </div>
-            <small>After internal float deductions</small>
+            <small>Shares outstanding - insiders - institutions, then less internal float</small>
           </div>
-          <div className="terminal-card terminal-stat"><span>Float Reduction</span><strong>{formatPct(floatReductionPercent)}</strong><small>-{formatNumber(ownership.publicFloat - realTradableFloat)} shares</small></div>
+          <div className="terminal-card terminal-stat"><span>Float Reduction</span><strong>{formatPct(floatReductionPercent)}</strong><small>-{formatNumber(internalFloatShares)} internal float shares</small></div>
         </div>
       </section>
 
@@ -453,9 +454,9 @@ export function InternalFloatV2Client({
 
       <section className="terminal-section">
         <div className="terminal-section__head">
-          <div><span>Section 3</span><h2>Official Float vs Real Tradable Float</h2></div>
+          <div><span>Section 3</span><h2>Market Float vs Real Tradable Float</h2></div>
         </div>
-        <Waterfall officialFloat={ownership.publicFloat} privateShares={privateShares} tokenizedShares={tokenizedShares} collateralizedShares={collateralizedShares} realTradableFloat={realTradableFloat} />
+        <Waterfall marketFloat={floatBeforeInternalAdjustments} privateShares={privateShares} tokenizedShares={tokenizedShares} collateralizedShares={collateralizedShares} realTradableFloat={realTradableFloat} />
       </section>
 
       <section className="terminal-section">
@@ -463,12 +464,12 @@ export function InternalFloatV2Client({
           <div><span>Section 4</span><h2>Management / Strategic Holdings</h2><p className="section-subtitle">Internal deduction assumptions used to estimate real tradable float.</p></div>
           <button className="button secondary" type="button" onClick={() => setEditPanel('private')}>Edit</button>
         </div>
-        <div className="terminal-card"><RankedBars showExtra rows={privateHoldings.map(row => ({ key: row.id, label: row.holderName, value: row.shares, extra: `${row.category} · ${row.includeInDeduction ? 'deducted from float' : 'not deducted'}` }))} total={ownership.publicFloat} /></div>
+        <div className="terminal-card"><RankedBars showExtra rows={privateHoldings.map(row => ({ key: row.id, label: row.holderName, value: row.shares, extra: `${row.category} · ${row.includeInDeduction ? 'deducted from float' : 'not deducted'}` }))} total={floatBeforeInternalAdjustments} /></div>
       </section>
 
       <section className="terminal-section">
         <div className="terminal-section__head"><div><span>Section 5</span><h2>Traditional Custody Breakdown</h2><p className="section-subtitle">Future integration with DTC Position Reports.</p></div></div>
-        <div className="terminal-card"><RankedBars rows={custodyRows.map(row => ({ key: row.id, label: row.name, value: row.shares }))} total={ownership.publicFloat} /></div>
+        <div className="terminal-card"><RankedBars rows={custodyRows.map(row => ({ key: row.id, label: row.name, value: row.shares }))} total={floatBeforeInternalAdjustments} /></div>
       </section>
 
       <section className="terminal-section">

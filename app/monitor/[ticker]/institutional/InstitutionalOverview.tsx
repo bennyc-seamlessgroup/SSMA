@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { useState } from 'react';
 
-type OwnershipKey = 'insiders' | 'institutions' | 'public_float' | 'internal_float';
+type OwnershipKey = 'insiders' | 'institutions' | 'real_tradable_float' | 'internal_float';
 
 type InstitutionalOverviewData = {
   overview?: {
@@ -111,11 +111,11 @@ export function InstitutionalOverview({ data, ticker }: { data: InstitutionalOve
     .filter(row => row.key === 'collateralized' || /collateral/i.test(row.label))
     .reduce((sum, row) => sum + numeric(row.shares), 0);
   const internalFloatShares = managementStrategicShares + tokenizedShares + collateralizedShares;
-  const publicFloatShares = Math.max(0, numeric(overview.public_float_shares) - internalFloatShares);
+  const publicFloatShares = Math.max(0, numeric(overview.shares_outstanding) - numeric(overview.insider_shares_long) - numeric(overview.institutional_shares_long) - internalFloatShares);
   const ownershipRows = [
     { key: 'insiders', label: 'Insiders', shares: numeric(overview.insider_shares_long), color: '#2f5bb8' },
     { key: 'institutions', label: 'Institutions', shares: numeric(overview.institutional_shares_long), color: '#14916f' },
-    { key: 'public_float', label: 'Public Float', shares: publicFloatShares, color: '#df9514' },
+    { key: 'real_tradable_float', label: 'Real Tradable Float', shares: publicFloatShares, color: '#df9514' },
     { key: 'internal_float', label: 'Internal Float', shares: internalFloatShares, color: '#747bdc' },
   ].map(row => ({
     ...row,
@@ -131,14 +131,14 @@ export function InstitutionalOverview({ data, ticker }: { data: InstitutionalOve
     ? 'Insider Holdings Breakdown'
     : selectedKey === 'internal_float'
       ? 'Internal Float Breakdown'
-    : selectedKey === 'public_float'
-      ? 'Public Float'
+    : selectedKey === 'real_tradable_float'
+      ? 'Real Tradable Float'
       : 'Institution Holdings Breakdown';
   const rightPanelSubtitle = selectedKey === 'insiders'
     ? 'Active activist / insider share count by holder'
     : selectedKey === 'internal_float'
       ? 'Management / strategic, tokenized, and collateralized shares'
-    : selectedKey === 'public_float'
+    : selectedKey === 'real_tradable_float'
       ? 'Estimated remaining tradable public float after internal deductions'
       : 'Active institution share count by holder';
 
@@ -176,7 +176,7 @@ export function InstitutionalOverview({ data, ticker }: { data: InstitutionalOve
         <article className="institutional-chart-card">
           <div className="institutional-chart-card__head">
             <span>Ownership Structure</span>
-            <small>Insiders, institutions, public float, and internal float</small>
+            <small>Insiders, institutions, real tradable float, and internal float</small>
           </div>
           <div className="institutional-donut-layout">
             <div
@@ -231,12 +231,12 @@ export function InstitutionalOverview({ data, ticker }: { data: InstitutionalOve
               }))}
             />
           )}
-          {selectedKey === 'public_float' && (
+          {selectedKey === 'real_tradable_float' && (
             <div className="institutional-single-metric-panel">
-              <span>Estimated Public Float</span>
+              <span>Real Tradable Float</span>
               <strong>{compact(publicFloatShares)}</strong>
               <small>{formatPercent(pct(publicFloatShares, numeric(overview.shares_outstanding)))} of shares outstanding</small>
-              <p>Public float here excludes management / strategic, tokenized, and collateralized shares tracked in Internal Float.</p>
+              <p>Real tradable float is calculated as shares outstanding minus insiders, institutions, and internal float.</p>
               <Link className="button secondary" href={`/monitor/${ticker}/internal-float-v2` as any}>Open Internal Float</Link>
             </div>
           )}
