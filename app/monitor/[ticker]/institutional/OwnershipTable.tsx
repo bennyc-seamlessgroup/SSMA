@@ -74,6 +74,7 @@ export function OwnershipTable({ holdings, ticker, companyName }: OwnershipTable
         <div className="ownership-legend">
           <span><mark className="legend-new">Green rows indicate new positions</mark></span>
           <span><mark className="legend-closed">Red rows indicate closed positions.</mark></span>
+          <span className="ownership-record-note">Institutional ownership filings are generally updated quarterly as new 13F and major-holder records become available.</span>
         </div>
         <div className="ownership-actions">
           <input

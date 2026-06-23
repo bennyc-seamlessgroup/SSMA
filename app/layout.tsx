@@ -8,11 +8,11 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang="en" data-portal-design="b" suppressHydrationWarning>
       <body>
         <script
           dangerouslySetInnerHTML={{
-            __html: "try{document.documentElement.dataset.portalDesign=localStorage.getItem('monitor-portal-design')==='b'?'b':'a';document.documentElement.dataset.designBTheme=localStorage.getItem('monitor-design-b-theme')==='dark'?'dark':'light'}catch(e){document.documentElement.dataset.portalDesign='a';document.documentElement.dataset.designBTheme='light'}",
+            __html: "try{document.documentElement.dataset.portalDesign='b';document.documentElement.dataset.designBTheme=localStorage.getItem('monitor-design-b-theme')==='dark'?'dark':'light'}catch(e){document.documentElement.dataset.portalDesign='b';document.documentElement.dataset.designBTheme='light'}",
           }}
         />
         {children}

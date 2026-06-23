@@ -5,7 +5,6 @@ import { usePathname, useRouter } from 'next/navigation';
 import { useCallback, useEffect, useState } from 'react';
 import { UserMenu } from './UserMenu';
 import { DevModeToggle } from './DevModeToggle';
-import { PortalDesignToggle } from './PortalDesignToggle';
 
 const groups = [
   {
@@ -325,7 +324,6 @@ export function Sidebar({
               {showDevelopmentDivider && (
                 <div className="design-b-dev-controls">
                   <DevModeToggle />
-                  <PortalDesignToggle />
                   <Link className="portal-backend-link dev-only" href="/operations/sec-filings">Backend Portal</Link>
                   <div className="portal-sidebar__dev-divider dev-only">Development use only</div>
                 </div>

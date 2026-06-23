@@ -129,10 +129,6 @@ export default async function InstitutionalPage({ params }: Readonly<{ params: P
         </span>
       </div>
 
-      <p className="institutional-update-note">
-        Institutional ownership filings are generally updated quarterly as new 13F and major-holder records become available.
-      </p>
-
       <InstitutionalOverview data={overviewEnvelope.data} ticker={normalizedTicker} />
 
       <section className="panel">

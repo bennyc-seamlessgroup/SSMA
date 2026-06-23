@@ -28,7 +28,7 @@ export function InstitutionalTabs({
           className={activeTab === 'ownership' ? 'active' : ''}
           onClick={() => setActiveTab('ownership')}
         >
-          <span>Security Ownership</span>
+          <span>Institutions</span>
           <small>{holdings.length.toLocaleString()} records</small>
         </button>
         <button
@@ -38,7 +38,7 @@ export function InstitutionalTabs({
           className={activeTab === 'activist' ? 'active' : ''}
           onClick={() => setActiveTab('activist')}
         >
-          <span>Activist Filings</span>
+          <span>Insiders</span>
           <small>{activistFilings.length.toLocaleString()} records</small>
         </button>
       </div>

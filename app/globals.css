@@ -1390,55 +1390,6 @@ html[data-dev-mode="true"] .portal-backend-link.dev-only {
   display: flex !important;
 }
 
-.portal-design-toggle-row {
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
-  margin: 8px 0 0;
-  padding: 10px 11px;
-  border: 1px solid #dbe6f3;
-  border-radius: 12px;
-  background: #f8fbff;
-  color: #405875;
-  font-size: 11px;
-  font-weight: 900;
-  letter-spacing: .1em;
-  text-transform: uppercase;
-}
-
-html[data-dev-mode="true"] .portal-design-toggle-row.dev-only {
-  display: flex !important;
-}
-
-.portal-design-toggle {
-  display: inline-grid;
-  grid-template-columns: 1fr 1fr;
-  align-items: center;
-  width: 64px;
-  min-height: 28px;
-  padding: 2px;
-  border: 1px solid #c7d8f2;
-  border-radius: 999px;
-  background: #fff;
-  color: #64748b;
-  cursor: pointer;
-  font-size: 11px;
-  font-weight: 900;
-}
-
-.portal-design-toggle span {
-  display: grid;
-  min-height: 22px;
-  place-items: center;
-  border-radius: 999px;
-}
-
-.portal-design-toggle:not(.is-on) span:first-child,
-.portal-design-toggle.is-on span:last-child {
-  background: #2457b8;
-  color: #fff;
-}
-
 .portal-design-b-rail,
 .portal-design-b-topbar {
   display: none;
@@ -1580,11 +1531,11 @@ html:not([data-dev-mode="true"]) .dev-source-inline {
 .portal-menu:hover, .portal-menu.active { color: var(--saas-purple); background: #f1f4ff; }
 .portal-update-dot {
   flex: 0 0 auto;
-  width: 8px;
-  height: 8px;
+  width: 5px;
+  height: 5px;
   border-radius: 50%;
-  background: #ef233c;
-  box-shadow: 0 0 0 3px rgba(239,35,60,.14);
+  background: #e11d48;
+  box-shadow: none;
 }
 .portal-sidebar__group.is-muted { margin-top: 16px; }
 .portal-sidebar__group.is-muted .portal-sidebar__group-toggle {
@@ -2443,7 +2394,7 @@ html:not([data-dev-mode="true"]) .dev-source-inline {
   .monitor-portal .portal-sidebar { max-height: none; }
 }
 
-/* Design B: Tailfox-inspired monitor shell. Kept as an opt-in layer. */
+/* Tailfox-inspired monitor shell. */
 html[data-portal-design="b"] body {
   background: #f3f6fb;
 }
@@ -2697,7 +2648,6 @@ html[data-portal-design="b"] .monitor-portal .portal-backend-link {
 }
 
 html[data-portal-design="b"] .monitor-portal .dev-mode-toggle-row,
-html[data-portal-design="b"] .monitor-portal .portal-design-toggle-row,
 html[data-portal-design="b"] .monitor-portal .portal-backend-link {
   background: #f8fbff;
 }
@@ -2772,10 +2722,10 @@ html[data-portal-design="b"] .portal-design-b-rail {
   flex-direction: column;
   align-items: center;
   padding: 14px 0;
-  border: 0;
+  border: 1px solid #e5e7eb;
   border-radius: 999px;
-  background: transparent;
-  box-shadow: none;
+  background: rgba(255,255,255,.92);
+  box-shadow: 0 10px 28px rgba(15,23,42,.06);
 }
 
 html[data-portal-design="b"] .portal-design-b-rail-logo {
@@ -2971,7 +2921,6 @@ html[data-portal-design="b"] .monitor-portal .portal-menu.active::before {
 }
 
 html[data-portal-design="b"] .monitor-portal .dev-mode-toggle-row,
-html[data-portal-design="b"] .monitor-portal .portal-design-toggle-row,
 html[data-portal-design="b"] .monitor-portal .portal-backend-link {
   width: 100%;
   margin-top: 8px;
@@ -3522,6 +3471,242 @@ html[data-portal-design="b"] .monitor-portal .table th {
   border-color: #e5e7eb;
 }
 
+/* Design B density pass: closer to TailFox's compact CRM scale. */
+html[data-portal-design="b"] .monitor-portal {
+  font-size: 13px;
+}
+
+html[data-portal-design="b"] .monitor-portal .portal-main {
+  padding: 12px 18px 24px;
+}
+
+html[data-portal-design="b"] .portal-design-b-topbar {
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+html[data-portal-design="b"] .portal-design-b-topbar-row {
+  min-height: 40px;
+}
+
+html[data-portal-design="b"] .portal-design-b-page-title h1 {
+  font-size: 16px;
+  line-height: 1.18;
+}
+
+html[data-portal-design="b"] .portal-design-b-page-title nav {
+  margin-top: 7px;
+  font-size: 12px;
+}
+
+html[data-portal-design="b"] .portal-design-b-actions > button,
+html[data-portal-design="b"] .portal-design-b-actions > a:not(.portal-design-b-company),
+html[data-portal-design="b"] .portal-design-b-actions .user-menu__button {
+  width: 34px;
+  min-height: 34px;
+  height: 34px;
+}
+
+html[data-portal-design="b"] .portal-design-b-actions .user-avatar {
+  width: 27px;
+  height: 27px;
+  font-size: 10px;
+}
+
+html[data-portal-design="b"] .portal-design-b-actions svg {
+  width: 16px;
+  height: 16px;
+}
+
+html[data-portal-design="b"] .portal-design-b-company-main {
+  min-height: 34px;
+}
+
+html[data-portal-design="b"] .portal-design-b-company strong {
+  font-size: 13px;
+}
+
+html[data-portal-design="b"] .portal-design-b-company span {
+  font-size: 11px;
+}
+
+html[data-portal-design="b"] .monitor-portal .portal-sidebar {
+  padding-top: 12px;
+  padding-bottom: 12px;
+}
+
+html[data-portal-design="b"] .portal-design-b-rail {
+  top: 12px;
+  height: calc(100vh - 24px);
+  padding: 12px 0;
+}
+
+html[data-portal-design="b"] .portal-design-b-rail nav {
+  gap: 6px;
+  margin-top: 46px;
+}
+
+html[data-portal-design="b"] .portal-design-b-rail button,
+html[data-portal-design="b"] .portal-design-b-rail-bottom {
+  width: 38px;
+  height: 38px;
+  border-radius: 12px;
+}
+
+html[data-portal-design="b"] .portal-design-b-rail button svg {
+  width: 19px;
+  height: 19px;
+}
+
+html[data-portal-design="b"] .monitor-portal .portal-brand {
+  height: 46px;
+  min-height: 46px;
+}
+
+html[data-portal-design="b"] .monitor-portal .portal-brand__text strong {
+  font-size: 13px;
+}
+
+html[data-portal-design="b"] .monitor-portal .portal-brand__text small {
+  font-size: 10px;
+}
+
+html[data-portal-design="b"] .monitor-portal .portal-sidebar__scroll {
+  height: calc(100vh - 72px);
+  padding: 14px 12px 12px;
+}
+
+html[data-portal-design="b"] .monitor-portal .portal-sidebar__group-toggle {
+  min-height: 22px;
+  margin: 10px 0 9px;
+  font-size: 11px;
+}
+
+html[data-portal-design="b"] .monitor-portal .portal-menu {
+  min-height: 34px;
+  font-size: 13px;
+}
+
+html[data-portal-design="b"] .monitor-portal .page,
+html[data-portal-design="b"] .monitor-portal .dashboard-page,
+html[data-portal-design="b"] .monitor-portal .dashboard-v2-page {
+  gap: 12px;
+}
+
+html[data-portal-design="b"] .monitor-portal .terminal-section,
+html[data-portal-design="b"] .monitor-portal .panel,
+html[data-portal-design="b"] .monitor-portal .section,
+html[data-portal-design="b"] .monitor-portal .portal-panel,
+html[data-portal-design="b"] .monitor-portal .institutional-chart-card,
+html[data-portal-design="b"] .monitor-portal .dashboard-v2-chart-card {
+  padding: 14px;
+  border-radius: 7px;
+}
+
+html[data-portal-design="b"] .monitor-portal .terminal-card,
+html[data-portal-design="b"] .monitor-portal .metric,
+html[data-portal-design="b"] .monitor-portal .institutional-overview__kpis article {
+  padding: 13px;
+  border-radius: 7px;
+}
+
+html[data-portal-design="b"] .monitor-portal .terminal-section__head,
+html[data-portal-design="b"] .monitor-portal .portal-panel__head {
+  margin-bottom: 12px;
+  padding-bottom: 10px;
+}
+
+html[data-portal-design="b"] .monitor-portal .terminal-section__head h2,
+html[data-portal-design="b"] .monitor-portal .portal-panel__head h2,
+html[data-portal-design="b"] .monitor-portal .section__title {
+  font-size: 16px;
+  line-height: 1.25;
+}
+
+html[data-portal-design="b"] .monitor-portal .terminal-eyebrow,
+html[data-portal-design="b"] .monitor-portal .dashboard-v2-kpi-label,
+html[data-portal-design="b"] .monitor-portal th {
+  font-size: 11px;
+  letter-spacing: .10em;
+}
+
+html[data-portal-design="b"] .monitor-portal p,
+html[data-portal-design="b"] .monitor-portal td,
+html[data-portal-design="b"] .monitor-portal .table td,
+html[data-portal-design="b"] .monitor-portal .table th,
+html[data-portal-design="b"] .monitor-portal .metric__note,
+html[data-portal-design="b"] .monitor-portal .terminal-card small {
+  font-size: 12px;
+}
+
+html[data-portal-design="b"] .monitor-portal .table td,
+html[data-portal-design="b"] .monitor-portal .table th {
+  padding: 9px 10px;
+}
+
+html[data-portal-design="b"] .monitor-portal .button,
+html[data-portal-design="b"] .monitor-portal .section-view-more,
+html[data-portal-design="b"] .monitor-portal .text-link,
+html[data-portal-design="b"] .monitor-portal .input,
+html[data-portal-design="b"] .monitor-portal .select {
+  min-height: 32px;
+  font-size: 12px;
+}
+
+html[data-portal-design="b"] .monitor-portal .badge,
+html[data-portal-design="b"] .monitor-portal .pill {
+  font-size: 10px;
+}
+
+html[data-portal-design="b"] .monitor-portal .metric__value,
+html[data-portal-design="b"] .monitor-portal .terminal-card strong,
+html[data-portal-design="b"] .monitor-portal .institutional-overview__kpis strong {
+  font-size: clamp(22px, 2vw, 28px);
+}
+
+html[data-portal-design="b"] .monitor-portal .dashboard-v2-kpis {
+  gap: 10px;
+}
+
+html[data-portal-design="b"] .monitor-portal .dashboard-v2-kpi {
+  min-height: 112px;
+  padding: 14px;
+  gap: 9px;
+  border-radius: 7px;
+}
+
+html[data-portal-design="b"] .monitor-portal .dashboard-v2-kpi strong {
+  font-size: 30px;
+}
+
+html[data-portal-design="b"] .monitor-portal .dashboard-v2-kpi small,
+html[data-portal-design="b"] .monitor-portal .dashboard-v2-kpi-change {
+  font-size: 12px;
+}
+
+html[data-portal-design="b"] .monitor-portal .dashboard-v2-chart-head {
+  gap: 12px;
+  margin-bottom: 4px;
+}
+
+html[data-portal-design="b"] .monitor-portal .dashboard-v2-chart-head > div:first-child span {
+  font-size: 11px;
+}
+
+html[data-portal-design="b"] .monitor-portal .dashboard-v2-period-control button {
+  min-width: 42px;
+  height: 30px;
+  font-size: 12px;
+}
+
+html[data-portal-design="b"] .monitor-portal .dashboard-v2-legend {
+  gap: 7px 13px;
+}
+
+html[data-portal-design="b"] .monitor-portal .dashboard-v2-legend button {
+  font-size: 12px;
+}
+
 html[data-portal-design="b"][data-design-b-theme="dark"] body {
   background: #07111f;
 }
@@ -3535,9 +3720,9 @@ html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal {
 }
 
 html[data-portal-design="b"][data-design-b-theme="dark"] .portal-design-b-rail {
-  border-color: transparent;
-  background: transparent;
-  box-shadow: none;
+  border-color: rgba(148,163,184,.16);
+  background: rgba(10,21,38,.90);
+  box-shadow: 0 14px 34px rgba(0,0,0,.22);
 }
 
 html[data-portal-design="b"][data-design-b-theme="dark"] .portal-design-b-rail button,
@@ -3681,6 +3866,184 @@ html[data-portal-design="b"][data-design-b-theme="dark"] .dashboard-v2-legend bu
 
 html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-expert-fab {
   box-shadow: rgba(0,0,0,.34) 0 18px 34px;
+}
+
+/* Design B final typography and contrast pass across all workspace pages. */
+html[data-portal-design="b"] .monitor-portal {
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+html[data-portal-design="b"] .monitor-portal :where(h1, h2, h3, h4) {
+  letter-spacing: 0;
+  font-weight: 600;
+  line-height: 1.22;
+}
+
+html[data-portal-design="b"] .monitor-portal :where(h1, .page__title) {
+  font-size: 16px;
+}
+
+html[data-portal-design="b"] .monitor-portal :where(h2, .panel__title, .section__title, .terminal-section__head h2, .portal-panel__head h2) {
+  font-size: 15px;
+}
+
+html[data-portal-design="b"] .monitor-portal :where(h3, h4) {
+  font-size: 13px;
+}
+
+html[data-portal-design="b"] .monitor-portal :where(p, li, label, td, th, input, select, textarea, button) {
+  font-size: 12px;
+}
+
+html[data-portal-design="b"] .monitor-portal :where(strong, b) {
+  font-weight: 600;
+}
+
+html[data-portal-design="b"] .monitor-portal :where(.terminal-eyebrow, .portal-sidebar__label, .metric__label, .dashboard-v2-kpi-label, .institutional-overview__kpis span, .institutional-chart-card__head span, th) {
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: .09em;
+}
+
+html[data-portal-design="b"] .monitor-portal :where(.metric__value, .terminal-card strong, .institutional-overview__kpis strong) {
+  font-size: clamp(20px, 1.7vw, 26px);
+}
+
+html[data-portal-design="b"] .monitor-portal :where(.dashboard-v2-kpi strong) {
+  font-size: 28px;
+}
+
+html[data-portal-design="b"] .monitor-portal :where(.badge, .pill, small) {
+  font-size: 10.5px;
+}
+
+html[data-portal-design="b"] .monitor-portal :where(.terminal-section, .terminal-card, .panel, .metric, .section, .portal-panel, .institutional-chart-card, .dashboard-v2-kpi, .dashboard-v2-chart-card, .table, .ownership-page, .short-kpi-card, .lending-kpi-card, .float-v2-section, .float-v2-card) {
+  border-radius: 7px;
+}
+
+html[data-portal-design="b"] .monitor-portal :where(.terminal-section, .panel, .section, .portal-panel, .institutional-chart-card, .dashboard-v2-chart-card, .ownership-page, .float-v2-section, .float-v2-card) {
+  padding: 14px;
+}
+
+html[data-portal-design="b"] .monitor-portal :where(.terminal-card, .metric, .dashboard-v2-kpi, .short-kpi-card, .lending-kpi-card) {
+  padding: 13px;
+}
+
+html[data-portal-design="b"] .monitor-portal :where(.table td, .table th, .ownership-table td, .ownership-table th, .admin-data-table td, .admin-data-table th) {
+  padding: 8px 10px;
+}
+
+html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal :where(.terminal-section, .terminal-card, .panel, .metric, .section, .portal-panel, .institutional-chart-card, .institutional-overview__kpis article, .dashboard-v2-kpi, .dashboard-v2-chart-card, .table, .ownership-page, .ownership-table-wrap, .short-kpi-card, .lending-kpi-card, .float-v2-section, .float-v2-card, .float-v2-form-card, .import-table-shell, .settings-table, .dashboard-card, .narrative-feed-card) {
+  border-color: rgba(148,163,184,.18);
+  background: rgba(10,21,38,.86);
+  color: #d8e4f2;
+  box-shadow: none;
+}
+
+html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal :where(h1, h2, h3, h4, strong, b, .page__title, .panel__title, .section__title, .metric__value, .terminal-card strong, .dashboard-v2-kpi strong, .institutional-overview__kpis strong, .institutional-donut__center strong, .float-donut strong, .float-v2-ranked-value b, .ownership-table td:first-child, .table-link) {
+  color: #f4f8ff;
+}
+
+html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal :where(p, small, span, li, label, td, th, .page__desc, .metric__note, .terminal-card small, .institutional-overview__kpis small, .institutional-chart-card__head small, .institutional-value-legend span, .institutional-ranked-bars span, .ownership-table td, .table td, .table th) {
+  color: #9db0c8;
+}
+
+html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal :where(.terminal-eyebrow, .portal-sidebar__label, .metric__label, .dashboard-v2-kpi-label, .institutional-overview__kpis span, .institutional-chart-card__head span, th) {
+  color: #8fa3bd;
+}
+
+html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal :where(.input, .select, .textarea, input, select, textarea) {
+  border-color: rgba(148,163,184,.20);
+  background: rgba(7,17,31,.82);
+  color: #e6eef9;
+}
+
+html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal :where(.input::placeholder, .textarea::placeholder, input::placeholder, textarea::placeholder) {
+  color: #647993;
+}
+
+html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal :where(.table th, .ownership-table th, .admin-data-table th, .settings-table__head) {
+  background: rgba(15,29,51,.92);
+  color: #a8bad2;
+}
+
+html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal :where(.table td, .table th, .ownership-table td, .ownership-table th, .terminal-section__head, .portal-panel__head, .settings-table__row, .settings-table__head) {
+  border-color: rgba(148,163,184,.14);
+}
+
+html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal :where(.button.secondary, .button.ghost, .section-view-more, .text-link) {
+  border-color: rgba(96,165,250,.28);
+  background: rgba(37,99,235,.12);
+  color: #93c5fd;
+}
+
+html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal :where(.badge, .pill) {
+  border-color: rgba(148,163,184,.18);
+  background: rgba(15,29,51,.92);
+  color: #c8d8ea;
+}
+
+html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal :where(.badge.good, .pill.good, .short-kpi-delta.up, .dashboard-v2-kpi-change.up) {
+  color: #34d399;
+}
+
+html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal :where(.badge.bad, .pill.bad, .short-kpi-delta.down, .dashboard-v2-kpi-change.down) {
+  color: #fb7185;
+}
+
+html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal :where(.short-kpi-delta.up, .short-kpi-delta.up strong, .short-kpi-delta.up em, .dashboard-v2-kpi-change.up, .dashboard-v2-kpi-change.up b, .dashboard-v2-kpi-change.up em) {
+  color: #34d399;
+}
+
+html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal :where(.short-kpi-delta.down, .short-kpi-delta.down strong, .short-kpi-delta.down em, .dashboard-v2-kpi-change.down, .dashboard-v2-kpi-change.down b, .dashboard-v2-kpi-change.down em) {
+  color: #fb7185;
+}
+
+html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal :where(.import-tabs__bar, .institutional-tabs__bar) {
+  border-color: rgba(148,163,184,.18);
+  background: rgba(15,29,51,.72);
+}
+
+html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal :where(.import-tabs__tab, .institutional-tabs__bar button) {
+  border-color: transparent;
+  background: transparent;
+  color: #a8bad2;
+}
+
+html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal :where(.import-tabs__tab span, .institutional-tabs__bar span) {
+  color: #c8d8ea;
+}
+
+html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal :where(.import-tabs__tab small, .institutional-tabs__bar small) {
+  color: #7f94af;
+}
+
+html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal :where(.import-tabs__tab.active, .institutional-tabs__bar button.active) {
+  border-color: rgba(96,165,250,.24);
+  background: rgba(96,165,250,.12);
+  color: #93c5fd;
+}
+
+html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal :where(.import-tabs__tab.active span, .institutional-tabs__bar button.active span) {
+  color: #f4f8ff;
+}
+
+html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal :where(.import-pagination button, .ownership-pagination button, .sec-filings-pagination button, .narrative-feed-pagination button, .report-history-pagination button, .report-history-filter button) {
+  border-color: rgba(96,165,250,.26);
+  background: rgba(37,99,235,.10);
+  color: #bfdbfe;
+}
+
+html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal :where(.import-pagination button:hover:not(:disabled), .ownership-pagination button:hover:not(:disabled), .sec-filings-pagination button:hover:not(:disabled), .narrative-feed-pagination button:hover:not(:disabled), .report-history-pagination button:hover:not(:disabled), .report-history-filter button:hover, .report-history-filter button.active) {
+  border-color: rgba(96,165,250,.42);
+  background: rgba(37,99,235,.22);
+  color: #ffffff;
+}
+
+html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal :where(.import-pagination button:disabled, .ownership-pagination button:disabled, .sec-filings-pagination button:disabled, .narrative-feed-pagination button:disabled, .report-history-pagination button:disabled) {
+  color: #71829a;
+  opacity: .55;
 }
 
 @media (max-width: 1080px) {
@@ -11504,6 +11867,13 @@ html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-expert-fab {
   padding: 2px 4px;
   border-radius: 2px;
 }
+.ownership-record-note {
+  margin-top: 4px;
+  color: #64748b;
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.35;
+}
 .legend-new { background: #dff2df; }
 .legend-closed { background: #f7dada; }
 .ownership-actions { display: flex; align-items: center; gap: 10px; }
@@ -11808,14 +12178,6 @@ html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-expert-fab {
   padding-top: 0;
 }
 
-.institutional-update-note {
-  margin: -6px 0 16px;
-  color: #5f718b;
-  font-size: 13px;
-  font-weight: 500;
-  line-height: 1.45;
-}
-
 .institutional-overview {
   display: grid;
   gap: 16px;
@@ -11838,7 +12200,7 @@ html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-expert-fab {
 
 .institutional-overview__kpis article {
   display: grid;
-  gap: 8px;
+  gap: 10px;
   padding: 16px;
 }
 
@@ -11849,6 +12211,13 @@ html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-expert-fab {
   font-weight: 800;
   letter-spacing: .13em;
   text-transform: uppercase;
+}
+
+.institutional-overview__kpis .with-info,
+.institutional-chart-card__head .with-info {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
 }
 
 .institutional-overview__kpis strong {
@@ -11905,7 +12274,7 @@ html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-expert-fab {
 
 .institutional-donut__center {
   display: grid;
-  width: 44%;
+  width: 56%;
   aspect-ratio: 1;
   align-content: center;
   justify-items: center;
@@ -11919,9 +12288,11 @@ html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-expert-fab {
 }
 
 .institutional-donut__center strong {
-  font-size: 25px;
+  max-width: 88%;
+  font-size: 23px;
   font-weight: 800;
   line-height: 1;
+  overflow-wrap: anywhere;
 }
 
 .institutional-donut__center span {
@@ -12071,7 +12442,7 @@ html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-expert-fab {
 }
 
 .institutional-donut.mini strong {
-  font-size: 24px;
+  font-size: 22px;
 }
 
 .institutional-value-legend.compact {
@@ -12079,7 +12450,8 @@ html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-expert-fab {
 }
 
 .institutional-internal-float-link {
-  display: flex;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) max-content;
   align-items: center;
   justify-content: space-between;
   gap: 14px;
@@ -12087,6 +12459,14 @@ html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-expert-fab {
   border-radius: 12px;
   background: #f8fbff;
   padding: 13px 14px;
+}
+
+.institutional-internal-float-link .button {
+  min-width: 138px;
+  min-height: 42px;
+  justify-content: center;
+  text-align: center;
+  white-space: normal;
 }
 
 .institutional-internal-float-link p {
@@ -12104,6 +12484,75 @@ html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-expert-fab {
   border-radius: 14px;
   background: #f8fbff;
   padding: 18px;
+}
+
+.institutional-float-formula {
+  display: grid;
+  gap: 14px;
+  min-width: 0;
+}
+
+.institutional-float-formula__rows {
+  display: grid;
+  gap: 8px;
+}
+
+.institutional-float-formula__rows div,
+.institutional-float-formula__total {
+  display: grid;
+  grid-template-columns: 24px minmax(0, 1fr) max-content;
+  align-items: center;
+  gap: 12px;
+  border: 1px solid #e2eaf4;
+  border-radius: 10px;
+  background: #f8fbff;
+  padding: 11px 12px;
+}
+
+.institutional-float-formula__rows div > span,
+.institutional-float-formula__total > span {
+  display: inline-grid;
+  width: 24px;
+  height: 24px;
+  place-items: center;
+  border-radius: 999px;
+  background: #eef4ff;
+  color: #2f5bb8;
+  font-size: 16px;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.institutional-float-formula__rows div:not(.is-subtract) > span {
+  background: transparent;
+}
+
+.institutional-float-formula__rows strong,
+.institutional-float-formula__total strong {
+  color: #273951;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.institutional-float-formula__rows b,
+.institutional-float-formula__total b {
+  color: #061b31;
+  font-size: 14px;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.institutional-float-formula__total {
+  grid-template-columns: 24px minmax(0, 1fr) max-content;
+  border-color: #c7d8f2;
+  background: #eef5ff;
+}
+
+.institutional-float-formula__total small {
+  grid-column: 2 / -1;
+  color: #49617d;
+  font-size: 12px;
+  font-weight: 700;
 }
 
 .institutional-single-metric-panel span {
@@ -12179,6 +12628,29 @@ html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-expert-fab {
   white-space: nowrap;
 }
 
+.institutional-page .ownership-table th,
+.institutional-page .ownership-table td,
+.institutional-page .table th,
+.institutional-page .table td {
+  border-bottom: 1px solid #edf2f7;
+  border-style: solid;
+}
+
+html[data-portal-design="b"] .monitor-portal .institutional-page .ownership-table th,
+html[data-portal-design="b"] .monitor-portal .institutional-page .ownership-table td,
+html[data-portal-design="b"] .monitor-portal .institutional-page .table th,
+html[data-portal-design="b"] .monitor-portal .institutional-page .table td {
+  border-color: #edf2f7;
+  border-style: solid;
+}
+
+html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .institutional-page .ownership-table th,
+html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .institutional-page .ownership-table td,
+html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .institutional-page .table th,
+html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .institutional-page .table td {
+  border-color: rgba(148,163,184,.12);
+}
+
 @media (max-width: 1280px) {
   .institutional-overview__kpis {
     grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -12220,7 +12692,10 @@ html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-expert-fab {
 
   .institutional-internal-float-link {
     align-items: stretch;
-    flex-direction: column;
+  }
+
+  .institutional-internal-float-link .button {
+    width: 100%;
   }
 
   .institutional-ranked-bars > div {
@@ -12347,5 +12822,537 @@ html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-expert-fab {
 @media (max-width: 900px) {
   .ownership-pagination {
     flex-wrap: wrap;
+  }
+}
+
+/* Final Design B page-wide polish. This stays last to beat older page-specific styles. */
+html[data-portal-design="b"] .monitor-portal :where(h1, h2, h3, h4) {
+  font-weight: 600;
+  letter-spacing: 0;
+}
+
+html[data-portal-design="b"] .monitor-portal :where(.terminal-section__head h2, .portal-panel__head h2, .section__title, .panel__title, .institutional-tabs__bar span) {
+  font-size: 13px;
+  font-weight: 600;
+}
+
+html[data-portal-design="b"] .monitor-portal :where(.terminal-eyebrow, .dashboard-v2-kpi-label, .metric__label, .institutional-overview__kpis span, .institutional-chart-card__head span, th) {
+  font-size: 10.5px;
+  font-weight: 600;
+}
+
+html[data-portal-design="b"] .monitor-portal :where(p, small, li, td, label, button, input, select, textarea) {
+  font-size: 12px;
+}
+
+html[data-portal-design="b"] .monitor-portal :where(strong, b, .institutional-tabs__bar small) {
+  font-weight: 600;
+}
+
+html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal :where(.import-pagination button, .ownership-pagination button, .sec-filings-pagination button, .narrative-feed-pagination button, .report-history-pagination button, .report-history-filter button) {
+  border-color: rgba(96,165,250,.28);
+  background: rgba(37,99,235,.12);
+  color: #cfe3ff;
+}
+
+html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal :where(.import-pagination button:disabled, .ownership-pagination button:disabled, .sec-filings-pagination button:disabled, .narrative-feed-pagination button:disabled, .report-history-pagination button:disabled) {
+  color: #a8bad2;
+  opacity: .72;
+}
+
+html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal :where(.short-kpi-delta.up, .short-kpi-delta.up strong, .short-kpi-delta.up em, .dashboard-v2-kpi-change.up, .dashboard-v2-kpi-change.up b, .dashboard-v2-kpi-change.up em) {
+  color: #34d399;
+}
+
+html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal :where(.short-kpi-delta.down, .short-kpi-delta.down strong, .short-kpi-delta.down em, .dashboard-v2-kpi-change.down, .dashboard-v2-kpi-change.down b, .dashboard-v2-kpi-change.down em) {
+  color: #fb7185;
+}
+
+html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal :where(.institutional-tabs__bar button, .import-tabs__tab) {
+  color: #a8bad2;
+}
+
+html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal :where(.institutional-tabs__bar button.active, .import-tabs__tab.active) {
+  background: rgba(96,165,250,.12);
+  color: #f4f8ff;
+}
+
+html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal :where(.institutional-tabs__bar span, .import-tabs__tab span) {
+  color: inherit;
+}
+
+html[data-portal-design="b"] .monitor-portal .short-kpi-delta,
+html[data-portal-design="b"] .monitor-portal .short-kpi-delta strong,
+html[data-portal-design="b"] .monitor-portal .short-kpi-delta em {
+  font-size: 12px !important;
+  font-weight: 600 !important;
+  line-height: 1.25;
+}
+
+html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .short-kpi-delta.up,
+html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .short-kpi-delta.up strong,
+html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .short-kpi-delta.up em {
+  color: #34d399 !important;
+}
+
+html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .short-kpi-delta.down,
+html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .short-kpi-delta.down strong,
+html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .short-kpi-delta.down em {
+  color: #fb7185 !important;
+}
+
+/* Ownership page dark-mode finish pass. */
+html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .institutional-page .institutional-donut__center {
+  background: #0f1b2e;
+  color: #f4f8ff;
+  box-shadow: inset 0 0 0 1px rgba(148, 163, 184, .18);
+}
+
+html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .institutional-page .institutional-donut__center strong {
+  color: #f4f8ff;
+}
+
+html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .institutional-page .institutional-donut__center span {
+  color: #9db0c8;
+}
+
+html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .institutional-page .institutional-value-legend div,
+html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .institutional-page .institutional-value-legend.interactive button {
+  border-color: rgba(148, 163, 184, .16);
+  color: #c8d8ea;
+}
+
+html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .institutional-page .institutional-value-legend.interactive button:hover,
+html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .institutional-page .institutional-value-legend.interactive button.active {
+  border-color: rgba(96, 165, 250, .34);
+  background: rgba(37, 99, 235, .12);
+  box-shadow: none;
+}
+
+html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .institutional-page .institutional-value-legend span,
+html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .institutional-page .institutional-ranked-bars span {
+  color: #c8d8ea;
+}
+
+html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .institutional-page .institutional-value-legend strong,
+html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .institutional-page .institutional-ranked-bars strong {
+  color: #f4f8ff;
+}
+
+html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .institutional-page .institutional-ranked-bars > div > div {
+  border: 1px solid rgba(148, 163, 184, .10);
+  background: rgba(148, 163, 184, .12);
+}
+
+html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .institutional-page .institutional-ranked-bars i {
+  opacity: .92;
+}
+
+html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .institutional-page .selected-insiders .institutional-ranked-bars i {
+  background: #60a5fa !important;
+}
+
+html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .institutional-page .selected-institutions .institutional-ranked-bars i {
+  background: #34d399 !important;
+}
+
+html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .institutional-page .selected-internal_float .institutional-ranked-bars i {
+  background: #a5b4fc !important;
+}
+
+html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .institutional-page .institutional-value-legend small,
+html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .institutional-page .institutional-ranked-bars small {
+  border-color: rgba(147, 197, 253, .24);
+  background: rgba(96, 165, 250, .12);
+  color: #bfdbfe;
+}
+
+html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .institutional-page .institutional-internal-float-link,
+html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .institutional-page .institutional-single-metric-panel {
+  border-color: rgba(96, 165, 250, .22);
+  background: rgba(15, 29, 51, .72);
+}
+
+html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .institutional-page .institutional-internal-float-link p,
+html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .institutional-page .institutional-single-metric-panel p,
+html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .institutional-page .institutional-single-metric-panel small {
+  color: #9db0c8;
+}
+
+html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .institutional-page .institutional-internal-float-link .button,
+html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .institutional-page .institutional-single-metric-panel .button {
+  border-color: rgba(96, 165, 250, .36);
+  background: rgba(37, 99, 235, .18);
+  color: #bfdbfe;
+}
+
+html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .institutional-page .ownership-legend mark {
+  color: #c8d8ea;
+}
+
+html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .institutional-page .ownership-record-note {
+  color: #8fa3bd;
+}
+
+html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .institutional-page .legend-new {
+  background: rgba(16, 185, 129, .14);
+}
+
+html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .institutional-page .legend-closed {
+  background: rgba(244, 63, 94, .14);
+}
+
+html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .institutional-page .ownership-table {
+  background: rgba(10, 21, 38, .86);
+}
+
+html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .institutional-page .ownership-table th {
+  background: #101d31;
+  color: #a8bad2;
+}
+
+html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .institutional-page .ownership-table td {
+  background: transparent;
+  color: #c8d8ea;
+}
+
+html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .institutional-page .ownership-table tbody tr:hover {
+  background: rgba(96, 165, 250, .08);
+}
+
+html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .institutional-page .ownership-table tbody tr.is-new {
+  background: rgba(16, 185, 129, .12);
+}
+
+html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .institutional-page .ownership-table tbody tr.is-new td {
+  color: #b7f3d7;
+}
+
+html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .institutional-page .ownership-table tbody tr.is-closed {
+  background: rgba(244, 63, 94, .12);
+}
+
+html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .institutional-page .ownership-table tbody tr.is-closed td {
+  color: #fecdd3;
+}
+
+html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .institutional-page .investor-cell {
+  color: #d8e4f2;
+}
+
+html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .institutional-page .ownership-chart-icon-button {
+  border-color: rgba(52, 211, 153, .28);
+  background: rgba(16, 185, 129, .10);
+  color: #6ee7b7;
+}
+
+html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .institutional-page .ownership-chart-icon-button:hover {
+  background: rgba(16, 185, 129, .18);
+}
+
+html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .institutional-page .institutional-tabs__bar,
+html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .institutional-page .ownership-page-count,
+html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .institutional-page .ownership-page-input,
+html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .institutional-page .ownership-pagination select {
+  border-color: rgba(148, 163, 184, .18);
+  background: rgba(15, 29, 51, .72);
+  color: #d8e4f2;
+}
+
+html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .institutional-page .institutional-float-formula__rows div,
+html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .institutional-page .institutional-float-formula__total {
+  border-color: rgba(148, 163, 184, .16);
+  background: rgba(15, 29, 51, .72);
+}
+
+html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .institutional-page .institutional-float-formula__rows div > span,
+html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .institutional-page .institutional-float-formula__total > span {
+  background: rgba(96, 165, 250, .12);
+  color: #93c5fd;
+}
+
+html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .institutional-page .institutional-float-formula__rows div:not(.is-subtract) > span {
+  background: transparent;
+}
+
+html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .institutional-page .institutional-float-formula__rows strong,
+html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .institutional-page .institutional-float-formula__total strong {
+  color: #c8d8ea;
+}
+
+html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .institutional-page .institutional-float-formula__rows b,
+html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .institutional-page .institutional-float-formula__total b {
+  color: #f4f8ff;
+}
+
+html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .institutional-page .institutional-float-formula__total {
+  border-color: rgba(96, 165, 250, .28);
+  background: rgba(37, 99, 235, .14);
+}
+
+html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .institutional-page .institutional-float-formula__total small {
+  color: #bfdbfe;
+}
+
+/* Short Interest page compact Design B pass. */
+html[data-portal-design="b"] .monitor-portal .short-interest-overview,
+html[data-portal-design="b"] .monitor-portal .short-interest-trends-section {
+  margin-top: 0;
+  margin-bottom: 12px;
+  background: rgba(255, 255, 255, .88);
+}
+
+html[data-portal-design="b"] .monitor-portal .short-interest-overview .terminal-section__head,
+html[data-portal-design="b"] .monitor-portal .short-interest-trends-section .terminal-section__head {
+  margin-bottom: 12px;
+  padding-bottom: 10px;
+  border-width: 0 0 1px;
+  border-style: solid;
+  border-color: #e5e7eb;
+}
+
+html[data-portal-design="b"] .monitor-portal .short-interest-overview .terminal-section__head h2,
+html[data-portal-design="b"] .monitor-portal .short-interest-trends-section .terminal-section__head h2 {
+  font-size: 15px;
+  font-weight: 600;
+}
+
+html[data-portal-design="b"] .monitor-portal .short-interest-overview .section-subtitle,
+html[data-portal-design="b"] .monitor-portal .short-interest-trends-section .section-subtitle {
+  margin-top: 4px;
+  font-size: 12px;
+  line-height: 1.35;
+}
+
+html[data-portal-design="b"] .monitor-portal .short-interest-score-grid {
+  grid-template-columns: minmax(0, 1.15fr) minmax(220px, .85fr);
+  gap: 10px;
+}
+
+html[data-portal-design="b"] .monitor-portal .short-interest-overview .short-score-hero {
+  min-height: 178px;
+  padding: 16px;
+  gap: 10px;
+}
+
+html[data-portal-design="b"] .monitor-portal .short-score-hero > span,
+html[data-portal-design="b"] .monitor-portal .short-score-gauge-card > span,
+html[data-portal-design="b"] .monitor-portal .short-pressure-card > span {
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: .09em;
+}
+
+html[data-portal-design="b"] .monitor-portal .short-score-hero > strong {
+  font-size: clamp(32px, 3.4vw, 48px);
+  letter-spacing: 0;
+  line-height: 1;
+}
+
+html[data-portal-design="b"] .monitor-portal .short-score-hero p {
+  max-width: 760px;
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+html[data-portal-design="b"] .monitor-portal .short-score-status-row {
+  gap: 8px;
+}
+
+html[data-portal-design="b"] .monitor-portal .short-score-status-row > em {
+  padding: 5px 9px;
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: .04em;
+}
+
+html[data-portal-design="b"] .monitor-portal .short-score-gauge-card {
+  min-height: 178px;
+  padding: 16px;
+  display: grid;
+  place-items: center;
+  align-content: center;
+  gap: 10px;
+}
+
+html[data-portal-design="b"] .monitor-portal .short-score-gauge-card .triggered-gauge {
+  width: 128px;
+  height: 128px;
+}
+
+html[data-portal-design="b"] .monitor-portal .short-score-gauge-card .triggered-gauge strong {
+  font-size: 28px;
+}
+
+html[data-portal-design="b"] .monitor-portal .short-score-gauge-card p {
+  margin: 0;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+html[data-portal-design="b"] .monitor-portal .short-interest-kpi-grid,
+html[data-portal-design="b"] .monitor-portal .short-interest-overview .short-interest-kpi-grid {
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 10px;
+  margin-top: 12px;
+}
+
+html[data-portal-design="b"] .monitor-portal .short-interest-overview .short-kpi-card {
+  min-height: 112px;
+  gap: 7px;
+  padding: 13px;
+  border-radius: 7px;
+}
+
+html[data-portal-design="b"] .monitor-portal .short-interest-overview .short-kpi-card > span {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: .09em;
+}
+
+html[data-portal-design="b"] .monitor-portal .short-interest-overview .short-kpi-card > strong {
+  margin-top: 6px;
+  font-size: clamp(20px, 1.85vw, 27px);
+  font-weight: 600;
+  line-height: 1.04;
+}
+
+html[data-portal-design="b"] .monitor-portal .short-kpi-delta,
+html[data-portal-design="b"] .monitor-portal .short-kpi-delta strong,
+html[data-portal-design="b"] .monitor-portal .short-kpi-delta em {
+  font-size: 11.5px !important;
+  font-weight: 600 !important;
+  line-height: 1.25;
+}
+
+html[data-portal-design="b"] .monitor-portal .short-kpi-delta {
+  gap: 4px;
+  margin-top: 2px;
+  flex-wrap: wrap;
+}
+
+html[data-portal-design="b"] .monitor-portal .short-interest-analysis-grid {
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 10px;
+  margin-top: 12px;
+}
+
+html[data-portal-design="b"] .monitor-portal .short-pressure-card {
+  min-height: 128px;
+  padding: 14px;
+  border-radius: 7px;
+}
+
+html[data-portal-design="b"] .monitor-portal .short-pressure-card span + ul,
+html[data-portal-design="b"] .monitor-portal .short-pressure-card span + strong,
+html[data-portal-design="b"] .monitor-portal .short-pressure-card span + p {
+  margin-top: 8px;
+}
+
+html[data-portal-design="b"] .monitor-portal .short-pressure-card strong {
+  font-size: 18px;
+  font-weight: 600;
+}
+
+html[data-portal-design="b"] .monitor-portal .short-pressure-card p,
+html[data-portal-design="b"] .monitor-portal .short-pressure-card li {
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+html[data-portal-design="b"] .monitor-portal .short-pressure-card ul {
+  margin-bottom: 0;
+  padding-left: 18px;
+}
+
+html[data-portal-design="b"] .monitor-portal .short-interest-trend-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+html[data-portal-design="b"] .monitor-portal .short-interest-trend-grid .chart-card {
+  min-height: 244px;
+  padding: 13px;
+  border-radius: 7px;
+}
+
+html[data-portal-design="b"] .monitor-portal .short-interest-trend-grid .chart-card h3 {
+  margin-bottom: 9px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: .09em;
+}
+
+html[data-portal-design="b"] .monitor-portal .short-interest-chart {
+  min-height: 180px;
+}
+
+html[data-portal-design="b"] .monitor-portal .short-interest-chart.axis-line-chart {
+  grid-template-columns: 10px 34px minmax(0, 1fr);
+  grid-template-rows: minmax(0, 1fr) 24px;
+  gap: 6px 3px;
+  padding: 10px 12px 12px 10px;
+}
+
+html[data-portal-design="b"] .monitor-portal .short-interest-chart .chart-y-axis,
+html[data-portal-design="b"] .monitor-portal .short-interest-chart .chart-x-axis,
+html[data-portal-design="b"] .monitor-portal .short-interest-chart .chart-axis-title {
+  font-size: 9.5px;
+  font-weight: 600;
+}
+
+html[data-portal-design="b"] .monitor-portal .short-interest-chart polyline {
+  stroke-width: 2.4;
+}
+
+html[data-portal-design="b"] .monitor-portal .short-interest-chart .trend-marker i {
+  width: 7px;
+  height: 7px;
+  border-width: 1.5px;
+  box-shadow: rgba(49, 82, 180, .18) 0 0 0 3px;
+}
+
+html[data-portal-design="b"] .monitor-portal .short-interest-chart .trend-marker b {
+  padding: 3px 5px;
+  font-size: 9px;
+  font-weight: 600;
+}
+
+html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .short-interest-overview,
+html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .short-interest-trends-section {
+  background: rgba(10, 21, 38, .86);
+}
+
+html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .short-interest-overview .terminal-section__head,
+html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .short-interest-trends-section .terminal-section__head {
+  border-color: rgba(148, 163, 184, .16);
+}
+
+html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .short-interest-chart.axis-line-chart {
+  border-color: rgba(148, 163, 184, .16);
+  background: rgba(15, 29, 51, .72);
+}
+
+@media (max-width: 1320px) {
+  html[data-portal-design="b"] .monitor-portal .short-interest-kpi-grid,
+  html[data-portal-design="b"] .monitor-portal .short-interest-overview .short-interest-kpi-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  html[data-portal-design="b"] .monitor-portal .short-interest-trend-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 860px) {
+  html[data-portal-design="b"] .monitor-portal .short-interest-score-grid,
+  html[data-portal-design="b"] .monitor-portal .short-interest-analysis-grid,
+  html[data-portal-design="b"] .monitor-portal .short-interest-trend-grid {
+    grid-template-columns: 1fr;
+  }
+
+  html[data-portal-design="b"] .monitor-portal .short-interest-kpi-grid,
+  html[data-portal-design="b"] .monitor-portal .short-interest-overview .short-interest-kpi-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }

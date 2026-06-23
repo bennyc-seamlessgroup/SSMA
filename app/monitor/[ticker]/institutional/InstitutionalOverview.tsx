@@ -1,7 +1,7 @@
 'use client';
 
-import Link from 'next/link';
 import { useState } from 'react';
+import { InfoTooltip } from '@/components/InfoTooltip';
 
 type OwnershipKey = 'insiders' | 'institutions' | 'real_tradable_float' | 'internal_float';
 
@@ -112,7 +112,7 @@ function donutLabels(rows: NonNullable<InstitutionalOverviewData['ownership_stru
 }
 
 export function InstitutionalOverview({ data, ticker }: { data: InstitutionalOverviewData; ticker: string }) {
-  const [selectedKey, setSelectedKey] = useState<OwnershipKey>('internal_float');
+  const [selectedKey, setSelectedKey] = useState<OwnershipKey>('institutions');
   const overview = data.overview ?? {};
   const institutionRows = data.institution_bars ?? [];
   const insiderRows = data.insider_bars ?? [];
@@ -131,8 +131,8 @@ export function InstitutionalOverview({ data, ticker }: { data: InstitutionalOve
   const ownershipRows = [
     { key: 'insiders', label: 'Insiders', shares: numeric(overview.insider_shares_long), color: '#2f5bb8' },
     { key: 'institutions', label: 'Institutions', shares: numeric(overview.institutional_shares_long), color: '#14916f' },
-    { key: 'real_tradable_float', label: 'Real Tradable Float', shares: publicFloatShares, color: '#df9514' },
     { key: 'internal_float', label: 'Internal Float', shares: internalFloatShares, color: '#747bdc' },
+    { key: 'real_tradable_float', label: 'Real Tradable Float', shares: publicFloatShares, color: '#df9514' },
   ].map(row => ({
     ...row,
     percent: pct(row.shares, numeric(overview.insider_shares_long) + numeric(overview.institutional_shares_long) + publicFloatShares + internalFloatShares),
@@ -143,7 +143,6 @@ export function InstitutionalOverview({ data, ticker }: { data: InstitutionalOve
     { key: 'collateralized', label: 'Collateralized', shares: collateralizedShares, percent: pct(collateralizedShares, internalFloatShares), color: '#df9514', source: 'Internal Float V2 user inputs' },
   ].filter(row => row.shares > 0);
   const ownershipLabelRows = donutLabels(ownershipRows);
-  const internalFloatLabelRows = donutLabels(internalFloatRows);
   const selectedOwnership = ownershipRows.find(row => row.key === selectedKey);
   const rightPanelTitle = selectedKey === 'insiders'
     ? 'Insider Holdings Breakdown'
@@ -152,49 +151,36 @@ export function InstitutionalOverview({ data, ticker }: { data: InstitutionalOve
     : selectedKey === 'real_tradable_float'
       ? 'Real Tradable Float'
       : 'Institution Holdings Breakdown';
-  const rightPanelSubtitle = selectedKey === 'insiders'
-    ? 'Active activist / insider share count by holder'
-    : selectedKey === 'internal_float'
-      ? 'Management / strategic, tokenized, and collateralized shares'
-    : selectedKey === 'real_tradable_float'
-      ? 'Estimated remaining tradable public float after internal deductions'
-      : 'Active institution share count by holder';
 
   return (
     <section className="institutional-overview">
       <div className="institutional-overview__kpis">
         <article>
-          <span>Shares Outstanding</span>
+          <span className="with-info">Shares Outstanding <InfoTooltip text="Total company shares outstanding used as the base for ownership and float calculations." /></span>
           <strong>{compact(overview.shares_outstanding)}</strong>
-          <small>Total issued share base</small>
         </article>
         <article>
-          <span>Institutional Owners</span>
+          <span className="with-info">Institutional Owners <InfoTooltip text="Count of active institutional holders with reported shares greater than zero." /></span>
           <strong>{formatNumber(overview.institutional_owners)}</strong>
-          <small>Active rows with shares &gt; 0</small>
         </article>
         <article>
-          <span>Institutional Shares Long</span>
+          <span className="with-info">Institutional Shares Long <InfoTooltip text="Total active institutional shares reported long, excluding closed positions and non-share options records." /></span>
           <strong>{compact(overview.institutional_shares_long)}</strong>
-          <small>{formatPercent(overview.institutional_ownership_percent)} of shares outstanding</small>
         </article>
         <article>
-          <span>Institutional Value</span>
+          <span className="with-info">Institutional Value <InfoTooltip text="Total reported institutional holding value, displayed in thousands of USD." /></span>
           <strong>${formatNumber(overview.institutional_value_thousands_usd, { maximumFractionDigits: 1 })}K</strong>
-          <small>Reported value / 1,000</small>
         </article>
         <article>
-          <span>Avg Portfolio Allocation</span>
+          <span className="with-info">Avg Portfolio Allocation <InfoTooltip text="Average active portfolio allocation percentage across institutional ownership records." /></span>
           <strong>{formatPercent(overview.average_portfolio_allocation_percent)}</strong>
-          <small>Mean active allocation</small>
         </article>
       </div>
 
       <div className="institutional-overview__charts">
         <article className="institutional-chart-card">
           <div className="institutional-chart-card__head">
-            <span>Ownership Structure</span>
-            <small>Insiders, institutions, real tradable float, and internal float</small>
+            <span className="with-info">Ownership Structure <InfoTooltip text="Breakdown of shares outstanding into insiders, institutions, estimated real tradable float, and internal float deductions." /></span>
           </div>
           <div className="institutional-donut-layout">
             <div
@@ -235,8 +221,7 @@ export function InstitutionalOverview({ data, ticker }: { data: InstitutionalOve
 
         <article className={`institutional-chart-card institutional-detail-card selected-${selectedKey}`}>
           <div className="institutional-chart-card__head">
-            <span>{rightPanelTitle}</span>
-            <small>{rightPanelSubtitle}</small>
+            <span className="with-info">{rightPanelTitle} <InfoTooltip text="Details update based on the selected ownership segment." /></span>
           </div>
           {selectedKey === 'institutions' && (
             <BreakdownBars
@@ -259,51 +244,24 @@ export function InstitutionalOverview({ data, ticker }: { data: InstitutionalOve
             />
           )}
           {selectedKey === 'real_tradable_float' && (
-            <div className="institutional-single-metric-panel">
-              <span>Real Tradable Float</span>
-              <strong>{compact(publicFloatShares)}</strong>
-              <small>{formatPercent(pct(publicFloatShares, numeric(overview.shares_outstanding)))} of shares outstanding</small>
-              <p>Real tradable float is calculated as shares outstanding minus insiders, institutions, and internal float.</p>
-              <Link className="button secondary" href={`/monitor/${ticker}/internal-float-v2` as any}>Open Internal Float</Link>
-            </div>
+            <RealTradableFloatFormula
+              sharesOutstanding={numeric(overview.shares_outstanding)}
+              insiderShares={numeric(overview.insider_shares_long)}
+              institutionalShares={numeric(overview.institutional_shares_long)}
+              internalFloatShares={internalFloatShares}
+              realTradableFloat={publicFloatShares}
+            />
           )}
           {selectedKey === 'internal_float' && (
-            <>
-              <div className="institutional-public-float-panel">
-                <div
-                  className="institutional-donut mini"
-                  style={{ background: `conic-gradient(${ownershipGradient(internalFloatRows)})` }}
-                  aria-label="Internal float breakdown chart"
-                >
-                  {internalFloatLabelRows.map(row => row.percent >= 3 && (
-                    <span
-                      key={`${row.key}-pct`}
-                      className="institutional-donut__pct"
-                      style={{ left: `${row.x}%`, top: `${row.y}%` }}
-                    >
-                      {formatPercent(row.percent)}
-                    </span>
-                  ))}
-                  <div className="institutional-donut__center">
-                    <strong>{compact(internalFloatShares)}</strong>
-                    <span>Total</span>
-                  </div>
-                </div>
-                <div className="institutional-value-legend compact">
-                  {internalFloatRows.map(row => (
-                    <div key={row.key}>
-                      <span><i style={{ background: row.color }} />{row.label}</span>
-                      <strong>{compact(row.shares)}</strong>
-                      <small>{formatPercent(row.percent)}</small>
-                    </div>
-                  ))}
-                </div>
-              </div>
-              <div className="institutional-internal-float-link">
-                <p>Internal float assumptions come from Internal Float inputs. Add management / strategic holdings, tokenized shares, and collateralized shares there to improve this breakdown.</p>
-                <Link className="button secondary" href={`/monitor/${ticker}/internal-float-v2` as any}>Open Internal Float</Link>
-              </div>
-            </>
+            <BreakdownBars
+              rows={internalFloatRows.map(row => ({
+                label: row.label,
+                shares: row.shares,
+                percent: row.percent,
+                color: row.color,
+              }))}
+              emptyText="No internal float records available."
+            />
           )}
         </article>
       </div>
@@ -311,8 +269,8 @@ export function InstitutionalOverview({ data, ticker }: { data: InstitutionalOve
   );
 }
 
-function BreakdownBars({ rows }: { rows: Array<{ label: string; shares: number; percent: number; color?: string }> }) {
-  if (!rows.length) return <p className="page__desc import-empty">No active records available.</p>;
+function BreakdownBars({ rows, emptyText = 'No active records available.' }: { rows: Array<{ label: string; shares: number; percent: number; color?: string }>; emptyText?: string }) {
+  if (!rows.length) return <p className="page__desc import-empty">{emptyText}</p>;
 
   return (
     <div className="institutional-ranked-bars">
@@ -326,6 +284,47 @@ function BreakdownBars({ rows }: { rows: Array<{ label: string; shares: number; 
           <strong>{formatNumber(row.shares)}</strong>
         </div>
       ))}
+    </div>
+  );
+}
+
+function RealTradableFloatFormula({
+  sharesOutstanding,
+  insiderShares,
+  institutionalShares,
+  internalFloatShares,
+  realTradableFloat,
+}: {
+  sharesOutstanding: number;
+  insiderShares: number;
+  institutionalShares: number;
+  internalFloatShares: number;
+  realTradableFloat: number;
+}) {
+  const rows = [
+    { label: 'Shares Outstanding', value: sharesOutstanding, operator: '' },
+    { label: 'Insiders', value: insiderShares, operator: '-' },
+    { label: 'Institutions', value: institutionalShares, operator: '-' },
+    { label: 'Internal Float', value: internalFloatShares, operator: '-' },
+  ];
+
+  return (
+    <div className="institutional-float-formula">
+      <div className="institutional-float-formula__rows">
+        {rows.map(row => (
+          <div key={row.label} className={row.operator ? 'is-subtract' : ''}>
+            <span>{row.operator}</span>
+            <strong>{row.label}</strong>
+            <b>{formatNumber(row.value)}</b>
+          </div>
+        ))}
+      </div>
+      <div className="institutional-float-formula__total">
+        <span>=</span>
+        <strong>Real Tradable Float</strong>
+        <b>{formatNumber(realTradableFloat)}</b>
+        <small>{formatPercent(pct(realTradableFloat, sharesOutstanding))} of shares outstanding</small>
+      </div>
     </div>
   );
 }
