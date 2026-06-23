@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from 'react';
 import type { MouseEvent } from 'react';
-import type { PeriodKey } from './DashboardV2Kpis';
+import { dashboardV2Periods, type PeriodKey } from './DashboardV2Kpis';
 
 type SeriesKey = 'price' | 'feeRate' | 'tradeVolume' | 'shortableShares' | 'daysToCover' | 'utilization';
 
@@ -175,7 +175,17 @@ function fillMissingPrice(points: ChartPoint[]): ChartPoint[] {
   });
 }
 
-export function DashboardV2Chart({ data: sourceData, events: sourceEvents, period }: { data: DataPoint[]; events: CompanyEvent[]; period: PeriodKey }) {
+export function DashboardV2Chart({
+  data: sourceData,
+  events: sourceEvents,
+  period,
+  onPeriodChange,
+}: {
+  data: DataPoint[];
+  events: CompanyEvent[];
+  period: PeriodKey;
+  onPeriodChange: (period: PeriodKey) => void;
+}) {
   const [enabledMetrics, setEnabledMetrics] = useState<Record<SeriesKey, boolean>>({
     price: true,
     feeRate: true,
@@ -352,8 +362,20 @@ export function DashboardV2Chart({ data: sourceData, events: sourceEvents, perio
   return (
     <section className="dashboard-v2-chart-card">
       <div className="dashboard-v2-chart-head">
-        <div>
+        <div className="dashboard-v2-chart-title-wrap">
           <span>Trend Overview</span>
+          <div className="dashboard-v2-period-control" aria-label="Dashboard v2 comparison period">
+            {dashboardV2Periods.map(item => (
+              <button
+                type="button"
+                key={item}
+                className={period === item ? 'active' : ''}
+                onClick={() => onPeriodChange(item)}
+              >
+                {item}
+              </button>
+            ))}
+          </div>
         </div>
         <div className="dashboard-v2-legend" aria-label="Chart series toggles">
           {seriesOrder.map(key => (
@@ -447,7 +469,7 @@ export function DashboardV2Chart({ data: sourceData, events: sourceEvents, perio
             return (
               <g key={key}>
                 <path
-                  className={`dashboard-v2-line ${isFocused ? 'is-focused' : ''} ${isDimmed ? 'is-dimmed' : ''}`}
+                  className={`dashboard-v2-line dashboard-v2-line--${key} ${isFocused ? 'is-focused' : ''} ${isDimmed ? 'is-dimmed' : ''}`}
                   d={chart.paths[key]?.path ?? ''}
                   style={{ stroke: seriesConfig[key].color }}
                 />

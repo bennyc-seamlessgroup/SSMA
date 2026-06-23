@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { DashboardV2Chart } from './DashboardV2Chart';
-import { DashboardV2Kpis, dashboardV2Periods, type PeriodKey } from './DashboardV2Kpis';
+import { DashboardV2Kpis, type PeriodKey } from './DashboardV2Kpis';
 
 type TrendPoint = {
   date: string;
@@ -30,23 +30,7 @@ export function DashboardV2Client({ data, events }: { data: TrendPoint[]; events
   return (
     <>
       <DashboardV2Kpis data={data} period={period} />
-
-      <div className="dashboard-v2-shared-period">
-        <div className="dashboard-v2-period-control" aria-label="Dashboard v2 comparison period">
-          {dashboardV2Periods.map(item => (
-            <button
-              type="button"
-              key={item}
-              className={period === item ? 'active' : ''}
-              onClick={() => setPeriod(item)}
-            >
-              {item}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      <DashboardV2Chart data={data} events={events} period={period} />
+      <DashboardV2Chart data={data} events={events} period={period} onPeriodChange={setPeriod} />
     </>
   );
 }

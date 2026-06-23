@@ -56,7 +56,7 @@ export default async function DashboardV2Page() {
   return (
     <div className="page dashboard-v2-page">
       <div className="dashboard-v2-header">
-        <span>Dashboard (v2)</span>
+        <span>Dashboard</span>
         <p>Borrow market dashboard</p>
       </div>
 

@@ -66,7 +66,11 @@ export function MonitorExpertChat({ ticker }: { ticker: string }) {
   return (
     <>
       <button className="monitor-expert-fab" type="button" onClick={() => setIsOpen(true)} aria-label="Open monitor expert chat">
-        <span>AI</span>
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M12 3.5 13.7 8l4.8 1.7-4.8 1.7L12 16l-1.7-4.6-4.8-1.7L10.3 8 12 3.5Z" />
+          <path d="M18 14.5 19 17l2.5 1-2.5 1-1 2.5-1-2.5-2.5-1 2.5-1 1-2.5Z" />
+          <path d="M6.5 15.5 7.2 17l1.6.7-1.6.6-.7 1.7-.7-1.7-1.6-.6 1.6-.7.7-1.5Z" />
+        </svg>
       </button>
 
       {isOpen && <button className="monitor-expert-backdrop" type="button" aria-label="Close monitor expert chat" onClick={() => setIsOpen(false)} />}

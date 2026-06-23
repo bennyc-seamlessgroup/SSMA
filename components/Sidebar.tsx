@@ -5,17 +5,18 @@ import { usePathname, useRouter } from 'next/navigation';
 import { useCallback, useEffect, useState } from 'react';
 import { UserMenu } from './UserMenu';
 import { DevModeToggle } from './DevModeToggle';
+import { PortalDesignToggle } from './PortalDesignToggle';
 
 const groups = [
   {
     label: 'Workspace',
     items: [
-      ['Dashboard (v2)', 'dashboard-v2'],
-      ['Institutional Ownership', 'institutional'],
+      ['Dashboard', 'dashboard-v2'],
+      ['Ownership', 'institutional'],
       ['Short Interest', 'short-interest'],
       ['Lending Pressure', 'lending-pressure'],
       ['Squeeze Readiness', 'squeeze-readiness'],
-      ['Internal Float (V2)', 'internal-float-v2'],
+      ['Internal Float', 'internal-float-v2'],
       ['Narrative', 'sentiment'],
       ['SEC Filings', 'event-calendar'],
       ['Price Scenarios', 'price-scenario'],
@@ -107,6 +108,7 @@ export function Sidebar({
   const [seenImportDataVersion, setSeenImportDataVersion] = useState(importDataVersion);
   const [currentPageImportVersions, setCurrentPageImportVersions] = useState<Record<string, string>>({});
   const [seenPageImportVersions, setSeenPageImportVersions] = useState<Record<string, string>>({});
+  const [designBPanel, setDesignBPanel] = useState<'workspace' | 'development'>('workspace');
   const [collapsedGroups, setCollapsedGroups] = useState<Record<string, boolean>>(() =>
     Object.fromEntries(groups.filter(group => group.muted).map(group => [group.label, true])),
   );
@@ -251,7 +253,47 @@ export function Sidebar({
   };
 
   return (
-    <aside className="portal-sidebar company-sidebar">
+    <aside className="portal-sidebar company-sidebar" data-design-b-panel={designBPanel}>
+      <div className="portal-design-b-rail" aria-label="Design B workspace rail">
+        <Link href="/" className="portal-design-b-rail-logo" aria-label="Currenc Intelligence home">
+          <img src="/ci_logo01.png" alt="" />
+        </Link>
+        <nav>
+          <button
+            type="button"
+            className={designBPanel === 'workspace' ? 'active' : ''}
+            title="Workspace"
+            aria-label="Workspace"
+            onClick={() => setDesignBPanel('workspace')}
+          >
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M4 5.5A1.5 1.5 0 0 1 5.5 4h5A1.5 1.5 0 0 1 12 5.5v5a1.5 1.5 0 0 1-1.5 1.5h-5A1.5 1.5 0 0 1 4 10.5v-5Z" />
+              <path d="M14 5.5A1.5 1.5 0 0 1 15.5 4h3A1.5 1.5 0 0 1 20 5.5v13a1.5 1.5 0 0 1-1.5 1.5h-3a1.5 1.5 0 0 1-1.5-1.5v-13Z" />
+              <path d="M4 15.5A1.5 1.5 0 0 1 5.5 14h5a1.5 1.5 0 0 1 1.5 1.5v3a1.5 1.5 0 0 1-1.5 1.5h-5A1.5 1.5 0 0 1 4 18.5v-3Z" />
+            </svg>
+          </button>
+          <button
+            type="button"
+            className={designBPanel === 'development' ? 'active' : ''}
+            title="Development use only"
+            aria-label="Development use only"
+            onClick={() => {
+              setDesignBPanel('development');
+              setCollapsedGroups(current => ({
+                ...current,
+                ...Object.fromEntries(groups.filter(group => group.muted).map(group => [group.label, false])),
+              }));
+            }}
+          >
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="m8 9-4 3 4 3" />
+              <path d="m16 9 4 3-4 3" />
+              <path d="m14 5-4 14" />
+            </svg>
+          </button>
+        </nav>
+      </div>
+
       <Link href="/" className="brand-lockup portal-brand">
         <span className="brand-mark">CI</span>
         <span className="portal-brand__text">
@@ -276,13 +318,17 @@ export function Sidebar({
           const showDevelopmentDivider = group.muted && !groups[index - 1]?.muted;
 
           return (
-            <div key={group.label} className="portal-sidebar__group-wrap">
+            <div
+              key={group.label}
+              className={`portal-sidebar__group-wrap ${group.muted ? 'design-b-dev-wrap' : 'design-b-workspace-wrap'}`}
+            >
               {showDevelopmentDivider && (
-                <>
+                <div className="design-b-dev-controls">
                   <DevModeToggle />
+                  <PortalDesignToggle />
                   <Link className="portal-backend-link dev-only" href="/operations/sec-filings">Backend Portal</Link>
                   <div className="portal-sidebar__dev-divider dev-only">Development use only</div>
-                </>
+                </div>
               )}
               <div className={`portal-sidebar__group-block ${group.muted ? 'dev-only' : ''}`}>
                 <div
