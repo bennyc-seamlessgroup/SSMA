@@ -1,11 +1,11 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
-import type { ReportRecord } from '@/lib/types';
+import type { ReportArchiveRecord } from '@/lib/report-archive';
 
 const pageSize = 25;
 
-type ReportWindowMeta = Record<ReportRecord['report_type'], {
+type ReportWindowMeta = Record<ReportArchiveRecord['reportType'], {
   label: string;
   shortLabel: string;
 }>;
@@ -20,29 +20,29 @@ export function ReportArchiveHistory({
   reportWindowMeta,
 }: {
   ticker: string;
-  reports: ReportRecord[];
+  reports: ReportArchiveRecord[];
   reportWindowMeta: ReportWindowMeta;
 }) {
   const [query, setQuery] = useState('');
-  const [selectedWindow, setSelectedWindow] = useState<ReportRecord['report_type'] | 'all'>('all');
+  const [selectedWindow, setSelectedWindow] = useState<ReportArchiveRecord['reportType'] | 'all'>('all');
   const [page, setPage] = useState(1);
 
   const filteredReports = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase();
 
     return reports
-      .filter(report => selectedWindow === 'all' || report.report_type === selectedWindow)
+      .filter(report => selectedWindow === 'all' || report.reportType === selectedWindow)
       .filter(report => {
         if (!normalizedQuery) return true;
         return [
           report.title,
-          report.report_time,
-          report.report_type,
-          report.report_date,
-          report.generated_at,
+          report.reportTime,
+          report.reportType,
+          report.reportDate,
+          report.generatedAt,
         ].some(value => value.toLowerCase().includes(normalizedQuery));
       })
-      .sort((a, b) => new Date(b.generated_at).getTime() - new Date(a.generated_at).getTime());
+      .sort((a, b) => new Date(b.generatedAt).getTime() - new Date(a.generatedAt).getTime());
   }, [query, reports, selectedWindow]);
 
   const totalPages = Math.max(1, Math.ceil(filteredReports.length / pageSize));
@@ -51,7 +51,7 @@ export function ReportArchiveHistory({
 
   const filteredGroups = useMemo(() => {
     return (['8AM', '1150AM', '7PM'] as const).map(type => {
-      const groupReports = pageReports.filter(report => report.report_type === type);
+      const groupReports = pageReports.filter(report => report.reportType === type);
       return { type, reports: groupReports };
     }).filter(group => group.reports.length > 0);
   }, [pageReports]);
@@ -109,17 +109,19 @@ export function ReportArchiveHistory({
                 </div>
                 <div className="report-history-group__rows">
                   {group.reports.map(report => (
-                    <a
+                    <div
                       className="report-history-row"
-                      href={`/api/reports/archive/${ticker}/${report.report_type}`}
                       key={report.id}
                     >
                       <span>
                         <strong>{report.title}</strong>
-                        <small>{formatDate(report.generated_at)} · {report.report_time}</small>
+                        <small>{formatDate(report.generatedAt)} · {report.reportTime} · source JSON</small>
                       </span>
-                      <em>Download PDF</em>
-                    </a>
+                      <div className="report-history-row__actions">
+                        <a href={`/api/reports/render/${ticker}/${report.reportDate}`} target="_blank" rel="noreferrer">View PDF</a>
+                        <a href={`/api/reports/render/${ticker}/${report.reportDate}?download=1`}>Download</a>
+                      </div>
+                    </div>
                   ))}
                 </div>
               </div>
