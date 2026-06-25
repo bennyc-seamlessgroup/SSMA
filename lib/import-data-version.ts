@@ -10,13 +10,32 @@ export type ImportDataVersion = {
 };
 
 export async function getImportDataVersion(): Promise<ImportDataVersion> {
-  const files = await listImportDataFiles();
   const runtime = getImportDataRuntimeConfig();
+  let files: string[];
+
+  try {
+    files = await listImportDataFiles();
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    return {
+      version: crypto.createHash('sha256').update(`${runtime.source}:unavailable:${message}`).digest('hex'),
+      updatedAt: null,
+      fileCount: 0,
+      source: runtime.source,
+      cacheSeconds: runtime.cacheSeconds,
+    };
+  }
+
   const hash = crypto.createHash('sha256');
   let latestModifiedMs = 0;
 
   for (const file of files) {
-    const versionParts = await getImportFileVersionParts(file);
+    let versionParts;
+    try {
+      versionParts = await getImportFileVersionParts(file);
+    } catch {
+      continue;
+    }
     if (!versionParts) continue;
     latestModifiedMs = Math.max(latestModifiedMs, versionParts.updatedAtMs);
     hash.update(versionParts.path);

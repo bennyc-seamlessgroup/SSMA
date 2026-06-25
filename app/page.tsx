@@ -3,8 +3,8 @@ import Link from 'next/link';
 const platformModules = [
   {
     eyebrow: 'Module 01',
-    title: '3 Daily Reports Coverage',
-    text: 'Pre-market, midday, and post-market intelligence windows built for repeatable management review.',
+    title: 'Real-Time Dashboard',
+    text: 'Market overview, KPI movement, and pressure signals summarized for executive review.',
     tone: 'indigo',
     featured: true,
   },
@@ -28,14 +28,14 @@ const platformModules = [
   },
   {
     eyebrow: 'Module 05',
-    title: 'Narrative Intelligence',
+    title: 'Sentiment & Narrative',
     text: 'Classify market narratives from X, Reddit, Stocktwits, filings, and news into executive-ready signals.',
     tone: 'emerald',
   },
   {
     eyebrow: 'Module 06',
-    title: 'Report Archive',
-    text: 'Maintain a searchable reporting timeline with daily report lifecycle visibility and PDF rendering.',
+    title: 'Price Scenario Modeling',
+    text: 'Model upside, downside, and stress paths with scenario curves built for board discussion.',
     tone: 'amber',
   },
 ];
@@ -61,14 +61,14 @@ const reportWindows = [
   ['7:00 PM', 'Post-Market Digest', 'Full-day recap, watch items, and report archive delivery.'],
 ];
 
-const dataSignals = [
-  'Short interest and borrow pressure',
-  'Institutional ownership and insider filings',
-  'Narrative momentum from X, Reddit, and Stocktwits',
-  'SEC filing watch and catalyst calendar',
-  'Internal float and real tradable float assumptions',
-  'Daily report JSON and PDF archive',
-];
+const dataPipeline = [
+  ['Data Collection', 'Market, ownership, filing, social, and report inputs.', 'database'],
+  ['Normalization', 'Clean schemas, dedupe rules, and issuer-level mapping.', 'layers'],
+  ['Intelligence Engine', 'Derived metrics, scoring logic, and daily context.', 'spark'],
+  ['Signal Detection', 'Pressure, sentiment, ownership, and filing changes.', 'alert'],
+  ['Visualization', 'Dashboards designed for fast executive scanning.', 'eye'],
+  ['Actionable Reports', 'Daily briefings and archived PDF outputs.', 'report'],
+] as const;
 
 const pricing = [
   ['Basic', 'Single issuer monitoring', ['Dashboard workspace', 'Daily reports', 'Short pressure indicators', 'Report archive']],
@@ -76,7 +76,7 @@ const pricing = [
   ['Enterprise', 'Multi-company coverage', ['Custom report templates', 'Team workflow controls', 'Backend operations portal', 'Private integrations']],
 ];
 
-function Icon({ name }: { name: 'arrow' | 'shield' | 'chart' | 'book' | 'users' | 'pulse' | 'spark' | 'lock' | 'send' | 'search' | 'bell' | 'clock' }) {
+function Icon({ name }: { name: 'arrow' | 'shield' | 'chart' | 'book' | 'users' | 'pulse' | 'spark' | 'lock' | 'send' | 'search' | 'bell' | 'clock' | 'database' | 'layers' | 'alert' | 'eye' | 'report' | 'scenario' }) {
   const paths = {
     arrow: ['M5 12h14', 'm13 6 6 6-6 6'],
     shield: ['M12 3 5 6v5c0 5 3 8 7 10 4-2 7-5 7-10V6l-7-3Z'],
@@ -90,6 +90,12 @@ function Icon({ name }: { name: 'arrow' | 'shield' | 'chart' | 'book' | 'users' 
     search: ['M10.5 18a7.5 7.5 0 1 1 0-15 7.5 7.5 0 0 1 0 15Z', 'm16 16 5 5'],
     bell: ['M18 16v-5a6 6 0 0 0-12 0v5l-2 2h16l-2-2Z', 'M10 21h4'],
     clock: ['M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20Z', 'M12 6v6l4 2'],
+    database: ['M4 6c0-2 4-3 8-3s8 1 8 3-4 3-8 3-8-1-8-3Z', 'M4 6v6c0 2 4 3 8 3s8-1 8-3V6', 'M4 12v6c0 2 4 3 8 3s8-1 8-3v-6'],
+    layers: ['M12 3 3 8l9 5 9-5-9-5Z', 'm3 13 9 5 9-5', 'm3 18 9 5 9-5'],
+    alert: ['M12 9v4', 'M12 17h.01', 'M10.3 3.9 2.1 0 8.6 14.9a2.1 2.1 0 0 1-1.8 3.2H4.8A2.1 2.1 0 0 1 3 18.8L10.3 3.9Z'],
+    eye: ['M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7Z', 'M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z'],
+    report: ['M7 3h7l5 5v13H7z', 'M14 3v5h5', 'M10 13h6', 'M10 17h6'],
+    scenario: ['M4 18c4-9 8-9 12-2', 'M4 13c4-5 8-5 12 1', 'M4 8c4 1 8 1 12-3', 'M18 5h2v2', 'M18 14h2v2'],
   }[name];
 
   return (
@@ -117,12 +123,13 @@ function MiniMetricGraphic({ kind }: { kind: string }) {
 }
 
 function ModuleGraphic({ tone, title }: { tone: string; title: string }) {
-  if (title.includes('Reports')) {
+  if (title.includes('Real-Time')) {
     return (
-      <div className="ci-card-graphic ci-card-timeline">
-        <span><i />Pre</span>
-        <span><i />Mid</span>
-        <span><i />Post</span>
+      <div className="ci-card-graphic ci-card-market">
+        <span><strong>$18.42</strong><em>+13.43%</em></span>
+        <svg viewBox="0 0 180 72" preserveAspectRatio="none" aria-hidden="true">
+          <path d="M0 58 18 51 34 55 52 36 70 42 88 30 106 34 128 20 148 26 180 10" />
+        </svg>
       </div>
     );
   }
@@ -143,12 +150,26 @@ function ModuleGraphic({ tone, title }: { tone: string; title: string }) {
     );
   }
 
-  if (title.includes('Report Archive')) {
+  if (title.includes('Sentiment')) {
     return (
-      <div className="ci-card-graphic ci-card-archive">
-        <span><Icon name="clock" />8:00</span>
-        <span><Icon name="clock" />11:50</span>
-        <span><Icon name="clock" />7:00</span>
+      <div className="ci-card-graphic ci-card-sentiment">
+        <span><strong>Bullish 62</strong><em>+8 vs yesterday</em></span>
+        <svg viewBox="0 0 180 72" preserveAspectRatio="none" aria-hidden="true">
+          <path d="M0 54 20 48 38 51 58 42 76 44 96 31 116 34 138 22 158 27 180 16" />
+        </svg>
+      </div>
+    );
+  }
+
+  if (title.includes('Price Scenario')) {
+    return (
+      <div className="ci-card-graphic ci-card-scenario">
+        <span>Projection Active</span>
+        <svg viewBox="0 0 180 82" preserveAspectRatio="none" aria-hidden="true">
+          <path d="M0 58 C24 50 42 46 63 39 S105 24 180 12" />
+          <path d="M0 58 C30 55 52 51 78 47 S130 39 180 30" />
+          <path d="M0 58 C25 62 48 65 74 69 S130 71 180 66" />
+        </svg>
       </div>
     );
   }
@@ -312,10 +333,14 @@ export default function LandingPage() {
           <div className="ci-orbit-ring ci-orbit-ring-a" />
           <div className="ci-orbit-ring ci-orbit-ring-b" />
           <div className="ci-orbit-core"><img src="/ci_logo01.png" alt="" /></div>
-          <i className="ci-orbit-node ci-node-a"><Icon name="chart" /></i>
-          <i className="ci-orbit-node ci-node-b"><Icon name="users" /></i>
-          <i className="ci-orbit-node ci-node-c"><Icon name="book" /></i>
-          <i className="ci-orbit-node ci-node-d"><Icon name="spark" /></i>
+          <div className="ci-orbit-nodes">
+            <i className="ci-orbit-node ci-node-a" title="Data sources"><Icon name="database" /></i>
+            <i className="ci-orbit-node ci-node-b" title="Ownership"><Icon name="users" /></i>
+            <i className="ci-orbit-node ci-node-c" title="Short interest"><Icon name="chart" /></i>
+            <i className="ci-orbit-node ci-node-d" title="Sentiment and narrative"><Icon name="pulse" /></i>
+            <i className="ci-orbit-node ci-node-e" title="Reports"><Icon name="report" /></i>
+            <i className="ci-orbit-node ci-node-f" title="Price scenarios"><Icon name="scenario" /></i>
+          </div>
         </div>
 
         <article className="ci-solution-card">
@@ -334,7 +359,7 @@ export default function LandingPage() {
       <section id="platform" className="ci-platform">
         <div className="ci-section-head">
           <span>PLATFORM HIGHLIGHTS</span>
-          <h2>Built for management decisions, not raw data overload.</h2>
+          <h2>Built for Investors. Designed for Impact.</h2>
           <p>Every module is designed to compress noisy market information into a clear operating picture.</p>
         </div>
         <div className="ci-module-grid">
@@ -342,7 +367,7 @@ export default function LandingPage() {
             <article key={module.title} className={`ci-module-card ${module.featured ? 'is-featured' : ''} tone-${module.tone}`}>
               {module.featured && <em>PRIMARY FEATURE</em>}
               <div>
-                <i><Icon name={module.tone === 'blue' ? 'users' : module.tone === 'cyan' ? 'chart' : module.tone === 'amber' ? 'book' : module.tone === 'emerald' ? 'pulse' : 'spark'} /></i>
+                <i><Icon name={module.tone === 'blue' ? 'users' : module.tone === 'cyan' ? 'chart' : module.tone === 'amber' ? 'scenario' : module.tone === 'emerald' ? 'pulse' : 'spark'} /></i>
                 <span>{module.eyebrow}</span>
               </div>
               <h3>{module.title}</h3>
@@ -373,11 +398,18 @@ export default function LandingPage() {
       <section className="ci-data-section">
         <div>
           <span>DATA STACK</span>
-          <h2>Designed for licensed, multi-source intelligence.</h2>
-          <p>Backend teams can feed standardized JSON into the portal while the frontend presents each page as a dedicated intelligence view.</p>
+          <h2>Built on a Powerful Data Stack</h2>
+          <p>From fragmented market data to executive-ready intelligence.</p>
         </div>
-        <div className="ci-data-grid">
-          {dataSignals.map(signal => <span key={signal}>{signal}</span>)}
+        <div className="ci-data-pipeline">
+          {dataPipeline.map(([title, text, icon], index) => (
+            <article key={title}>
+              <i><Icon name={icon} /></i>
+              <strong>{title}</strong>
+              <span>{text}</span>
+              {index < dataPipeline.length - 1 && <b aria-hidden="true">→</b>}
+            </article>
+          ))}
         </div>
       </section>
 

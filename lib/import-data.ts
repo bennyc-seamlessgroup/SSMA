@@ -288,7 +288,12 @@ async function getS3Index() {
     return s3IndexCache;
   }
 
-  return buildS3Index();
+  try {
+    return await buildS3Index();
+  } catch (error) {
+    if (s3IndexCache) return s3IndexCache;
+    throw error;
+  }
 }
 
 export function listLocalImportJsonFiles(): string[] {
