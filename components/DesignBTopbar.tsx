@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useEffect, useMemo, useState } from 'react';
 import { UserMenu } from './UserMenu';
+import { pageDataSources, slugFromPathname } from '@/lib/page-data-sources';
 
 const storageKey = 'monitor-design-b-sidebar-collapsed';
 const themeStorageKey = 'monitor-design-b-theme';
@@ -44,18 +45,29 @@ function formatImportDataUpdatedAt(updatedAt: string | null) {
   }).format(new Date(updatedAt));
 }
 
+type ImportFileStatus = {
+  exists: boolean;
+  updatedAt: string | null;
+  versionKey: string | null;
+  size: number | null;
+};
+
+type PageDataStatus = {
+  updatedAt: string | null;
+  version: string;
+};
+
 export function DesignBTopbar({
   ticker,
   companyName,
-  importDataUpdatedAt,
 }: {
   ticker: string;
   companyName: string;
-  importDataUpdatedAt: string | null;
 }) {
   const pathname = usePathname();
   const [collapsed, setCollapsed] = useState(false);
   const [theme, setTheme] = useState<'light' | 'dark'>('light');
+  const [pageUpdatedAt, setPageUpdatedAt] = useState<string | null>(null);
 
   useEffect(() => {
     const stored = window.localStorage.getItem(storageKey) === 'true';
@@ -67,10 +79,60 @@ export function DesignBTopbar({
   }, []);
 
   const current = useMemo(() => {
-    const parts = pathname.split('/').filter(Boolean);
-    const slug = parts[2] || 'dashboard-v2';
+    const slug = slugFromPathname(pathname);
     return routeLabels[slug] ?? { section: 'Workspace', page: slug ? slug.replace(/-/g, ' ') : 'Overview' };
   }, [pathname]);
+
+  useEffect(() => {
+    let cancelled = false;
+    const slug = slugFromPathname(pathname);
+    const source = pageDataSources[slug];
+
+    const loadPageUpdatedAt = async () => {
+      if (!source) {
+        setPageUpdatedAt(null);
+        return;
+      }
+
+      if (source.type === 'report-archive') {
+        try {
+          const response = await fetch(`/api/reports/archive-status/${encodeURIComponent(ticker)}`, { cache: 'no-store' });
+          if (!response.ok) throw new Error('Unable to load report archive status.');
+          const status = await response.json() as PageDataStatus;
+          if (!cancelled) setPageUpdatedAt(status.updatedAt);
+        } catch {
+          if (!cancelled) setPageUpdatedAt(null);
+        }
+        return;
+      }
+
+      const statuses = await Promise.all(source.files.map(async file => {
+        try {
+          const response = await fetch(`/api/import-data-version?file=${encodeURIComponent(file)}`, { cache: 'no-store' });
+          if (!response.ok) return null;
+          return await response.json() as ImportFileStatus;
+        } catch {
+          return null;
+        }
+      }));
+      const latestMs = statuses.reduce((latest, status) => {
+        if (!status?.exists || !status.updatedAt) return latest;
+        const time = Date.parse(status.updatedAt);
+        return Number.isFinite(time) ? Math.max(latest, time) : latest;
+      }, 0);
+
+      if (!cancelled) setPageUpdatedAt(latestMs ? new Date(latestMs).toISOString() : null);
+    };
+
+    setPageUpdatedAt(null);
+    loadPageUpdatedAt();
+
+    const interval = window.setInterval(loadPageUpdatedAt, 10000);
+    return () => {
+      cancelled = true;
+      window.clearInterval(interval);
+    };
+  }, [pathname, ticker]);
 
   const toggleCollapsed = () => {
     const next = !collapsed;
@@ -158,7 +220,7 @@ export function DesignBTopbar({
         <div className="portal-design-b-heading-actions">
           <div className="portal-design-b-update">
             <span>Last Update</span>
-            <strong>{formatImportDataUpdatedAt(importDataUpdatedAt)}</strong>
+            <strong>{formatImportDataUpdatedAt(pageUpdatedAt)}</strong>
           </div>
         </div>
       </div>

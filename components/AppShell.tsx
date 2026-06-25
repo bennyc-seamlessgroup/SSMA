@@ -7,13 +7,11 @@ export function AppShell({
   ticker,
   companyName,
   importDataVersion,
-  importDataUpdatedAt,
   children,
 }: {
   ticker: string;
   companyName: string;
   importDataVersion: string;
-  importDataUpdatedAt: string | null;
   children: React.ReactNode;
 }) {
   return (
@@ -21,7 +19,7 @@ export function AppShell({
       <Sidebar ticker={ticker} companyName={companyName} importDataVersion={importDataVersion} />
       <main className="portal-main main-content">
         <AuthGuard>
-          <DesignBTopbar ticker={ticker} companyName={companyName} importDataUpdatedAt={importDataUpdatedAt} />
+          <DesignBTopbar ticker={ticker} companyName={companyName} />
           {children}
         </AuthGuard>
       </main>

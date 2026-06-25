@@ -5,6 +5,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import { useCallback, useEffect, useState } from 'react';
 import { UserMenu } from './UserMenu';
 import { DevModeToggle } from './DevModeToggle';
+import { pageDataSources } from '@/lib/page-data-sources';
 
 const groups = [
   {
@@ -67,25 +68,17 @@ const groups = [
 const importDataSeenKey = 'import-data-seen-version';
 const pageImportSeenKeyPrefix = 'import-data-page-seen-version';
 
-const pageImportFiles: Record<string, string[]> = {
-  'dashboard-v2': ['dashboard_v2_CURR_consolidated_4_web.json'],
-  institutional: [
-    'institutional_ownership_CURR_consolidated_4_web.json',
-    'fintel_security_ownership_premium_CURR_consolidated_4_web.json',
-    'fintel_activist_filings_premium_CURR_consolidated_4_web.json',
-  ],
-  'short-interest': ['ortex_CURR_consolidated_4_web.json'],
-  'lending-pressure': ['lending_pressure_CURR_consolidated_4_web.json'],
-  sentiment: ['adanos-reddit_CURR_consolidated_4_web.json', 'adanos-x_CURR_consolidated_4_web.json'],
-  'event-calendar': ['news_filings/CURR_sec_filings.json'],
-};
-
 type ImportFileStatus = {
   path: string;
   exists: boolean;
   updatedAt: string | null;
   size: number | null;
   versionKey: string | null;
+};
+
+type PageDataStatus = {
+  updatedAt: string | null;
+  version: string;
 };
 
 function pageImportSeenKey(ticker: string, slug: string) {
@@ -116,8 +109,23 @@ export function Sidebar({
   const fetchPageImportVersions = useCallback(async () => {
     const versions: Record<string, string> = {};
 
-    await Promise.all(Object.entries(pageImportFiles).map(async ([slug, files]) => {
-      const parts = await Promise.all(files.map(async file => {
+    await Promise.all(Object.entries(pageDataSources).map(async ([slug, source]) => {
+      if (source.type === 'report-archive') {
+        try {
+          const response = await fetch(`/api/reports/archive-status/${encodeURIComponent(ticker)}`, { cache: 'no-store' });
+          if (!response.ok) {
+            versions[slug] = 'reports:unavailable';
+            return;
+          }
+          const status = await response.json() as PageDataStatus;
+          versions[slug] = `reports:${status.version}`;
+        } catch {
+          versions[slug] = 'reports:unavailable';
+        }
+        return;
+      }
+
+      const parts = await Promise.all(source.files.map(async file => {
         try {
           const response = await fetch(`/api/import-data-version?file=${encodeURIComponent(file)}`, { cache: 'no-store' });
           if (!response.ok) return `${file}:unavailable`;
@@ -137,7 +145,7 @@ export function Sidebar({
     }));
 
     return versions;
-  }, []);
+  }, [ticker]);
 
   useEffect(() => {
     const storedVersion = window.localStorage.getItem(importDataSeenKey);
@@ -313,7 +321,7 @@ export function Sidebar({
 
       <div className="portal-sidebar__scroll">
         {groups.map((group, index) => {
-          const collapsed = Boolean(collapsedGroups[group.label]);
+          const collapsed = designBPanel === 'development' && group.muted ? false : Boolean(collapsedGroups[group.label]);
           const showDevelopmentDivider = group.muted && !groups[index - 1]?.muted;
 
           return (

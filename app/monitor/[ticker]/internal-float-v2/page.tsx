@@ -1,7 +1,8 @@
 import { ImportDataTable } from '@/components/ImportDataTable';
 import { readImportFile } from '@/lib/import-data';
 import { calculateFloatAdjustments, readInternalFloatInputs, readInternalFloatV2UserInputs, type FloatAdjustments, type InternalFloatV2UserInput } from '@/lib/internal-float';
-import { formatImportDataUpdatedAt, getImportDataVersion } from '@/lib/import-data-version';
+import { formatImportDataUpdatedAt, getImportFilesVersion } from '@/lib/import-data-version';
+import { pageDataSources } from '@/lib/page-data-sources';
 import { InternalFloatV2Client, type InstitutionalOwnershipOverview } from './InternalFloatV2Client';
 
 function formatTableValue(value: unknown) {
@@ -38,10 +39,12 @@ function buildUserInputRows(userInputs: InternalFloatV2UserInput) {
 export default async function InternalFloatV2Page() {
   const holdingsEnvelope = await readInternalFloatInputs();
   const holdings = holdingsEnvelope.data;
+  const pageDataSource = pageDataSources['internal-float-v2'];
+  const pageImportFiles = pageDataSource.type === 'import-files' ? pageDataSource.files : [];
   const [adjustments, v2UserInputs, importDataVersion, institutionalOwnershipEnvelope] = await Promise.all([
     calculateFloatAdjustments(holdings) as Promise<FloatAdjustments>,
     readInternalFloatV2UserInputs(),
-    getImportDataVersion(),
+    getImportFilesVersion(pageImportFiles),
     readImportFile<{ overview?: InstitutionalOwnershipOverview }>('institutional_ownership_CURR_consolidated_4_web.json'),
   ]);
   const devRows = buildUserInputRows(v2UserInputs);

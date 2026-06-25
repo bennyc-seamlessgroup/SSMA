@@ -14,7 +14,6 @@ export default async function TickerLayout({ children, params }: Readonly<{ chil
       ticker={bundle.company.ticker}
       companyName={bundle.company.company_name}
       importDataVersion={importDataVersion.version}
-      importDataUpdatedAt={importDataVersion.updatedAt}
     >
       {children}
     </AppShell>

@@ -1,6 +1,7 @@
 import { readImportFile, readImportJson, readLocalImportText, type ImportEnvelope } from '@/lib/import-data';
 import type { InstitutionalHolding } from '@/lib/types';
-import { formatImportDataUpdatedAt, getImportDataVersion } from '@/lib/import-data-version';
+import { formatImportDataUpdatedAt, getImportFilesVersion } from '@/lib/import-data-version';
+import { pageDataSources } from '@/lib/page-data-sources';
 import { InstitutionalTabs } from './InstitutionalTabs';
 import type { ActivistFiling } from './ActivistFilingsTable';
 import { InstitutionalDevTables } from './InstitutionalDevTables';
@@ -77,11 +78,13 @@ function ownershipChangeType(row: Pick<SecurityOwnershipRow, 'sharesChange' | 's
 export default async function InstitutionalPage({ params }: Readonly<{ params: Promise<{ ticker: string }> }>) {
   const { ticker } = await params;
   const normalizedTicker = ticker.toUpperCase();
+  const pageDataSource = pageDataSources.institutional;
+  const pageImportFiles = pageDataSource.type === 'import-files' ? pageDataSource.files : [];
   const [securityRows, activistRows, overviewEnvelope, importDataVersion] = await Promise.all([
     readImportJson<SecurityOwnershipRow[]>('fintel_security_ownership_premium_CURR_consolidated_4_web.json'),
     readImportJson<ActivistFilingRow[]>('fintel_activist_filings_premium_CURR_consolidated_4_web.json'),
     readInstitutionalOverviewFile(),
-    getImportDataVersion(),
+    getImportFilesVersion(pageImportFiles),
   ]);
   const holdings: InstitutionalHolding[] = securityRows.map((row, index) => ({
     id: `import-ownership-${index}`,

@@ -34,6 +34,32 @@ export async function getImportDataVersion(): Promise<ImportDataVersion> {
   };
 }
 
+export async function getImportFilesVersion(files: string[]): Promise<ImportDataVersion> {
+  const runtime = getImportDataRuntimeConfig();
+  const hash = crypto.createHash('sha256');
+  let latestModifiedMs = 0;
+  let fileCount = 0;
+
+  for (const file of files) {
+    const versionParts = await getImportFileVersionParts(file);
+    if (!versionParts) continue;
+    fileCount += 1;
+    latestModifiedMs = Math.max(latestModifiedMs, versionParts.updatedAtMs);
+    hash.update(versionParts.path);
+    hash.update('\0');
+    hash.update(versionParts.versionKey);
+    hash.update('\0');
+  }
+
+  return {
+    version: hash.digest('hex'),
+    updatedAt: latestModifiedMs ? new Date(latestModifiedMs).toISOString() : null,
+    fileCount,
+    source: runtime.source,
+    cacheSeconds: runtime.cacheSeconds,
+  };
+}
+
 export function formatImportDataUpdatedAt(updatedAt: string | null) {
   if (!updatedAt) return 'No import data files found';
 
