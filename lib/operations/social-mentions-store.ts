@@ -326,12 +326,7 @@ async function writeS3SocialMentions(platform: SocialPlatform, file: SocialMenti
 
 export async function readSocialMentionsForOperations(platform: SocialPlatform): Promise<SocialMentionsFile> {
   if (!shouldUseS3()) return readSocialMentions(platform);
-  try {
-    return await readS3SocialMentions(platform);
-  } catch (error) {
-    if (process.env.IMPORT_DATA_LOCAL_FALLBACK === 'true') return readSocialMentions(platform);
-    throw error;
-  }
+  return await readS3SocialMentions(platform);
 }
 
 export async function writeSocialMentions(platform: SocialPlatform, file: SocialMentionsFile) {

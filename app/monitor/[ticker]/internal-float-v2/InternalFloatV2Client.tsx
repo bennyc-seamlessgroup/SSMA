@@ -277,6 +277,8 @@ export function InternalFloatV2Client({
   const [expandedPrivateNotes, setExpandedPrivateNotes] = useState<string[]>([]);
 
   useEffect(() => {
+    if (process.env.NEXT_PUBLIC_INTERNAL_FLOAT_API_HYDRATE !== 'true') return;
+
     let cancelled = false;
 
     async function loadUserInputs() {
@@ -344,14 +346,13 @@ export function InternalFloatV2Client({
   const privateFloatShares = privateShares;
   const internalFloatShares = privateFloatShares + tokenizedShares + collateralizedShares;
   const floatBeforeInternalAdjustments = Math.max(0, ownership.sharesOutstanding - ownership.insiderShares - ownership.institutionShares);
-  const publicFloatShares = Math.max(0, floatBeforeInternalAdjustments - internalFloatShares);
-  const realTradableFloat = publicFloatShares;
+  const realTradableFloat = Math.max(0, ownership.sharesOutstanding - ownership.insiderShares - ownership.institutionShares - internalFloatShares);
   const floatReductionPercent = pct(internalFloatShares, floatBeforeInternalAdjustments);
 
   const ownershipSegments = [
     { label: 'Insiders', value: ownership.insiderShares, color: colors[0] },
     { label: 'Institutions', value: ownership.institutionShares, color: colors[1] },
-    { label: 'Real Tradable Float', value: publicFloatShares, color: colors[2] },
+    { label: 'Real Tradable Float', value: realTradableFloat, color: colors[2] },
     { label: 'Internal Float', value: internalFloatShares, color: colors[3] },
   ];
   const internalFloatSegments = [
@@ -789,15 +790,14 @@ export function InternalFloatV2Client({
         {apiStatus === 'saved' && apiMessage && !editPanel && <p className="float-v2-api-message success">{apiMessage}</p>}
 
         <div className="float-v2-kpis">
-          <div className="terminal-card terminal-stat"><span>Shares Outstanding</span><strong>{formatNumber(ownership.sharesOutstanding)}</strong><small>Total issued share base</small></div>
           <div className="terminal-card terminal-stat float-v2-formula-stat">
-            <span className="with-info">Market Float → Real Tradable Float <InfoTooltip text="Market float is shares outstanding minus insiders and institutions. Real tradable float then subtracts management/strategic, tokenized, and collateralized internal float." /></span>
+            <span className="with-info">Shares Outstanding → Real Tradable Float <InfoTooltip text="Real tradable float is calculated as shares outstanding minus insiders, institutions, and internal float assumptions including management / strategic, tokenized, and collateralized shares." /></span>
             <div className="float-v2-compact-formula">
-              <strong>{compact(floatBeforeInternalAdjustments)}</strong>
+              <strong>{compact(ownership.sharesOutstanding)}</strong>
               <em>→</em>
               <strong>{compact(realTradableFloat)}</strong>
             </div>
-            <small>Shares outstanding - insiders - institutions, then less internal float</small>
+            <small>Shares outstanding - insiders - institutions - internal float</small>
           </div>
           <div className="terminal-card terminal-stat"><span>Float Reduction</span><strong>{formatPct(floatReductionPercent)}</strong><small>-{formatNumber(internalFloatShares)} internal float shares</small></div>
         </div>

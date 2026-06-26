@@ -178,12 +178,7 @@ async function s3Write(file: DashboardMarginFile) {
 
 export async function readDashboardMargins() {
   if (!shouldUseS3()) return { ...localRead(), storage: 'local' as const };
-  try {
-    return { ...await s3Read(), storage: 's3' as const };
-  } catch (error) {
-    if (process.env.IMPORT_DATA_LOCAL_FALLBACK === 'true') return { ...localRead(), storage: 'local' as const };
-    throw error;
-  }
+  return { ...await s3Read(), storage: 's3' as const };
 }
 
 export async function saveDashboardMargin(input: Partial<DashboardMarginRecord>) {

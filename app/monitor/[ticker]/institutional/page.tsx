@@ -1,4 +1,4 @@
-import { readImportFile, readImportJson, readLocalImportText, type ImportEnvelope } from '@/lib/import-data';
+import { readImportFile, readImportJson } from '@/lib/import-data';
 import type { InstitutionalHolding } from '@/lib/types';
 import { formatImportDataUpdatedAt, getImportFilesVersion } from '@/lib/import-data-version';
 import { pageDataSources } from '@/lib/page-data-sources';
@@ -41,14 +41,6 @@ type ActivistFilingRow = {
 
 const institutionalOverviewFile = 'institutional_ownership_CURR_consolidated_4_web.json';
 
-async function readInstitutionalOverviewFile(): Promise<ImportEnvelope<InstitutionalOverviewData>> {
-  try {
-    return await readImportFile<InstitutionalOverviewData>(institutionalOverviewFile);
-  } catch {
-    return JSON.parse(readLocalImportText(institutionalOverviewFile)) as ImportEnvelope<InstitutionalOverviewData>;
-  }
-}
-
 function formatNumber(value: unknown, options?: Intl.NumberFormatOptions) {
   const numeric = typeof value === 'number' ? value : Number(String(value ?? '').replace(/,/g, ''));
   if (!Number.isFinite(numeric)) return value ? String(value) : 'N/A';
@@ -85,7 +77,7 @@ export default async function InstitutionalPage({ params }: Readonly<{ params: P
   const [securityRows, activistRows, overviewEnvelope, importDataVersion] = await Promise.all([
     readImportJson<SecurityOwnershipRow[]>('fintel_security_ownership_premium_CURR_consolidated_4_web.json'),
     readImportJson<ActivistFilingRow[]>('fintel_activist_filings_premium_CURR_consolidated_4_web.json'),
-    readInstitutionalOverviewFile(),
+    readImportFile<InstitutionalOverviewData>(institutionalOverviewFile),
     getImportFilesVersion(pageImportFiles),
   ]);
   const holdings: InstitutionalHolding[] = securityRows.map((row, index) => ({

@@ -1,6 +1,6 @@
 import { ImportDataTable } from '@/components/ImportDataTable';
 import { readImportFile } from '@/lib/import-data';
-import { calculateFloatAdjustments, internalFloatV2UserInputPaths, readInternalFloatInputs, readInternalFloatV2UserInputs, type FloatAdjustments, type InternalFloatV2UserInput } from '@/lib/internal-float';
+import { calculateFloatAdjustments, internalFloatV2UserInputPaths, readInternalFloatInputs, readInternalFloatV2UserInputSource, type FloatAdjustments, type InternalFloatV2UserInput } from '@/lib/internal-float';
 import { formatImportDataUpdatedAt, getImportFilesVersion } from '@/lib/import-data-version';
 import { pageDataSources } from '@/lib/page-data-sources';
 import { getServerPortalTimeZone } from '@/lib/server-timezone';
@@ -49,11 +49,11 @@ export default async function InternalFloatV2Page({ params }: Readonly<{ params:
     : [];
   const [adjustments, v2UserInputs, importDataVersion, institutionalOwnershipEnvelope] = await Promise.all([
     calculateFloatAdjustments(holdings) as Promise<FloatAdjustments>,
-    readInternalFloatV2UserInputs('demo-user', normalizedTicker),
+    readInternalFloatV2UserInputSource('demo-user', normalizedTicker),
     getImportFilesVersion(pageImportFiles),
     readImportFile<{ overview?: InstitutionalOwnershipOverview }>('institutional_ownership_CURR_consolidated_4_web.json'),
   ]);
-  const devRows = buildUserInputRows(v2UserInputs);
+  const devRows = buildUserInputRows(v2UserInputs.userInput);
 
   return (
     <div className="page dashboard-page internal-float-page internal-float-v2-page">
@@ -83,7 +83,7 @@ export default async function InternalFloatV2Page({ params }: Readonly<{ params:
       <InternalFloatV2Client
         initialHoldings={holdings}
         initialAdjustments={adjustments}
-        initialUserInputs={v2UserInputs}
+        initialUserInputs={v2UserInputs.userInput}
         institutionalOverview={institutionalOwnershipEnvelope.data.overview}
       />
 
@@ -92,7 +92,13 @@ export default async function InternalFloatV2Page({ params }: Readonly<{ params:
           <div>
             <span>Development Data</span>
             <h2>Internal Float V2 User Input JSON</h2>
-            <p className="section-subtitle">Rows from import_data/{internalFloatV2UserInputPaths(normalizedTicker)[0]}.</p>
+            <p className="section-subtitle">
+              Rows from {v2UserInputs.path}. {v2UserInputs.usedDefault ? 'No matching JSON was loaded, so default prototype data is shown.' : 'Loaded from the configured import data source.'}
+            </p>
+            <span className="import-file-tag">{v2UserInputs.path}</span>
+            {v2UserInputs.envelope?.importedAt || v2UserInputs.envelope?.asOfDate ? (
+              <span className="import-file-tag">Updated: {formatTableValue(v2UserInputs.envelope.importedAt ?? v2UserInputs.envelope.asOfDate)}</span>
+            ) : null}
           </div>
         </div>
         <ImportDataTable

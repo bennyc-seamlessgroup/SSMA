@@ -43,7 +43,7 @@ const kpis: KpiConfig[] = [
     valueFormatter: value => pctFixed(value, 2),
     changeFormatter: value => signed(value, 2, ' pts'),
     detail: 'Opening margin requirement',
-    explanation: 'Initial margin requirement manually entered by operations. Displayed as a daily dashboard input.',
+    explanation: 'Initial margin is the upfront collateral requirement to open or support a position. Requirements can differ by platform, so this view reflects market broker inputs collected from major platforms.',
   },
   {
     key: 'maintenanceMargin',
@@ -51,11 +51,11 @@ const kpis: KpiConfig[] = [
     valueFormatter: value => pctFixed(value, 2),
     changeFormatter: value => signed(value, 2, ' pts'),
     detail: 'Ongoing margin requirement',
-    explanation: 'Maintenance margin requirement manually entered by operations. Displayed as a daily dashboard input.',
+    explanation: 'Maintenance margin is the ongoing collateral level required to keep a position open. Requirements can vary across broker platforms and may change with volatility or risk controls.',
   },
   {
     key: 'shortableShares',
-    label: 'Available Shares',
+    label: 'Shortable Shares',
     valueFormatter: value => compact(value),
     changeFormatter: value => signed(value, 0, ' shares'),
     detail: 'Shortable share supply',
@@ -74,8 +74,8 @@ const kpis: KpiConfig[] = [
     label: 'Average Duration (D)',
     valueFormatter: value => value === undefined ? 'N/A' : `${value.toLocaleString('en-US', { maximumFractionDigits: 1 })}d`,
     changeFormatter: value => signed(value, 1, 'd'),
-    detail: 'Manual duration input',
-    explanation: 'Average duration in days manually entered by operations for the dashboard.',
+    detail: 'Average holding duration',
+    explanation: 'Average duration shows the estimated average number of days positions remain open. A longer duration can indicate slower turnover or more persistent positioning.',
   },
   {
     key: 'daysToCover',
@@ -144,6 +144,19 @@ function latestMarginRecord(records: DashboardMarginRecord[]) {
   return [...records].sort((a, b) => b.date.localeCompare(a.date))[0] ?? null;
 }
 
+function comparisonMarginRecord(records: DashboardMarginRecord[], period: PeriodKey) {
+  const sorted = [...records].filter(record => record.date).sort((a, b) => a.date.localeCompare(b.date));
+  const latest = sorted[sorted.length - 1];
+  if (!latest) return null;
+  const target = targetDate(parseDate(latest.date), period);
+
+  if (period === 'YTD') {
+    return sorted.find(record => parseDate(record.date) >= target && record.date !== latest.date) ?? null;
+  }
+
+  return [...sorted].reverse().find(record => record.date !== latest.date && parseDate(record.date) <= target) ?? null;
+}
+
 function isManualKpiKey(key: KpiConfig['key']): key is ManualKpiKey {
   return key === 'initialMargin' || key === 'maintenanceMargin' || key === 'averageDurationDays';
 }
@@ -151,6 +164,7 @@ function isManualKpiKey(key: KpiConfig['key']): key is ManualKpiKey {
 export function DashboardV2Kpis({ data, period, marginRecords }: { data: TrendPoint[]; period: PeriodKey; marginRecords: DashboardMarginRecord[] }) {
   const cleanData = useMemo(() => data.filter(point => point?.date).sort((a, b) => a.date.localeCompare(b.date)), [data]);
   const latestMargin = useMemo(() => latestMarginRecord(marginRecords), [marginRecords]);
+  const compareMargin = useMemo(() => comparisonMarginRecord(marginRecords, period), [marginRecords, period]);
   const latest = cleanData[cleanData.length - 1];
   const compare = comparisonPoint(cleanData, period);
 
@@ -163,6 +177,7 @@ export function DashboardV2Kpis({ data, period, marginRecords }: { data: TrendPo
           let compareValue: number | undefined;
           if (isManualKpiKey(item.key)) {
             currentValue = toNumber(latestMargin?.[item.key]);
+            compareValue = toNumber(compareMargin?.[item.key]);
           } else {
             currentValue = toNumber(latest?.[item.key]);
             compareValue = toNumber(compare?.[item.key]);
@@ -176,7 +191,7 @@ export function DashboardV2Kpis({ data, period, marginRecords }: { data: TrendPo
               <span className="dashboard-v2-kpi-label">{item.label} <InfoTooltip text={item.explanation} /></span>
               <strong>{item.valueFormatter(currentValue)}</strong>
               <div className={`dashboard-v2-kpi-change ${tone}`}>
-                <b>{isManualInput ? (latestMargin ? latestMargin.date : 'No manual input') : change === null ? 'No baseline' : item.changeFormatter(change)}</b>
+                <b>{change === null ? (isManualInput ? '--' : 'No baseline') : item.changeFormatter(change)}</b>
                 <em>{changePercent === null ? '' : `(${signed(changePercent, 2, '%')})`}</em>
               </div>
             </article>

@@ -80,10 +80,18 @@ type InternalFloatV2UserInputsEnvelope = {
   users: InternalFloatV2UserInput[];
 };
 
+export type InternalFloatV2UserInputReadResult = {
+  envelope: ImportEnvelope<InternalFloatV2UserInputsEnvelope> | null;
+  path: string;
+  userInput: InternalFloatV2UserInput;
+  usedDefault: boolean;
+};
+
 export function internalFloatV2UserInputPaths(ticker = 'CURR') {
   const normalizedTicker = ticker.toUpperCase();
   return [
     `internal_float/${normalizedTicker}_v2_user_inputs.json`,
+    `${normalizedTicker}_v2_user_inputs.json`,
     'internal_float/v2_user_inputs.json',
   ];
 }
@@ -346,19 +354,26 @@ export async function readInternalFloatAdjustments() {
 }
 
 export async function readInternalFloatV2UserInputs(userId = 'demo-user', ticker = 'CURR'): Promise<InternalFloatV2UserInput> {
+  return (await readInternalFloatV2UserInputSource(userId, ticker)).userInput;
+}
+
+export async function readInternalFloatV2UserInputSource(userId = 'demo-user', ticker = 'CURR'): Promise<InternalFloatV2UserInputReadResult> {
   const normalizedTicker = ticker.toUpperCase();
-  for (const path of internalFloatV2UserInputPaths(normalizedTicker)) {
+  const paths = internalFloatV2UserInputPaths(normalizedTicker);
+  for (const path of paths) {
     try {
       const envelope = await readImportFile<InternalFloatV2UserInputsEnvelope>(path);
-      return envelope.data.users.find(row => row.userId === userId && row.ticker.toUpperCase() === normalizedTicker)
-        ?? envelope.data.users.find(row => row.ticker.toUpperCase() === normalizedTicker)
-        ?? envelope.data.users[0]
+      const users = Array.isArray(envelope.data?.users) ? envelope.data.users : [];
+      const userInput = users.find(row => row.userId === userId && row.ticker.toUpperCase() === normalizedTicker)
+        ?? users.find(row => row.ticker.toUpperCase() === normalizedTicker)
+        ?? users[0]
         ?? defaultInternalFloatV2UserInput;
+      return { envelope, path, userInput, usedDefault: !users.length };
     } catch {
       // Continue to the legacy demo path before falling back to defaults.
     }
   }
-  return defaultInternalFloatV2UserInput;
+  return { envelope: null, path: paths[0], userInput: defaultInternalFloatV2UserInput, usedDefault: true };
 }
 
 export async function saveInternalFloatInputs(holdings: ManualHolding[]) {

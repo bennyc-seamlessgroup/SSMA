@@ -1,30 +1,14 @@
-import { getImportFileStatus, getLocalImportFileUpdatedAt, readLocalImportText } from '@/lib/import-data';
+import { getImportFileStatus } from '@/lib/import-data';
 import { publicSocialPrefixes, publicSocialPrefixVersion } from '@/lib/social-s3-data';
 import { NextResponse } from 'next/server';
 
 export const dynamic = 'force-dynamic';
 
-function localSocialVersion(path: string, label: string) {
-  try {
-    const content = readLocalImportText(path);
-    const updatedAtMs = getLocalImportFileUpdatedAt(path);
-    return {
-      prefix: label,
-      updatedAt: new Date(updatedAtMs).toISOString(),
-      version: `${label}:local:${updatedAtMs}:${content.length}`,
-      count: 1,
-      source: 'local-fallback',
-    };
-  } catch {
-    return null;
-  }
-}
-
 export async function GET() {
   try {
     const [reddit, x, stocktwits] = await Promise.all([
-      publicSocialPrefixVersion(publicSocialPrefixes.reddit).catch(() => localSocialVersion('social/reddit_CURR_mentions.json', publicSocialPrefixes.reddit)),
-      publicSocialPrefixVersion(publicSocialPrefixes.x).catch(() => localSocialVersion('social/x_CURR_mentions.json', publicSocialPrefixes.x)),
+      publicSocialPrefixVersion(publicSocialPrefixes.reddit).catch(() => null),
+      publicSocialPrefixVersion(publicSocialPrefixes.x).catch(() => null),
       getImportFileStatus('social/stocktwits_CURR_mentions.json').catch(() => null),
     ]);
 

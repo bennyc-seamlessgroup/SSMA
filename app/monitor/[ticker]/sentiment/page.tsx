@@ -1,6 +1,6 @@
 import { ImportDataTable } from '@/components/ImportDataTable';
 import { InfoTooltip } from '@/components/InfoTooltip';
-import { readImportJson, readLocalImportText } from '@/lib/import-data';
+import { readImportJson } from '@/lib/import-data';
 import { getServerPortalTimeZone } from '@/lib/server-timezone';
 import { publicSocialPrefixes, readPublicSocialMentions } from '@/lib/social-s3-data';
 import { formatPortalDateTime } from '@/lib/timezone';
@@ -64,11 +64,7 @@ async function readOptionalAdanosFeed(relativePath: string) {
   try {
     return asArray(await readImportJson<AdanosMention[] | { data?: AdanosMention[]; mentions?: AdanosMention[] }>(relativePath));
   } catch {
-    try {
-      return asArray(JSON.parse(readLocalImportText(relativePath)));
-    } catch {
-      return [];
-    }
+    return [];
   }
 }
 
@@ -78,14 +74,14 @@ async function readNarrativePlatformFeed(primaryPath: string, legacyPath: string
   return readOptionalAdanosFeed(legacyPath);
 }
 
-async function readPublicNarrativeFeed(prefix: string, platform: 'Reddit' | 'X', fallbackPath: string) {
+async function readPublicNarrativeFeed(prefix: string, platform: 'Reddit' | 'X') {
   try {
     const mentions = await readPublicSocialMentions(prefix, platform);
     if (mentions.length) return mentions as AdanosMention[];
   } catch {
-    // Public S3 prefix listing may be blocked; local fallback keeps the page usable.
+    // Public S3 prefix listing may be blocked. Do not fall back to bundled local data in production.
   }
-  return readOptionalAdanosFeed(fallbackPath);
+  return [];
 }
 
 function numeric(value: unknown) {
@@ -297,8 +293,8 @@ export default async function SentimentPage({ searchParams }: { searchParams?: P
   const timeZone = await getServerPortalTimeZone();
   const activeRange = rangeFromSearch(Array.isArray(resolvedSearchParams.range) ? resolvedSearchParams.range[0] : resolvedSearchParams.range);
   const [redditMentions, xMentions, stocktwitsMentions] = await Promise.all([
-    readPublicNarrativeFeed(publicSocialPrefixes.reddit, 'Reddit', 'social/reddit_CURR_mentions.json'),
-    readPublicNarrativeFeed(publicSocialPrefixes.x, 'X', 'social/x_CURR_mentions.json'),
+    readPublicNarrativeFeed(publicSocialPrefixes.reddit, 'Reddit'),
+    readPublicNarrativeFeed(publicSocialPrefixes.x, 'X'),
     readNarrativePlatformFeed('social/stocktwits_CURR_mentions.json', 'adanos-stocktwits_CURR_consolidated_4_web.json'),
   ]);
   const [redditJson, xJson, stocktwitsJson] = await Promise.all([

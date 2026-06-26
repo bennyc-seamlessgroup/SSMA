@@ -102,10 +102,6 @@ function s3Config() {
   return { region, bucket, accessKeyId, secretAccessKey };
 }
 
-function localS3FallbackEnabled() {
-  return process.env.IMPORT_DATA_LOCAL_FALLBACK === 'true';
-}
-
 function normalizeImportPath(relativePath: string) {
   return relativePath.replace(/^import_data\//, '').replace(/^\/+/, '');
 }
@@ -400,13 +396,7 @@ async function readJsonFile<T>(relativePath: string): Promise<T> {
   let content: string;
 
   if (importDataSource() === 's3') {
-    try {
-      content = await readS3Text(normalizedPath);
-    } catch (error) {
-      const localPath = path.join(importDataRoot, normalizedPath);
-      if (!localS3FallbackEnabled() || !fs.existsSync(localPath)) throw error;
-      content = readLocalImportText(normalizedPath);
-    }
+    content = await readS3Text(normalizedPath);
   } else {
     content = readLocalImportText(normalizedPath);
   }

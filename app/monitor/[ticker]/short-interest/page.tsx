@@ -159,7 +159,12 @@ function delta(current: number | null, previous: number | null, options?: Intl.N
 
 function DeltaBadge({ info, suffix = '', display }: { info: ReturnType<typeof delta>; suffix?: string; display?: string }) {
   if (display) {
-    return <span className={`short-kpi-delta ${display.startsWith('-') ? 'down' : display.startsWith('+') ? 'up' : 'neutral'}`}><strong>{display}</strong></span>;
+    return (
+      <span className={`short-kpi-delta ${display.startsWith('-') ? 'down' : display.startsWith('+') ? 'up' : 'neutral'}`}>
+        <strong>{display}</strong>
+        <em>vs yesterday</em>
+      </span>
+    );
   }
   if (!info) {
     return <span className="short-kpi-delta neutral">No prior update</span>;
@@ -169,7 +174,7 @@ function DeltaBadge({ info, suffix = '', display }: { info: ReturnType<typeof de
   return (
     <span className={`short-kpi-delta ${tone}`}>
       <strong>{info.valueText}{suffix}</strong>
-      <em>({sign}{Math.abs(info.percent).toLocaleString('en-US', { maximumFractionDigits: 2 })}%)</em>
+      <em>({sign}{Math.abs(info.percent).toLocaleString('en-US', { maximumFractionDigits: 2 })}%) vs yesterday</em>
     </span>
   );
 }
@@ -191,6 +196,20 @@ function KpiCard({ label, value, detail, change, suffix, deltaDisplay }: {
     </div>
   );
 }
+
+function shortScoreExplanation(score: number, level: string) {
+  if (score >= 80) return `${level} pressure means short-side risk is elevated. Borrow cost, short exposure, availability, or coverage conditions may be signaling a stronger squeeze-risk setup.`;
+  if (score >= 65) return `${level} pressure means the score is above the normal range. Management should monitor whether borrow cost, short exposure, or share availability continues to tighten.`;
+  if (score >= 40) return `${level} pressure means short-side conditions are present but not yet severe. The setup warrants monitoring, especially if multiple inputs move higher together.`;
+  return `${level} pressure means current short-side conditions are relatively contained. The score does not indicate meaningful pressure unless the underlying inputs begin to worsen.`;
+}
+
+const shortScoreGuide = [
+  { label: 'Low', range: '0-39', meaning: 'Contained pressure' },
+  { label: 'Moderate', range: '40-64', meaning: 'Watch for tightening' },
+  { label: 'High', range: '65-79', meaning: 'Elevated pressure' },
+  { label: 'Extreme', range: '80-100', meaning: 'Severe pressure' },
+];
 
 export default async function ShortInterestPage() {
   const [
@@ -282,13 +301,19 @@ export default async function ShortInterestPage() {
               <em>{String(shortScoreLevelCard.valueDisplay ?? shortScoreLevel)}</em>
               <DeltaBadge info={shortScoreDelta} display={String(shortScoreCard.deltaDisplay ?? '')} />
             </div>
-            <p>{text(pageContent.shortScoreDescription, 'Composite short-interest risk score using short exposure, borrow pressure, share availability, and related market-pressure inputs.')}</p>
+            <p>{shortScoreExplanation(shortScore, shortScoreLevel)}</p>
           </div>
-          <div className="lending-gauge-card short-score-gauge-card">
-            <div className="triggered-gauge" style={{ background: `conic-gradient(#be123c 0% ${shortScore || 0}%, #e8eef7 ${shortScore || 0}% 100%)` }}>
-              <div><strong>{shortScore || 0}</strong><span>short score</span></div>
+          <div className="terminal-card short-score-guide-card">
+            <span>Score Guide</span>
+            <div className="short-score-guide-table">
+              {shortScoreGuide.map(row => (
+                <div className={row.label.toLowerCase() === shortScoreTone ? 'active' : ''} key={row.label}>
+                  <strong>{row.label}</strong>
+                  <em>{row.range}</em>
+                  <span>{row.meaning}</span>
+                </div>
+              ))}
             </div>
-            <p>{shortScoreLevel} Short Pressure</p>
           </div>
         </div>
 

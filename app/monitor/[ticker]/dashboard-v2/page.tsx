@@ -1,6 +1,6 @@
 import { DashboardV2Client } from './DashboardV2Client';
 import { DashboardV2DevTables } from './DashboardV2DevTables';
-import { readImportFile, readLocalImportText, type ImportEnvelope } from '@/lib/import-data';
+import { readImportFile } from '@/lib/import-data';
 import { readDashboardMargins } from '@/lib/operations/dashboard-margin-store';
 import { readOperationsSecFilings, type OperationsSecFilingRecord } from '@/lib/operations/sec-filings-store';
 
@@ -36,17 +36,6 @@ type DashboardV2ConsolidatedData = {
 };
 
 const dashboardV2File = 'dashboard_v2_CURR_consolidated_4_web.json';
-
-async function readDashboardV2File<T>(relativePath: string): Promise<ImportEnvelope<T>> {
-  try {
-    return await readImportFile<T>(relativePath);
-  } catch {
-    if (process.env.IMPORT_DATA_DEBUG === 'true') {
-      console.warn(`Dashboard v2 import data unavailable in configured source; using bundled fallback for ${relativePath}.`);
-    }
-    return JSON.parse(readLocalImportText(relativePath)) as ImportEnvelope<T>;
-  }
-}
 
 function plainText(value: unknown, fallback = '') {
   return String(value ?? fallback).replace(/\s+/g, ' ').trim();
@@ -91,7 +80,7 @@ function secFilingEvents(rows: OperationsSecFilingRecord[]): CompanyEvent[] {
 
 export default async function DashboardV2Page() {
   const [dashboardEnvelope, secFilings, marginInputs] = await Promise.all([
-    readDashboardV2File<DashboardV2ConsolidatedData>(dashboardV2File),
+    readImportFile<DashboardV2ConsolidatedData>(dashboardV2File),
     readOperationsSecFilings(),
     readDashboardMargins().catch(() => ({
       storage: 'local' as const,
