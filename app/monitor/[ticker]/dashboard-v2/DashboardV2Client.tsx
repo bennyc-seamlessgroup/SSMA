@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { DashboardV2Chart } from './DashboardV2Chart';
 import { DashboardV2Kpis, type PeriodKey } from './DashboardV2Kpis';
+import type { DashboardMarginRecord } from '@/lib/operations/dashboard-margin-store';
 
 type TrendPoint = {
   date: string;
@@ -24,12 +25,12 @@ type CompanyEvent = {
   source?: string;
 };
 
-export function DashboardV2Client({ data, events }: { data: TrendPoint[]; events: CompanyEvent[] }) {
+export function DashboardV2Client({ data, events, marginRecords }: { data: TrendPoint[]; events: CompanyEvent[]; marginRecords: DashboardMarginRecord[] }) {
   const [period, setPeriod] = useState<PeriodKey>('1Y');
 
   return (
     <>
-      <DashboardV2Kpis data={data} period={period} />
+      <DashboardV2Kpis data={data} period={period} marginRecords={marginRecords} />
       <DashboardV2Chart data={data} events={events} period={period} onPeriodChange={setPeriod} />
     </>
   );

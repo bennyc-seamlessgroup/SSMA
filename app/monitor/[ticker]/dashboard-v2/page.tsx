@@ -1,6 +1,7 @@
 import { DashboardV2Client } from './DashboardV2Client';
 import { DashboardV2DevTables } from './DashboardV2DevTables';
 import { readImportFile, readLocalImportText, type ImportEnvelope } from '@/lib/import-data';
+import { readDashboardMargins } from '@/lib/operations/dashboard-margin-store';
 import { readOperationsSecFilings, type OperationsSecFilingRecord } from '@/lib/operations/sec-filings-store';
 
 export const dynamic = 'force-dynamic';
@@ -89,9 +90,14 @@ function secFilingEvents(rows: OperationsSecFilingRecord[]): CompanyEvent[] {
 }
 
 export default async function DashboardV2Page() {
-  const [dashboardEnvelope, secFilings] = await Promise.all([
+  const [dashboardEnvelope, secFilings, marginInputs] = await Promise.all([
     readDashboardV2File<DashboardV2ConsolidatedData>(dashboardV2File),
     readOperationsSecFilings(),
+    readDashboardMargins().catch(() => ({
+      storage: 'local' as const,
+      s3Key: 'dashboard/CURR_margin_inputs.json',
+      records: [],
+    })),
   ]);
   const trendData = Array.isArray(dashboardEnvelope.data?.trends) ? dashboardEnvelope.data.trends : [];
   const dashboardEvents = Array.isArray(dashboardEnvelope.data?.events) ? dashboardEnvelope.data.events : [];
@@ -107,13 +113,16 @@ export default async function DashboardV2Page() {
         <p>Borrow market dashboard</p>
       </div>
 
-      <DashboardV2Client data={trendData} events={events} />
+      <DashboardV2Client data={trendData} events={events} marginRecords={marginInputs.records} />
       <DashboardV2DevTables
         file={dashboardV2File}
         sourcePlatform={dashboardEnvelope.sourcePlatform ?? dashboardEnvelope.source ?? 'Internal'}
         status={dashboardEnvelope.status ?? 'ready'}
         current={current}
         trends={trendData as Array<Record<string, unknown>>}
+        marginInputs={marginInputs.records as unknown as Array<Record<string, unknown>>}
+        marginFile={marginInputs.s3Key ?? 'dashboard/CURR_margin_inputs.json'}
+        marginStatus={marginInputs.storage ?? 'ready'}
         events={events as Array<Record<string, unknown>>}
         missingFromSource={missingFromSource}
         derived={derived}

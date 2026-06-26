@@ -9,6 +9,9 @@ type DashboardV2DevTablesProps = {
   status: string;
   current: Record<string, unknown> | null;
   trends: Array<Record<string, unknown>>;
+  marginInputs: Array<Record<string, unknown>>;
+  marginFile: string;
+  marginStatus: string;
   events: Array<Record<string, unknown>>;
   missingFromSource: unknown[];
   derived: Record<string, unknown> | null;
@@ -46,6 +49,20 @@ function TrendsTable({ trends }: { trends: Array<Record<string, unknown>> }) {
   return trends.length
     ? <ImportDataTable columns={columns} rows={toRows(trends, columns)} pageSize={25} />
     : <p className="page__desc import-empty">No trend records imported yet.</p>;
+}
+
+function ManualInputsTable({ rows }: { rows: Array<Record<string, unknown>> }) {
+  const columns = ['date', 'ticker', 'initialMargin', 'maintenanceMargin', 'averageDurationDays', 'updatedAt', 'updatedBy'];
+  return (
+    <>
+      <p className="import-local-note">
+        Developer note: <strong>dashboard/CURR_margin_inputs.json</strong> is currently a local operations input file, unlike the main Dashboard V2 import JSON that is read from S3.
+      </p>
+      {rows.length
+        ? <ImportDataTable columns={columns} rows={toRows(rows, columns)} pageSize={25} />
+        : <p className="page__desc import-empty">No manual dashboard input records saved yet.</p>}
+    </>
+  );
 }
 
 function EventsTable({ events }: { events: Array<Record<string, unknown>> }) {
@@ -91,6 +108,9 @@ export function DashboardV2DevTables({
   status,
   current,
   trends,
+  marginInputs,
+  marginFile,
+  marginStatus,
   events,
   missingFromSource,
   derived,
@@ -98,6 +118,7 @@ export function DashboardV2DevTables({
   const tabs = [
     { id: 'current', title: 'Current', file, sourcePlatform, recordCount: current ? 1 : 0, status },
     { id: 'trends', title: 'Trends', file, sourcePlatform, recordCount: trends.length, status },
+    { id: 'manual-inputs', title: 'Manual Inputs', file: marginFile, sourcePlatform: 'Operations Dashboard', recordCount: marginInputs.length, status: marginStatus },
     { id: 'events', title: 'Events', file, sourcePlatform, recordCount: events.length, status },
     { id: 'derived', title: 'Derived Cards', file, sourcePlatform, recordCount: isRecord(derived?.dashboardV2) ? 1 : 0, status },
     { id: 'missing', title: 'Missing Fields', file, sourcePlatform, recordCount: missingFromSource.length, status },
@@ -117,6 +138,7 @@ export function DashboardV2DevTables({
       <ImportDataTabs tabs={tabs}>
         <ObjectTable data={current} />
         <TrendsTable trends={trends} />
+        <ManualInputsTable rows={marginInputs} />
         <EventsTable events={events} />
         <DerivedCardsTable derived={derived} />
         <MissingTable rows={missingFromSource} />

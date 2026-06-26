@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import type { MouseEvent } from 'react';
 import { dashboardV2Periods, type PeriodKey } from './DashboardV2Kpis';
 
@@ -34,6 +34,15 @@ type CompanyEvent = {
   summary: string;
   source?: string;
   url?: string;
+};
+
+type EventGroup = {
+  id: string;
+  date: string;
+  type: string;
+  events: CompanyEvent[];
+  x?: number;
+  y?: number;
 };
 
 type SeriesConfig = {
@@ -197,7 +206,22 @@ export function DashboardV2Chart({
   });
   const [hoveredMetric, setHoveredMetric] = useState<SeriesKey | null>(null);
   const [hoverIndex, setHoverIndex] = useState<number | null>(null);
-  const [hoveredEvent, setHoveredEvent] = useState<CompanyEvent | null>(null);
+  const [hoveredEventGroup, setHoveredEventGroup] = useState<EventGroup | null>(null);
+  const [pinnedEventGroup, setPinnedEventGroup] = useState<EventGroup | null>(null);
+
+  useEffect(() => {
+    if (!pinnedEventGroup) return undefined;
+
+    function closePinnedPopover(event: PointerEvent) {
+      const target = event.target;
+      if (!(target instanceof Element)) return;
+      if (target.closest('.dashboard-v2-event-tooltip') || target.closest('.dashboard-v2-event-marker')) return;
+      setPinnedEventGroup(null);
+    }
+
+    document.addEventListener('pointerdown', closePinnedPopover);
+    return () => document.removeEventListener('pointerdown', closePinnedPopover);
+  }, [pinnedEventGroup]);
 
   const allData = useMemo(() => {
     const clean = sourceData
@@ -226,6 +250,24 @@ export function DashboardV2Chart({
       .filter(event => event?.date >= firstDate && event.date <= lastDate)
       .sort((a, b) => a.date.localeCompare(b.date));
   }, [data, sourceEvents]);
+  const visibleEventGroups = useMemo(() => {
+    const groups = new Map<string, EventGroup>();
+    visibleEvents.forEach(event => {
+      const key = `${event.date}:${event.type}`;
+      const group = groups.get(key);
+      if (group) {
+        group.events.push(event);
+      } else {
+        groups.set(key, {
+          id: key,
+          date: event.date,
+          type: event.type,
+          events: [event],
+        });
+      }
+    });
+    return Array.from(groups.values()).sort((a, b) => a.date.localeCompare(b.date) || a.type.localeCompare(b.type));
+  }, [visibleEvents]);
 
   const availableMetrics = useMemo(() => seriesOrder.filter(key => key === 'daysToCover' || key === 'utilization' || hasMetricValue(allData, key)), [allData]);
   const enabledKeys = availableMetrics.filter(key => enabledMetrics[key]);
@@ -324,16 +366,18 @@ export function DashboardV2Chart({
       domains,
       paths,
       xTicks,
-      eventMarkers: visibleEvents.map((event, eventIndex) => {
-        const sameDateIndex = visibleEvents.slice(0, eventIndex).filter(item => item.date === event.date).length;
+      eventMarkers: visibleEventGroups.map((eventGroup, eventIndex) => {
+        const sameDateIndex = visibleEventGroups.slice(0, eventIndex).filter(item => item.date === eventGroup.date).length;
+        const x = xFor(indexForDate(eventGroup.date));
+        const y = topPanelBottom + 18 + (sameDateIndex % 3) * 16;
         return {
-          event,
-          x: xFor(indexForDate(event.date)),
-          y: topPanelBottom + 18 + (sameDateIndex % 3) * 16,
+          eventGroup: { ...eventGroup, x, y },
+          x,
+          y,
         };
       }),
     };
-  }, [availableMetrics, data, period, visibleEvents]);
+  }, [availableMetrics, data, period, visibleEventGroups]);
 
   const activeDomain = chart.domains[activeMetric] ?? domainFor([0]);
   const activeTicks = ticksFor(activeDomain.min, activeDomain.max);
@@ -356,7 +400,7 @@ export function DashboardV2Chart({
   const clearHover = () => {
     setHoveredMetric(null);
     setHoverIndex(null);
-    setHoveredEvent(null);
+    setHoveredEventGroup(null);
   };
 
   const toggle = (key: SeriesKey) => {
@@ -416,6 +460,7 @@ export function DashboardV2Chart({
           aria-label="Borrow market multi-series chart"
           onMouseMove={setHoverPosition}
           onMouseLeave={clearHover}
+          onClick={() => setPinnedEventGroup(null)}
         >
           <text
             className="dashboard-v2-axis-title active-axis-title"
@@ -452,17 +497,23 @@ export function DashboardV2Chart({
           {chart.eventMarkers.map(marker => (
             <g
               className="dashboard-v2-event-marker"
-              key={marker.event.id}
+              key={marker.eventGroup.id}
               role="button"
               tabIndex={0}
-              aria-label={`${marker.event.type}: ${marker.event.title}`}
-              onMouseEnter={() => setHoveredEvent(marker.event)}
-              onMouseLeave={() => setHoveredEvent(null)}
-              onFocus={() => setHoveredEvent(marker.event)}
-              onBlur={() => setHoveredEvent(null)}
+              aria-label={`${marker.eventGroup.type}: ${marker.eventGroup.events.length} event${marker.eventGroup.events.length === 1 ? '' : 's'}`}
+              onMouseEnter={() => setHoveredEventGroup(marker.eventGroup)}
+              onMouseLeave={() => setHoveredEventGroup(null)}
+              onMouseMove={event => event.stopPropagation()}
+              onClick={event => {
+                event.stopPropagation();
+                setPinnedEventGroup(current => current?.id === marker.eventGroup.id ? null : marker.eventGroup);
+              }}
+              onFocus={() => setHoveredEventGroup(marker.eventGroup)}
+              onBlur={() => setHoveredEventGroup(null)}
             >
+              <rect className="dashboard-v2-event-hitbox" x={marker.x - 16} y={marker.y - 16} width="32" height="32" rx="8" />
               <line x1={marker.x} x2={marker.x} y1={chart.topPanelTop} y2={chart.bottomPanelBottom} />
-              {marker.event.type === 'SEC' ? (
+              {marker.eventGroup.type === 'SEC' ? (
                 <>
                   <rect x={marker.x - 7} y={marker.y - 8} width="14" height="16" rx="3" />
                   <path d={`M ${marker.x - 3.5} ${marker.y - 3.8} H ${marker.x + 3.8} M ${marker.x - 3.5} ${marker.y} H ${marker.x + 3.8} M ${marker.x - 3.5} ${marker.y + 3.8} H ${marker.x + 1.8}`} />
@@ -470,7 +521,7 @@ export function DashboardV2Chart({
               ) : (
                 <>
                   <circle cx={marker.x} cy={marker.y} r="5.5" />
-                  <text x={marker.x} y={marker.y + 3} textAnchor="middle">{marker.event.type.charAt(0)}</text>
+                  <text x={marker.x} y={marker.y + 3} textAnchor="middle">{marker.eventGroup.type.charAt(0)}</text>
                 </>
               )}
             </g>
@@ -538,13 +589,28 @@ export function DashboardV2Chart({
           </div>
         )}
 
-        {hoveredEvent && (
-          <div className="dashboard-v2-event-tooltip">
-            <span>{hoveredEvent.type} · {formatFullDate(hoveredEvent.date)}</span>
-            <strong>{hoveredEvent.title}</strong>
-            <p>{hoveredEvent.summary}</p>
-            {hoveredEvent.source && <em>{hoveredEvent.source}</em>}
-            {hoveredEvent.url && <em>{hoveredEvent.url}</em>}
+        {(pinnedEventGroup ?? hoveredEventGroup) && (
+          <div
+            className={`dashboard-v2-event-tooltip${pinnedEventGroup ? ' is-pinned' : ''}`}
+            style={{
+              left: `${Math.min(Math.max(((pinnedEventGroup ?? hoveredEventGroup)?.x ?? chart.left) / chart.width * 100, 12), 82)}%`,
+              top: `${Math.min((((pinnedEventGroup ?? hoveredEventGroup)?.y ?? chart.topPanelBottom) + 18) / chart.height * 100, 78)}%`,
+            }}
+            onClick={event => event.stopPropagation()}
+          >
+            <span>{(pinnedEventGroup ?? hoveredEventGroup)!.type} · {formatFullDate((pinnedEventGroup ?? hoveredEventGroup)!.date)} · {(pinnedEventGroup ?? hoveredEventGroup)!.events.length} event{(pinnedEventGroup ?? hoveredEventGroup)!.events.length === 1 ? '' : 's'}</span>
+            <div className="dashboard-v2-event-list">
+              {(pinnedEventGroup ?? hoveredEventGroup)!.events.map(event => (
+                <article key={event.id}>
+                  <strong>{event.title}</strong>
+                  {event.url && (
+                    <a href={event.url} target="_blank" rel="noreferrer">
+                      Open filing
+                    </a>
+                  )}
+                </article>
+              ))}
+            </div>
           </div>
         )}
       </div>

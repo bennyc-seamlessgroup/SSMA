@@ -1,6 +1,7 @@
 'use client';
 
 import { InfoTooltip } from '@/components/InfoTooltip';
+import type { DashboardMarginRecord } from '@/lib/operations/dashboard-margin-store';
 import { useMemo } from 'react';
 
 export type PeriodKey = '1D' | '5D' | '1M' | '3M' | '1Y' | 'YTD';
@@ -11,11 +12,13 @@ type TrendPoint = {
   shortableShares: number | null;
   daysToCover: number | null;
   utilization: number | null;
-  margin?: number | null;
 };
 
+type ManualKpiKey = 'initialMargin' | 'maintenanceMargin' | 'averageDurationDays';
+type TrendKpiKey = Exclude<keyof TrendPoint, 'date'>;
+
 type KpiConfig = {
-  key: keyof TrendPoint;
+  key: TrendKpiKey | ManualKpiKey;
   label: string;
   valueFormatter: (value: number | undefined) => string;
   changeFormatter: (value: number) => string;
@@ -35,12 +38,20 @@ const kpis: KpiConfig[] = [
     explanation: 'Current annualized cost to borrow shares. Higher borrow fees can indicate tighter lending supply or stronger short-side demand.',
   },
   {
-    key: 'margin',
-    label: 'Margin',
-    valueFormatter: value => pct(value, 1),
+    key: 'initialMargin',
+    label: 'Initial Margin',
+    valueFormatter: value => pctFixed(value, 2),
     changeFormatter: value => signed(value, 2, ' pts'),
-    detail: 'Current maintenance estimate',
-    explanation: 'Estimated margin requirement for maintaining the position. Higher margin can reflect greater perceived financing or risk pressure.',
+    detail: 'Opening margin requirement',
+    explanation: 'Initial margin requirement manually entered by operations. Displayed as a daily dashboard input.',
+  },
+  {
+    key: 'maintenanceMargin',
+    label: 'Maintenance Margin',
+    valueFormatter: value => pctFixed(value, 2),
+    changeFormatter: value => signed(value, 2, ' pts'),
+    detail: 'Ongoing margin requirement',
+    explanation: 'Maintenance margin requirement manually entered by operations. Displayed as a daily dashboard input.',
   },
   {
     key: 'shortableShares',
@@ -59,6 +70,14 @@ const kpis: KpiConfig[] = [
     explanation: 'Percentage of lendable inventory currently being used. Higher utilization means more of the borrowable share pool is already committed.',
   },
   {
+    key: 'averageDurationDays',
+    label: 'Average Duration (D)',
+    valueFormatter: value => value === undefined ? 'N/A' : `${value.toLocaleString('en-US', { maximumFractionDigits: 1 })}d`,
+    changeFormatter: value => signed(value, 1, 'd'),
+    detail: 'Manual duration input',
+    explanation: 'Average duration in days manually entered by operations for the dashboard.',
+  },
+  {
     key: 'daysToCover',
     label: 'Days to Cover',
     valueFormatter: value => value === undefined ? 'N/A' : `${value.toLocaleString('en-US', { maximumFractionDigits: 1 })}d`,
@@ -70,6 +89,10 @@ const kpis: KpiConfig[] = [
 
 function pct(value: number | undefined, digits: number) {
   return value === undefined ? 'N/A' : `${value.toLocaleString('en-US', { maximumFractionDigits: digits })}%`;
+}
+
+function pctFixed(value: number | undefined, digits: number) {
+  return value === undefined ? 'N/A' : `${value.toLocaleString('en-US', { minimumFractionDigits: digits, maximumFractionDigits: digits })}%`;
 }
 
 function compact(value: number | undefined) {
@@ -117,8 +140,17 @@ function toNumber(value: unknown) {
   return Number.isFinite(parsed) ? parsed : undefined;
 }
 
-export function DashboardV2Kpis({ data, period }: { data: TrendPoint[]; period: PeriodKey }) {
+function latestMarginRecord(records: DashboardMarginRecord[]) {
+  return [...records].sort((a, b) => b.date.localeCompare(a.date))[0] ?? null;
+}
+
+function isManualKpiKey(key: KpiConfig['key']): key is ManualKpiKey {
+  return key === 'initialMargin' || key === 'maintenanceMargin' || key === 'averageDurationDays';
+}
+
+export function DashboardV2Kpis({ data, period, marginRecords }: { data: TrendPoint[]; period: PeriodKey; marginRecords: DashboardMarginRecord[] }) {
   const cleanData = useMemo(() => data.filter(point => point?.date).sort((a, b) => a.date.localeCompare(b.date)), [data]);
+  const latestMargin = useMemo(() => latestMarginRecord(marginRecords), [marginRecords]);
   const latest = cleanData[cleanData.length - 1];
   const compare = comparisonPoint(cleanData, period);
 
@@ -126,8 +158,15 @@ export function DashboardV2Kpis({ data, period }: { data: TrendPoint[]; period: 
     <section className="dashboard-v2-kpi-block" aria-label="Borrow market KPIs">
       <div className="dashboard-v2-kpis">
         {kpis.map(item => {
-          const currentValue = toNumber(latest?.[item.key]);
-          const compareValue = toNumber(compare?.[item.key]);
+          const isManualInput = isManualKpiKey(item.key);
+          let currentValue: number | undefined;
+          let compareValue: number | undefined;
+          if (isManualKpiKey(item.key)) {
+            currentValue = toNumber(latestMargin?.[item.key]);
+          } else {
+            currentValue = toNumber(latest?.[item.key]);
+            compareValue = toNumber(compare?.[item.key]);
+          }
           const change = currentValue !== undefined && compareValue !== undefined ? currentValue - compareValue : null;
           const changePercent = change !== null && compareValue ? (change / compareValue) * 100 : null;
           const tone = change === null ? 'neutral' : change > 0 ? 'up' : change < 0 ? 'down' : 'neutral';
@@ -137,7 +176,7 @@ export function DashboardV2Kpis({ data, period }: { data: TrendPoint[]; period: 
               <span className="dashboard-v2-kpi-label">{item.label} <InfoTooltip text={item.explanation} /></span>
               <strong>{item.valueFormatter(currentValue)}</strong>
               <div className={`dashboard-v2-kpi-change ${tone}`}>
-                <b>{change === null ? 'No baseline' : item.changeFormatter(change)}</b>
+                <b>{isManualInput ? (latestMargin ? latestMargin.date : 'No manual input') : change === null ? 'No baseline' : item.changeFormatter(change)}</b>
                 <em>{changePercent === null ? '' : `(${signed(changePercent, 2, '%')})`}</em>
               </div>
             </article>

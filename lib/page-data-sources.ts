@@ -6,7 +6,7 @@ export type PageDataSource =
 export const pageDataSources: Record<string, PageDataSource> = {
   'dashboard-v2': {
     type: 'import-files',
-    files: ['dashboard_v2_CURR_consolidated_4_web.json', 'dashboard_v2_events.json'],
+    files: ['dashboard_v2_CURR_consolidated_4_web.json', 'dashboard_v2_events.json', 'dashboard/CURR_margin_inputs.json'],
   },
   institutional: {
     type: 'import-files',

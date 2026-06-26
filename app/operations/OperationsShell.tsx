@@ -1,6 +1,7 @@
 import Link from 'next/link';
 
 const navItems = [
+  ['Dashboard', '/operations/dashboard'],
   ['SEC Filing Entry', '/operations/sec-filings'],
   ['Narrative Social Upload', '/operations/narrative-social'],
   ['Ownership', '/operations/ownership'],
