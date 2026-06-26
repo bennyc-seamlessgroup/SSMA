@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import {
-  readAllSocialMentions,
+  readAllSocialMentionsForOperations,
   replaceSocialMentionsFromCsv,
   type SocialPlatform,
 } from '@/lib/operations/social-mentions-store';
@@ -14,7 +14,7 @@ function isPlatform(value: string): value is SocialPlatform {
 
 export async function GET() {
   try {
-    return NextResponse.json({ ok: true, data: readAllSocialMentions() });
+    return NextResponse.json({ ok: true, data: await readAllSocialMentionsForOperations() });
   } catch (error) {
     return NextResponse.json(
       { ok: false, error: error instanceof Error ? error.message : 'Unable to read narrative social data.' },
@@ -33,20 +33,20 @@ export async function POST(request: Request) {
       if (!(file instanceof File)) continue;
 
       const csvText = await file.text();
-      updated[platform] = replaceSocialMentionsFromCsv(platform, csvText, file.name);
+      updated[platform] = await replaceSocialMentionsFromCsv(platform, csvText, file.name);
     }
 
     const platform = formData.get('platform');
     const csvText = formData.get('csvText');
     if (typeof platform === 'string' && platform === 'stocktwits' && isPlatform(platform) && typeof csvText === 'string') {
-      updated[platform] = replaceSocialMentionsFromCsv(platform, csvText, String(formData.get('fileName') ?? 'manual-upload.csv'));
+      updated[platform] = await replaceSocialMentionsFromCsv(platform, csvText, String(formData.get('fileName') ?? 'manual-upload.csv'));
     }
 
     if (!Object.keys(updated).length) {
       return NextResponse.json({ ok: false, error: 'No valid CSV files were attached.' }, { status: 400 });
     }
 
-    return NextResponse.json({ ok: true, data: readAllSocialMentions(), updated });
+    return NextResponse.json({ ok: true, data: await readAllSocialMentionsForOperations(), updated });
   } catch (error) {
     return NextResponse.json(
       { ok: false, error: error instanceof Error ? error.message : 'Unable to upload narrative social CSV files.' },

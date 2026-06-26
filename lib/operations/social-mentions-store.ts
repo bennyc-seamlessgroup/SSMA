@@ -229,14 +229,124 @@ export function readSocialMentions(platform: SocialPlatform): SocialMentionsFile
   return JSON.parse(fs.readFileSync(config.path, 'utf8')) as SocialMentionsFile;
 }
 
-export function writeSocialMentions(platform: SocialPlatform, file: SocialMentionsFile) {
+function shouldUseS3() {
+  return process.env.IMPORT_DATA_SOURCE === 's3' && Boolean(process.env.AWS_S3_BUCKET_NAME);
+}
+
+function s3Config() {
+  const region = process.env.AWS_REGION?.trim() || 'us-east-1';
+  const bucket = process.env.AWS_S3_BUCKET_NAME?.trim();
+  const accessKeyId = process.env.AWS_ACCESS_KEY_ID?.trim();
+  const secretAccessKey = process.env.AWS_SECRET_ACCESS_KEY?.trim();
+  if (!bucket || !accessKeyId || !secretAccessKey) {
+    throw new Error('S3 social upload requires AWS_REGION, AWS_S3_BUCKET_NAME, AWS_ACCESS_KEY_ID, and AWS_SECRET_ACCESS_KEY.');
+  }
+  return { region, bucket, accessKeyId, secretAccessKey };
+}
+
+function awsEncode(value: string) {
+  return encodeURIComponent(value).replace(/[!'()*]/g, char => `%${char.charCodeAt(0).toString(16).toUpperCase()}`);
+}
+
+function encodeS3Key(key: string) {
+  return key.split('/').map(awsEncode).join('/');
+}
+
+function formatAmzDate(date: Date) {
+  return date.toISOString().replace(/[:-]|\.\d{3}/g, '');
+}
+
+function hmac(key: crypto.BinaryLike, value: string) {
+  return crypto.createHmac('sha256', key).update(value, 'utf8').digest();
+}
+
+function sha256Hex(value: string) {
+  return crypto.createHash('sha256').update(value, 'utf8').digest('hex');
+}
+
+function signingKey(secretAccessKey: string, dateStamp: string, region: string) {
+  const dateKey = hmac(`AWS4${secretAccessKey}`, dateStamp);
+  const regionKey = hmac(dateKey, region);
+  const serviceKey = hmac(regionKey, 's3');
+  return hmac(serviceKey, 'aws4_request');
+}
+
+async function signedS3Request(method: 'GET' | 'PUT', key: string, body = '') {
+  const { region, bucket, accessKeyId, secretAccessKey } = s3Config();
+  const host = `${bucket}.s3.${region}.amazonaws.com`;
+  const now = new Date();
+  const amzDate = formatAmzDate(now);
+  const dateStamp = amzDate.slice(0, 8);
+  const payloadHash = sha256Hex(body);
+  const canonicalUri = `/${encodeS3Key(key)}`;
+  const canonicalHeaders = `host:${host}\nx-amz-content-sha256:${payloadHash}\nx-amz-date:${amzDate}\n`;
+  const signedHeaders = 'host;x-amz-content-sha256;x-amz-date';
+  const canonicalRequest = [method, canonicalUri, '', canonicalHeaders, signedHeaders, payloadHash].join('\n');
+  const credentialScope = `${dateStamp}/${region}/s3/aws4_request`;
+  const stringToSign = ['AWS4-HMAC-SHA256', amzDate, credentialScope, sha256Hex(canonicalRequest)].join('\n');
+  const signature = crypto.createHmac('sha256', signingKey(secretAccessKey, dateStamp, region)).update(stringToSign, 'utf8').digest('hex');
+
+  return fetch(`https://${host}${canonicalUri}`, {
+    method,
+    cache: 'no-store',
+    body: method === 'PUT' ? body : undefined,
+    headers: {
+      Authorization: `AWS4-HMAC-SHA256 Credential=${accessKeyId}/${credentialScope}, SignedHeaders=${signedHeaders}, Signature=${signature}`,
+      'content-type': 'application/json',
+      'x-amz-content-sha256': payloadHash,
+      'x-amz-date': amzDate,
+    },
+  });
+}
+
+function blankSocialMentions(platform: SocialPlatform): SocialMentionsFile {
+  return {
+    source: 'operations_csv_upload',
+    schemaVersion: 1,
+    ticker: 'CURR',
+    platform: platformConfig[platform].label,
+    updatedAt: '',
+    recordCount: 0,
+    originalFileName: '',
+    data: [],
+  };
+}
+
+async function readS3SocialMentions(platform: SocialPlatform): Promise<SocialMentionsFile> {
+  const response = await signedS3Request('GET', platformImportPath(platform));
+  if (response.status === 404) return blankSocialMentions(platform);
+  if (!response.ok) throw new Error(`Unable to read ${platformImportPath(platform)} from S3: ${response.status} ${response.statusText}`);
+  return await response.json() as SocialMentionsFile;
+}
+
+async function writeS3SocialMentions(platform: SocialPlatform, file: SocialMentionsFile) {
+  const response = await signedS3Request('PUT', platformImportPath(platform), `${JSON.stringify(file, null, 2)}\n`);
+  if (!response.ok) throw new Error(`Unable to write ${platformImportPath(platform)} to S3: ${response.status} ${response.statusText}`);
+}
+
+export async function readSocialMentionsForOperations(platform: SocialPlatform): Promise<SocialMentionsFile> {
+  if (!shouldUseS3()) return readSocialMentions(platform);
+  try {
+    return await readS3SocialMentions(platform);
+  } catch (error) {
+    if (process.env.IMPORT_DATA_LOCAL_FALLBACK === 'true') return readSocialMentions(platform);
+    throw error;
+  }
+}
+
+export async function writeSocialMentions(platform: SocialPlatform, file: SocialMentionsFile) {
+  if (shouldUseS3()) {
+    await writeS3SocialMentions(platform, file);
+    return file;
+  }
+
   const config = platformConfig[platform];
   fs.mkdirSync(path.dirname(config.path), { recursive: true });
   fs.writeFileSync(config.path, `${JSON.stringify(file, null, 2)}\n`);
   return file;
 }
 
-export function replaceSocialMentionsFromCsv(platform: SocialPlatform, csvText: string, originalFileName = '') {
+export async function replaceSocialMentionsFromCsv(platform: SocialPlatform, csvText: string, originalFileName = '') {
   return writeSocialMentions(platform, parseSocialMentionsCsv(platform, csvText, originalFileName));
 }
 
@@ -246,4 +356,13 @@ export function readAllSocialMentions() {
     reddit: readSocialMentions('reddit'),
     stocktwits: readSocialMentions('stocktwits'),
   };
+}
+
+export async function readAllSocialMentionsForOperations() {
+  const [x, reddit, stocktwits] = await Promise.all([
+    readSocialMentionsForOperations('x'),
+    readSocialMentionsForOperations('reddit'),
+    readSocialMentionsForOperations('stocktwits'),
+  ]);
+  return { x, reddit, stocktwits };
 }
