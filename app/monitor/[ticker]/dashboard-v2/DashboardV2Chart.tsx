@@ -33,6 +33,7 @@ type CompanyEvent = {
   title: string;
   summary: string;
   source?: string;
+  url?: string;
 };
 
 type SeriesConfig = {
@@ -323,11 +324,14 @@ export function DashboardV2Chart({
       domains,
       paths,
       xTicks,
-      eventMarkers: visibleEvents.map(event => ({
-        event,
-        x: xFor(indexForDate(event.date)),
-        y: topPanelBottom + 20,
-      })),
+      eventMarkers: visibleEvents.map((event, eventIndex) => {
+        const sameDateIndex = visibleEvents.slice(0, eventIndex).filter(item => item.date === event.date).length;
+        return {
+          event,
+          x: xFor(indexForDate(event.date)),
+          y: topPanelBottom + 18 + (sameDateIndex % 3) * 16,
+        };
+      }),
     };
   }, [availableMetrics, data, period, visibleEvents]);
 
@@ -458,8 +462,17 @@ export function DashboardV2Chart({
               onBlur={() => setHoveredEvent(null)}
             >
               <line x1={marker.x} x2={marker.x} y1={chart.topPanelTop} y2={chart.bottomPanelBottom} />
-              <circle cx={marker.x} cy={marker.y} r="5.5" />
-              <text x={marker.x} y={marker.y + 3} textAnchor="middle">{marker.event.type.charAt(0)}</text>
+              {marker.event.type === 'SEC' ? (
+                <>
+                  <rect x={marker.x - 7} y={marker.y - 8} width="14" height="16" rx="3" />
+                  <path d={`M ${marker.x - 3.5} ${marker.y - 3.8} H ${marker.x + 3.8} M ${marker.x - 3.5} ${marker.y} H ${marker.x + 3.8} M ${marker.x - 3.5} ${marker.y + 3.8} H ${marker.x + 1.8}`} />
+                </>
+              ) : (
+                <>
+                  <circle cx={marker.x} cy={marker.y} r="5.5" />
+                  <text x={marker.x} y={marker.y + 3} textAnchor="middle">{marker.event.type.charAt(0)}</text>
+                </>
+              )}
             </g>
           ))}
 
@@ -531,6 +544,7 @@ export function DashboardV2Chart({
             <strong>{hoveredEvent.title}</strong>
             <p>{hoveredEvent.summary}</p>
             {hoveredEvent.source && <em>{hoveredEvent.source}</em>}
+            {hoveredEvent.url && <em>{hoveredEvent.url}</em>}
           </div>
         )}
       </div>

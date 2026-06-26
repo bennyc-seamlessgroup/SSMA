@@ -1,5 +1,6 @@
 import crypto from 'crypto';
 import { getImportDataRuntimeConfig, getImportFileVersionParts, listImportDataFiles } from '@/lib/import-data';
+import { defaultPortalTimeZone, formatPortalDateTime } from '@/lib/timezone';
 
 export type ImportDataVersion = {
   version: string;
@@ -79,12 +80,7 @@ export async function getImportFilesVersion(files: string[]): Promise<ImportData
   };
 }
 
-export function formatImportDataUpdatedAt(updatedAt: string | null) {
+export function formatImportDataUpdatedAt(updatedAt: string | null, timeZone = defaultPortalTimeZone) {
   if (!updatedAt) return 'No import data files found';
-
-  return new Intl.DateTimeFormat('en-US', {
-    dateStyle: 'medium',
-    timeStyle: 'short',
-    timeZone: 'Asia/Hong_Kong',
-  }).format(new Date(updatedAt));
+  return formatPortalDateTime(updatedAt, timeZone);
 }

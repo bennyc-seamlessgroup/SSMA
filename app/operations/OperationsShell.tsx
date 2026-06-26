@@ -2,6 +2,7 @@ import Link from 'next/link';
 
 const navItems = [
   ['SEC Filing Entry', '/operations/sec-filings'],
+  ['Narrative Social Upload', '/operations/narrative-social'],
   ['Ownership', '/operations/ownership'],
 ] as const;
 

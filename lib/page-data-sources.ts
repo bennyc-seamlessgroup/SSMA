@@ -1,6 +1,7 @@
 export type PageDataSource =
   | { type: 'import-files'; files: string[] }
-  | { type: 'report-archive' };
+  | { type: 'report-archive' }
+  | { type: 'social-data' };
 
 export const pageDataSources: Record<string, PageDataSource> = {
   'dashboard-v2': {
@@ -36,15 +37,10 @@ export const pageDataSources: Record<string, PageDataSource> = {
   },
   'internal-float-v2': {
     type: 'import-files',
-    files: ['institutional_ownership_CURR_consolidated_4_web.json', 'internal_float/v2_user_inputs.json'],
+    files: ['institutional_ownership_CURR_consolidated_4_web.json', 'internal_float/CURR_v2_user_inputs.json'],
   },
   sentiment: {
-    type: 'import-files',
-    files: [
-      'adanos-reddit_CURR_consolidated_4_web.json',
-      'adanos-x_CURR_consolidated_4_web.json',
-      'adanos-stocktwits_CURR_consolidated_4_web.json',
-    ],
+    type: 'social-data',
   },
   'event-calendar': {
     type: 'import-files',

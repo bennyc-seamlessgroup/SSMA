@@ -2,6 +2,8 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import type { CSSProperties } from 'react';
+import { usePortalTimeZone } from '@/components/usePortalTimeZone';
+import { formatPortalDate } from '@/lib/timezone';
 import type { ReportArchiveRecord } from '@/lib/report-archive';
 
 const reportWindows = [
@@ -12,14 +14,17 @@ const reportWindows = [
 
 type ReportType = ReportArchiveRecord['reportType'];
 
-function formatDisplayDate(value: string) {
+function dateFromYmd(value: string) {
   const [year, month, day] = value.split('-').map(Number);
-  return new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric', year: 'numeric' }).format(new Date(year, month - 1, day));
+  return new Date(Date.UTC(year, month - 1, day, 12));
 }
 
-function formatWeekday(value: string) {
-  const [year, month, day] = value.split('-').map(Number);
-  return new Intl.DateTimeFormat('en-US', { weekday: 'long' }).format(new Date(year, month - 1, day));
+function formatDisplayDate(value: string, timeZone: string) {
+  return formatPortalDate(dateFromYmd(value), timeZone);
+}
+
+function formatWeekday(value: string, timeZone: string) {
+  return new Intl.DateTimeFormat('en-US', { weekday: 'long', timeZone }).format(dateFromYmd(value));
 }
 
 function addDays(date: Date, days: number) {
@@ -65,6 +70,7 @@ export function ReportArchiveCenter({
   reports: ReportArchiveRecord[];
   todayDate: string;
 }) {
+  const timeZone = usePortalTimeZone();
   const sortedReports = useMemo(() => {
     return [...reports].sort((a, b) => new Date(b.generatedAt).getTime() - new Date(a.generatedAt).getTime());
   }, [reports]);
@@ -157,7 +163,7 @@ export function ReportArchiveCenter({
             </span>
             <div>
               <h2>Today&apos;s Reports</h2>
-              <p>{formatDisplayDate(todayDate)}</p>
+              <p>{formatDisplayDate(todayDate, timeZone)}</p>
             </div>
           </div>
           <div className="report-latest-badge">
@@ -229,8 +235,8 @@ export function ReportArchiveCenter({
           {historyRows.map(row => (
             <div className="report-history-table-row" key={row.date}>
               <div>
-                <strong>{formatDisplayDate(row.date)}</strong>
-                <small>{formatWeekday(row.date)}</small>
+                <strong>{formatDisplayDate(row.date, timeZone)}</strong>
+                <small>{formatWeekday(row.date, timeZone)}</small>
               </div>
               <div className="report-history-icons">
                 {reportWindows.map(window => {

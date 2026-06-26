@@ -5,6 +5,8 @@ import { usePathname } from 'next/navigation';
 import { useEffect, useMemo, useState } from 'react';
 import { UserMenu } from './UserMenu';
 import { pageDataSources, slugFromPathname } from '@/lib/page-data-sources';
+import { formatPortalDateTime } from '@/lib/timezone';
+import { usePortalTimeZone } from './usePortalTimeZone';
 
 const storageKey = 'monitor-design-b-sidebar-collapsed';
 const themeStorageKey = 'monitor-design-b-theme';
@@ -20,6 +22,16 @@ const routeLabels: Record<string, { section: string; page: string }> = {
   'event-calendar': { section: 'Workspace', page: 'SEC Filings' },
   'price-scenario': { section: 'Workspace', page: 'Price Scenarios' },
   reports: { section: 'Workspace', page: 'Report Archive' },
+  settings: { section: 'Settings', page: 'Settings Overview' },
+  'user-profile': { section: 'Settings', page: 'User Profile' },
+  'role-permissions': { section: 'Settings', page: 'Role & Permissions' },
+  billing: { section: 'Settings', page: 'Billing & Plan' },
+  companies: { section: 'Settings', page: 'Company Management' },
+  'email-settings': { section: 'Settings', page: 'Delivery Settings' },
+  notifications: { section: 'Settings', page: 'Notifications' },
+  'alert-rules': { section: 'Settings', page: 'Alert Rules' },
+  policy: { section: 'Settings', page: 'Security Policy' },
+  'api-connectors': { section: 'Settings', page: 'Connectors' },
   dashboard: { section: 'Development', page: 'Dashboard Obsolete' },
   'internal-float': { section: 'Development', page: 'Internal Float Obsolete' },
   'import-data': { section: 'Development', page: 'Import Pool' },
@@ -35,14 +47,9 @@ function applyThemeState(theme: 'light' | 'dark') {
   document.documentElement.dataset.designBTheme = theme;
 }
 
-function formatImportDataUpdatedAt(updatedAt: string | null) {
+function formatImportDataUpdatedAt(updatedAt: string | null, timeZone: string) {
   if (!updatedAt) return 'No import data files found';
-
-  return new Intl.DateTimeFormat('en-US', {
-    dateStyle: 'medium',
-    timeStyle: 'short',
-    timeZone: 'Asia/Hong_Kong',
-  }).format(new Date(updatedAt));
+  return formatPortalDateTime(updatedAt, timeZone);
 }
 
 type ImportFileStatus = {
@@ -68,6 +75,7 @@ export function DesignBTopbar({
   const [collapsed, setCollapsed] = useState(false);
   const [theme, setTheme] = useState<'light' | 'dark'>('light');
   const [pageUpdatedAt, setPageUpdatedAt] = useState<string | null>(null);
+  const timeZone = usePortalTimeZone();
 
   useEffect(() => {
     const stored = window.localStorage.getItem(storageKey) === 'true';
@@ -91,6 +99,18 @@ export function DesignBTopbar({
     const loadPageUpdatedAt = async () => {
       if (!source) {
         setPageUpdatedAt(null);
+        return;
+      }
+
+      if (source.type === 'social-data') {
+        try {
+          const response = await fetch('/api/social-data-status', { cache: 'no-store' });
+          if (!response.ok) throw new Error('Unable to load social data status.');
+          const status = await response.json() as PageDataStatus;
+          if (!cancelled) setPageUpdatedAt(status.updatedAt);
+        } catch {
+          if (!cancelled) setPageUpdatedAt(null);
+        }
         return;
       }
 
@@ -220,7 +240,7 @@ export function DesignBTopbar({
         <div className="portal-design-b-heading-actions">
           <div className="portal-design-b-update">
             <span>Last Update</span>
-            <strong>{formatImportDataUpdatedAt(pageUpdatedAt)}</strong>
+            <strong>{formatImportDataUpdatedAt(pageUpdatedAt, timeZone)}</strong>
           </div>
         </div>
       </div>

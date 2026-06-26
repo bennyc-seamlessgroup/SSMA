@@ -1,8 +1,9 @@
 import { ImportDataTable } from '@/components/ImportDataTable';
 import { readImportFile } from '@/lib/import-data';
-import { calculateFloatAdjustments, readInternalFloatInputs, readInternalFloatV2UserInputs, type FloatAdjustments, type InternalFloatV2UserInput } from '@/lib/internal-float';
+import { calculateFloatAdjustments, internalFloatV2UserInputPaths, readInternalFloatInputs, readInternalFloatV2UserInputs, type FloatAdjustments, type InternalFloatV2UserInput } from '@/lib/internal-float';
 import { formatImportDataUpdatedAt, getImportFilesVersion } from '@/lib/import-data-version';
 import { pageDataSources } from '@/lib/page-data-sources';
+import { getServerPortalTimeZone } from '@/lib/server-timezone';
 import { InternalFloatV2Client, type InstitutionalOwnershipOverview } from './InternalFloatV2Client';
 
 function formatTableValue(value: unknown) {
@@ -36,14 +37,19 @@ function buildUserInputRows(userInputs: InternalFloatV2UserInput) {
   return rows;
 }
 
-export default async function InternalFloatV2Page() {
+export default async function InternalFloatV2Page({ params }: Readonly<{ params: Promise<{ ticker: string }> }>) {
+  const { ticker } = await params;
+  const normalizedTicker = ticker.toUpperCase();
+  const timeZone = await getServerPortalTimeZone();
   const holdingsEnvelope = await readInternalFloatInputs();
   const holdings = holdingsEnvelope.data;
   const pageDataSource = pageDataSources['internal-float-v2'];
-  const pageImportFiles = pageDataSource.type === 'import-files' ? pageDataSource.files : [];
+  const pageImportFiles = pageDataSource.type === 'import-files'
+    ? ['institutional_ownership_CURR_consolidated_4_web.json', internalFloatV2UserInputPaths(normalizedTicker)[0]]
+    : [];
   const [adjustments, v2UserInputs, importDataVersion, institutionalOwnershipEnvelope] = await Promise.all([
     calculateFloatAdjustments(holdings) as Promise<FloatAdjustments>,
-    readInternalFloatV2UserInputs(),
+    readInternalFloatV2UserInputs('demo-user', normalizedTicker),
     getImportFilesVersion(pageImportFiles),
     readImportFile<{ overview?: InstitutionalOwnershipOverview }>('institutional_ownership_CURR_consolidated_4_web.json'),
   ]);
@@ -57,7 +63,7 @@ export default async function InternalFloatV2Page() {
             <span>Private Internal Input</span>
             <span className="page-header-import-status" aria-label="Latest import data update">
               <span>Latest import data update</span>
-              <strong>{formatImportDataUpdatedAt(importDataVersion.updatedAt)}</strong>
+              <strong>{formatImportDataUpdatedAt(importDataVersion.updatedAt, timeZone)}</strong>
             </span>
           </div>
           <h1 className="page__title">Share Allocation &amp; Tradable Float Intelligence</h1>
@@ -85,8 +91,8 @@ export default async function InternalFloatV2Page() {
         <div className="terminal-section__head">
           <div>
             <span>Development Data</span>
-            <h2>Internal Float V2 Demo JSON</h2>
-            <p className="section-subtitle">Rows from import_data/internal_float/v2_user_inputs.json.</p>
+            <h2>Internal Float V2 User Input JSON</h2>
+            <p className="section-subtitle">Rows from import_data/{internalFloatV2UserInputPaths(normalizedTicker)[0]}.</p>
           </div>
         </div>
         <ImportDataTable

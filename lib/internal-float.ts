@@ -80,6 +80,14 @@ type InternalFloatV2UserInputsEnvelope = {
   users: InternalFloatV2UserInput[];
 };
 
+export function internalFloatV2UserInputPaths(ticker = 'CURR') {
+  const normalizedTicker = ticker.toUpperCase();
+  return [
+    `internal_float/${normalizedTicker}_v2_user_inputs.json`,
+    'internal_float/v2_user_inputs.json',
+  ];
+}
+
 export const defaultInternalFloatV2UserInput: InternalFloatV2UserInput = {
   userId: 'demo-user',
   ticker: 'CURR',
@@ -338,15 +346,19 @@ export async function readInternalFloatAdjustments() {
 }
 
 export async function readInternalFloatV2UserInputs(userId = 'demo-user', ticker = 'CURR'): Promise<InternalFloatV2UserInput> {
-  try {
-    const envelope = await readImportFile<InternalFloatV2UserInputsEnvelope>('internal_float/v2_user_inputs.json');
-    return envelope.data.users.find(row => row.userId === userId && row.ticker === ticker)
-      ?? envelope.data.users.find(row => row.ticker === ticker)
-      ?? envelope.data.users[0]
-      ?? defaultInternalFloatV2UserInput;
-  } catch {
-    return defaultInternalFloatV2UserInput;
+  const normalizedTicker = ticker.toUpperCase();
+  for (const path of internalFloatV2UserInputPaths(normalizedTicker)) {
+    try {
+      const envelope = await readImportFile<InternalFloatV2UserInputsEnvelope>(path);
+      return envelope.data.users.find(row => row.userId === userId && row.ticker.toUpperCase() === normalizedTicker)
+        ?? envelope.data.users.find(row => row.ticker.toUpperCase() === normalizedTicker)
+        ?? envelope.data.users[0]
+        ?? defaultInternalFloatV2UserInput;
+    } catch {
+      // Continue to the legacy demo path before falling back to defaults.
+    }
   }
+  return defaultInternalFloatV2UserInput;
 }
 
 export async function saveInternalFloatInputs(holdings: ManualHolding[]) {

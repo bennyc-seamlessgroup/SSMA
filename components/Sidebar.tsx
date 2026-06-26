@@ -65,6 +65,40 @@ const groups = [
   },
 ];
 
+const settingsGroups = [
+  {
+    label: 'Account',
+    items: [
+      ['Settings Overview', 'settings'],
+      ['User Profile', 'user-profile'],
+      ['Role & Permissions', 'role-permissions'],
+      ['Billing & Plan', 'billing'],
+    ],
+  },
+  {
+    label: 'Workspace',
+    items: [
+      ['Company Management', 'companies'],
+      ['Workspace Settings', 'settings'],
+    ],
+  },
+  {
+    label: 'Reports',
+    items: [
+      ['Delivery Settings', 'email-settings'],
+      ['Notifications', 'notifications'],
+      ['Alert Rules', 'alert-rules'],
+    ],
+  },
+  {
+    label: 'Security',
+    items: [
+      ['Security Policy', 'policy'],
+      ['Connectors', 'api-connectors'],
+    ],
+  },
+];
+
 const importDataSeenKey = 'import-data-seen-version';
 const pageImportSeenKeyPrefix = 'import-data-page-seen-version';
 
@@ -100,7 +134,7 @@ export function Sidebar({
   const [seenImportDataVersion, setSeenImportDataVersion] = useState(importDataVersion);
   const [currentPageImportVersions, setCurrentPageImportVersions] = useState<Record<string, string>>({});
   const [seenPageImportVersions, setSeenPageImportVersions] = useState<Record<string, string>>({});
-  const [designBPanel, setDesignBPanel] = useState<'workspace' | 'development'>('workspace');
+  const [designBPanel, setDesignBPanel] = useState<'workspace' | 'settings' | 'development'>('workspace');
   const [collapsedGroups, setCollapsedGroups] = useState<Record<string, boolean>>(() =>
     Object.fromEntries(groups.filter(group => group.muted).map(group => [group.label, true])),
   );
@@ -110,6 +144,21 @@ export function Sidebar({
     const versions: Record<string, string> = {};
 
     await Promise.all(Object.entries(pageDataSources).map(async ([slug, source]) => {
+      if (source.type === 'social-data') {
+        try {
+          const response = await fetch('/api/social-data-status', { cache: 'no-store' });
+          if (!response.ok) {
+            versions[slug] = 'social:unavailable';
+            return;
+          }
+          const status = await response.json() as PageDataStatus;
+          versions[slug] = `social:${status.version}`;
+        } catch {
+          versions[slug] = 'social:unavailable';
+        }
+        return;
+      }
+
       if (source.type === 'report-archive') {
         try {
           const response = await fetch(`/api/reports/archive-status/${encodeURIComponent(ticker)}`, { cache: 'no-store' });
@@ -235,6 +284,14 @@ export function Sidebar({
     };
   }, [currentPageImportVersions, fetchPageImportVersions, router]);
 
+  useEffect(() => {
+    const slug = pathname.split('/').filter(Boolean)[2] ?? '';
+    const settingsSlugs = new Set(settingsGroups.flatMap(group => group.items.map(([, itemSlug]) => itemSlug)));
+    if (settingsSlugs.has(slug)) {
+      setDesignBPanel('settings');
+    }
+  }, [pathname]);
+
   const acknowledgeImportDataUpdate = () => {
     window.localStorage.setItem(importDataSeenKey, currentImportDataVersion);
     setSeenImportDataVersion(currentImportDataVersion);
@@ -281,6 +338,18 @@ export function Sidebar({
           </button>
           <button
             type="button"
+            className={designBPanel === 'settings' ? 'active' : ''}
+            title="Settings"
+            aria-label="Settings"
+            onClick={() => setDesignBPanel('settings')}
+          >
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M12 15.5A3.5 3.5 0 1 0 12 8a3.5 3.5 0 0 0 0 7.5Z" />
+              <path d="M19.4 15a1.7 1.7 0 0 0 .34 1.88l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.7 1.7 0 0 0-1.88-.34 1.7 1.7 0 0 0-1.03 1.56V21a2 2 0 1 1-4 0v-.09A1.7 1.7 0 0 0 8.97 19.35a1.7 1.7 0 0 0-1.88.34l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.7 1.7 0 0 0 4.6 15a1.7 1.7 0 0 0-1.56-1.03H3a2 2 0 1 1 0-4h.09A1.7 1.7 0 0 0 4.65 8.94a1.7 1.7 0 0 0-.34-1.88l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.7 1.7 0 0 0 9 4.57 1.7 1.7 0 0 0 10 3.01V3a2 2 0 1 1 4 0v.09a1.7 1.7 0 0 0 1.03 1.56 1.7 1.7 0 0 0 1.88-.34l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.7 1.7 0 0 0-.34 1.88A1.7 1.7 0 0 0 20.91 10H21a2 2 0 1 1 0 4h-.09A1.7 1.7 0 0 0 19.4 15Z" />
+            </svg>
+          </button>
+          <button
+            type="button"
             className={designBPanel === 'development' ? 'active' : ''}
             title="Development use only"
             aria-label="Development use only"
@@ -320,6 +389,44 @@ export function Sidebar({
       </div>
 
       <div className="portal-sidebar__scroll">
+        <div className="portal-sidebar__group-wrap design-b-settings-wrap">
+          {settingsGroups.map(group => (
+            <div className="portal-sidebar__group-block" key={group.label}>
+              <div className="portal-sidebar__group">
+                <button
+                  type="button"
+                  className="portal-sidebar__group-toggle"
+                  aria-expanded="true"
+                >
+                  <span>{group.label}</span>
+                  <span className="portal-sidebar__chevron" aria-hidden="true">›</span>
+                </button>
+                <div className="portal-sidebar__group-items">
+                  {group.items.map(([label, slug]) => {
+                    const href = `/monitor/${ticker}/${slug}`;
+                    const active = pathname === href;
+                    const pageHasImportUpdate = hasPageImportUpdate(slug);
+                    return (
+                      <Link
+                        key={`${group.label}-${slug}-${label}`}
+                        href={href as any}
+                        className={`portal-menu ${active ? 'active' : ''}`}
+                        onClick={() => {
+                          acknowledgeImportDataUpdate();
+                          acknowledgePageImportUpdate(slug);
+                        }}
+                      >
+                        <span>{label}</span>
+                        {pageHasImportUpdate && <span className="portal-update-dot" aria-label="New import data available" />}
+                      </Link>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+
         {groups.map((group, index) => {
           const collapsed = designBPanel === 'development' && group.muted ? false : Boolean(collapsedGroups[group.label]);
           const showDevelopmentDivider = group.muted && !groups[index - 1]?.muted;

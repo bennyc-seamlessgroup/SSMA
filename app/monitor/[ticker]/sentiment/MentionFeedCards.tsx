@@ -9,8 +9,9 @@ export type MentionFeedRow = {
   author: string;
   sentiment: 'positive' | 'negative' | 'neutral';
   text: string;
-  likes: string;
-  comments: string;
+  metrics: Array<{ label: string; value: string }>;
+  engagementScore: number;
+  sortLabel: string;
   url: string;
 };
 
@@ -31,9 +32,7 @@ function sentimentLabel(sentiment: MentionFeedRow['sentiment']) {
 }
 
 function engagement(row: MentionFeedRow) {
-  const likes = Number(row.likes.replace(/,/g, '')) || 0;
-  const comments = Number(row.comments.replace(/,/g, '')) || 0;
-  return likes + comments;
+  return row.engagementScore;
 }
 
 function headline(row: MentionFeedRow) {
@@ -49,6 +48,19 @@ function summary(row: MentionFeedRow) {
   const withoutHeadline = clean.replace(headline(row), '').trim();
   const text = withoutHeadline || clean;
   return text.length > 148 ? `${text.slice(0, 145)}...` : text;
+}
+
+function HighlightedText({ text }: { text: string }) {
+  const parts = text.split(/(\$[A-Za-z][A-Za-z0-9._-]*)/g);
+  return (
+    <>
+      {parts.map((part, index) => (
+        /^\$[A-Za-z]/.test(part)
+          ? <mark className="narrative-cashtag" key={`${part}-${index}`}>{part}</mark>
+          : <span key={`${part}-${index}`}>{part}</span>
+      ))}
+    </>
+  );
 }
 
 function logoSrc(row: MentionFeedRow) {
@@ -88,13 +100,30 @@ export function MentionFeedCards({ rows }: { rows: MentionFeedRow[] }) {
     setVisibleCount(PAGE_SIZE);
   }
 
+  const platformSortLabel = useMemo(() => {
+    const labels = Array.from(new Set(
+      rows
+        .filter(row => typeFilter === 'All' || row.platform === typeFilter)
+        .map(row => row.sortLabel)
+        .filter(Boolean),
+    ));
+    if (typeFilter === 'All') return 'Most Engaged';
+    return labels[0] ?? 'Most Engaged';
+  }, [rows, typeFilter]);
+  const typeCounts = useMemo(() => {
+    return Object.fromEntries(feedTypes.map(type => [
+      type,
+      type === 'All' ? rows.length : rows.filter(row => row.platform === type).length,
+    ])) as Record<(typeof feedTypes)[number], number>;
+  }, [rows]);
+
   return (
     <div className="narrative-feed-shell">
       <div className="narrative-command-filters">
         <div className="narrative-filter-group" aria-label="Feed type filter">
           {feedTypes.map(type => (
             <button key={type} type="button" className={typeFilter === type ? 'active' : ''} onClick={() => { setTypeFilter(type); resetVisibleRows(); }}>
-              {type}
+              {type} ({typeCounts[type].toLocaleString('en-US')})
             </button>
           ))}
         </div>
@@ -104,7 +133,7 @@ export function MentionFeedCards({ rows }: { rows: MentionFeedRow[] }) {
           </select>
           <select value={sortMode} onChange={event => { setSortMode(event.target.value as 'recent' | 'mentioned'); resetVisibleRows(); }} aria-label="Sort feed">
             <option value="recent">Most Recent</option>
-            <option value="mentioned">Most Mentioned</option>
+            <option value="mentioned">{platformSortLabel}</option>
           </select>
         </div>
       </div>
@@ -120,13 +149,16 @@ export function MentionFeedCards({ rows }: { rows: MentionFeedRow[] }) {
                 <span className={`narrative-sentiment-pill ${sentimentTone(row.sentiment)}`}>{sentimentLabel(row.sentiment)}</span>
                 <time>{row.timestamp}</time>
               </div>
-              <h3>{headline(row)}</h3>
-              <p>{summary(row)}</p>
+              <h3><HighlightedText text={headline(row)} /></h3>
+              <p><HighlightedText text={summary(row)} /></p>
               <div className="narrative-intel-foot">
                 <span>Source: <strong>{row.platform}</strong></span>
                 <span>Author: <strong>{row.author}</strong></span>
-                <span>{row.likes} likes</span>
-                <span>{row.comments} comments</span>
+                {row.metrics.map(metric => (
+                  <span key={`${row.platform}-${row.timestamp}-${metric.label}`}>
+                    {metric.label}: <strong>{metric.value}</strong>
+                  </span>
+                ))}
                 {row.url && (
                   <a className="narrative-source-action" href={row.url} target="_blank" rel="noreferrer" aria-label="Open source">
                     <svg viewBox="0 0 24 24" aria-hidden="true">

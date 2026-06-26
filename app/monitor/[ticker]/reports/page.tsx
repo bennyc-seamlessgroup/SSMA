@@ -1,20 +1,16 @@
 import { buildDashboard } from '@/lib/mock-data';
 import { listReportArchive, type ReportArchiveRecord } from '@/lib/report-archive';
+import { getServerPortalTimeZone } from '@/lib/server-timezone';
+import { ymdInPortalTimeZone } from '@/lib/timezone';
 import { ReportArchiveCenter } from './ReportArchiveCenter';
 
 export const dynamic = 'force-dynamic';
-
-function localDateString(date = new Date()) {
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, '0');
-  const day = String(date.getDate()).padStart(2, '0');
-  return `${year}-${month}-${day}`;
-}
 
 export default async function ReportsArchivePage({ params }: Readonly<{ params: Promise<{ ticker: string }> }>) {
   const { ticker } = await params;
   const normalizedTicker = ticker?.toUpperCase() ?? 'CURR';
   const { company } = buildDashboard(normalizedTicker);
+  const timeZone = await getServerPortalTimeZone();
   let reports: ReportArchiveRecord[] = [];
   let archiveError = '';
 
@@ -23,7 +19,7 @@ export default async function ReportsArchivePage({ params }: Readonly<{ params: 
   } catch (error) {
     archiveError = error instanceof Error ? error.message : 'Unable to load report archive.';
   }
-  const todayDate = localDateString();
+  const todayDate = ymdInPortalTimeZone(new Date(), timeZone);
 
   return (
     <div className="page report-archive-page">

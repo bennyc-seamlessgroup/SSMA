@@ -1,6 +1,7 @@
 import { DashboardV2Client } from './DashboardV2Client';
 import { DashboardV2DevTables } from './DashboardV2DevTables';
 import { readImportFile, readLocalImportText, type ImportEnvelope } from '@/lib/import-data';
+import { readOperationsSecFilings, type OperationsSecFilingRecord } from '@/lib/operations/sec-filings-store';
 
 export const dynamic = 'force-dynamic';
 
@@ -22,6 +23,7 @@ type CompanyEvent = {
   title: string;
   summary: string;
   source?: string;
+  url?: string;
 };
 
 type DashboardV2ConsolidatedData = {
@@ -45,10 +47,55 @@ async function readDashboardV2File<T>(relativePath: string): Promise<ImportEnvel
   }
 }
 
+function plainText(value: unknown, fallback = '') {
+  return String(value ?? fallback).replace(/\s+/g, ' ').trim();
+}
+
+function dateOnly(value: unknown) {
+  const raw = plainText(value);
+  if (!raw) return '';
+  const parsed = new Date(raw);
+  if (!Number.isNaN(parsed.getTime())) return parsed.toISOString().slice(0, 10);
+  return raw.slice(0, 10);
+}
+
+function secFilingEvents(rows: OperationsSecFilingRecord[]): CompanyEvent[] {
+  return rows
+    .map((row, index): CompanyEvent | null => {
+      const formType = plainText(row.formType, 'SEC');
+      const filingDate = dateOnly(row.filingDate);
+      if (!filingDate) return null;
+      const title = plainText(row.formDescription, `${formType} filing`);
+      const summary = [
+        row.formDescription,
+        row.reportingDate ? `Reporting date: ${row.reportingDate}` : '',
+        row.act ? `Act: ${row.act}` : '',
+        row.filmNumber ? `Film number: ${row.filmNumber}` : '',
+        row.fileNumber ? `File number: ${row.fileNumber}` : '',
+        row.accessionNumber ? `Accession: ${row.accessionNumber}` : '',
+      ].filter(Boolean).join(' · ') || 'SEC filing available for review.';
+      return {
+        id: `sec-filing-${plainText(row.id ?? row.accessionNumber, String(index))}`,
+        date: filingDate,
+        type: 'SEC',
+        title: `${formType} · ${title}`,
+        summary: summary.length > 220 ? `${summary.slice(0, 217)}...` : summary,
+        source: 'Operations SEC filings',
+        url: plainText(row.filingsUrl),
+      };
+    })
+    .filter((event): event is CompanyEvent => Boolean(event))
+    .sort((a, b) => a.date.localeCompare(b.date));
+}
+
 export default async function DashboardV2Page() {
-  const dashboardEnvelope = await readDashboardV2File<DashboardV2ConsolidatedData>(dashboardV2File);
+  const [dashboardEnvelope, secFilings] = await Promise.all([
+    readDashboardV2File<DashboardV2ConsolidatedData>(dashboardV2File),
+    readOperationsSecFilings(),
+  ]);
   const trendData = Array.isArray(dashboardEnvelope.data?.trends) ? dashboardEnvelope.data.trends : [];
-  const events = Array.isArray(dashboardEnvelope.data?.events) ? dashboardEnvelope.data.events : [];
+  const dashboardEvents = Array.isArray(dashboardEnvelope.data?.events) ? dashboardEnvelope.data.events : [];
+  const events = [...dashboardEvents, ...secFilingEvents(secFilings.records)];
   const current = dashboardEnvelope.data?.current ?? null;
   const missingFromSource = Array.isArray(dashboardEnvelope.data?.missingFromSource) ? dashboardEnvelope.data.missingFromSource : [];
   const derived = dashboardEnvelope.data?.derived ?? null;

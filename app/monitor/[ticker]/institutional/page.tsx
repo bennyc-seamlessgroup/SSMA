@@ -2,6 +2,7 @@ import { readImportFile, readImportJson, readLocalImportText, type ImportEnvelop
 import type { InstitutionalHolding } from '@/lib/types';
 import { formatImportDataUpdatedAt, getImportFilesVersion } from '@/lib/import-data-version';
 import { pageDataSources } from '@/lib/page-data-sources';
+import { getServerPortalTimeZone } from '@/lib/server-timezone';
 import { InstitutionalTabs } from './InstitutionalTabs';
 import type { ActivistFiling } from './ActivistFilingsTable';
 import { InstitutionalDevTables } from './InstitutionalDevTables';
@@ -78,6 +79,7 @@ function ownershipChangeType(row: Pick<SecurityOwnershipRow, 'sharesChange' | 's
 export default async function InstitutionalPage({ params }: Readonly<{ params: Promise<{ ticker: string }> }>) {
   const { ticker } = await params;
   const normalizedTicker = ticker.toUpperCase();
+  const timeZone = await getServerPortalTimeZone();
   const pageDataSource = pageDataSources.institutional;
   const pageImportFiles = pageDataSource.type === 'import-files' ? pageDataSource.files : [];
   const [securityRows, activistRows, overviewEnvelope, importDataVersion] = await Promise.all([
@@ -128,7 +130,7 @@ export default async function InstitutionalPage({ params }: Readonly<{ params: P
         <p>Normalized ownership records</p>
         <span className="page-header-import-status" aria-label="Latest import data update">
           <span>Latest import data update</span>
-          <strong>{formatImportDataUpdatedAt(importDataVersion.updatedAt)}</strong>
+          <strong>{formatImportDataUpdatedAt(importDataVersion.updatedAt, timeZone)}</strong>
         </span>
       </div>
 

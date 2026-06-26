@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { PortalTimeZoneSelect } from '@/components/PortalTimeZoneSelect';
 import { buildDashboard } from '@/lib/mock-data';
 
 const languageOptions = [
@@ -71,12 +72,6 @@ export default async function SettingsPage({ params }: Readonly<{ params: Promis
       </section>
 
       <section className="settings-layout">
-        <aside className="settings-index">
-          {settingGroups.map(group => (
-            <a href={`#${group.title.toLowerCase().replaceAll(' ', '-')}`} key={group.title}>{group.title}</a>
-          ))}
-        </aside>
-
         <div className="settings-stack">
           <section className="settings-panel" id="language-preferences">
             <div className="settings-panel__head">
@@ -95,6 +90,18 @@ export default async function SettingsPage({ params }: Readonly<{ params: Promis
               ))}
             </div>
             <p className="settings-note">Language switching is prepared for the portal UI. Translation behavior will be connected later.</p>
+          </section>
+
+          <section className="settings-panel" id="date-time-preferences">
+            <div className="settings-panel__head">
+              <div>
+                <span>Preferences</span>
+                <h2>Date & Time</h2>
+              </div>
+              <span className="badge blue">Active</span>
+            </div>
+            <PortalTimeZoneSelect />
+            <p className="settings-note">This controls portal timestamps, page Last Update values, report dates, and narrative timeline labels for this browser.</p>
           </section>
 
           {settingGroups.map(group => (
