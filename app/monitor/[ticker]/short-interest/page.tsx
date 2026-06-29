@@ -371,7 +371,7 @@ export default async function ShortInterestPage() {
             />
           </div>
           <div className="terminal-card chart-card">
-            <h3><InfoTitle text="Available shares indicate how many shares may still be available for borrowing. Lower inventory can increase borrow pressure.">Shares Available Trend</InfoTitle></h3>
+            <h3><InfoTitle text="Shortable shares indicate how many shares may still be available for borrowing. Lower inventory can increase borrow pressure.">Shortable Shares Trend</InfoTitle></h3>
             <TrendLine
               label="Available"
               labels={shortInterestTrendRows.map(row => shortDateLabel(row.date))}

@@ -19310,6 +19310,117 @@ html[data-portal-design="b"] .monitor-portal .float-v2-holder-row label {
   min-width: 0;
 }
 
+html[data-portal-design="b"] .monitor-portal .float-v2-provider-field {
+  display: grid;
+  gap: 4px;
+}
+
+html[data-portal-design="b"] .monitor-portal .float-v2-provider-field:has(input) {
+  padding-block: 4px;
+}
+
+html[data-portal-design="b"] .monitor-portal .float-v2-holder-row:has(.float-v2-provider-field input) {
+  align-items: start;
+}
+
+html[data-portal-design="b"] .monitor-portal .float-v2-reminder-modal {
+  width: min(500px, 100%);
+  display: grid;
+  grid-template-columns: 42px minmax(0, 1fr);
+  gap: 14px;
+  align-items: start;
+  border-color: #dbeafe;
+  border-radius: 12px;
+  box-shadow: 0 24px 70px rgba(15, 23, 42, .22);
+}
+
+html[data-portal-design="b"] .monitor-portal .float-v2-reminder-modal h2 {
+  margin: 2px 0 10px;
+  font-size: 18px;
+}
+
+html[data-portal-design="b"] .monitor-portal .float-v2-reminder-modal p {
+  margin: 10px 0 0;
+  color: #64748d;
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+html[data-portal-design="b"] .monitor-portal .float-v2-reminder-content > span {
+  display: block;
+  color: #2563eb;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: .09em;
+  text-transform: uppercase;
+}
+
+html[data-portal-design="b"] .monitor-portal .float-v2-reminder-content > strong {
+  display: inline-flex;
+  padding: 5px 9px;
+  border: 1px solid #bfdbfe;
+  border-radius: 999px;
+  background: #eff6ff;
+  color: #1d4ed8;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+html[data-portal-design="b"] .monitor-portal .float-v2-reminder-modal .modal-actions {
+  grid-column: 1 / -1;
+  justify-content: flex-end;
+  margin-top: 8px;
+  padding-top: 14px;
+  border-top: 1px solid #e5e7eb;
+}
+
+html[data-portal-design="b"] .monitor-portal .float-v2-reminder-icon {
+  width: 38px;
+  height: 38px;
+  display: grid;
+  place-items: center;
+  border-radius: 8px;
+  background: #eff6ff;
+  color: #2563eb;
+}
+
+html[data-portal-design="b"] .monitor-portal .float-v2-reminder-icon svg {
+  width: 20px;
+  height: 20px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .float-v2-reminder-modal p {
+  color: #9fb0c7;
+}
+
+html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .float-v2-reminder-modal {
+  border-color: #29405f;
+}
+
+html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .float-v2-reminder-content > span {
+  color: #60a5fa;
+}
+
+html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .float-v2-reminder-content > strong {
+  border-color: #315985;
+  background: #11294b;
+  color: #93c5fd;
+}
+
+html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .float-v2-reminder-modal .modal-actions {
+  border-top-color: #26384f;
+}
+
+html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .float-v2-reminder-icon {
+  background: #11294b;
+  color: #60a5fa;
+}
+
 html[data-portal-design="b"] .monitor-portal .float-v2-holder-row .input,
 html[data-portal-design="b"] .monitor-portal .float-v2-holder-row .select {
   width: 100%;

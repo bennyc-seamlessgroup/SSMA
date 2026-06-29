@@ -13,10 +13,10 @@ const groups = [
     items: [
       ['Dashboard', 'dashboard-v2'],
       ['Ownership', 'institutional'],
+      ['Internal Float', 'internal-float-v2'],
       ['Short Interest', 'short-interest'],
       ['Lending Pressure', 'lending-pressure'],
       ['Squeeze Readiness', 'squeeze-readiness'],
-      ['Internal Float', 'internal-float-v2'],
       ['Narrative', 'sentiment'],
       ['SEC Filings', 'event-calendar'],
       ['Price Scenarios', 'price-scenario'],

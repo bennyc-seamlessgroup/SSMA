@@ -37,7 +37,7 @@ export const pageDataSources: Record<string, PageDataSource> = {
   },
   'internal-float-v2': {
     type: 'import-files',
-    files: ['institutional_ownership_CURR_consolidated_4_web.json', 'internal_float/CURR_v2_user_inputs.json'],
+    files: ['institutional_ownership_CURR_consolidated_4_web.json', 'CURR_v2_user_inputs.json'],
   },
   sentiment: {
     type: 'social-data',

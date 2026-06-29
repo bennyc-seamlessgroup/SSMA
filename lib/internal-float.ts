@@ -90,8 +90,8 @@ export type InternalFloatV2UserInputReadResult = {
 export function internalFloatV2UserInputPaths(ticker = 'CURR') {
   const normalizedTicker = ticker.toUpperCase();
   return [
-    `internal_float/${normalizedTicker}_v2_user_inputs.json`,
     `${normalizedTicker}_v2_user_inputs.json`,
+    `internal_float/${normalizedTicker}_v2_user_inputs.json`,
     'internal_float/v2_user_inputs.json',
   ];
 }

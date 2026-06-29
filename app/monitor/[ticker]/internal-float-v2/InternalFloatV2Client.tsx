@@ -41,9 +41,13 @@ type ActivityLogItem = {
   detail: string;
   createdAt: string;
 };
+type TokenizationReminder = {
+  summary: string;
+  message: string;
+};
 
 const colors = ['#2453a6', '#0f8a6a', '#d89018', '#6f7bd9', '#8896a8', '#c2415b'];
-const privateCategories = ['Founder', 'CEO', 'Management', 'Insider', 'Strategic Investor', 'Family Office', 'Long-Term Holder', 'Other'];
+const privateCategories = ['Founder', 'CEO', 'Management', 'Insider', 'Strategic Investor', 'Family Office', 'Long-Term Holder', 'Transfer Agent', 'Other'];
 const tokenizationProviderOptions = ['Securitize', 'xStocks', 'Ondo', 'bStocks'];
 const protocolOptions = ['Aave', 'Euler', 'Kamino', 'Morpho'];
 const activityLogStorageKey = 'internal-float-v2-activity-log';
@@ -63,6 +67,10 @@ function formatNumber(value: unknown, options?: Intl.NumberFormatOptions) {
   return numeric(value).toLocaleString('en-US', options);
 }
 
+function shareInputValue(value: number) {
+  return value === 0 ? '' : formatNumber(value);
+}
+
 function compact(value: number) {
   return value.toLocaleString('en-US', { notation: 'compact', minimumFractionDigits: Math.abs(value) >= 1_000 ? 2 : 0, maximumFractionDigits: Math.abs(value) >= 1_000 ? 2 : 0 });
 }
@@ -77,6 +85,14 @@ function formatPct(value: number) {
 
 function rowSignature(row: unknown) {
   return JSON.stringify(row);
+}
+
+function rowsMatch(left: unknown[], right: unknown[]) {
+  const canonicalize = (row: unknown) => {
+    if (!row || typeof row !== 'object' || Array.isArray(row)) return row;
+    return Object.fromEntries(Object.entries(row as Record<string, unknown>).sort(([a], [b]) => a.localeCompare(b)));
+  };
+  return JSON.stringify(left.map(canonicalize)) === JSON.stringify(right.map(canonicalize));
 }
 
 function id(prefix: string) {
@@ -225,9 +241,27 @@ function RankedBars({ rows, total, showExtra = false }: { rows: Array<{ key?: st
   );
 }
 
-function Waterfall({ marketFloat, privateShares, tokenizedShares, collateralizedShares, realTradableFloat }: { marketFloat: number; privateShares: number; tokenizedShares: number; collateralizedShares: number; realTradableFloat: number }) {
+function Waterfall({
+  sharesOutstanding,
+  insiderShares,
+  institutionShares,
+  privateShares,
+  tokenizedShares,
+  collateralizedShares,
+  realTradableFloat,
+}: {
+  sharesOutstanding: number;
+  insiderShares: number;
+  institutionShares: number;
+  privateShares: number;
+  tokenizedShares: number;
+  collateralizedShares: number;
+  realTradableFloat: number;
+}) {
   const rows = [
-    { label: 'Market Float', value: marketFloat, className: '' },
+    { label: 'Shares Outstanding', value: sharesOutstanding, className: '' },
+    { label: 'Insiders', value: -insiderShares, className: 'down' },
+    { label: 'Institutions', value: -institutionShares, className: 'down' },
     { label: 'Management / Strategic', value: -privateShares, className: 'down' },
     { label: 'Tokenized Shares', value: -tokenizedShares, className: 'down' },
     { label: 'Collateralized Shares', value: -collateralizedShares, className: 'down' },
@@ -244,7 +278,7 @@ function Waterfall({ marketFloat, privateShares, tokenizedShares, collateralized
             )}
           </span>
           <strong>{row.value < 0 ? '-' : ''}{compact(Math.abs(row.value))}</strong>
-          <small>{formatPct(pct(Math.abs(row.value), marketFloat))} of market float</small>
+          <small>{formatPct(pct(Math.abs(row.value), sharesOutstanding))} of shares outstanding</small>
         </div>
       ))}
     </div>
@@ -275,6 +309,7 @@ export function InternalFloatV2Client({
   const [apiMessage, setApiMessage] = useState('');
   const [activityLog, setActivityLog] = useState<ActivityLogItem[]>([]);
   const [expandedPrivateNotes, setExpandedPrivateNotes] = useState<string[]>([]);
+  const [tokenizationReminder, setTokenizationReminder] = useState<TokenizationReminder | null>(null);
 
   useEffect(() => {
     if (process.env.NEXT_PUBLIC_INTERNAL_FLOAT_API_HYDRATE !== 'true') return;
@@ -459,6 +494,46 @@ export function InternalFloatV2Client({
     setCollateralChains(current => current.filter(item => item.id !== row.id));
   }
 
+  function openEditPanel(panel: Exclude<EditPanel, null>) {
+    setApiStatus('idle');
+    setApiMessage('');
+    setEditPanel(panel);
+  }
+
+  function discardEditPanel() {
+    if (apiStatus === 'saving') return;
+
+    if (editPanel === 'private') setPrivateHoldings(savedPrivateHoldings);
+    if (editPanel === 'tokenized') setTokenChains(savedTokenChains);
+    if (editPanel === 'collateral') setCollateralChains(savedCollateralChains);
+
+    setApiStatus('idle');
+    setApiMessage('');
+    setEditPanel(null);
+  }
+
+  function tokenizationReminderFor(diff: { added: number; deleted: number; updated: number }): TokenizationReminder {
+    const summary = describeDiff(diff);
+
+    if (diff.added > 0 && diff.deleted === 0 && diff.updated === 0) {
+      return {
+        summary,
+        message: 'If these tokenized shares came from management or strategic holdings, reduce the corresponding holding by the same amount to prevent double counting.',
+      };
+    }
+    if (diff.deleted > 0 && diff.added === 0 && diff.updated === 0) {
+      return {
+        summary,
+        message: 'Review whether the removed tokenized shares should be restored to a related management or strategic holding so the ownership allocation remains complete.',
+      };
+    }
+
+    return {
+      summary,
+      message: 'Reconcile the related management and strategic holdings after this change. Shares should appear in only one allocation category to keep the real tradable float accurate.',
+    };
+  }
+
   async function saveEditPanel() {
     if (!editPanel) return;
     const savedPanel = editPanel;
@@ -509,18 +584,29 @@ export function InternalFloatV2Client({
         body: JSON.stringify(payload),
       }) as InternalFloatV2UserInput;
 
-      if (Array.isArray(updated.privateHoldings)) {
-        setPrivateHoldings(updated.privateHoldings);
-        if (savedPanel === 'private') setSavedPrivateHoldings(updated.privateHoldings);
+      const confirmedRows = savedPanel === 'private'
+        ? updated.privateHoldings
+        : savedPanel === 'tokenized'
+          ? updated.tokenChains
+          : updated.collateralChains;
+
+      if (!Array.isArray(confirmedRows) || !rowsMatch(confirmedRows, payload)) {
+        throw new Error(`The ${sectionLabel(savedPanel).toLowerCase()} records were not confirmed by the server. Your draft remains open; please try saving again.`);
       }
-      if (Array.isArray(updated.custodyRows)) setCustodyRows(updated.custodyRows);
-      if (Array.isArray(updated.tokenChains)) {
-        setTokenChains(updated.tokenChains);
-        if (savedPanel === 'tokenized') setSavedTokenChains(updated.tokenChains);
+
+      // Each endpoint replaces only its own array. Preserve unrelated sections even
+      // if its response contains stale values for those sections.
+      if (savedPanel === 'private') {
+        setPrivateHoldings(confirmedRows as PrivateHolding[]);
+        setSavedPrivateHoldings(confirmedRows as PrivateHolding[]);
       }
-      if (Array.isArray(updated.collateralChains)) {
-        setCollateralChains(updated.collateralChains);
-        if (savedPanel === 'collateral') setSavedCollateralChains(updated.collateralChains);
+      if (savedPanel === 'tokenized') {
+        setTokenChains(confirmedRows as TokenChain[]);
+        setSavedTokenChains(confirmedRows as TokenChain[]);
+      }
+      if (savedPanel === 'collateral') {
+        setCollateralChains(confirmedRows as CollateralChain[]);
+        setSavedCollateralChains(confirmedRows as CollateralChain[]);
       }
 
       setApiStatus('saved');
@@ -528,6 +614,7 @@ export function InternalFloatV2Client({
       setEditPanel(null);
       if (diff.changed > 0) {
         addActivity('Saved', sectionLabel(savedPanel), 'Saved record changes', `${describeDiff(diff)}. ${Array.isArray(payload) ? payload.length : 0} total rows synced.`);
+        if (savedPanel === 'tokenized') setTokenizationReminder(tokenizationReminderFor(diff));
       }
     } catch (error) {
       setApiStatus('error');
@@ -581,14 +668,14 @@ export function InternalFloatV2Client({
     };
 
     return (
-      <div className="modal-backdrop" role="presentation" onMouseDown={() => setEditPanel(null)}>
+      <div className="modal-backdrop" role="presentation" onMouseDown={discardEditPanel}>
         <div className="modal-card float-v2-edit-modal" role="dialog" aria-modal="true" aria-labelledby="float-v2-edit-title" onMouseDown={event => event.stopPropagation()}>
           <div className="modal-card__head">
             <div>
               <h2 id="float-v2-edit-title">{titleMap[editPanel]}</h2>
               <p className="section-subtitle">Manual inputs are used until these values can be auto-detected from production data sources.</p>
             </div>
-            <button className="icon-button" type="button" aria-label="Close edit modal" onClick={() => setEditPanel(null)}>x</button>
+            <button className="icon-button" type="button" aria-label="Close edit modal and discard unsaved changes" onClick={discardEditPanel}>x</button>
           </div>
           {apiMessage && <p className={`float-v2-api-message ${apiStatus === 'error' ? 'error' : 'success'}`}>{apiMessage}</p>}
 
@@ -635,7 +722,8 @@ export function InternalFloatV2Client({
                             <input
                               className="input numeric-input"
                               inputMode="numeric"
-                              value={formatNumber(row.shares)}
+                              value={shareInputValue(row.shares)}
+                              placeholder="Enter shares"
                               onChange={event => patchPrivate(row.id, { shares: numeric(event.target.value) })}
                             />
                           </label>
@@ -702,8 +790,25 @@ export function InternalFloatV2Client({
                       <div className="float-v2-holder-row-group" key={row.id}>
                         <div className={`float-v2-holder-row compact ${error ? 'invalid' : ''}`} role="row">
                           <label aria-label="Chain"><input className="input" value={row.chain} placeholder="Chain" onChange={event => patchTokenChain(row.id, { chain: event.target.value })} /></label>
-                          <label aria-label="Shares"><input className="input numeric-input" inputMode="numeric" value={formatNumber(row.shares)} onChange={event => patchTokenChain(row.id, { shares: numeric(event.target.value) })} /></label>
-                          <label aria-label="Provider"><select className="select" value={row.provider} onChange={event => patchTokenChain(row.id, { provider: event.target.value })}>{tokenizationProviderOptions.map(provider => <option key={provider}>{provider}</option>)}</select></label>
+                          <label aria-label="Shares"><input className="input numeric-input" inputMode="numeric" value={shareInputValue(row.shares)} placeholder="Enter shares" onChange={event => patchTokenChain(row.id, { shares: numeric(event.target.value) })} /></label>
+                          <label className="float-v2-provider-field" aria-label="Provider">
+                            <select
+                              className="select"
+                              value={tokenizationProviderOptions.includes(row.provider) ? row.provider : 'Others'}
+                              onChange={event => patchTokenChain(row.id, { provider: event.target.value === 'Others' ? '' : event.target.value })}
+                            >
+                              {tokenizationProviderOptions.map(provider => <option key={provider}>{provider}</option>)}
+                              <option value="Others">Others</option>
+                            </select>
+                            {!tokenizationProviderOptions.includes(row.provider) && (
+                              <input
+                                className="input"
+                                value={row.provider}
+                                placeholder="Provider name"
+                                onChange={event => patchTokenChain(row.id, { provider: event.target.value })}
+                              />
+                            )}
+                          </label>
                           <span className="float-v2-grid-impact">{formatPct(pct(row.shares, ownership.sharesOutstanding))}</span>
                           <button className="float-v2-trash-button" type="button" aria-label={`Delete ${row.chain || 'chain'}`} onClick={() => deleteTokenChain(row)}>
                             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 3h6l1 2h4v2H4V5h4l1-2Zm1 7h2v8h-2v-8Zm4 0h2v8h-2v-8ZM7 8h10l-.8 12H7.8L7 8Z" /></svg>
@@ -748,7 +853,7 @@ export function InternalFloatV2Client({
                       <div className="float-v2-holder-row-group" key={row.id}>
                         <div className={`float-v2-holder-row compact ${error ? 'invalid' : ''}`} role="row">
                           <label aria-label="Chain"><input className="input" value={row.chain} placeholder="Chain" onChange={event => patchCollateralChain(row.id, { chain: event.target.value })} /></label>
-                          <label aria-label="Shares"><input className="input numeric-input" inputMode="numeric" value={formatNumber(row.shares)} onChange={event => patchCollateralChain(row.id, { shares: numeric(event.target.value) })} /></label>
+                          <label aria-label="Shares"><input className="input numeric-input" inputMode="numeric" value={shareInputValue(row.shares)} placeholder="Enter shares" onChange={event => patchCollateralChain(row.id, { shares: numeric(event.target.value) })} /></label>
                           <label aria-label="Protocol"><select className="select" value={row.protocol} onChange={event => patchCollateralChain(row.id, { protocol: event.target.value })}>{protocolOptions.map(protocol => <option key={protocol}>{protocol}</option>)}</select></label>
                           <span className="float-v2-grid-impact">{formatPct(pct(row.shares, tokenizedShares))}</span>
                           <button className="float-v2-trash-button" type="button" aria-label={`Delete ${row.chain || 'chain'}`} onClick={() => deleteCollateralChain(row)}>
@@ -765,7 +870,7 @@ export function InternalFloatV2Client({
           )}
 
           <div className="modal-actions">
-            <button className="button secondary" type="button" onClick={() => setEditPanel(null)} disabled={apiStatus === 'saving'}>Cancel</button>
+            <button className="button secondary" type="button" onClick={discardEditPanel} disabled={apiStatus === 'saving'}>Cancel</button>
             <button className="button primary" type="button" onClick={saveEditPanel} disabled={apiStatus === 'saving'}>
               {apiStatus === 'saving' ? 'Saving...' : 'Save Changes'}
             </button>
@@ -813,15 +918,23 @@ export function InternalFloatV2Client({
 
       <section className="terminal-section">
         <div className="terminal-section__head">
-          <div><span>Section 3</span><h2>Market Float vs Real Tradable Float</h2><p className="section-subtitle">Shows how internal float assumptions reduce the market float estimate.</p></div>
+          <div><span>Section 3</span><h2>Shares Outstanding vs Real Tradable Float</h2><p className="section-subtitle">Shows each deduction from shares outstanding used to estimate the real tradable float.</p></div>
         </div>
-        <Waterfall marketFloat={floatBeforeInternalAdjustments} privateShares={privateShares} tokenizedShares={tokenizedShares} collateralizedShares={collateralizedShares} realTradableFloat={realTradableFloat} />
+        <Waterfall
+          sharesOutstanding={ownership.sharesOutstanding}
+          insiderShares={ownership.insiderShares}
+          institutionShares={ownership.institutionShares}
+          privateShares={privateShares}
+          tokenizedShares={tokenizedShares}
+          collateralizedShares={collateralizedShares}
+          realTradableFloat={realTradableFloat}
+        />
       </section>
 
       <section className="terminal-section">
         <div className="terminal-section__head">
           <div><span>Section 4</span><h2>Management / Strategic Holdings</h2><p className="section-subtitle">Internal deduction assumptions used to estimate real tradable float.</p></div>
-          <button className="button secondary" type="button" onClick={() => setEditPanel('private')}>Edit</button>
+          <button className="button secondary" type="button" onClick={() => openEditPanel('private')}>Edit</button>
         </div>
         <div className="terminal-card"><RankedBars showExtra rows={privateHoldings.map(row => ({ key: row.id, label: row.holderName, value: row.shares, extra: `${row.category} · ${row.includeInDeduction ? 'deducted from float' : 'not deducted'}` }))} total={floatBeforeInternalAdjustments} /></div>
       </section>
@@ -830,7 +943,7 @@ export function InternalFloatV2Client({
         <div className="terminal-section__head">
           <div><span>Section 5</span><h2>Tokenized Shares & Providers</h2><p className="section-subtitle">Manual tokenized share assumptions grouped by blockchain and provider.</p></div>
           <div className="float-v2-section-actions">
-            <button className="button secondary" type="button" onClick={() => setEditPanel('tokenized')}>Edit</button>
+            <button className="button secondary" type="button" onClick={() => openEditPanel('tokenized')}>Edit</button>
           </div>
         </div>
         <div className="terminal-card float-v2-combined-card">
@@ -848,7 +961,7 @@ export function InternalFloatV2Client({
         <div className="terminal-section__head">
           <div><span>Section 6</span><h2>Collateralized Shares & DeFi Exposure</h2><p className="section-subtitle">Shares pledged into DeFi lending protocols as collateral.</p></div>
           <div className="float-v2-section-actions">
-            <button className="button secondary" type="button" onClick={() => setEditPanel('collateral')}>Edit</button>
+            <button className="button secondary" type="button" onClick={() => openEditPanel('collateral')}>Edit</button>
           </div>
         </div>
         <div className="terminal-card float-v2-combined-card">
@@ -892,6 +1005,24 @@ export function InternalFloatV2Client({
         </section>
       </div>
       {renderEditModal()}
+      {tokenizationReminder && (
+        <div className="modal-backdrop" role="presentation" onMouseDown={() => setTokenizationReminder(null)}>
+          <div className="modal-card float-v2-reminder-modal" role="alertdialog" aria-modal="true" aria-labelledby="tokenization-reminder-title" onMouseDown={event => event.stopPropagation()}>
+            <div className="float-v2-reminder-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24"><path d="M12 3a7 7 0 0 0-4.3 12.5c.8.6 1.3 1.4 1.3 2.3V19h6v-1.2c0-.9.5-1.7 1.3-2.3A7 7 0 0 0 12 3Zm-3 18h6" /></svg>
+            </div>
+            <div className="float-v2-reminder-content">
+              <span>Tokenized shares saved</span>
+              <h2 id="tokenization-reminder-title">Review Related Holdings</h2>
+              <strong>{tokenizationReminder.summary}</strong>
+              <p>{tokenizationReminder.message}</p>
+            </div>
+            <div className="modal-actions">
+              <button className="button primary" type="button" onClick={() => setTokenizationReminder(null)}>Understood</button>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 }
