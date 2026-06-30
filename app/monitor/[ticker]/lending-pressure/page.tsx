@@ -1,6 +1,8 @@
 import { ImportDataPreviewPage } from '@/components/ImportDataPreviewPage';
 import { InfoTooltip } from '@/components/InfoTooltip';
+import { parseAiAnalysis, readAiAnalysis } from '@/lib/ai-analysis';
 import { readImportFile, readPageContent } from '@/lib/import-data';
+import { aiAnalysisFile, lendingPressureFile, normalizeTicker } from '@/lib/ticker-data';
 import type { ReactNode } from 'react';
 
 type Row = Record<string, unknown>;
@@ -179,10 +181,15 @@ function KpiCard({ label, value, change, suffix, deltaDisplay, pressureLabel, pr
   );
 }
 
-export default async function LendingPressurePage() {
-  const [lendingEnvelope, pageContent] = await Promise.all([
-    readImportFile<Row>('lending_pressure_CURR_consolidated_4_web.json'),
+export default async function LendingPressurePage({ params }: Readonly<{ params: Promise<{ ticker: string }> }>) {
+  const { ticker } = await params;
+  const normalizedTicker = normalizeTicker(ticker);
+  const dataFile = lendingPressureFile(normalizedTicker);
+  const analysisFile = aiAnalysisFile(normalizedTicker);
+  const [lendingEnvelope, pageContent, aiAnalysis] = await Promise.all([
+    readImportFile<Row>(dataFile),
     readPageContent('lendingPressure'),
+    readAiAnalysis(normalizedTicker).catch(() => null),
   ]);
   const lendingData = record(lendingEnvelope.data);
   const current = record(lendingData.current);
@@ -216,12 +223,13 @@ export default async function LendingPressurePage() {
   const borrowFeeCard = record(lendingCards.borrowFee);
   const displayPressureScore = numeric(lendingSummary.pressureScore) ?? pressureScore;
   const displayLevel = String(lendingSummary.level ?? level);
+  const lendingAnalysis = parseAiAnalysis(aiAnalysis?.lending_pressure_analysis);
 
   return (
     <ImportDataPreviewPage
       title="Lending Pressure Intelligence"
       description={text(pageContent.pageDescription, 'Detailed borrow availability, utilization, and borrow fee data used to evaluate short seller pressure.')}
-      files={['lending_pressure_CURR_consolidated_4_web.json']}
+      files={[dataFile, analysisFile]}
     >
       <section className="terminal-section lending-page-overview">
         <div className="terminal-section__head">
@@ -273,7 +281,8 @@ export default async function LendingPressurePage() {
           </div>
           <div className="terminal-card ai-lending-card">
             <h3>AI Lending Analysis</h3>
-            <p>{text(lendingData.aiLendingAnalysis, text(pageContent.aiLendingAnalysis, `Current imported data indicates ${level.toLowerCase()} lending pressure. Borrow fees are visible, but available inventory remains meaningful and institutional lending inputs are not yet supported by complete provider data. Management should monitor borrow fee changes, availability drops, and future utilization feeds as primary indicators.`))}</p>
+            {lendingAnalysis.headline && <strong>{lendingAnalysis.headline}</strong>}
+            <p>{text(lendingAnalysis.body, text(lendingData.aiLendingAnalysis, text(pageContent.aiLendingAnalysis, `Current imported data indicates ${level.toLowerCase()} lending pressure. Borrow fees are visible, but available inventory remains meaningful and institutional lending inputs are not yet supported by complete provider data. Management should monitor borrow fee changes, availability drops, and future utilization feeds as primary indicators.`)))}</p>
             {sourceChip('Internal Lending Model')}
           </div>
         </div>

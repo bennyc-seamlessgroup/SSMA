@@ -2,7 +2,8 @@ import { ImportDataTable } from '@/components/ImportDataTable';
 import { InfoTooltip } from '@/components/InfoTooltip';
 import { readImportJson } from '@/lib/import-data';
 import { getServerPortalTimeZone } from '@/lib/server-timezone';
-import { publicSocialPrefixes, readPublicSocialMentions } from '@/lib/social-s3-data';
+import { getPublicSocialPrefixes, readPublicSocialMentions } from '@/lib/social-s3-data';
+import { legacyStocktwitsFile, normalizeTicker, stocktwitsFile } from '@/lib/ticker-data';
 import { formatPortalDateTime } from '@/lib/timezone';
 import type { ReactNode } from 'react';
 import { MentionFeedCards, type MentionFeedRow } from './MentionFeedCards';
@@ -40,9 +41,10 @@ type SocialMentionsFile = {
 
 const rangeOptions = [
   { label: '1D', days: 1 },
-  { label: '7D', days: 7 },
-  { label: '30D', days: 30 },
-  { label: '90D', days: 90 },
+  { label: '1W', days: 7 },
+  { label: '1M', days: 30 },
+  { label: '6M', days: 183 },
+  { label: '1Y', days: 365 },
 ] as const;
 
 function KpiTitle({ children, text }: { children: ReactNode; text: string }) {
@@ -157,8 +159,8 @@ function filterWindow(mentions: AdanosMention[], start: number, end: number) {
 }
 
 function rangeFromSearch(value: unknown) {
-  const label = String(value ?? '1D').toUpperCase();
-  return rangeOptions.find(option => option.label === label) ?? rangeOptions[0];
+  const label = String(value ?? '1Y').toUpperCase();
+  return rangeOptions.find(option => option.label === label) ?? rangeOptions[rangeOptions.length - 1];
 }
 
 function feedRows(feed: AdanosMention[], platformLabel: string, timeZone: string) {
@@ -288,19 +290,29 @@ function DevJsonTables({ datasets, timeZone }: { datasets: Array<{ file: string;
   );
 }
 
-export default async function SentimentPage({ searchParams }: { searchParams?: Promise<Record<string, string | string[] | undefined>> }) {
+export default async function SentimentPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ ticker: string }>;
+  searchParams?: Promise<Record<string, string | string[] | undefined>>;
+}) {
+  const { ticker } = await params;
+  const normalizedTicker = normalizeTicker(ticker);
+  const publicSocialPrefixes = getPublicSocialPrefixes(normalizedTicker);
+  const stocktwitsPath = stocktwitsFile(normalizedTicker);
   const resolvedSearchParams = searchParams ? await searchParams : {};
   const timeZone = await getServerPortalTimeZone();
   const activeRange = rangeFromSearch(Array.isArray(resolvedSearchParams.range) ? resolvedSearchParams.range[0] : resolvedSearchParams.range);
   const [redditMentions, xMentions, stocktwitsMentions] = await Promise.all([
     readPublicNarrativeFeed(publicSocialPrefixes.reddit, 'Reddit'),
     readPublicNarrativeFeed(publicSocialPrefixes.x, 'X'),
-    readNarrativePlatformFeed('social/stocktwits_CURR_mentions.json', 'adanos-stocktwits_CURR_consolidated_4_web.json'),
+    readNarrativePlatformFeed(stocktwitsPath, legacyStocktwitsFile(normalizedTicker)),
   ]);
   const [redditJson, xJson, stocktwitsJson] = await Promise.all([
     Promise.resolve({ platform: 'Reddit', recordCount: redditMentions.length, originalFileName: publicSocialPrefixes.reddit, data: redditMentions }),
     Promise.resolve({ platform: 'X', recordCount: xMentions.length, originalFileName: publicSocialPrefixes.x, data: xMentions }),
-    readImportJson<SocialMentionsFile>('social/stocktwits_CURR_mentions.json').catch(() => ({ platform: 'Stocktwits', data: stocktwitsMentions })),
+    readImportJson<SocialMentionsFile>(stocktwitsPath).catch(() => ({ platform: 'Stocktwits', data: stocktwitsMentions })),
   ]);
 
   const mentions = [...redditMentions, ...xMentions, ...stocktwitsMentions];
@@ -337,7 +349,7 @@ export default async function SentimentPage({ searchParams }: { searchParams?: P
   return (
     <div className="page narrative-page">
       <div className="compact-page-header">
-        <span>Sentiment</span>
+        <span>Social Sentiment</span>
         <p>Track market sentiment and narrative momentum across X, Reddit, and Stocktwits.</p>
       </div>
 
@@ -346,7 +358,7 @@ export default async function SentimentPage({ searchParams }: { searchParams?: P
       <section className="narrative-overview-panel narrative-command-overview">
         <div className="narrative-section-head">
           <div>
-            <h2>{`Narrative Overview (${activeRange.label})`}</h2>
+            <h2>{`Social Sentiment Overview (${activeRange.label})`}</h2>
           </div>
         </div>
 
@@ -363,12 +375,16 @@ export default async function SentimentPage({ searchParams }: { searchParams?: P
         </div>
       </section>
 
+      <section className="narrative-feed-panel narrative-timeline-fullwidth">
+        <SentimentTimeline mentions={timelineMentions} rangeDays={activeRange.days} />
+      </section>
+
       <div className="narrative-command-layout">
         <main className="narrative-command-main">
           <section className="narrative-feed-panel">
             <div className="narrative-section-head">
               <div>
-                <h2 className="panel__title">Narrative Feed <InfoTooltip text="Narrative records filtered by the selected page timeframe." /></h2>
+                <h2 className="panel__title">Social Feed <InfoTooltip text="Social records filtered by the selected page timeframe." /></h2>
               </div>
             </div>
             <MentionFeedCards rows={allRows} />
@@ -376,10 +392,6 @@ export default async function SentimentPage({ searchParams }: { searchParams?: P
         </main>
 
         <aside className="narrative-radar">
-          <section className="narrative-feed-panel">
-            <SentimentTimeline mentions={timelineMentions} rangeDays={activeRange.days} />
-          </section>
-
           <section className="narrative-feed-panel">
             <div className="narrative-section-head">
               <div>
@@ -396,9 +408,9 @@ export default async function SentimentPage({ searchParams }: { searchParams?: P
       </div>
 
       <DevJsonTables timeZone={timeZone} datasets={[
-        { file: 'S3 prefix: social-data/Reddit_CURR', payload: redditJson },
-        { file: 'S3 prefix: social-data/Twitter__CURR', payload: xJson },
-        { file: 'social/stocktwits_CURR_mentions.json', payload: stocktwitsJson },
+        { file: `S3 prefix: ${publicSocialPrefixes.reddit}`, payload: redditJson },
+        { file: `S3 prefix: ${publicSocialPrefixes.x}`, payload: xJson },
+        { file: stocktwitsPath, payload: stocktwitsJson },
       ]} />
     </div>
   );

@@ -2,7 +2,8 @@ import { ImportDataTable } from '@/components/ImportDataTable';
 import { readImportFile } from '@/lib/import-data';
 import { calculateFloatAdjustments, internalFloatV2UserInputPaths, readInternalFloatInputs, readInternalFloatV2UserInputSource, type FloatAdjustments, type InternalFloatV2UserInput } from '@/lib/internal-float';
 import { formatImportDataUpdatedAt, getImportFilesVersion } from '@/lib/import-data-version';
-import { pageDataSources } from '@/lib/page-data-sources';
+import { getPageDataSources } from '@/lib/page-data-sources';
+import { institutionalOverviewFile, normalizeTicker } from '@/lib/ticker-data';
 import { getServerPortalTimeZone } from '@/lib/server-timezone';
 import { InternalFloatV2Client, type InstitutionalOwnershipOverview } from './InternalFloatV2Client';
 
@@ -39,19 +40,20 @@ function buildUserInputRows(userInputs: InternalFloatV2UserInput) {
 
 export default async function InternalFloatV2Page({ params }: Readonly<{ params: Promise<{ ticker: string }> }>) {
   const { ticker } = await params;
-  const normalizedTicker = ticker.toUpperCase();
+  const normalizedTicker = normalizeTicker(ticker);
   const timeZone = await getServerPortalTimeZone();
   const holdingsEnvelope = await readInternalFloatInputs();
   const holdings = holdingsEnvelope.data;
-  const pageDataSource = pageDataSources['internal-float-v2'];
+  const ownershipFile = institutionalOverviewFile(normalizedTicker);
+  const pageDataSource = getPageDataSources(normalizedTicker)['internal-float-v2'];
   const pageImportFiles = pageDataSource.type === 'import-files'
-    ? ['institutional_ownership_CURR_consolidated_4_web.json', internalFloatV2UserInputPaths(normalizedTicker)[0]]
+    ? [ownershipFile, internalFloatV2UserInputPaths(normalizedTicker)[0]]
     : [];
   const [adjustments, v2UserInputs, importDataVersion, institutionalOwnershipEnvelope] = await Promise.all([
     calculateFloatAdjustments(holdings) as Promise<FloatAdjustments>,
     readInternalFloatV2UserInputSource('demo-user', normalizedTicker),
     getImportFilesVersion(pageImportFiles),
-    readImportFile<{ overview?: InstitutionalOwnershipOverview }>('institutional_ownership_CURR_consolidated_4_web.json'),
+    readImportFile<{ overview?: InstitutionalOwnershipOverview }>(ownershipFile),
   ]);
   const devRows = buildUserInputRows(v2UserInputs.userInput);
 

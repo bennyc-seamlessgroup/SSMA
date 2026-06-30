@@ -1,11 +1,11 @@
 'use client';
 
 import Link from 'next/link';
-import { usePathname, useRouter } from 'next/navigation';
-import { useCallback, useEffect, useState } from 'react';
+import { usePathname } from 'next/navigation';
+import { useEffect, useMemo, useState } from 'react';
 import { UserMenu } from './UserMenu';
 import { DevModeToggle } from './DevModeToggle';
-import { pageDataSources } from '@/lib/page-data-sources';
+import { useTickerDataStatus } from './TickerDataStatusProvider';
 
 const groups = [
   {
@@ -17,7 +17,7 @@ const groups = [
       ['Short Interest', 'short-interest'],
       ['Lending Pressure', 'lending-pressure'],
       ['Squeeze Readiness', 'squeeze-readiness'],
-      ['Narrative', 'sentiment'],
+      ['Social Sentiment', 'sentiment'],
       ['SEC Filings', 'event-calendar'],
       ['Price Scenarios', 'price-scenario'],
       ['Report Archive', 'reports'],
@@ -99,21 +99,12 @@ const settingsGroups = [
   },
 ];
 
-const importDataSeenKey = 'import-data-seen-version';
+const importDataSeenKeyPrefix = 'import-data-seen-version';
 const pageImportSeenKeyPrefix = 'import-data-page-seen-version';
 
-type ImportFileStatus = {
-  path: string;
-  exists: boolean;
-  updatedAt: string | null;
-  size: number | null;
-  versionKey: string | null;
-};
-
-type PageDataStatus = {
-  updatedAt: string | null;
-  version: string;
-};
+function importDataSeenKey(ticker: string) {
+  return `${importDataSeenKeyPrefix}:${ticker}`;
+}
 
 function pageImportSeenKey(ticker: string, slug: string) {
   return `${pageImportSeenKeyPrefix}:${ticker}:${slug}`;
@@ -129,160 +120,54 @@ export function Sidebar({
   importDataVersion: string;
 }) {
   const pathname = usePathname();
-  const router = useRouter();
-  const [currentImportDataVersion, setCurrentImportDataVersion] = useState(importDataVersion);
+  const tickerStatus = useTickerDataStatus();
+  const currentImportDataVersion = tickerStatus?.version ?? importDataVersion;
   const [seenImportDataVersion, setSeenImportDataVersion] = useState(importDataVersion);
-  const [currentPageImportVersions, setCurrentPageImportVersions] = useState<Record<string, string>>({});
   const [seenPageImportVersions, setSeenPageImportVersions] = useState<Record<string, string>>({});
   const [designBPanel, setDesignBPanel] = useState<'workspace' | 'settings' | 'development'>('workspace');
   const [collapsedGroups, setCollapsedGroups] = useState<Record<string, boolean>>(() =>
     Object.fromEntries(groups.filter(group => group.muted).map(group => [group.label, true])),
   );
+  const currentPageImportVersions = useMemo(
+    () => Object.fromEntries(
+      Object.entries(tickerStatus?.pages ?? {}).map(([slug, status]) => [slug, status.version]),
+    ),
+    [tickerStatus],
+  );
   const hasImportDataUpdate = currentImportDataVersion !== seenImportDataVersion;
 
-  const fetchPageImportVersions = useCallback(async () => {
-    const versions: Record<string, string> = {};
-
-    await Promise.all(Object.entries(pageDataSources).map(async ([slug, source]) => {
-      if (source.type === 'social-data') {
-        try {
-          const response = await fetch('/api/social-data-status', { cache: 'no-store' });
-          if (!response.ok) {
-            versions[slug] = 'social:unavailable';
-            return;
-          }
-          const status = await response.json() as PageDataStatus;
-          versions[slug] = `social:${status.version}`;
-        } catch {
-          versions[slug] = 'social:unavailable';
-        }
-        return;
-      }
-
-      if (source.type === 'report-archive') {
-        try {
-          const response = await fetch(`/api/reports/archive-status/${encodeURIComponent(ticker)}`, { cache: 'no-store' });
-          if (!response.ok) {
-            versions[slug] = 'reports:unavailable';
-            return;
-          }
-          const status = await response.json() as PageDataStatus;
-          versions[slug] = `reports:${status.version}`;
-        } catch {
-          versions[slug] = 'reports:unavailable';
-        }
-        return;
-      }
-
-      const parts = await Promise.all(source.files.map(async file => {
-        try {
-          const response = await fetch(`/api/import-data-version?file=${encodeURIComponent(file)}`, { cache: 'no-store' });
-          if (!response.ok) return `${file}:unavailable`;
-
-          const status = await response.json() as ImportFileStatus;
-          const version = status.exists
-            ? status.versionKey ?? status.updatedAt ?? String(status.size ?? 'exists')
-            : 'missing';
-
-          return `${file}:${version}`;
-        } catch {
-          return `${file}:unavailable`;
-        }
-      }));
-
-      versions[slug] = parts.join('|');
-    }));
-
-    return versions;
-  }, [ticker]);
-
   useEffect(() => {
-    const storedVersion = window.localStorage.getItem(importDataSeenKey);
+    const key = importDataSeenKey(ticker);
+    const storedVersion = window.localStorage.getItem(key);
     if (storedVersion) {
       setSeenImportDataVersion(storedVersion);
     } else {
-      window.localStorage.setItem(importDataSeenKey, importDataVersion);
+      window.localStorage.setItem(key, currentImportDataVersion);
+      setSeenImportDataVersion(currentImportDataVersion);
     }
-  }, [importDataVersion]);
+  }, [currentImportDataVersion, ticker]);
 
   useEffect(() => {
-    setCurrentImportDataVersion(importDataVersion);
-  }, [importDataVersion]);
+    setSeenPageImportVersions({});
+  }, [ticker]);
 
   useEffect(() => {
-    let cancelled = false;
-
-    const initializePageImportVersions = async () => {
-      const latest = await fetchPageImportVersions();
-      if (cancelled) return;
-
-      setCurrentPageImportVersions(latest);
-      setSeenPageImportVersions(Object.fromEntries(Object.entries(latest).map(([slug, version]) => {
+    setSeenPageImportVersions(current => {
+      const next = { ...current };
+      for (const [slug, version] of Object.entries(currentPageImportVersions)) {
+        if (next[slug]) continue;
         const key = pageImportSeenKey(ticker, slug);
         const storedVersion = window.localStorage.getItem(key);
-        if (storedVersion) return [slug, storedVersion];
-
-        window.localStorage.setItem(key, version);
-        return [slug, version];
-      })));
-    };
-
-    initializePageImportVersions();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [fetchPageImportVersions, ticker]);
-
-  useEffect(() => {
-    let cancelled = false;
-
-    const checkForImportDataUpdate = async () => {
-      try {
-        const response = await fetch('/api/import-data-version', { cache: 'no-store' });
-        if (!response.ok) return;
-
-        const latest = await response.json() as { version?: string };
-        if (!latest.version || latest.version === currentImportDataVersion || cancelled) return;
-
-        setCurrentImportDataVersion(latest.version);
-        router.refresh();
-      } catch {
-        // Keep the existing UI if the local dev server is briefly unavailable.
+        if (storedVersion) {
+          next[slug] = storedVersion;
+        } else {
+          window.localStorage.setItem(key, version);
+          next[slug] = version;
+        }
       }
-    };
-
-    const interval = window.setInterval(checkForImportDataUpdate, 10000);
-    return () => {
-      cancelled = true;
-      window.clearInterval(interval);
-    };
-  }, [currentImportDataVersion, router]);
-
-  useEffect(() => {
-    let cancelled = false;
-
-    const checkForPageImportUpdates = async () => {
-      const latest = await fetchPageImportVersions();
-      if (cancelled) return;
-
-      const changed = Object.entries(latest).some(([slug, version]) => {
-        const current = currentPageImportVersions[slug];
-        return current && current !== version;
-      });
-
-      if (changed) {
-        setCurrentPageImportVersions(current => ({ ...current, ...latest }));
-        router.refresh();
-      }
-    };
-
-    const interval = window.setInterval(checkForPageImportUpdates, 10000);
-    return () => {
-      cancelled = true;
-      window.clearInterval(interval);
-    };
-  }, [currentPageImportVersions, fetchPageImportVersions, router]);
+      return next;
+    });
+  }, [currentPageImportVersions, ticker]);
 
   useEffect(() => {
     const slug = pathname.split('/').filter(Boolean)[2] ?? '';
@@ -293,7 +178,7 @@ export function Sidebar({
   }, [pathname]);
 
   const acknowledgeImportDataUpdate = () => {
-    window.localStorage.setItem(importDataSeenKey, currentImportDataVersion);
+    window.localStorage.setItem(importDataSeenKey(ticker), currentImportDataVersion);
     setSeenImportDataVersion(currentImportDataVersion);
   };
 

@@ -4,6 +4,9 @@ import { ImportDataTable } from '@/components/ImportDataTable';
 import { ImportDataTabs } from '@/components/ImportDataTabs';
 
 type InstitutionalDevTablesProps = {
+  overviewFile: string;
+  securityFile: string;
+  activistFile: string;
   overview: Record<string, unknown> | null;
   ownershipStructure: Array<Record<string, unknown>>;
   insiderBars: Array<Record<string, unknown>>;
@@ -12,10 +15,6 @@ type InstitutionalDevTablesProps = {
   securityRows: Array<Record<string, unknown>>;
   activistRows: Array<Record<string, unknown>>;
 };
-
-const overviewFile = 'institutional_ownership_CURR_consolidated_4_web.json';
-const securityFile = 'fintel_security_ownership_premium_CURR_consolidated_4_web.json';
-const activistFile = 'fintel_activist_filings_premium_CURR_consolidated_4_web.json';
 
 const securityColumns = [
   'name',
@@ -72,6 +71,9 @@ function columnsFor(rows: Array<Record<string, unknown>>, fallback: string[]) {
 }
 
 export function InstitutionalDevTables({
+  overviewFile,
+  securityFile,
+  activistFile,
   overview,
   ownershipStructure,
   insiderBars,

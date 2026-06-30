@@ -1,28 +1,42 @@
+import {
+  aiAnalysisFile,
+  dashboardMarginFile,
+  dashboardV2File,
+  institutionalActivistFile,
+  institutionalOverviewFile,
+  institutionalSecurityFile,
+  internalFloatUserInputFile,
+  lendingPressureFile,
+  secFilingsFile,
+  shortInterestFile,
+} from '@/lib/ticker-data';
+
 export type PageDataSource =
   | { type: 'import-files'; files: string[] }
   | { type: 'report-archive' }
   | { type: 'social-data' };
 
-export const pageDataSources: Record<string, PageDataSource> = {
+export function getPageDataSources(ticker: string): Record<string, PageDataSource> {
+  return {
   'dashboard-v2': {
     type: 'import-files',
-    files: ['dashboard_v2_CURR_consolidated_4_web.json', 'dashboard_v2_events.json', 'dashboard/CURR_margin_inputs.json'],
+    files: [dashboardV2File(ticker), 'dashboard_v2_events.json', dashboardMarginFile(ticker)],
   },
   institutional: {
     type: 'import-files',
     files: [
-      'institutional_ownership_CURR_consolidated_4_web.json',
-      'fintel_security_ownership_premium_CURR_consolidated_4_web.json',
-      'fintel_activist_filings_premium_CURR_consolidated_4_web.json',
+      institutionalOverviewFile(ticker),
+      institutionalSecurityFile(ticker),
+      institutionalActivistFile(ticker),
     ],
   },
   'short-interest': {
     type: 'import-files',
-    files: ['ortex_CURR_consolidated_4_web.json'],
+    files: [shortInterestFile(ticker), aiAnalysisFile(ticker)],
   },
   'lending-pressure': {
     type: 'import-files',
-    files: ['lending_pressure_CURR_consolidated_4_web.json'],
+    files: [lendingPressureFile(ticker), aiAnalysisFile(ticker)],
   },
   'squeeze-readiness': {
     type: 'import-files',
@@ -37,18 +51,18 @@ export const pageDataSources: Record<string, PageDataSource> = {
   },
   'internal-float-v2': {
     type: 'import-files',
-    files: ['institutional_ownership_CURR_consolidated_4_web.json', 'CURR_v2_user_inputs.json'],
+    files: [institutionalOverviewFile(ticker), internalFloatUserInputFile(ticker)],
   },
   sentiment: {
     type: 'social-data',
   },
   'event-calendar': {
     type: 'import-files',
-    files: ['news_filings/CURR_sec_filings.json'],
+    files: [secFilingsFile(ticker)],
   },
   dashboard: {
     type: 'import-files',
-    files: ['dashboard_CURR_consolidated_4_web.json'],
+    files: [`dashboard_${ticker.toUpperCase()}_consolidated_4_web.json`],
   },
   'internal-float': {
     type: 'import-files',
@@ -69,7 +83,8 @@ export const pageDataSources: Record<string, PageDataSource> = {
     type: 'import-files',
     files: ['metadata/data_dictionary.json'],
   },
-};
+  };
+}
 
 export function slugFromPathname(pathname: string) {
   const parts = pathname.split('/').filter(Boolean);

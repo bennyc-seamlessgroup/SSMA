@@ -1,6 +1,7 @@
 import crypto from 'crypto';
 import fs from 'fs';
 import path from 'path';
+import { configuredTickerFile, dashboardMarginFile, normalizeTicker } from '@/lib/ticker-data';
 
 export type DashboardMarginRecord = {
   id: string;
@@ -21,23 +22,25 @@ export type DashboardMarginFile = {
   records: DashboardMarginRecord[];
 };
 
-const localStorePath = path.join(process.cwd(), 'import_data', 'dashboard', 'CURR_margin_inputs.json');
-const defaultS3Key = 'dashboard/CURR_margin_inputs.json';
+function s3Key(ticker: string) {
+  const configured = process.env.OPERATIONS_DASHBOARD_MARGIN_S3_KEY?.trim();
+  return configured ? configuredTickerFile(configured, ticker) : dashboardMarginFile(ticker);
+}
 
-function s3Key() {
-  return process.env.OPERATIONS_DASHBOARD_MARGIN_S3_KEY?.trim() || defaultS3Key;
+function localStorePath(ticker: string) {
+  return path.join(process.cwd(), 'import_data', s3Key(ticker));
 }
 
 function shouldUseS3() {
   return process.env.IMPORT_DATA_SOURCE === 's3' && Boolean(process.env.AWS_S3_BUCKET_NAME);
 }
 
-function blankFile(): DashboardMarginFile {
+function blankFile(ticker: string): DashboardMarginFile {
   return {
     source: 'operations_manual_input',
     schemaVersion: 1,
     updatedAt: new Date().toISOString(),
-    s3Key: s3Key(),
+    s3Key: s3Key(ticker),
     records: [],
   };
 }
@@ -77,25 +80,27 @@ function normalizeRecord(input: Partial<DashboardMarginRecord>): DashboardMargin
   };
 }
 
-function normalizeFile(parsed: Partial<DashboardMarginFile>): DashboardMarginFile {
+function normalizeFile(parsed: Partial<DashboardMarginFile>, ticker: string): DashboardMarginFile {
   return {
-    ...blankFile(),
+    ...blankFile(ticker),
     ...parsed,
     source: 'operations_manual_input',
     schemaVersion: 1,
-    s3Key: parsed.s3Key || s3Key(),
+    s3Key: parsed.s3Key || s3Key(ticker),
     records: Array.isArray(parsed.records) ? parsed.records.map(normalizeRecord) : [],
   };
 }
 
-function localRead(): DashboardMarginFile {
-  if (!fs.existsSync(localStorePath)) return blankFile();
-  return normalizeFile(JSON.parse(fs.readFileSync(localStorePath, 'utf8')) as Partial<DashboardMarginFile>);
+function localRead(ticker: string): DashboardMarginFile {
+  const storePath = localStorePath(ticker);
+  if (!fs.existsSync(storePath)) return blankFile(ticker);
+  return normalizeFile(JSON.parse(fs.readFileSync(storePath, 'utf8')) as Partial<DashboardMarginFile>, ticker);
 }
 
-function localWrite(file: DashboardMarginFile) {
-  fs.mkdirSync(path.dirname(localStorePath), { recursive: true });
-  fs.writeFileSync(localStorePath, `${JSON.stringify(file, null, 2)}\n`);
+function localWrite(file: DashboardMarginFile, ticker: string) {
+  const storePath = localStorePath(ticker);
+  fs.mkdirSync(path.dirname(storePath), { recursive: true });
+  fs.writeFileSync(storePath, `${JSON.stringify(file, null, 2)}\n`);
 }
 
 function s3Config() {
@@ -164,25 +169,27 @@ async function signedS3Request(method: 'GET' | 'PUT', key: string, body = '') {
   });
 }
 
-async function s3Read(): Promise<DashboardMarginFile> {
-  const response = await signedS3Request('GET', s3Key());
-  if (response.status === 404) return blankFile();
+async function s3Read(ticker: string): Promise<DashboardMarginFile> {
+  const response = await signedS3Request('GET', s3Key(ticker));
+  if (response.status === 404) return blankFile(ticker);
   if (!response.ok) throw new Error(`Unable to read dashboard margin inputs from S3: ${response.status} ${response.statusText}`);
-  return normalizeFile(await response.json() as Partial<DashboardMarginFile>);
+  return normalizeFile(await response.json() as Partial<DashboardMarginFile>, ticker);
 }
 
-async function s3Write(file: DashboardMarginFile) {
-  const response = await signedS3Request('PUT', s3Key(), `${JSON.stringify(file, null, 2)}\n`);
+async function s3Write(file: DashboardMarginFile, ticker: string) {
+  const response = await signedS3Request('PUT', s3Key(ticker), `${JSON.stringify(file, null, 2)}\n`);
   if (!response.ok) throw new Error(`Unable to write dashboard margin inputs to S3: ${response.status} ${response.statusText}`);
 }
 
-export async function readDashboardMargins() {
-  if (!shouldUseS3()) return { ...localRead(), storage: 'local' as const };
-  return { ...await s3Read(), storage: 's3' as const };
+export async function readDashboardMargins(ticker = 'CURR') {
+  const normalizedTicker = normalizeTicker(ticker);
+  if (!shouldUseS3()) return { ...localRead(normalizedTicker), storage: 'local' as const };
+  return { ...await s3Read(normalizedTicker), storage: 's3' as const };
 }
 
 export async function saveDashboardMargin(input: Partial<DashboardMarginRecord>) {
-  const current = await readDashboardMargins();
+  const ticker = normalizeTicker(input.ticker);
+  const current = await readDashboardMargins(ticker);
   const now = new Date().toISOString();
   const record = normalizeRecord({ ...input, updatedAt: now });
   const existingIndex = current.records.findIndex(row => row.ticker === record.ticker && row.date === record.date);
@@ -195,12 +202,12 @@ export async function saveDashboardMargin(input: Partial<DashboardMarginRecord>)
     source: 'operations_manual_input',
     schemaVersion: 1,
     updatedAt: now,
-    s3Key: s3Key(),
+    s3Key: s3Key(ticker),
     records: nextRecords.sort((a, b) => b.date.localeCompare(a.date)),
   };
 
-  if (shouldUseS3()) await s3Write(nextFile);
-  else localWrite(nextFile);
+  if (shouldUseS3()) await s3Write(nextFile, ticker);
+  else localWrite(nextFile, ticker);
 
   return { ...nextFile, storage: shouldUseS3() ? 's3' as const : 'local' as const, savedRecord: record };
 }

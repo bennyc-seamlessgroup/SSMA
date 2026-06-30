@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { getOperationsTicker, setOperationsTicker } from '@/lib/operations/ticker-client';
 
 type PlatformKey = 'x' | 'reddit' | 'stocktwits';
 
@@ -19,17 +20,19 @@ type SocialMentionFile = {
 
 type UploadState = Record<PlatformKey, SocialMentionFile>;
 
-const platformCards: Array<{
+function platformCards(ticker: string): Array<{
   key: PlatformKey;
   label: string;
   hint: string;
   jsonPath: string;
   uploadable: boolean;
-}> = [
-  { key: 'x', label: 'X', hint: 'S3-managed from social-data/Twitter__CURR', jsonPath: 'public S3 prefix: social-data/Twitter__CURR', uploadable: false },
-  { key: 'reddit', label: 'Reddit', hint: 'S3-managed from social-data/Reddit_CURR', jsonPath: 'public S3 prefix: social-data/Reddit_CURR', uploadable: false },
-  { key: 'stocktwits', label: 'Stocktwits', hint: 'message ID, followers, likes, reshares', jsonPath: 'import_data/social/stocktwits_CURR_mentions.json', uploadable: true },
-];
+}> {
+  return [
+    { key: 'x', label: 'X', hint: `S3-managed from social-data/Twitter__${ticker}`, jsonPath: `public S3 prefix: social-data/Twitter__${ticker}`, uploadable: false },
+    { key: 'reddit', label: 'Reddit', hint: `S3-managed from social-data/Reddit_${ticker}`, jsonPath: `public S3 prefix: social-data/Reddit_${ticker}`, uploadable: false },
+    { key: 'stocktwits', label: 'Stocktwits', hint: 'message ID, followers, likes, reshares', jsonPath: `import_data/social/stocktwits_${ticker}_mentions.json`, uploadable: true },
+  ];
+}
 
 function classifyFile(file: File): PlatformKey | null {
   const name = file.name.toLowerCase();
@@ -53,46 +56,49 @@ function formatDateTime(value: string) {
 }
 
 export function NarrativeSocialUploadClient() {
+  const [selectedTicker, setSelectedTicker] = useState('CURR');
+  const [tickerDraft, setTickerDraft] = useState('CURR');
   const [files, setFiles] = useState<Partial<Record<PlatformKey, File>>>({});
   const [data, setData] = useState<Partial<UploadState>>({});
   const [status, setStatus] = useState<'idle' | 'loading' | 'uploading' | 'done' | 'error'>('loading');
   const [message, setMessage] = useState('');
   const inputRefs = useRef<Record<PlatformKey, HTMLInputElement | null>>({ x: null, reddit: null, stocktwits: null });
 
-  useEffect(() => {
-    let cancelled = false;
-
-    async function load() {
-      try {
-        const response = await fetch('/api/operations/narrative-social', { cache: 'no-store' });
-        const payload = await response.json();
-        if (!response.ok || !payload.ok) throw new Error(payload.error || 'Unable to load current narrative social data.');
-        if (!cancelled) {
-          setData(payload.data);
-          setStatus('idle');
-        }
-      } catch (error) {
-        if (!cancelled) {
-          setStatus('error');
-          setMessage(error instanceof Error ? error.message : 'Unable to load current narrative social data.');
-        }
-      }
+  async function load(ticker = selectedTicker) {
+    const normalizedTicker = ticker.trim().toUpperCase() || 'CURR';
+    setStatus('loading');
+    try {
+      const response = await fetch(`/api/operations/narrative-social?ticker=${encodeURIComponent(normalizedTicker)}`, { cache: 'no-store' });
+      const payload = await response.json();
+      if (!response.ok || !payload.ok) throw new Error(payload.error || 'Unable to load current narrative social data.');
+      setSelectedTicker(normalizedTicker);
+      setOperationsTicker(normalizedTicker);
+      setTickerDraft(normalizedTicker);
+      setData(payload.data);
+      setFiles({});
+      setStatus('idle');
+      setMessage('');
+    } catch (error) {
+      setStatus('error');
+      setMessage(error instanceof Error ? error.message : 'Unable to load current narrative social data.');
     }
+  }
 
-    load();
-    return () => {
-      cancelled = true;
-    };
+  useEffect(() => {
+    load(getOperationsTicker());
+    // Initial operations workspace load only.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const readyCount = useMemo(() => Object.values(files).filter(Boolean).length, [files]);
+  const cards = useMemo(() => platformCards(selectedTicker), [selectedTicker]);
 
   function assignFiles(fileList: FileList | File[], forcedPlatform?: PlatformKey) {
     const next: Partial<Record<PlatformKey, File>> = {};
     Array.from(fileList).forEach(file => {
       if (!file.name.toLowerCase().endsWith('.csv')) return;
       const platform = forcedPlatform ?? classifyFile(file);
-      if (platform && !platformCards.find(card => card.key === platform)?.uploadable) return;
+      if (platform && !cards.find(card => card.key === platform)?.uploadable) return;
       if (platform) next[platform] = file;
     });
     setFiles(current => ({ ...current, ...next }));
@@ -113,7 +119,8 @@ export function NarrativeSocialUploadClient() {
     }
 
     const formData = new FormData();
-    platformCards.forEach(platform => {
+    formData.append('ticker', selectedTicker);
+    cards.forEach(platform => {
       const file = files[platform.key];
       if (platform.uploadable && file) formData.append(platform.key, file);
     });
@@ -140,6 +147,16 @@ export function NarrativeSocialUploadClient() {
 
   return (
     <div className="ops-social-page">
+      <div className="ops-ticker-context">
+        <label>
+          <span>Company ticker</span>
+          <input value={tickerDraft} maxLength={10} onChange={event => setTickerDraft(event.target.value.toUpperCase())} />
+        </label>
+        <button type="button" onClick={() => load(tickerDraft)} disabled={status === 'loading' || status === 'uploading'}>
+          {status === 'loading' ? 'Loading...' : 'Load Workspace'}
+        </button>
+        <small>Stocktwits target: social/stocktwits_{selectedTicker}_mentions.json</small>
+      </div>
       <section
         className="ops-panel ops-social-dropzone"
         onDragOver={event => event.preventDefault()}
@@ -161,7 +178,7 @@ export function NarrativeSocialUploadClient() {
       {message && <p className={`ops-form-message ${status === 'error' ? 'bad' : 'good'}`}>{message}</p>}
 
       <div className="ops-upload-grid">
-        {platformCards.map(platform => {
+        {cards.map(platform => {
           const selectedFile = files[platform.key];
           const current = data[platform.key];
           const previewRows = current?.data?.slice(0, 3) ?? [];

@@ -1,4 +1,5 @@
 import crypto from 'crypto';
+import { redditSocialPrefix, xSocialPrefix } from '@/lib/ticker-data';
 
 export type PublicSocialPlatform = 'Reddit' | 'X';
 
@@ -158,7 +159,9 @@ export async function publicSocialPrefixVersion(prefix: string) {
   };
 }
 
-export const publicSocialPrefixes = {
-  reddit: 'social-data/Reddit_CURR',
-  x: 'social-data/Twitter__CURR',
-} as const;
+export function getPublicSocialPrefixes(ticker: string) {
+  return {
+    reddit: redditSocialPrefix(ticker),
+    x: xSocialPrefix(ticker),
+  } as const;
+}

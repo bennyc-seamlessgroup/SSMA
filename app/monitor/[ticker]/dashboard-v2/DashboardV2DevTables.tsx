@@ -51,12 +51,12 @@ function TrendsTable({ trends }: { trends: Array<Record<string, unknown>> }) {
     : <p className="page__desc import-empty">No trend records imported yet.</p>;
 }
 
-function ManualInputsTable({ rows }: { rows: Array<Record<string, unknown>> }) {
+function ManualInputsTable({ rows, file }: { rows: Array<Record<string, unknown>>; file: string }) {
   const columns = ['date', 'ticker', 'initialMargin', 'maintenanceMargin', 'averageDurationDays', 'updatedAt', 'updatedBy'];
   return (
     <>
       <p className="import-local-note">
-        Developer note: <strong>dashboard/CURR_margin_inputs.json</strong> is currently a local operations input file, unlike the main Dashboard V2 import JSON that is read from S3.
+        Developer note: <strong>{file}</strong> is an operations-managed input file. Its storage status is shown on this tab.
       </p>
       {rows.length
         ? <ImportDataTable columns={columns} rows={toRows(rows, columns)} pageSize={25} />
@@ -138,7 +138,7 @@ export function DashboardV2DevTables({
       <ImportDataTabs tabs={tabs}>
         <ObjectTable data={current} />
         <TrendsTable trends={trends} />
-        <ManualInputsTable rows={marginInputs} />
+        <ManualInputsTable rows={marginInputs} file={marginFile} />
         <EventsTable events={events} />
         <DerivedCardsTable derived={derived} />
         <MissingTable rows={missingFromSource} />

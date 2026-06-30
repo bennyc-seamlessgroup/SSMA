@@ -1,9 +1,11 @@
 import { NextResponse } from 'next/server';
 import { readDashboardMargins, saveDashboardMargin } from '@/lib/operations/dashboard-margin-store';
+import { normalizeTicker } from '@/lib/ticker-data';
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
-    const data = await readDashboardMargins();
+    const ticker = normalizeTicker(new URL(request.url).searchParams.get('ticker'));
+    const data = await readDashboardMargins(ticker);
     return NextResponse.json({ ok: true, data });
   } catch (error) {
     return NextResponse.json(

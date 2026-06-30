@@ -3,6 +3,7 @@ import { DashboardV2DevTables } from './DashboardV2DevTables';
 import { readImportFile } from '@/lib/import-data';
 import { readDashboardMargins } from '@/lib/operations/dashboard-margin-store';
 import { readOperationsSecFilings, type OperationsSecFilingRecord } from '@/lib/operations/sec-filings-store';
+import { dashboardMarginFile, dashboardV2File, normalizeTicker } from '@/lib/ticker-data';
 
 export const dynamic = 'force-dynamic';
 
@@ -34,8 +35,6 @@ type DashboardV2ConsolidatedData = {
   missingFromSource?: unknown[];
   derived?: Record<string, unknown>;
 };
-
-const dashboardV2File = 'dashboard_v2_CURR_consolidated_4_web.json';
 
 function plainText(value: unknown, fallback = '') {
   return String(value ?? fallback).replace(/\s+/g, ' ').trim();
@@ -78,13 +77,17 @@ function secFilingEvents(rows: OperationsSecFilingRecord[]): CompanyEvent[] {
     .sort((a, b) => a.date.localeCompare(b.date));
 }
 
-export default async function DashboardV2Page() {
+export default async function DashboardV2Page({ params }: Readonly<{ params: Promise<{ ticker: string }> }>) {
+  const { ticker } = await params;
+  const normalizedTicker = normalizeTicker(ticker);
+  const dashboardFile = dashboardV2File(normalizedTicker);
+  const marginFile = dashboardMarginFile(normalizedTicker);
   const [dashboardEnvelope, secFilings, marginInputs] = await Promise.all([
-    readImportFile<DashboardV2ConsolidatedData>(dashboardV2File),
-    readOperationsSecFilings(),
-    readDashboardMargins().catch(() => ({
+    readImportFile<DashboardV2ConsolidatedData>(dashboardFile),
+    readOperationsSecFilings(normalizedTicker),
+    readDashboardMargins(normalizedTicker).catch(() => ({
       storage: 'local' as const,
-      s3Key: 'dashboard/CURR_margin_inputs.json',
+      s3Key: marginFile,
       records: [],
     })),
   ]);
@@ -104,13 +107,13 @@ export default async function DashboardV2Page() {
 
       <DashboardV2Client data={trendData} events={events} marginRecords={marginInputs.records} />
       <DashboardV2DevTables
-        file={dashboardV2File}
+        file={dashboardFile}
         sourcePlatform={dashboardEnvelope.sourcePlatform ?? dashboardEnvelope.source ?? 'Internal'}
         status={dashboardEnvelope.status ?? 'ready'}
         current={current}
         trends={trendData as Array<Record<string, unknown>>}
         marginInputs={marginInputs.records as unknown as Array<Record<string, unknown>>}
-        marginFile={marginInputs.s3Key ?? 'dashboard/CURR_margin_inputs.json'}
+        marginFile={marginInputs.s3Key ?? marginFile}
         marginStatus={marginInputs.storage ?? 'ready'}
         events={events as Array<Record<string, unknown>>}
         missingFromSource={missingFromSource}

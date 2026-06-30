@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { OperationsUserPortalLink } from '@/components/OperationsUserPortalLink';
 
 const navItems = [
   ['Dashboard', '/operations/dashboard'],
@@ -25,7 +26,7 @@ export function OperationsShell({ children }: { children: React.ReactNode }) {
           ))}
         </nav>
 
-        <Link className="ops-user-portal-link" href="/monitor/CURR/dashboard-v2">User Portal</Link>
+        <OperationsUserPortalLink />
 
         <div className="ops-sidebar-note">
           <strong>Prototype mode</strong>

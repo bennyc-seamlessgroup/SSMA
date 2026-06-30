@@ -1,6 +1,7 @@
 import crypto from 'crypto';
 import fs from 'fs';
 import path from 'path';
+import { normalizeTicker, tickerFile } from '@/lib/ticker-data';
 
 export type SocialPlatform = 'x' | 'reddit' | 'stocktwits';
 
@@ -28,7 +29,7 @@ export type SocialMentionRecord = {
 export type SocialMentionsFile = {
   source: 'operations_csv_upload';
   schemaVersion: 1;
-  ticker: 'CURR';
+  ticker: string;
   platform: SocialMentionRecord['platform'];
   updatedAt: string;
   recordCount: number;
@@ -39,20 +40,17 @@ export type SocialMentionsFile = {
 const platformConfig = {
   x: {
     label: 'X' as const,
-    path: path.join(process.cwd(), 'import_data', 'social', 'x_CURR_mentions.json'),
-    importPath: 'social/x_CURR_mentions.json',
+    template: 'social/x_{ticker}_mentions.json',
   },
   reddit: {
     label: 'Reddit' as const,
-    path: path.join(process.cwd(), 'import_data', 'social', 'reddit_CURR_mentions.json'),
-    importPath: 'social/reddit_CURR_mentions.json',
+    template: 'social/reddit_{ticker}_mentions.json',
   },
   stocktwits: {
     label: 'Stocktwits' as const,
-    path: path.join(process.cwd(), 'import_data', 'social', 'stocktwits_CURR_mentions.json'),
-    importPath: 'social/stocktwits_CURR_mentions.json',
+    template: 'social/stocktwits_{ticker}_mentions.json',
   },
-} satisfies Record<SocialPlatform, { label: SocialMentionRecord['platform']; path: string; importPath: string }>;
+} satisfies Record<SocialPlatform, { label: SocialMentionRecord['platform']; template: string }>;
 
 function normalizeText(value: unknown) {
   return String(value ?? '').trim();
@@ -187,15 +185,16 @@ function normalizeRecord(platform: SocialPlatform, row: Record<string, string>, 
   };
 }
 
-export function platformImportPath(platform: SocialPlatform) {
-  return platformConfig[platform].importPath;
+export function platformImportPath(platform: SocialPlatform, ticker = 'CURR') {
+  return tickerFile(platformConfig[platform].template, ticker);
 }
 
-export function localSocialMentionsPath(platform: SocialPlatform) {
-  return platformConfig[platform].path;
+export function localSocialMentionsPath(platform: SocialPlatform, ticker = 'CURR') {
+  return path.join(process.cwd(), 'import_data', platformImportPath(platform, ticker));
 }
 
-export function parseSocialMentionsCsv(platform: SocialPlatform, csvText: string, originalFileName = ''): SocialMentionsFile {
+export function parseSocialMentionsCsv(platform: SocialPlatform, csvText: string, originalFileName = '', ticker = 'CURR'): SocialMentionsFile {
+  const normalizedTicker = normalizeTicker(ticker);
   const records = parseCsv(csvText)
     .map((row, index) => normalizeRecord(platform, row, index))
     .filter(record => record.text || record.url || record.author);
@@ -203,7 +202,7 @@ export function parseSocialMentionsCsv(platform: SocialPlatform, csvText: string
   return {
     source: 'operations_csv_upload',
     schemaVersion: 1,
-    ticker: 'CURR',
+    ticker: normalizedTicker,
     platform: platformConfig[platform].label,
     updatedAt: new Date().toISOString(),
     recordCount: records.length,
@@ -212,13 +211,15 @@ export function parseSocialMentionsCsv(platform: SocialPlatform, csvText: string
   };
 }
 
-export function readSocialMentions(platform: SocialPlatform): SocialMentionsFile {
+export function readSocialMentions(platform: SocialPlatform, ticker = 'CURR'): SocialMentionsFile {
+  const normalizedTicker = normalizeTicker(ticker);
   const config = platformConfig[platform];
-  if (!fs.existsSync(config.path)) {
+  const filePath = localSocialMentionsPath(platform, normalizedTicker);
+  if (!fs.existsSync(filePath)) {
     return {
       source: 'operations_csv_upload',
       schemaVersion: 1,
-      ticker: 'CURR',
+      ticker: normalizedTicker,
       platform: config.label,
       updatedAt: '',
       recordCount: 0,
@@ -226,7 +227,7 @@ export function readSocialMentions(platform: SocialPlatform): SocialMentionsFile
       data: [],
     };
   }
-  return JSON.parse(fs.readFileSync(config.path, 'utf8')) as SocialMentionsFile;
+  return JSON.parse(fs.readFileSync(filePath, 'utf8')) as SocialMentionsFile;
 }
 
 function shouldUseS3() {
@@ -299,11 +300,11 @@ async function signedS3Request(method: 'GET' | 'PUT', key: string, body = '') {
   });
 }
 
-function blankSocialMentions(platform: SocialPlatform): SocialMentionsFile {
+function blankSocialMentions(platform: SocialPlatform, ticker: string): SocialMentionsFile {
   return {
     source: 'operations_csv_upload',
     schemaVersion: 1,
-    ticker: 'CURR',
+    ticker: normalizeTicker(ticker),
     platform: platformConfig[platform].label,
     updatedAt: '',
     recordCount: 0,
@@ -312,52 +313,55 @@ function blankSocialMentions(platform: SocialPlatform): SocialMentionsFile {
   };
 }
 
-async function readS3SocialMentions(platform: SocialPlatform): Promise<SocialMentionsFile> {
-  const response = await signedS3Request('GET', platformImportPath(platform));
-  if (response.status === 404) return blankSocialMentions(platform);
-  if (!response.ok) throw new Error(`Unable to read ${platformImportPath(platform)} from S3: ${response.status} ${response.statusText}`);
+async function readS3SocialMentions(platform: SocialPlatform, ticker: string): Promise<SocialMentionsFile> {
+  const importPath = platformImportPath(platform, ticker);
+  const response = await signedS3Request('GET', importPath);
+  if (response.status === 404) return blankSocialMentions(platform, ticker);
+  if (!response.ok) throw new Error(`Unable to read ${importPath} from S3: ${response.status} ${response.statusText}`);
   return await response.json() as SocialMentionsFile;
 }
 
-async function writeS3SocialMentions(platform: SocialPlatform, file: SocialMentionsFile) {
-  const response = await signedS3Request('PUT', platformImportPath(platform), `${JSON.stringify(file, null, 2)}\n`);
-  if (!response.ok) throw new Error(`Unable to write ${platformImportPath(platform)} to S3: ${response.status} ${response.statusText}`);
+async function writeS3SocialMentions(platform: SocialPlatform, file: SocialMentionsFile, ticker: string) {
+  const importPath = platformImportPath(platform, ticker);
+  const response = await signedS3Request('PUT', importPath, `${JSON.stringify(file, null, 2)}\n`);
+  if (!response.ok) throw new Error(`Unable to write ${importPath} to S3: ${response.status} ${response.statusText}`);
 }
 
-export async function readSocialMentionsForOperations(platform: SocialPlatform): Promise<SocialMentionsFile> {
-  if (!shouldUseS3()) return readSocialMentions(platform);
-  return await readS3SocialMentions(platform);
+export async function readSocialMentionsForOperations(platform: SocialPlatform, ticker = 'CURR'): Promise<SocialMentionsFile> {
+  if (!shouldUseS3()) return readSocialMentions(platform, ticker);
+  return await readS3SocialMentions(platform, ticker);
 }
 
-export async function writeSocialMentions(platform: SocialPlatform, file: SocialMentionsFile) {
+export async function writeSocialMentions(platform: SocialPlatform, file: SocialMentionsFile, ticker = file.ticker) {
+  const normalizedTicker = normalizeTicker(ticker);
   if (shouldUseS3()) {
-    await writeS3SocialMentions(platform, file);
+    await writeS3SocialMentions(platform, file, normalizedTicker);
     return file;
   }
 
-  const config = platformConfig[platform];
-  fs.mkdirSync(path.dirname(config.path), { recursive: true });
-  fs.writeFileSync(config.path, `${JSON.stringify(file, null, 2)}\n`);
+  const filePath = localSocialMentionsPath(platform, normalizedTicker);
+  fs.mkdirSync(path.dirname(filePath), { recursive: true });
+  fs.writeFileSync(filePath, `${JSON.stringify(file, null, 2)}\n`);
   return file;
 }
 
-export async function replaceSocialMentionsFromCsv(platform: SocialPlatform, csvText: string, originalFileName = '') {
-  return writeSocialMentions(platform, parseSocialMentionsCsv(platform, csvText, originalFileName));
+export async function replaceSocialMentionsFromCsv(platform: SocialPlatform, csvText: string, originalFileName = '', ticker = 'CURR') {
+  return writeSocialMentions(platform, parseSocialMentionsCsv(platform, csvText, originalFileName, ticker), ticker);
 }
 
-export function readAllSocialMentions() {
+export function readAllSocialMentions(ticker = 'CURR') {
   return {
-    x: readSocialMentions('x'),
-    reddit: readSocialMentions('reddit'),
-    stocktwits: readSocialMentions('stocktwits'),
+    x: readSocialMentions('x', ticker),
+    reddit: readSocialMentions('reddit', ticker),
+    stocktwits: readSocialMentions('stocktwits', ticker),
   };
 }
 
-export async function readAllSocialMentionsForOperations() {
+export async function readAllSocialMentionsForOperations(ticker = 'CURR') {
   const [x, reddit, stocktwits] = await Promise.all([
-    readSocialMentionsForOperations('x'),
-    readSocialMentionsForOperations('reddit'),
-    readSocialMentionsForOperations('stocktwits'),
+    readSocialMentionsForOperations('x', ticker),
+    readSocialMentionsForOperations('reddit', ticker),
+    readSocialMentionsForOperations('stocktwits', ticker),
   ]);
   return { x, reddit, stocktwits };
 }

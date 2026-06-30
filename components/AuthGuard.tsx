@@ -1,27 +1,43 @@
 'use client';
 
-import { usePathname, useRouter } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
-import { getStoredTokens, isTokenValid, refreshTokens } from '@/lib/auth-client';
+import { getAuthenticatedProfile, getStoredTokens, isTokenValid, refreshTokens } from '@/lib/auth-client';
+import { authorizedMonitorRedirect, profileAllowsTicker } from '@/lib/ticker-access';
 
-export function AuthGuard({ children }: { children: React.ReactNode }) {
+export function AuthGuard({ children, ticker }: { children: React.ReactNode; ticker: string }) {
   const router = useRouter();
-  const pathname = usePathname();
   const [status, setStatus] = useState<'checking' | 'authenticated'>('checking');
 
   useEffect(() => {
     let cancelled = false;
+    const currentPath = () => window.location.pathname || `/monitor/${ticker}/dashboard-v2`;
 
     async function verifySession() {
+      setStatus('checking');
       const tokens = getStoredTokens();
       if (tokens?.idToken && isTokenValid(tokens.idToken, 0)) {
-        setStatus('authenticated');
+        try {
+          const profile = await getAuthenticatedProfile();
+          if (!profileAllowsTicker(profile, ticker)) {
+            router.replace(authorizedMonitorRedirect(currentPath(), profile) as never);
+            return;
+          }
+          if (!cancelled) setStatus('authenticated');
+        } catch {
+          router.replace(`/login?next=${encodeURIComponent(currentPath())}`);
+        }
         return;
       }
 
       if (tokens?.refreshToken) {
         try {
           await refreshTokens(tokens.refreshToken);
+          const profile = await getAuthenticatedProfile();
+          if (!profileAllowsTicker(profile, ticker)) {
+            router.replace(authorizedMonitorRedirect(currentPath(), profile) as never);
+            return;
+          }
           if (!cancelled) setStatus('authenticated');
           return;
         } catch {
@@ -29,7 +45,7 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
         }
       }
 
-      const next = encodeURIComponent(pathname || '/monitor/CURR/dashboard-v2');
+      const next = encodeURIComponent(currentPath());
       router.replace(`/login?next=${next}`);
     }
 
@@ -42,7 +58,7 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
         try {
           await refreshTokens(tokens.refreshToken);
         } catch {
-          router.replace(`/login?next=${encodeURIComponent(pathname || '/monitor/CURR/dashboard-v2')}`);
+          router.replace(`/login?next=${encodeURIComponent(currentPath())}`);
         }
       }
     }, 30000);
@@ -51,7 +67,7 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
       cancelled = true;
       window.clearInterval(interval);
     };
-  }, [pathname, router]);
+  }, [router, ticker]);
 
   if (status !== 'authenticated') {
     return (

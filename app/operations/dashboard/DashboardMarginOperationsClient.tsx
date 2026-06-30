@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
+import { getOperationsTicker, setOperationsTicker } from '@/lib/operations/ticker-client';
 
 type MarginRecord = {
   id: string;
@@ -46,18 +47,20 @@ function formatDateTime(value: string) {
   }).format(date);
 }
 
-function normalizePayload(payload: unknown): MarginResponse {
+function normalizePayload(payload: unknown, ticker: string): MarginResponse {
   const envelope = payload as { data?: Partial<MarginResponse> } & Partial<MarginResponse>;
   const data = envelope.data ?? envelope;
   return {
     storage: data.storage,
-    s3Key: data.s3Key ?? 'dashboard/CURR_margin_inputs.json',
+    s3Key: data.s3Key ?? `dashboard/${ticker}_margin_inputs.json`,
     updatedAt: data.updatedAt ?? new Date().toISOString(),
     records: Array.isArray(data.records) ? data.records as MarginRecord[] : [],
   };
 }
 
 export function DashboardMarginOperationsClient() {
+  const [selectedTicker, setSelectedTicker] = useState('CURR');
+  const [tickerDraft, setTickerDraft] = useState('CURR');
   const [form, setForm] = useState({
     ticker: 'CURR',
     date: todayYmd(),
@@ -70,13 +73,25 @@ export function DashboardMarginOperationsClient() {
   const [status, setStatus] = useState<'loading' | 'idle' | 'saving' | 'saved' | 'error'>('loading');
   const [message, setMessage] = useState('');
 
-  async function loadRecords() {
+  async function loadRecords(ticker = selectedTicker) {
+    const normalizedTicker = ticker.trim().toUpperCase() || 'CURR';
     setStatus('loading');
     try {
-      const response = await fetch('/api/operations/dashboard-margin', { cache: 'no-store' });
+      const response = await fetch(`/api/operations/dashboard-margin?ticker=${encodeURIComponent(normalizedTicker)}`, { cache: 'no-store' });
       const payload = await response.json();
       if (!response.ok || payload.ok === false) throw new Error(payload.error || 'Unable to load margin records.');
-      setData(normalizePayload(payload));
+      setSelectedTicker(normalizedTicker);
+      setOperationsTicker(normalizedTicker);
+      setTickerDraft(normalizedTicker);
+      setForm({
+        ticker: normalizedTicker,
+        date: todayYmd(),
+        initialMargin: '',
+        maintenanceMargin: '',
+        averageDurationDays: '',
+        updatedBy: 'operations',
+      });
+      setData(normalizePayload(payload, normalizedTicker));
       setStatus('idle');
       setMessage('');
     } catch (error) {
@@ -86,7 +101,9 @@ export function DashboardMarginOperationsClient() {
   }
 
   useEffect(() => {
-    loadRecords();
+    loadRecords(getOperationsTicker());
+    // Initial operations workspace load only.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const records = useMemo(() => {
@@ -131,7 +148,7 @@ export function DashboardMarginOperationsClient() {
       });
       const payload = await response.json();
       if (!response.ok || payload.ok === false) throw new Error(payload.error || 'Unable to save margin record.');
-      setData(normalizePayload(payload));
+      setData(normalizePayload(payload, selectedTicker));
       setStatus('saved');
       setMessage(`Saved ${form.date} margin inputs.`);
     } catch (error) {
@@ -141,7 +158,18 @@ export function DashboardMarginOperationsClient() {
   }
 
   return (
-    <div className="ops-sec-grid">
+    <>
+      <div className="ops-ticker-context">
+        <label>
+          <span>Company ticker</span>
+          <input value={tickerDraft} maxLength={10} onChange={event => setTickerDraft(event.target.value.toUpperCase())} />
+        </label>
+        <button type="button" onClick={() => loadRecords(tickerDraft)} disabled={status === 'loading' || status === 'saving'}>
+          {status === 'loading' ? 'Loading...' : 'Load Workspace'}
+        </button>
+        <small>Target: dashboard/{selectedTicker}_margin_inputs.json</small>
+      </div>
+      <div className="ops-sec-grid">
       <section className="ops-panel ops-sec-form-panel">
         <div className="ops-panel-head">
           <div>
@@ -152,10 +180,7 @@ export function DashboardMarginOperationsClient() {
         </div>
 
         <form className="ops-sec-form" onSubmit={saveRecord}>
-          <div className="ops-form-grid two">
-            <label>Ticker<input value={form.ticker} onChange={event => updateField('ticker', event.target.value.toUpperCase())} /></label>
-            <label>Date<input type="date" value={form.date} onChange={event => updateField('date', event.target.value)} /></label>
-          </div>
+          <label>Date<input type="date" value={form.date} onChange={event => updateField('date', event.target.value)} /></label>
           <div className="ops-form-grid two">
             <label>Initial Margin<input type="number" step="0.01" min="0" placeholder="150.00" value={form.initialMargin} onChange={event => updateField('initialMargin', event.target.value)} /></label>
             <label>Maintenance Margin<input type="number" step="0.01" min="0" placeholder="150.00" value={form.maintenanceMargin} onChange={event => updateField('maintenanceMargin', event.target.value)} /></label>
@@ -197,7 +222,7 @@ export function DashboardMarginOperationsClient() {
           </div>
           <div className="ops-storage-box">
             <span>{data?.storage ?? 'loading'}</span>
-            <strong>{data?.s3Key ?? 'dashboard/CURR_margin_inputs.json'}</strong>
+            <strong>{data?.s3Key ?? `dashboard/${selectedTicker}_margin_inputs.json`}</strong>
             <small>{data?.updatedAt ? `Updated ${formatDateTime(data.updatedAt)}` : 'Waiting for first save'}</small>
           </div>
         </section>
@@ -239,6 +264,7 @@ export function DashboardMarginOperationsClient() {
           </table>
         </div>
       </section>
-    </div>
+      </div>
+    </>
   );
 }

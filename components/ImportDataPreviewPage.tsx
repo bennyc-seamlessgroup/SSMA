@@ -1,4 +1,4 @@
-import { readImportFile } from '@/lib/import-data';
+import { readImportJson, type ImportEnvelope } from '@/lib/import-data';
 import { ImportDataTable } from '@/components/ImportDataTable';
 import { InfoTooltip } from '@/components/InfoTooltip';
 import { ImportDataTabs } from '@/components/ImportDataTabs';
@@ -139,17 +139,22 @@ function ImportDataRenderer({ data }: { data: unknown }) {
 export async function ImportDataPreviewPage({ title, description, files, children }: ImportDataPreviewPageProps) {
   const datasets = await Promise.all(files.map(async file => {
     try {
-      const envelope = await readImportFile(file);
+      const payload = await readImportJson<Record<string, unknown>>(file);
+      const hasEnvelope = isRecord(payload) && Object.prototype.hasOwnProperty.call(payload, 'data');
+      const envelope = (hasEnvelope ? payload : {}) as ImportEnvelope;
+      const data = hasEnvelope ? envelope.data : payload;
+      const recordCount = envelope.recordCount
+        ?? (Array.isArray(data) ? data.length : 1);
       return {
         id: file.replace(/[^a-zA-Z0-9]+/g, '-'),
         file,
         title: cleanTitle(file),
         sourcePlatform: envelope.sourcePlatform ?? 'Internal',
-        recordCount: envelope.recordCount ?? 0,
+        recordCount,
         status: envelope.status ?? 'ready',
         notes: envelope.notes ?? 'Ready for portal workflow.',
-        importedAt: envelope.importedAt ?? '',
-        data: envelope.data,
+        importedAt: envelope.importedAt ?? String(payload.created_at_utc ?? ''),
+        data,
       };
     } catch {
       return {

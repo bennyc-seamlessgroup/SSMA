@@ -1,6 +1,8 @@
 import { ImportDataPreviewPage } from '@/components/ImportDataPreviewPage';
 import { InfoTooltip } from '@/components/InfoTooltip';
+import { parseAiAnalysis, readAiAnalysis } from '@/lib/ai-analysis';
 import { readImportFile, readPageContent } from '@/lib/import-data';
+import { aiAnalysisFile, normalizeTicker, shortInterestFile } from '@/lib/ticker-data';
 import type { ReactNode } from 'react';
 
 export const dynamic = 'force-dynamic';
@@ -159,10 +161,11 @@ function delta(current: number | null, previous: number | null, options?: Intl.N
 
 function DeltaBadge({ info, suffix = '', display }: { info: ReturnType<typeof delta>; suffix?: string; display?: string }) {
   if (display) {
+    const match = display.match(/^(.+?)(\([^)]*\))$/);
     return (
       <span className={`short-kpi-delta ${display.startsWith('-') ? 'down' : display.startsWith('+') ? 'up' : 'neutral'}`}>
-        <strong>{display}</strong>
-        <em>vs yesterday</em>
+        <strong>{match?.[1]?.trim() ?? display}</strong>
+        <em>{match ? `${match[2]} vs yesterday` : 'vs yesterday'}</em>
       </span>
     );
   }
@@ -211,13 +214,19 @@ const shortScoreGuide = [
   { label: 'Extreme', range: '80-100', meaning: 'Severe pressure' },
 ];
 
-export default async function ShortInterestPage() {
+export default async function ShortInterestPage({ params }: Readonly<{ params: Promise<{ ticker: string }> }>) {
+  const { ticker } = await params;
+  const normalizedTicker = normalizeTicker(ticker);
+  const dataFile = shortInterestFile(normalizedTicker);
+  const analysisFile = aiAnalysisFile(normalizedTicker);
   const [
     ortexEnvelope,
     pageContent,
+    aiAnalysis,
   ] = await Promise.all([
-    readImportFile<Row>('ortex_CURR_consolidated_4_web.json'),
+    readImportFile<Row>(dataFile),
     readPageContent('shortInterest'),
+    readAiAnalysis(normalizedTicker).catch(() => null),
   ]);
 
   const ortexData = record(ortexEnvelope.data);
@@ -266,6 +275,7 @@ export default async function ShortInterestPage() {
   const shortScoreCard = record(shortCards?.shortScore);
   const shortScoreLevelCard = record(shortCards?.shortScoreLevel);
   const currentInterpretation = record(ortexData.currentInterpretation);
+  const aiInterpretation = parseAiAnalysis(aiAnalysis?.short_interest_current_interpretation);
   const managementWatchItems = textList(ortexData.managementWatchItems, [
     'Borrow fee movement above current levels',
     'Any decline in available shares to borrow',
@@ -278,7 +288,8 @@ export default async function ShortInterestPage() {
       title="Short Interest Intelligence"
       description="Short interest, borrow fee, shares available, days to cover, and squeeze risk from the consolidated ORTEX import data."
       files={[
-        'ortex_CURR_consolidated_4_web.json',
+        dataFile,
+        analysisFile,
       ]}
     >
       <section className="terminal-section short-interest-overview">
@@ -329,8 +340,8 @@ export default async function ShortInterestPage() {
         <div className="short-interest-analysis-grid">
           <div className="terminal-card short-pressure-card">
             <span>Current Interpretation</span>
-            <strong>{text(currentInterpretation.headline, (borrowFee ?? 0) >= 25 || shortScore >= 65 ? 'Borrow pressure is visible' : 'Short pressure is moderate')}</strong>
-            <p>{text(currentInterpretation.body, `Current data shows ${formatNumber(shortInterestShares)} reported short shares, ${formatPercent(shortInterestPercent, { maximumFractionDigits: 2 })} short interest as a percentage of float, and a ${formatPercent(borrowFee, { maximumFractionDigits: 2 })} borrow fee. This overview helps management understand whether short sellers are facing rising cost, tighter inventory, or increasing positioning pressure.`)}</p>
+            <strong>{text(aiInterpretation.headline, text(currentInterpretation.headline, (borrowFee ?? 0) >= 25 || shortScore >= 65 ? 'Borrow pressure is visible' : 'Short pressure is moderate'))}</strong>
+            <p>{text(aiInterpretation.body, text(currentInterpretation.body, `Current data shows ${formatNumber(shortInterestShares)} reported short shares, ${formatPercent(shortInterestPercent, { maximumFractionDigits: 2 })} short interest as a percentage of float, and a ${formatPercent(borrowFee, { maximumFractionDigits: 2 })} borrow fee. This overview helps management understand whether short sellers are facing rising cost, tighter inventory, or increasing positioning pressure.`))}</p>
           </div>
           <div className="terminal-card short-pressure-card">
             <span>Management Watch Items</span>

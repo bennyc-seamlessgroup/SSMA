@@ -1,15 +1,18 @@
 import { getImportFileStatus } from '@/lib/import-data';
-import { publicSocialPrefixes, publicSocialPrefixVersion } from '@/lib/social-s3-data';
+import { getPublicSocialPrefixes, publicSocialPrefixVersion } from '@/lib/social-s3-data';
+import { normalizeTicker, stocktwitsFile } from '@/lib/ticker-data';
 import { NextResponse } from 'next/server';
 
 export const dynamic = 'force-dynamic';
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
+    const ticker = normalizeTicker(new URL(request.url).searchParams.get('ticker'));
+    const publicSocialPrefixes = getPublicSocialPrefixes(ticker);
     const [reddit, x, stocktwits] = await Promise.all([
       publicSocialPrefixVersion(publicSocialPrefixes.reddit).catch(() => null),
       publicSocialPrefixVersion(publicSocialPrefixes.x).catch(() => null),
-      getImportFileStatus('social/stocktwits_CURR_mentions.json').catch(() => null),
+      getImportFileStatus(stocktwitsFile(ticker)).catch(() => null),
     ]);
 
     const updatedAtValues = [

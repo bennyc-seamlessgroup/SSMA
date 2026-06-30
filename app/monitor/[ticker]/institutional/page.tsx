@@ -1,12 +1,14 @@
 import { readImportFile, readImportJson } from '@/lib/import-data';
 import type { InstitutionalHolding } from '@/lib/types';
 import { formatImportDataUpdatedAt, getImportFilesVersion } from '@/lib/import-data-version';
-import { pageDataSources } from '@/lib/page-data-sources';
+import { getPageDataSources } from '@/lib/page-data-sources';
+import { institutionalActivistFile, institutionalOverviewFile, institutionalSecurityFile, normalizeTicker } from '@/lib/ticker-data';
 import { getServerPortalTimeZone } from '@/lib/server-timezone';
 import { InstitutionalTabs } from './InstitutionalTabs';
 import type { ActivistFiling } from './ActivistFilingsTable';
 import { InstitutionalDevTables } from './InstitutionalDevTables';
 import { InstitutionalOverview, type InstitutionalOverviewData } from './InstitutionalOverview';
+import { buildDashboard } from '@/lib/mock-data';
 
 type SecurityOwnershipRow = {
   name?: string | null;
@@ -39,8 +41,6 @@ type ActivistFilingRow = {
   url?: string | null;
 };
 
-const institutionalOverviewFile = 'institutional_ownership_CURR_consolidated_4_web.json';
-
 function formatNumber(value: unknown, options?: Intl.NumberFormatOptions) {
   const numeric = typeof value === 'number' ? value : Number(String(value ?? '').replace(/,/g, ''));
   if (!Number.isFinite(numeric)) return value ? String(value) : 'N/A';
@@ -70,14 +70,18 @@ function ownershipChangeType(row: Pick<SecurityOwnershipRow, 'sharesChange' | 's
 
 export default async function InstitutionalPage({ params }: Readonly<{ params: Promise<{ ticker: string }> }>) {
   const { ticker } = await params;
-  const normalizedTicker = ticker.toUpperCase();
+  const normalizedTicker = normalizeTicker(ticker);
+  const company = buildDashboard(normalizedTicker).company;
   const timeZone = await getServerPortalTimeZone();
-  const pageDataSource = pageDataSources.institutional;
+  const overviewFile = institutionalOverviewFile(normalizedTicker);
+  const securityFile = institutionalSecurityFile(normalizedTicker);
+  const activistFile = institutionalActivistFile(normalizedTicker);
+  const pageDataSource = getPageDataSources(normalizedTicker).institutional;
   const pageImportFiles = pageDataSource.type === 'import-files' ? pageDataSource.files : [];
   const [securityRows, activistRows, overviewEnvelope, importDataVersion] = await Promise.all([
-    readImportJson<SecurityOwnershipRow[]>('fintel_security_ownership_premium_CURR_consolidated_4_web.json'),
-    readImportJson<ActivistFilingRow[]>('fintel_activist_filings_premium_CURR_consolidated_4_web.json'),
-    readImportFile<InstitutionalOverviewData>(institutionalOverviewFile),
+    readImportJson<SecurityOwnershipRow[]>(securityFile),
+    readImportJson<ActivistFilingRow[]>(activistFile),
+    readImportFile<InstitutionalOverviewData>(overviewFile),
     getImportFilesVersion(pageImportFiles),
   ]);
   const holdings: InstitutionalHolding[] = securityRows.map((row, index) => ({
@@ -99,7 +103,7 @@ export default async function InstitutionalPage({ params }: Readonly<{ params: P
     owner_url: row.url ?? undefined,
     cost_basis: formatNumber(row.costBasis),
     source_type: 'fintel',
-    source_label: 'fintel_security_ownership_premium_CURR_consolidated_4_web.json',
+    source_label: securityFile,
   }));
   const activistFilings: ActivistFiling[] = activistRows.map((row, index) => ({
     id: `activist-filing-${index}`,
@@ -129,10 +133,13 @@ export default async function InstitutionalPage({ params }: Readonly<{ params: P
       <InstitutionalOverview data={overviewEnvelope.data} ticker={normalizedTicker} />
 
       <section className="panel">
-        <InstitutionalTabs holdings={holdings} activistFilings={activistFilings} ticker={normalizedTicker} companyName="CURRENC Group Inc." />
+        <InstitutionalTabs holdings={holdings} activistFilings={activistFilings} ticker={normalizedTicker} companyName={company.company_name} />
       </section>
 
       <InstitutionalDevTables
+        overviewFile={overviewFile}
+        securityFile={securityFile}
+        activistFile={activistFile}
         overview={(overviewEnvelope.data.overview ?? null) as Record<string, unknown> | null}
         ownershipStructure={(overviewEnvelope.data.ownership_structure ?? []) as Array<Record<string, unknown>>}
         insiderBars={(overviewEnvelope.data.insider_bars ?? []) as Array<Record<string, unknown>>}

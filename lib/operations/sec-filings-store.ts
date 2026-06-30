@@ -1,6 +1,7 @@
 import crypto from 'crypto';
 import fs from 'fs';
 import path from 'path';
+import { configuredTickerFile, normalizeTicker, secFilingsFile } from '@/lib/ticker-data';
 
 export type OperationsSecFilingRecord = {
   id: string;
@@ -50,23 +51,25 @@ type LegacySecFilingRow = {
   sourcePlatform?: unknown;
 };
 
-const localStorePath = path.join(process.cwd(), 'import_data', 'news_filings', 'CURR_sec_filings.json');
-const defaultS3Key = 'news_filings/CURR_sec_filings.json';
+function s3Key(ticker: string) {
+  const configured = process.env.OPERATIONS_SEC_FILINGS_S3_KEY?.trim();
+  return configured ? configuredTickerFile(configured, ticker) : secFilingsFile(ticker);
+}
 
-function s3Key() {
-  return process.env.OPERATIONS_SEC_FILINGS_S3_KEY?.trim() || defaultS3Key;
+function localStorePath(ticker: string) {
+  return path.join(process.cwd(), 'import_data', s3Key(ticker));
 }
 
 function shouldUseS3() {
   return process.env.IMPORT_DATA_SOURCE === 's3' && Boolean(process.env.AWS_S3_BUCKET_NAME);
 }
 
-function blankFile(): OperationsSecFilingsFile {
+function blankFile(ticker: string): OperationsSecFilingsFile {
   return {
     source: 'operations_manual_input',
     schemaVersion: 1,
     updatedAt: new Date().toISOString(),
-    s3Key: s3Key(),
+    s3Key: s3Key(ticker),
     records: [],
     log: [],
   };
@@ -145,10 +148,10 @@ function accessionFromUrl(value: unknown) {
   return match?.[1] ?? '';
 }
 
-function normalizeLegacyRecord(input: LegacySecFilingRow): OperationsSecFilingRecord {
+function normalizeLegacyRecord(input: LegacySecFilingRow, ticker: string): OperationsSecFilingRecord {
   return normalizeRecord({
-    ticker: 'CURR',
-    companyName: 'CURRENC Group Inc.',
+    ticker,
+    companyName: `${ticker} company`,
     formType: normalizeText(input.formType),
     formDescription: normalizeText(input.title || input.excerpt),
     filingDate: normalizeText(input.publishDate),
@@ -161,19 +164,19 @@ function normalizeLegacyRecord(input: LegacySecFilingRow): OperationsSecFilingRe
   });
 }
 
-function normalizeFile(parsed: Partial<OperationsSecFilingsFile> & { data?: unknown }): OperationsSecFilingsFile {
+function normalizeFile(parsed: Partial<OperationsSecFilingsFile> & { data?: unknown }, ticker: string): OperationsSecFilingsFile {
   const records = Array.isArray(parsed.records)
     ? parsed.records.map(normalizeRecord)
     : Array.isArray(parsed.data)
-      ? parsed.data.map(row => normalizeLegacyRecord(row as LegacySecFilingRow))
+      ? parsed.data.map(row => normalizeLegacyRecord(row as LegacySecFilingRow, ticker))
       : [];
 
   return {
-    ...blankFile(),
+    ...blankFile(ticker),
     ...parsed,
     source: 'operations_manual_input',
     schemaVersion: 1,
-    s3Key: parsed.s3Key || s3Key(),
+    s3Key: parsed.s3Key || s3Key(ticker),
     records,
     log: Array.isArray(parsed.log) ? parsed.log.map((row, index) => normalizeLogEntry(row as Partial<OperationsSecFilingLogEntry> & Record<string, unknown>, index)) : [],
   };
@@ -193,15 +196,17 @@ function validateRecord(record: OperationsSecFilingRecord) {
   }
 }
 
-function localRead(): OperationsSecFilingsFile {
-  if (!fs.existsSync(localStorePath)) return blankFile();
-  const parsed = JSON.parse(fs.readFileSync(localStorePath, 'utf8')) as Partial<OperationsSecFilingsFile> & { data?: unknown };
-  return normalizeFile(parsed);
+function localRead(ticker: string): OperationsSecFilingsFile {
+  const storePath = localStorePath(ticker);
+  if (!fs.existsSync(storePath)) return blankFile(ticker);
+  const parsed = JSON.parse(fs.readFileSync(storePath, 'utf8')) as Partial<OperationsSecFilingsFile> & { data?: unknown };
+  return normalizeFile(parsed, ticker);
 }
 
-function localWrite(file: OperationsSecFilingsFile) {
-  fs.mkdirSync(path.dirname(localStorePath), { recursive: true });
-  fs.writeFileSync(localStorePath, `${JSON.stringify(file, null, 2)}\n`);
+function localWrite(file: OperationsSecFilingsFile, ticker: string) {
+  const storePath = localStorePath(ticker);
+  fs.mkdirSync(path.dirname(storePath), { recursive: true });
+  fs.writeFileSync(storePath, `${JSON.stringify(file, null, 2)}\n`);
 }
 
 function s3Config() {
@@ -287,26 +292,28 @@ async function signedS3Request(method: 'GET' | 'PUT', key: string, body = '') {
   });
 }
 
-async function s3Read(): Promise<OperationsSecFilingsFile> {
-  const response = await signedS3Request('GET', s3Key());
-  if (response.status === 404) return blankFile();
+async function s3Read(ticker: string): Promise<OperationsSecFilingsFile> {
+  const response = await signedS3Request('GET', s3Key(ticker));
+  if (response.status === 404) return blankFile(ticker);
   if (!response.ok) throw new Error(`Unable to read operations SEC filings from S3: ${response.status} ${response.statusText}`);
   const parsed = await response.json() as Partial<OperationsSecFilingsFile> & { data?: unknown };
-  return normalizeFile(parsed);
+  return normalizeFile(parsed, ticker);
 }
 
-async function s3Write(file: OperationsSecFilingsFile) {
-  const response = await signedS3Request('PUT', s3Key(), `${JSON.stringify(file, null, 2)}\n`);
+async function s3Write(file: OperationsSecFilingsFile, ticker: string) {
+  const response = await signedS3Request('PUT', s3Key(ticker), `${JSON.stringify(file, null, 2)}\n`);
   if (!response.ok) throw new Error(`Unable to write operations SEC filings to S3: ${response.status} ${response.statusText}`);
 }
 
-export async function readOperationsSecFilings() {
-  if (!shouldUseS3()) return { ...localRead(), storage: 'local' as const };
-  return { ...await s3Read(), storage: 's3' as const };
+export async function readOperationsSecFilings(ticker = 'CURR') {
+  const normalizedTicker = normalizeTicker(ticker);
+  if (!shouldUseS3()) return { ...localRead(normalizedTicker), storage: 'local' as const };
+  return { ...await s3Read(normalizedTicker), storage: 's3' as const };
 }
 
 export async function saveOperationsSecFiling(input: Partial<OperationsSecFilingRecord>) {
-  const current = await readOperationsSecFilings();
+  const ticker = normalizeTicker(input.ticker);
+  const current = await readOperationsSecFilings(ticker);
   const record = normalizeRecord(input);
   validateRecord(record);
 
@@ -333,21 +340,22 @@ export async function saveOperationsSecFiling(input: Partial<OperationsSecFiling
     source: 'operations_manual_input',
     schemaVersion: 1,
     updatedAt: new Date().toISOString(),
-    s3Key: s3Key(),
+    s3Key: s3Key(ticker),
     records: nextRecords.sort((a, b) => b.filingDate.localeCompare(a.filingDate) || a.formType.localeCompare(b.formType)),
     log: [logEntry, ...current.log].slice(0, 100),
   };
 
   if (shouldUseS3()) {
-    await s3Write(nextFile);
+    await s3Write(nextFile, ticker);
   } else {
-    localWrite(nextFile);
+    localWrite(nextFile, ticker);
   }
 
   return { ...nextFile, storage: shouldUseS3() ? 's3' as const : 'local' as const, savedRecord: record, action };
 }
 
-export async function replaceOperationsSecFilings(inputs: Array<Partial<OperationsSecFilingRecord>>, savedBy = 'operations-import') {
+export async function replaceOperationsSecFilings(inputs: Array<Partial<OperationsSecFilingRecord>>, savedBy = 'operations-import', requestedTicker = 'CURR') {
+  const ticker = normalizeTicker(inputs[0]?.ticker ?? requestedTicker);
   const now = new Date().toISOString();
   const seen = new Set<string>();
   const records = inputs.map(input => normalizeRecord({
@@ -377,15 +385,15 @@ export async function replaceOperationsSecFilings(inputs: Array<Partial<Operatio
     source: 'operations_manual_input',
     schemaVersion: 1,
     updatedAt: now,
-    s3Key: s3Key(),
+    s3Key: s3Key(ticker),
     records,
     log: [logEntry],
   };
 
   if (shouldUseS3()) {
-    await s3Write(nextFile);
+    await s3Write(nextFile, ticker);
   } else {
-    localWrite(nextFile);
+    localWrite(nextFile, ticker);
   }
 
   return { ...nextFile, storage: shouldUseS3() ? 's3' as const : 'local' as const, importedRecords: records.length };

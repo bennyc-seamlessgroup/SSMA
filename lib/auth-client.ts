@@ -17,6 +17,15 @@ export type AuthTokens = {
   refreshToken: string;
 };
 
+export type AuthenticatedProfile = Record<string, unknown> & {
+  ticker?: string;
+  tickers?: string[];
+  defaultTicker?: string;
+  default_ticker?: string;
+  companyAccess?: Array<{ ticker?: string; role?: string }>;
+  company_access?: Array<{ ticker?: string; role?: string }>;
+};
+
 const tokenKeys = {
   accessToken: 'access_token',
   idToken: 'id_token',
@@ -31,6 +40,7 @@ const clientId = process.env.NEXT_PUBLIC_COGNITO_CLIENT_ID ?? '';
 const apiGatewayUrl = process.env.NEXT_PUBLIC_API_GATEWAY_URL ?? '';
 const configuredRedirectUri = process.env.NEXT_PUBLIC_REDIRECT_URI ?? '';
 const configuredLogoutUri = process.env.NEXT_PUBLIC_LOGOUT_URI ?? '';
+let profileRequest: Promise<AuthenticatedProfile> | null = null;
 
 function browserOrigin() {
   return typeof window === 'undefined' ? '' : window.location.origin;
@@ -122,6 +132,7 @@ export function clearAuthSession() {
   sessionStorage.removeItem(tokenKeys.oauthState);
   sessionStorage.removeItem(tokenKeys.codeVerifier);
   sessionStorage.removeItem(tokenKeys.postLoginRedirect);
+  profileRequest = null;
 }
 
 export function isTokenValid(idToken: string | null, minimumSeconds = 0) {
@@ -203,8 +214,15 @@ export async function handleOAuthCallback() {
   sessionStorage.removeItem(tokenKeys.oauthState);
   sessionStorage.removeItem(tokenKeys.codeVerifier);
 
-  const redirectTo = sessionStorage.getItem(tokenKeys.postLoginRedirect) || '/monitor/CURR/dashboard-v2';
+  let redirectTo = sessionStorage.getItem(tokenKeys.postLoginRedirect) || '/monitor/CURR/dashboard-v2';
   sessionStorage.removeItem(tokenKeys.postLoginRedirect);
+  try {
+    const { authorizedMonitorRedirect } = await import('@/lib/ticker-access');
+    const profile = await getAuthenticatedProfile(true);
+    redirectTo = authorizedMonitorRedirect(redirectTo, profile);
+  } catch {
+    // Preserve the requested route if profile access is temporarily unavailable.
+  }
   return redirectTo;
 }
 
@@ -271,4 +289,18 @@ export async function authenticatedFetch(path: string, options: RequestInit = {}
   }
 
   return response.json();
+}
+
+export function setCachedAuthenticatedProfile(profile: AuthenticatedProfile) {
+  profileRequest = Promise.resolve(profile);
+}
+
+export function getAuthenticatedProfile(force = false) {
+  if (force || !profileRequest) {
+    profileRequest = authenticatedFetch('/profile') as Promise<AuthenticatedProfile>;
+    profileRequest.catch(() => {
+      profileRequest = null;
+    });
+  }
+  return profileRequest;
 }

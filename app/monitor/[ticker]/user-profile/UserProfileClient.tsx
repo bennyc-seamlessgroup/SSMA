@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
-import { authenticatedFetch, decodeJWT, getStoredTokens } from '@/lib/auth-client';
+import { authenticatedFetch, decodeJWT, getStoredTokens, setCachedAuthenticatedProfile } from '@/lib/auth-client';
 
 type Profile = {
   sub?: string;
@@ -12,6 +12,9 @@ type Profile = {
   bio?: string;
   phone_number?: string;
   nickname?: string;
+  ticker?: string;
+  tickers?: string[];
+  companyAccess?: Array<{ ticker?: string; role?: string }>;
 };
 
 function formatDateTime(value?: string) {
@@ -89,6 +92,7 @@ export function UserProfileClient() {
         body: JSON.stringify(form),
       }) as Profile;
       setProfile(data);
+      setCachedAuthenticatedProfile(data as Record<string, unknown>);
       setMessage('Profile saved successfully.');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Unable to save profile.');
@@ -102,6 +106,10 @@ export function UserProfileClient() {
     email: profile?.email ?? (typeof tokenUser?.email === 'string' ? tokenUser.email : undefined),
     status: profile?.status ?? 'N/A',
     createdAt: profile?.created_at,
+    tickerAccess: profile?.tickers?.join(', ')
+      || profile?.companyAccess?.map(entry => entry.ticker).filter(Boolean).join(', ')
+      || profile?.ticker
+      || 'N/A',
   };
 
   return (
@@ -157,6 +165,10 @@ export function UserProfileClient() {
           <div>
             <span>Profile Created At</span>
             <strong>{formatDateTime(metadata.createdAt)}</strong>
+          </div>
+          <div>
+            <span>Company Access</span>
+            <strong>{metadata.tickerAccess}</strong>
           </div>
         </div>
       </section>

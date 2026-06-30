@@ -1,26 +1,46 @@
 'use client';
 
 import Link from 'next/link';
-import { useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useParams } from 'next/navigation';
-import { accountCompanies } from '@/components/accountData';
 import { SettingsBackLink } from '@/components/SettingsBackLink';
+import { getAuthenticatedProfile } from '@/lib/auth-client';
+import { companyAccessFromProfile } from '@/lib/ticker-access';
+import { buildDashboard } from '@/lib/mock-data';
 
 export default function CompaniesPage() {
   const params = useParams<{ ticker: string }>();
   const ticker = (params?.ticker ?? 'CURR').toUpperCase();
-  const [isOpen, setIsOpen] = useState(false);
+  const [access, setAccess] = useState<Array<{ ticker: string; role: string; name: string }>>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    getAuthenticatedProfile()
+      .then(profile => setAccess(companyAccessFromProfile(profile)))
+      .catch(() => setAccess([{ ticker, role: 'Viewer', name: '' }]))
+      .finally(() => setLoading(false));
+  }, [ticker]);
+
+  const accountCompanies = useMemo(() => access.map(entry => {
+    const company = buildDashboard(entry.ticker).company;
+    return {
+      ticker: company.ticker,
+      name: entry.name || company.company_name,
+      exchange: company.exchange,
+      role: entry.role,
+      status: 'Active',
+    };
+  }), [access]);
 
   return (
     <div className="page">
       <div className="page__header">
         <div>
           <h1 className="page__title">Company Management</h1>
-          <p className="page__desc">Switch issuer workspaces, review account coverage, and add new monitored companies.</p>
+          <p className="page__desc">Switch between issuer workspaces granted by your user profile.</p>
         </div>
         <div className="page-header-actions">
           <SettingsBackLink ticker={ticker} />
-          <button className="button" onClick={() => setIsOpen(true)}>Add Company</button>
         </div>
       </div>
 
@@ -28,63 +48,39 @@ export default function CompaniesPage() {
         <div className="portal-panel__head">
           <div>
             <h2>Covered companies</h2>
-            <p>Issuer workspaces available to this demo account.</p>
+            <p>Company access is managed by the authenticated profile.</p>
           </div>
           <span className="status-pill muted">{accountCompanies.length} companies</span>
         </div>
 
         <div className="workspace-table company-workspace-table">
-          <div className="workspace-table__head"><span>Company</span><span>Status</span><span>Recipients</span><span>Schedule</span><span>Action</span></div>
+          <div className="workspace-table__head"><span>Company</span><span>Role</span><span>Status</span><span>Workspace</span><span>Action</span></div>
+          {loading && <div className="workspace-row company-workspace-loading"><span>Loading profile access...</span></div>}
           {accountCompanies.map(company => (
             <div className="workspace-row" key={company.ticker}>
-              <div><strong>{company.name}</strong><small>{company.ticker} · {company.exchange} · {company.plan}</small></div>
+              <div><strong>{company.name}</strong><small>{company.ticker} · {company.exchange}</small></div>
+              <span>{company.role}</span>
               <span className={`status-pill ${company.status === 'Active' ? 'success' : 'muted'}`}>{company.status}</span>
-              <span>{company.recipients}</span>
-              <span>{company.sendTime}</span>
+              <span>{company.ticker === ticker ? 'Current' : 'Available'}</span>
               <Link className="text-link" href={`/monitor/${company.ticker}/dashboard-v2`}>Open</Link>
             </div>
           ))}
+          {!loading && !accountCompanies.length && (
+            <div className="workspace-row company-workspace-loading"><span>No company access is assigned to this profile.</span></div>
+          )}
         </div>
       </section>
 
-      <section className="grid cols-3">
+      <section className="grid cols-2">
         <div className="panel">
           <h2 className="panel__title">Workspace Access</h2>
-          <p className="page__desc" style={{ margin: 0 }}>Control which executives, IR users, and advisors can access each company workspace.</p>
+          <p className="page__desc" style={{ margin: 0 }}>The profile API determines which ticker workspaces this account can open.</p>
         </div>
         <div className="panel">
-          <h2 className="panel__title">Coverage Rules</h2>
-          <p className="page__desc" style={{ margin: 0 }}>Assign report schedules, alert rules, provider packages, and archive policy by issuer.</p>
-        </div>
-        <div className="panel">
-          <h2 className="panel__title">Profile Menu Placement</h2>
-          <p className="page__desc" style={{ margin: 0 }}>Company management is also available from the profile menu because it is account-level administration.</p>
+          <h2 className="panel__title">Data Resolution</h2>
+          <p className="page__desc" style={{ margin: 0 }}>Each workspace resolves its JSON files using the selected ticker in the existing filename convention.</p>
         </div>
       </section>
-
-      {isOpen && (
-        <div className="modal-backdrop" role="presentation" onMouseDown={() => setIsOpen(false)}>
-          <div className="modal-card" role="dialog" aria-modal="true" aria-labelledby="add-company-title" onMouseDown={event => event.stopPropagation()}>
-            <div className="modal-card__head">
-              <div>
-                <div className="eyebrow">New company</div>
-                <h2 id="add-company-title">Add company</h2>
-              </div>
-              <button className="icon-button" aria-label="Close" onClick={() => setIsOpen(false)}>×</button>
-            </div>
-            <div className="section-list">
-              <label className="field-label">Company legal name<input className="input" placeholder="Acme Holdings Inc." /></label>
-              <label className="field-label">Ticker symbol<input className="input" placeholder="ACME" /></label>
-              <label className="field-label">Exchange<select className="select" defaultValue="NASDAQ"><option>NASDAQ</option><option>NYSE</option><option>NYSE American</option></select></label>
-              <label className="field-label">Primary contact email<input className="input" type="email" placeholder="ir@company.com" /></label>
-            </div>
-            <div className="modal-actions">
-              <button className="button secondary" onClick={() => setIsOpen(false)}>Cancel</button>
-              <button className="button" onClick={() => setIsOpen(false)}>Save Company</button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

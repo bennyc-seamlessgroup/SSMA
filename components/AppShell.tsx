@@ -2,6 +2,7 @@ import { Sidebar } from './Sidebar';
 import { MonitorExpertChat } from './MonitorExpertChat';
 import { AuthGuard } from './AuthGuard';
 import { DesignBTopbar } from './DesignBTopbar';
+import { TickerDataStatusProvider } from './TickerDataStatusProvider';
 
 export function AppShell({
   ticker,
@@ -15,15 +16,17 @@ export function AppShell({
   children: React.ReactNode;
 }) {
   return (
-    <div className="portal-page monitor-portal">
-      <Sidebar ticker={ticker} companyName={companyName} importDataVersion={importDataVersion} />
-      <main className="portal-main main-content">
-        <AuthGuard>
-          <DesignBTopbar ticker={ticker} companyName={companyName} />
-          {children}
-        </AuthGuard>
-      </main>
-      <MonitorExpertChat ticker={ticker} />
-    </div>
+    <AuthGuard ticker={ticker}>
+      <TickerDataStatusProvider ticker={ticker}>
+        <div className="portal-page monitor-portal">
+          <Sidebar ticker={ticker} companyName={companyName} importDataVersion={importDataVersion} />
+          <main className="portal-main main-content">
+            <DesignBTopbar ticker={ticker} companyName={companyName} />
+            {children}
+          </main>
+          <MonitorExpertChat ticker={ticker} />
+        </div>
+      </TickerDataStatusProvider>
+    </AuthGuard>
   );
 }

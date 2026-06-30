@@ -1,5 +1,7 @@
 import { ImportDataTable } from '@/components/ImportDataTable';
 import { readOperationsSecFilings, type OperationsSecFilingRecord } from '@/lib/operations/sec-filings-store';
+import { buildDashboard } from '@/lib/mock-data';
+import { normalizeTicker } from '@/lib/ticker-data';
 import { SecFilingsList, type SecFilingRow } from './SecFilingsList';
 
 export const dynamic = 'force-dynamic';
@@ -46,8 +48,11 @@ const devColumns = [
   'createdBy',
 ];
 
-export default async function EventCalendarPage() {
-  const manualFilings = await readOperationsSecFilings();
+export default async function EventCalendarPage({ params }: Readonly<{ params: Promise<{ ticker: string }> }>) {
+  const { ticker } = await params;
+  const normalizedTicker = normalizeTicker(ticker);
+  const company = buildDashboard(normalizedTicker).company;
+  const manualFilings = await readOperationsSecFilings(normalizedTicker);
   const filings = manualFilings.records.map(normalizeFiling);
   const devRows = manualFilings.records.map(record =>
     Object.fromEntries(devColumns.map(column => [column, tableValue(record[column as keyof OperationsSecFilingRecord])])),
@@ -59,7 +64,7 @@ export default async function EventCalendarPage() {
         <div>
           <h1 className="page__title">SEC Filings</h1>
           <p className="page__desc">
-            All companies that sell securities in the United States must register with the Securities and Exchange Commission and file reports on a regular basis. This page shows recent SEC filings related to CURRENC Group Inc.
+            All companies that sell securities in the United States must register with the Securities and Exchange Commission and file reports on a regular basis. This page shows recent SEC filings related to {company.company_name}.
           </p>
         </div>
       </div>
