@@ -1,6 +1,6 @@
 'use client';
 
-import { useId, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { usePortalTimeZone } from '@/components/usePortalTimeZone';
 import { normalizePortalTimeZone } from '@/lib/timezone';
 
@@ -99,28 +99,14 @@ function buildSeries(points: TimelineMention[], rangeDays: number, timeZone: str
   });
 }
 
-function xFor(index: number, total: number) {
+function groupCenterX(index: number, total: number) {
   const plotWidth = chart.width - chart.left - chart.right;
-  return chart.left + (total <= 1 ? plotWidth / 2 : (index / (total - 1)) * plotWidth);
+  return chart.left + ((index + .5) / Math.max(total, 1)) * plotWidth;
 }
 
 function yFor(value: number) {
   const plotHeight = chart.height - chart.top - chart.bottom;
   return chart.top + ((100 - value) / 100) * plotHeight;
-}
-
-function pathFor(series: TimelineBucket[], key: SeriesKey) {
-  let drawing = false;
-  return series.map((bucket, index) => {
-    const value = bucket[key];
-    if (value === null) {
-      drawing = false;
-      return '';
-    }
-    const command = drawing ? 'L' : 'M';
-    drawing = true;
-    return `${command}${xFor(index, series.length).toFixed(2)},${yFor(value).toFixed(2)}`;
-  }).filter(Boolean).join(' ');
 }
 
 function visibleLabelIndexes(length: number) {
@@ -137,12 +123,14 @@ export function SentimentTimeline({ mentions, rangeDays }: { mentions: TimelineM
   const [legendFocus, setLegendFocus] = useState<SeriesKey | null>(null);
   const [hovered, setHovered] = useState<{ index: number; series: SeriesKey | null } | null>(null);
   const timeZone = usePortalTimeZone();
-  const clipId = useId().replace(/:/g, '');
   const series = useMemo(() => buildSeries(mentions, rangeDays, timeZone), [mentions, rangeDays, timeZone]);
   const labels = useMemo(() => visibleLabelIndexes(series.length), [series.length]);
   const activeFocus = legendFocus ?? hovered?.series ?? null;
   const plotWidth = chart.width - chart.left - chart.right;
   const plotHeight = chart.height - chart.top - chart.bottom;
+  const enabledConfig = seriesConfig.filter(item => enabledSeries.has(item.key));
+  const groupStep = plotWidth / Math.max(series.length, 1);
+  const groupWidth = Math.min(groupStep * .72, 48);
 
   function toggleSeries(key: SeriesKey) {
     setEnabledSeries(current => {
@@ -157,32 +145,19 @@ export function SentimentTimeline({ mentions, rangeDays }: { mentions: TimelineM
     });
   }
 
-  function handlePointerMove(event: React.MouseEvent<SVGSVGElement>) {
-    const bounds = event.currentTarget.getBoundingClientRect();
-    const pointerX = ((event.clientX - bounds.left) / bounds.width) * chart.width;
-    const pointerY = ((event.clientY - bounds.top) / bounds.height) * chart.height;
-    const normalized = Math.max(0, Math.min(1, (pointerX - chart.left) / plotWidth));
-    const index = Math.round(normalized * (series.length - 1));
-    const candidates = seriesConfig
-      .filter(item => enabledSeries.has(item.key) && series[index][item.key] !== null)
-      .map(item => ({ key: item.key, distance: Math.abs(yFor(series[index][item.key] as number) - pointerY) }))
-      .sort((a, b) => a.distance - b.distance);
-    setHovered({ index, series: candidates[0]?.key ?? null });
-  }
-
   const tooltipRows = hovered
     ? seriesConfig
       .filter(item => enabledSeries.has(item.key))
       .sort((a, b) => Number(b.key === hovered.series) - Number(a.key === hovered.series))
     : [];
-  const hoveredX = hovered ? xFor(hovered.index, series.length) : 0;
+  const hoveredX = hovered ? groupCenterX(hovered.index, series.length) : 0;
 
   return (
     <div className="narrative-timeline-card narrative-line-timeline">
       <div className="narrative-section-head narrative-timeline-head">
         <div>
           <h2>Sentiment Timeline</h2>
-          <p>Compare platform sentiment and focus any series by hovering its line or legend.</p>
+          <p>Compare platform sentiment by period. Hover a bar for the full breakdown.</p>
         </div>
         <div className="narrative-timeline-legend" aria-label="Sentiment timeline series">
           {seriesConfig.map(item => {
@@ -205,20 +180,13 @@ export function SentimentTimeline({ mentions, rangeDays }: { mentions: TimelineM
         </div>
       </div>
 
-      <div className="narrative-line-chart">
+      <div className="narrative-line-chart narrative-grouped-bar-chart">
         <svg
           viewBox={`0 0 ${chart.width} ${chart.height}`}
           role="img"
-          aria-label="Sentiment scores over time"
-          onMouseMove={handlePointerMove}
+          aria-label="Grouped sentiment scores over time"
           onMouseLeave={() => setHovered(null)}
         >
-          <defs>
-            <clipPath id={clipId}>
-              <rect x={chart.left} y={chart.top} width={plotWidth} height={plotHeight} />
-            </clipPath>
-          </defs>
-
           {[100, 75, 50, 25, 0].map(tick => (
             <g key={tick} className="narrative-line-grid">
               <line x1={chart.left} x2={chart.width - chart.right} y1={yFor(tick)} y2={yFor(tick)} />
@@ -230,50 +198,42 @@ export function SentimentTimeline({ mentions, rangeDays }: { mentions: TimelineM
             <text
               className="narrative-line-x-label"
               key={`${bucket.label}-${index}`}
-              x={xFor(index, series.length)}
+              x={groupCenterX(index, series.length)}
               y={chart.height - 12}
-              textAnchor={index === 0 ? 'start' : index === series.length - 1 ? 'end' : 'middle'}
+              textAnchor="middle"
             >
               {bucket.label}
             </text>
           ))}
 
-          <g clipPath={`url(#${clipId})`}>
-            {seriesConfig.map(item => {
-              if (!enabledSeries.has(item.key)) return null;
-              const focused = !activeFocus || activeFocus === item.key;
-              return (
-                <path
-                  key={item.key}
-                  className="narrative-series-line"
-                  d={pathFor(series, item.key)}
-                  style={{
-                    stroke: item.color,
-                    opacity: focused ? 1 : .16,
-                    strokeWidth: activeFocus === item.key ? 2.8 : 1.7,
-                  }}
-                />
-              );
+          <g>
+            {series.flatMap((bucket, bucketIndex) => {
+              const groupStart = groupCenterX(bucketIndex, series.length) - groupWidth / 2;
+              const availableConfig = enabledConfig.filter(item => bucket[item.key] !== null);
+              const barWidth = Math.max(2, groupWidth / Math.max(availableConfig.length, 1));
+              return availableConfig.map((item, seriesIndex) => {
+                const value = bucket[item.key];
+                if (value === null) return null;
+                const y = yFor(value);
+                const focused = !activeFocus || activeFocus === item.key;
+                return (
+                  <rect
+                    key={`${bucketIndex}-${item.key}`}
+                    className="narrative-series-bar"
+                    x={groupStart + seriesIndex * barWidth}
+                    y={y}
+                    width={barWidth}
+                    height={Math.max(2, yFor(0) - y)}
+                    rx={Math.min(3, barWidth / 2)}
+                    style={{
+                      fill: item.color,
+                      opacity: focused ? .92 : .16,
+                    }}
+                    onMouseEnter={() => setHovered({ index: bucketIndex, series: item.key })}
+                  />
+                );
+              });
             })}
-
-            {hovered && (
-              <>
-                <line className="narrative-line-crosshair" x1={hoveredX} x2={hoveredX} y1={chart.top} y2={chart.top + plotHeight} />
-                {seriesConfig.map(item => {
-                  const value = series[hovered.index][item.key];
-                  if (!enabledSeries.has(item.key) || value === null) return null;
-                  return (
-                    <circle
-                      key={item.key}
-                      cx={hoveredX}
-                      cy={yFor(value)}
-                      r={activeFocus === item.key ? 5 : 3.5}
-                      style={{ fill: item.color }}
-                    />
-                  );
-                })}
-              </>
-            )}
           </g>
         </svg>
 

@@ -1,13 +1,12 @@
 'use client';
 
 import { InfoTooltip } from '@/components/InfoTooltip';
-import { authenticatedFetch } from '@/lib/auth-client';
+import { authenticatedFetch, getCurrentUser } from '@/lib/auth-client';
 import { useEffect, useMemo, useState } from 'react';
 import type { FloatAdjustments, InternalFloatV2UserInput, ManualHolding } from '@/lib/internal-float';
 
 type OwnershipData = {
   sharesOutstanding: number;
-  insiderShares: number;
   institutionShares: number;
   publicFloat: number;
 };
@@ -17,6 +16,14 @@ export type InstitutionalOwnershipOverview = {
   public_float_shares?: number | string | null;
   institutional_shares_long?: number | string | null;
   insider_shares_long?: number | string | null;
+};
+
+export type InsiderSuggestionSource = {
+  name: string;
+  shares: number | string;
+  latestFileDate?: string | null;
+  latestEffectiveDate?: string | null;
+  formType?: string | null;
 };
 
 type PrivateHolding = {
@@ -51,6 +58,7 @@ const privateCategories = ['Founder', 'CEO', 'Management', 'Insider', 'Strategic
 const tokenizationProviderOptions = ['Securitize', 'xStocks', 'Ondo', 'bStocks'];
 const protocolOptions = ['Aave', 'Euler', 'Kamino', 'Morpho'];
 const activityLogStorageKeyPrefix = 'internal-float-v2-activity-log';
+const insiderDismissalStorageKeyPrefix = 'internal-float-v2-dismissed-insiders';
 
 const userInputEndpoints: Record<Exclude<EditPanel, null>, string> = {
   private: '/user-inputs/private-holdings',
@@ -142,13 +150,25 @@ function describeDiff(diff: { added: number; deleted: number; updated: number })
 }
 
 function seedOwnership(holdings: ManualHolding[], adjustments: FloatAdjustments, institutionalOverview?: InstitutionalOwnershipOverview): OwnershipData {
-  const insiderTypes = new Set(['CEO', 'CFO', 'Founder', 'Director', 'Management', 'Affiliated Entity']);
   const institutionTypes = new Set(['Major Shareholder', 'Strategic Investor', 'Friendly Holder', 'Friendly Long-Term Holder']);
   const sharesOutstanding = numeric(institutionalOverview?.shares_outstanding) || numeric(adjustments.officialSharesOutstanding) || 58030000;
   const publicFloat = numeric(institutionalOverview?.public_float_shares) || numeric(adjustments.officialFreeFloat) || 32664808;
-  const insiderShares = numeric(institutionalOverview?.insider_shares_long) || holdings.filter(row => insiderTypes.has(row.holderType)).reduce((sum, row) => sum + numeric(row.numberOfShares), 0) || 15000000;
   const institutionShares = numeric(institutionalOverview?.institutional_shares_long) || holdings.filter(row => institutionTypes.has(row.holderType)).reduce((sum, row) => sum + numeric(row.numberOfShares), 0) || 10000000;
-  return { sharesOutstanding, insiderShares, institutionShares, publicFloat };
+  return { sharesOutstanding, institutionShares, publicFloat };
+}
+
+function normalizedHolderName(value: string) {
+  return value.trim().toLocaleLowerCase().replace(/\s+/g, ' ');
+}
+
+function sourceSuggestionId(row: InsiderSuggestionSource) {
+  const holder = normalizedHolderName(row.name).replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'holder';
+  return `${holder}:${numeric(row.shares)}:${row.latestEffectiveDate ?? row.latestFileDate ?? ''}`;
+}
+
+function privateHoldingId(row: InsiderSuggestionSource) {
+  const holder = normalizedHolderName(row.name).replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'holder';
+  return `reported-insider-${holder}`;
 }
 
 function seedPrivateHoldings(holdings: ManualHolding[]): PrivateHolding[] {
@@ -243,7 +263,6 @@ function RankedBars({ rows, total, showExtra = false }: { rows: Array<{ key?: st
 
 function Waterfall({
   sharesOutstanding,
-  insiderShares,
   institutionShares,
   privateShares,
   tokenizedShares,
@@ -251,7 +270,6 @@ function Waterfall({
   realTradableFloat,
 }: {
   sharesOutstanding: number;
-  insiderShares: number;
   institutionShares: number;
   privateShares: number;
   tokenizedShares: number;
@@ -260,7 +278,6 @@ function Waterfall({
 }) {
   const rows = [
     { label: 'Shares Outstanding', value: sharesOutstanding, className: '' },
-    { label: 'Insiders', value: -insiderShares, className: 'down' },
     { label: 'Institutions', value: -institutionShares, className: 'down' },
     { label: 'Management / Strategic', value: -privateShares, className: 'down' },
     { label: 'Tokenized Shares', value: -tokenizedShares, className: 'down' },
@@ -274,7 +291,7 @@ function Waterfall({
           <span className={row.label === 'Real Tradable Float' ? 'with-info' : ''}>
             {row.label}
             {row.label === 'Real Tradable Float' && (
-              <InfoTooltip text="Estimated shares that may realistically trade after deducting internal management/strategic holdings, tokenized shares, and collateralized shares from shares outstanding after insiders and institutions." />
+              <InfoTooltip text="Estimated shares that may realistically trade after deducting institutions and accepted internal management/strategic, tokenized, and collateralized holdings from shares outstanding." />
             )}
           </span>
           <strong>{row.value < 0 ? '-' : ''}{compact(Math.abs(row.value))}</strong>
@@ -291,12 +308,14 @@ export function InternalFloatV2Client({
   initialAdjustments,
   initialUserInputs,
   institutionalOverview,
+  insiderSuggestionSources = [],
 }: {
   ticker: string;
   initialHoldings: ManualHolding[];
   initialAdjustments: FloatAdjustments;
   initialUserInputs: InternalFloatV2UserInput;
   institutionalOverview?: InstitutionalOwnershipOverview;
+  insiderSuggestionSources?: InsiderSuggestionSource[];
 }) {
   const [editPanel, setEditPanel] = useState<EditPanel>(null);
   const [ownership] = useState<OwnershipData>(() => seedOwnership(initialHoldings, initialAdjustments, institutionalOverview));
@@ -312,6 +331,9 @@ export function InternalFloatV2Client({
   const [activityLog, setActivityLog] = useState<ActivityLogItem[]>([]);
   const [expandedPrivateNotes, setExpandedPrivateNotes] = useState<string[]>([]);
   const [tokenizationReminder, setTokenizationReminder] = useState<TokenizationReminder | null>(null);
+  const [dismissedInsiderSuggestions, setDismissedInsiderSuggestions] = useState<string[]>([]);
+  const [insiderDismissalsLoaded, setInsiderDismissalsLoaded] = useState(false);
+  const [suggestionActionId, setSuggestionActionId] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -380,17 +402,37 @@ export function InternalFloatV2Client({
     localStorage.setItem(storageKey, JSON.stringify(activityLog.slice(0, 10)));
   }, [activityLog, ticker]);
 
+  useEffect(() => {
+    const userId = getCurrentUser()?.sub ?? 'current-user';
+    const storageKey = `${insiderDismissalStorageKeyPrefix}:${userId}:${ticker.toUpperCase()}`;
+    try {
+      const stored = localStorage.getItem(storageKey);
+      const parsed = stored ? JSON.parse(stored) : [];
+      setDismissedInsiderSuggestions(Array.isArray(parsed) ? parsed.filter(value => typeof value === 'string') : []);
+    } catch {
+      setDismissedInsiderSuggestions([]);
+    } finally {
+      setInsiderDismissalsLoaded(true);
+    }
+  }, [ticker]);
+
+  function persistDismissedInsiderSuggestions(next: string[]) {
+    const userId = getCurrentUser()?.sub ?? 'current-user';
+    const storageKey = `${insiderDismissalStorageKeyPrefix}:${userId}:${ticker.toUpperCase()}`;
+    setDismissedInsiderSuggestions(next);
+    localStorage.setItem(storageKey, JSON.stringify(next));
+  }
+
   const privateShares = privateHoldings.filter(row => row.includeInDeduction).reduce((sum, row) => sum + numeric(row.shares), 0);
   const tokenizedShares = tokenChains.reduce((sum, row) => sum + row.shares, 0);
   const collateralizedShares = collateralChains.reduce((sum, row) => sum + row.shares, 0);
   const privateFloatShares = privateShares;
   const internalFloatShares = privateFloatShares + tokenizedShares + collateralizedShares;
-  const floatBeforeInternalAdjustments = Math.max(0, ownership.sharesOutstanding - ownership.insiderShares - ownership.institutionShares);
-  const realTradableFloat = Math.max(0, ownership.sharesOutstanding - ownership.insiderShares - ownership.institutionShares - internalFloatShares);
+  const floatBeforeInternalAdjustments = Math.max(0, ownership.sharesOutstanding - ownership.institutionShares);
+  const realTradableFloat = Math.max(0, ownership.sharesOutstanding - ownership.institutionShares - internalFloatShares);
   const floatReductionPercent = pct(internalFloatShares, floatBeforeInternalAdjustments);
 
   const ownershipSegments = [
-    { label: 'Insiders', value: ownership.insiderShares, color: colors[0] },
     { label: 'Institutions', value: ownership.institutionShares, color: colors[1] },
     { label: 'Real Tradable Float', value: realTradableFloat, color: colors[2] },
     { label: 'Internal Float', value: internalFloatShares, color: colors[3] },
@@ -413,7 +455,6 @@ export function InternalFloatV2Client({
 
   const allocationTree = useMemo(() => [
     { level: 0, label: 'Shares Outstanding', value: ownership.sharesOutstanding },
-    { level: 1, label: 'Insiders', value: ownership.insiderShares },
     { level: 1, label: 'Institutions', value: ownership.institutionShares },
     { level: 1, label: 'Market Float', value: floatBeforeInternalAdjustments },
     { level: 2, label: 'Internal Float', value: internalFloatShares },
@@ -422,6 +463,14 @@ export function InternalFloatV2Client({
     { level: 3, label: 'Collateralized', value: collateralizedShares },
     { level: 2, label: 'Real Tradable Float', value: realTradableFloat },
   ], [collateralizedShares, floatBeforeInternalAdjustments, internalFloatShares, ownership, privateFloatShares, realTradableFloat, tokenizedShares]);
+
+  const availableInsiderSuggestions = insiderDismissalsLoaded
+    ? insiderSuggestionSources.filter(row => {
+      if (!row.name?.trim() || numeric(row.shares) <= 0) return false;
+      if (dismissedInsiderSuggestions.includes(sourceSuggestionId(row))) return false;
+      return !privateHoldings.some(holding => normalizedHolderName(holding.holderName) === normalizedHolderName(row.name));
+    })
+    : [];
 
   function patchPrivate(id: string, patch: Partial<PrivateHolding>) {
     setPrivateHoldings(current => current.map(row => row.id === id ? { ...row, ...patch } : row));
@@ -444,6 +493,54 @@ export function InternalFloatV2Client({
       detail,
       createdAt: new Date().toISOString(),
     }, ...current].slice(0, 10));
+  }
+
+  function dismissInsiderSuggestion(row: InsiderSuggestionSource) {
+    const suggestionId = sourceSuggestionId(row);
+    persistDismissedInsiderSuggestions(Array.from(new Set([...dismissedInsiderSuggestions, suggestionId])));
+  }
+
+  async function acceptInsiderSuggestion(row: InsiderSuggestionSource) {
+    const suggestionId = sourceSuggestionId(row);
+    const nextHolding: PrivateHolding = {
+      id: privateHoldingId(row),
+      holderName: row.name.trim(),
+      category: 'Management',
+      shares: numeric(row.shares),
+      includeInDeduction: true,
+      notes: [
+        'Accepted from reported insider holdings.',
+        row.formType ? `Form ${row.formType}.` : '',
+        row.latestEffectiveDate || row.latestFileDate ? `Reported ${row.latestEffectiveDate ?? row.latestFileDate}.` : '',
+      ].filter(Boolean).join(' '),
+    };
+    const nextRows = [...privateHoldings, nextHolding];
+
+    setSuggestionActionId(suggestionId);
+    setApiStatus('saving');
+    setApiMessage('');
+    try {
+      const updated = await authenticatedFetch(`${userInputEndpoints.private}?ticker=${encodeURIComponent(ticker)}`, {
+        method: 'PUT',
+        body: JSON.stringify(nextRows),
+      }) as InternalFloatV2UserInput;
+
+      if (!Array.isArray(updated.privateHoldings) || !rowsMatch(updated.privateHoldings, nextRows)) {
+        throw new Error('The suggested holding was not confirmed by the server. Please try again.');
+      }
+
+      setPrivateHoldings(updated.privateHoldings);
+      setSavedPrivateHoldings(updated.privateHoldings);
+      persistDismissedInsiderSuggestions(Array.from(new Set([...dismissedInsiderSuggestions, suggestionId])));
+      setApiStatus('saved');
+      setApiMessage(`${row.name} was added to Management / Strategic Holdings.`);
+      addActivity('Saved', 'Management / Strategic', row.name, `${formatNumber(row.shares)} reported shares added from an insider suggestion.`);
+    } catch (error) {
+      setApiStatus('error');
+      setApiMessage(error instanceof Error ? error.message : 'Unable to add the suggested holding.');
+    } finally {
+      setSuggestionActionId(null);
+    }
   }
 
   function addPrivateHolding() {
@@ -902,13 +999,13 @@ export function InternalFloatV2Client({
 
         <div className="float-v2-kpis">
           <div className="terminal-card terminal-stat float-v2-formula-stat">
-            <span className="with-info">Shares Outstanding → Real Tradable Float <InfoTooltip text="Real tradable float is calculated as shares outstanding minus insiders, institutions, and internal float assumptions including management / strategic, tokenized, and collateralized shares." /></span>
+            <span className="with-info">Shares Outstanding → Real Tradable Float <InfoTooltip text="Real tradable float is calculated as shares outstanding minus institutions and accepted internal float assumptions, including management / strategic, tokenized, and collateralized shares." /></span>
             <div className="float-v2-compact-formula">
               <strong>{compact(ownership.sharesOutstanding)}</strong>
               <em>→</em>
               <strong>{compact(realTradableFloat)}</strong>
             </div>
-            <small>Shares outstanding - insiders - institutions - internal float</small>
+            <small>Shares outstanding - institutions - internal float</small>
           </div>
           <div className="terminal-card terminal-stat"><span>Float Reduction</span><strong>{formatPct(floatReductionPercent)}</strong><small>-{formatNumber(internalFloatShares)} internal float shares</small></div>
         </div>
@@ -928,7 +1025,6 @@ export function InternalFloatV2Client({
         </div>
         <Waterfall
           sharesOutstanding={ownership.sharesOutstanding}
-          insiderShares={ownership.insiderShares}
           institutionShares={ownership.institutionShares}
           privateShares={privateShares}
           tokenizedShares={tokenizedShares}
@@ -942,6 +1038,40 @@ export function InternalFloatV2Client({
           <div><span>Section 4</span><h2>Management / Strategic Holdings</h2><p className="section-subtitle">Internal deduction assumptions used to estimate real tradable float.</p></div>
           <button className="button secondary" type="button" onClick={() => openEditPanel('private')}>Edit</button>
         </div>
+        {availableInsiderSuggestions.length > 0 && (
+          <div className="float-v2-insider-suggestions" aria-label="Suggested management and strategic holdings">
+            <div className="float-v2-insider-suggestions__intro">
+              <span>Suggested to add</span>
+              <strong>Review reported insider holdings</strong>
+              <p>These reported holders are not deducted from tradable float unless you add them to Management / Strategic Holdings.</p>
+            </div>
+            <div className="float-v2-insider-suggestions__list">
+              {availableInsiderSuggestions.map(row => {
+                const suggestionId = sourceSuggestionId(row);
+                const saving = suggestionActionId === suggestionId;
+                return (
+                  <article key={suggestionId}>
+                    <div>
+                      <strong>{row.name}</strong>
+                      <span>{formatNumber(row.shares)} shares</span>
+                      {(row.latestEffectiveDate || row.latestFileDate || row.formType) && (
+                        <small>{[row.formType, row.latestEffectiveDate ?? row.latestFileDate].filter(Boolean).join(' · ')}</small>
+                      )}
+                    </div>
+                    <div className="float-v2-insider-suggestion-actions">
+                      <button className="button primary" type="button" disabled={suggestionActionId !== null} onClick={() => acceptInsiderSuggestion(row)}>
+                        {saving ? 'Adding...' : 'Add to list'}
+                      </button>
+                      <button className="button ghost" type="button" disabled={suggestionActionId !== null} onClick={() => dismissInsiderSuggestion(row)}>
+                        Discard
+                      </button>
+                    </div>
+                  </article>
+                );
+              })}
+            </div>
+          </div>
+        )}
         <div className="terminal-card"><RankedBars showExtra rows={privateHoldings.map(row => ({ key: row.id, label: row.holderName, value: row.shares, extra: `${row.category} · ${row.includeInDeduction ? 'deducted from float' : 'not deducted'}` }))} total={floatBeforeInternalAdjustments} /></div>
       </section>
 

@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { InfoTooltip } from '@/components/InfoTooltip';
 
-type OwnershipKey = 'insiders' | 'institutions' | 'real_tradable_float' | 'internal_float';
+type OwnershipKey = 'institutions' | 'real_tradable_float' | 'internal_float';
 
 type InstitutionalOverviewData = {
   overview?: {
@@ -115,7 +115,6 @@ export function InstitutionalOverview({ data, ticker }: { data: InstitutionalOve
   const [selectedKey, setSelectedKey] = useState<OwnershipKey>('institutions');
   const overview = data.overview ?? {};
   const institutionRows = data.institution_bars ?? [];
-  const insiderRows = data.insider_bars ?? [];
   const rawPublicFloatRows = data.public_float_breakdown ?? [];
   const managementStrategicShares = rawPublicFloatRows
     .filter(row => row.key === 'private_strategic' || /private|strategic|management/i.test(row.label))
@@ -127,15 +126,14 @@ export function InstitutionalOverview({ data, ticker }: { data: InstitutionalOve
     .filter(row => row.key === 'collateralized' || /collateral/i.test(row.label))
     .reduce((sum, row) => sum + numeric(row.shares), 0);
   const internalFloatShares = managementStrategicShares + tokenizedShares + collateralizedShares;
-  const publicFloatShares = Math.max(0, numeric(overview.shares_outstanding) - numeric(overview.insider_shares_long) - numeric(overview.institutional_shares_long) - internalFloatShares);
+  const publicFloatShares = Math.max(0, numeric(overview.shares_outstanding) - numeric(overview.institutional_shares_long) - internalFloatShares);
   const ownershipRows = [
-    { key: 'insiders', label: 'Insiders', shares: numeric(overview.insider_shares_long), color: '#2f5bb8' },
     { key: 'institutions', label: 'Institutions', shares: numeric(overview.institutional_shares_long), color: '#14916f' },
     { key: 'internal_float', label: 'Internal Float', shares: internalFloatShares, color: '#747bdc' },
     { key: 'real_tradable_float', label: 'Real Tradable Float', shares: publicFloatShares, color: '#df9514' },
   ].map(row => ({
     ...row,
-    percent: pct(row.shares, numeric(overview.insider_shares_long) + numeric(overview.institutional_shares_long) + publicFloatShares + internalFloatShares),
+    percent: pct(row.shares, numeric(overview.shares_outstanding)),
   }));
   const internalFloatRows = [
     { key: 'management_strategic', label: 'Management / Strategic', shares: managementStrategicShares, percent: pct(managementStrategicShares, internalFloatShares), color: '#8d9aaa', source: 'Internal Float V2 user inputs' },
@@ -144,9 +142,7 @@ export function InstitutionalOverview({ data, ticker }: { data: InstitutionalOve
   ].filter(row => row.shares > 0);
   const ownershipLabelRows = donutLabels(ownershipRows);
   const selectedOwnership = ownershipRows.find(row => row.key === selectedKey);
-  const rightPanelTitle = selectedKey === 'insiders'
-    ? 'Insider Holdings Breakdown'
-    : selectedKey === 'internal_float'
+  const rightPanelTitle = selectedKey === 'internal_float'
       ? 'Internal Float Breakdown'
     : selectedKey === 'real_tradable_float'
       ? 'Real Tradable Float'
@@ -180,7 +176,7 @@ export function InstitutionalOverview({ data, ticker }: { data: InstitutionalOve
       <div className="institutional-overview__charts">
         <article className="institutional-chart-card">
           <div className="institutional-chart-card__head">
-            <span className="with-info">Ownership Structure <InfoTooltip text="Breakdown of shares outstanding into insiders, institutions, estimated real tradable float, and internal float deductions." /></span>
+            <span className="with-info">Ownership Structure <InfoTooltip text="Breakdown of shares outstanding into institutions, estimated real tradable float, and accepted internal float deductions. Reported insider holdings are included only after management accepts them as internal holdings." /></span>
           </div>
           <div className="institutional-donut-layout">
             <div
@@ -233,20 +229,9 @@ export function InstitutionalOverview({ data, ticker }: { data: InstitutionalOve
               }))}
             />
           )}
-          {selectedKey === 'insiders' && (
-            <BreakdownBars
-              rows={insiderRows.map(row => ({
-                label: row.name,
-                shares: row.shares,
-                percent: row.ownershipPercentOfInsiders,
-                color: selectedOwnership?.color,
-              }))}
-            />
-          )}
           {selectedKey === 'real_tradable_float' && (
             <RealTradableFloatFormula
               sharesOutstanding={numeric(overview.shares_outstanding)}
-              insiderShares={numeric(overview.insider_shares_long)}
               institutionalShares={numeric(overview.institutional_shares_long)}
               internalFloatShares={internalFloatShares}
               realTradableFloat={publicFloatShares}
@@ -290,20 +275,17 @@ function BreakdownBars({ rows, emptyText = 'No active records available.' }: { r
 
 function RealTradableFloatFormula({
   sharesOutstanding,
-  insiderShares,
   institutionalShares,
   internalFloatShares,
   realTradableFloat,
 }: {
   sharesOutstanding: number;
-  insiderShares: number;
   institutionalShares: number;
   internalFloatShares: number;
   realTradableFloat: number;
 }) {
   const rows = [
     { label: 'Shares Outstanding', value: sharesOutstanding, operator: '' },
-    { label: 'Insiders', value: insiderShares, operator: '-' },
     { label: 'Institutions', value: institutionalShares, operator: '-' },
     { label: 'Internal Float', value: internalFloatShares, operator: '-' },
   ];

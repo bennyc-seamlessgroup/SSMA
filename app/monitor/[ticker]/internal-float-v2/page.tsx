@@ -5,7 +5,7 @@ import { formatImportDataUpdatedAt, getImportFilesVersion } from '@/lib/import-d
 import { getPageDataSources } from '@/lib/page-data-sources';
 import { institutionalOverviewFile, normalizeTicker } from '@/lib/ticker-data';
 import { getServerPortalTimeZone } from '@/lib/server-timezone';
-import { InternalFloatV2Client, type InstitutionalOwnershipOverview } from './InternalFloatV2Client';
+import { InternalFloatV2Client, type InsiderSuggestionSource, type InstitutionalOwnershipOverview } from './InternalFloatV2Client';
 
 function formatTableValue(value: unknown) {
   if (typeof value === 'number') return value.toLocaleString('en-US');
@@ -53,7 +53,7 @@ export default async function InternalFloatV2Page({ params }: Readonly<{ params:
     calculateFloatAdjustments(holdings) as Promise<FloatAdjustments>,
     readInternalFloatV2UserInputSource('demo-user', normalizedTicker),
     getImportFilesVersion(pageImportFiles),
-    readImportFile<{ overview?: InstitutionalOwnershipOverview }>(ownershipFile),
+    readImportFile<{ overview?: InstitutionalOwnershipOverview; insider_bars?: InsiderSuggestionSource[] }>(ownershipFile),
   ]);
   const devRows = buildUserInputRows(v2UserInputs.userInput);
 
@@ -88,6 +88,7 @@ export default async function InternalFloatV2Page({ params }: Readonly<{ params:
         initialAdjustments={adjustments}
         initialUserInputs={v2UserInputs.userInput}
         institutionalOverview={institutionalOwnershipEnvelope.data.overview}
+        insiderSuggestionSources={institutionalOwnershipEnvelope.data.insider_bars}
       />
 
       <section className="terminal-section import-data-dev-panel">
