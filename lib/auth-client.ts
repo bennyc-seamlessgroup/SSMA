@@ -279,8 +279,26 @@ export async function authenticatedFetch(path: string, options: RequestInit = {}
 
   let response = await doFetch(tokens.idToken);
   if (response.status === 401) {
-    const refreshed = await refreshTokens(tokens.refreshToken);
-    response = await doFetch(refreshed.idToken);
+    try {
+      const refreshed = await refreshTokens(tokens.refreshToken);
+      response = await doFetch(refreshed.idToken);
+    } catch {
+      clearAuthSession();
+      if (typeof window !== 'undefined') {
+        const next = encodeURIComponent(`${window.location.pathname}${window.location.search}`);
+        window.location.assign(`/login?next=${next}`);
+      }
+      throw new Error('Your session has expired. Please sign in again.');
+    }
+  }
+
+  if (response.status === 401) {
+    clearAuthSession();
+    if (typeof window !== 'undefined') {
+      const next = encodeURIComponent(`${window.location.pathname}${window.location.search}`);
+      window.location.assign(`/login?next=${next}`);
+    }
+    throw new Error('Your session is no longer authorized. Please sign in again.');
   }
 
   if (!response.ok) {

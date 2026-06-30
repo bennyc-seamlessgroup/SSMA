@@ -83,6 +83,7 @@ export default async function InternalFloatV2Page({ params }: Readonly<{ params:
       </section>
 
       <InternalFloatV2Client
+        ticker={normalizedTicker}
         initialHoldings={holdings}
         initialAdjustments={adjustments}
         initialUserInputs={v2UserInputs.userInput}

@@ -3,7 +3,8 @@
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { getAuthenticatedProfile, getStoredTokens, isTokenValid, refreshTokens } from '@/lib/auth-client';
-import { authorizedMonitorRedirect, profileAllowsTicker } from '@/lib/ticker-access';
+import { allowedTickersFromProfile, authorizedMonitorRedirect, profileAllowsTicker } from '@/lib/ticker-access';
+import { defaultTicker } from '@/lib/ticker-data';
 
 export function AuthGuard({ children, ticker }: { children: React.ReactNode; ticker: string }) {
   const router = useRouter();
@@ -12,6 +13,23 @@ export function AuthGuard({ children, ticker }: { children: React.ReactNode; tic
   useEffect(() => {
     let cancelled = false;
     const currentPath = () => window.location.pathname || `/monitor/${ticker}/dashboard-v2`;
+    const authorizeTicker = (profile: Awaited<ReturnType<typeof getAuthenticatedProfile>>) => {
+      if (!allowedTickersFromProfile(profile).length) {
+        const path = currentPath();
+        if (/^\/monitor\/[^/]+\/(companies|user-profile)$/i.test(path)) {
+          if (!cancelled) setStatus('authenticated');
+          return true;
+        }
+        window.location.replace(`/monitor/${defaultTicker}/companies`);
+        return false;
+      }
+      if (!profileAllowsTicker(profile, ticker)) {
+        router.replace(authorizedMonitorRedirect(currentPath(), profile) as never);
+        return false;
+      }
+      if (!cancelled) setStatus('authenticated');
+      return true;
+    };
 
     async function verifySession() {
       setStatus('checking');
@@ -19,11 +37,7 @@ export function AuthGuard({ children, ticker }: { children: React.ReactNode; tic
       if (tokens?.idToken && isTokenValid(tokens.idToken, 0)) {
         try {
           const profile = await getAuthenticatedProfile();
-          if (!profileAllowsTicker(profile, ticker)) {
-            router.replace(authorizedMonitorRedirect(currentPath(), profile) as never);
-            return;
-          }
-          if (!cancelled) setStatus('authenticated');
+          authorizeTicker(profile);
         } catch {
           router.replace(`/login?next=${encodeURIComponent(currentPath())}`);
         }
@@ -34,11 +48,7 @@ export function AuthGuard({ children, ticker }: { children: React.ReactNode; tic
         try {
           await refreshTokens(tokens.refreshToken);
           const profile = await getAuthenticatedProfile();
-          if (!profileAllowsTicker(profile, ticker)) {
-            router.replace(authorizedMonitorRedirect(currentPath(), profile) as never);
-            return;
-          }
-          if (!cancelled) setStatus('authenticated');
+          authorizeTicker(profile);
           return;
         } catch {
           // Redirect below.

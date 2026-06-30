@@ -50,7 +50,7 @@ const colors = ['#2453a6', '#0f8a6a', '#d89018', '#6f7bd9', '#8896a8', '#c2415b'
 const privateCategories = ['Founder', 'CEO', 'Management', 'Insider', 'Strategic Investor', 'Family Office', 'Long-Term Holder', 'Transfer Agent', 'Other'];
 const tokenizationProviderOptions = ['Securitize', 'xStocks', 'Ondo', 'bStocks'];
 const protocolOptions = ['Aave', 'Euler', 'Kamino', 'Morpho'];
-const activityLogStorageKey = 'internal-float-v2-activity-log';
+const activityLogStorageKeyPrefix = 'internal-float-v2-activity-log';
 
 const userInputEndpoints: Record<Exclude<EditPanel, null>, string> = {
   private: '/user-inputs/private-holdings',
@@ -286,11 +286,13 @@ function Waterfall({
 }
 
 export function InternalFloatV2Client({
+  ticker,
   initialHoldings,
   initialAdjustments,
   initialUserInputs,
   institutionalOverview,
 }: {
+  ticker: string;
   initialHoldings: ManualHolding[];
   initialAdjustments: FloatAdjustments;
   initialUserInputs: InternalFloatV2UserInput;
@@ -305,22 +307,23 @@ export function InternalFloatV2Client({
   const [savedPrivateHoldings, setSavedPrivateHoldings] = useState<PrivateHolding[]>(() => initialUserInputs.privateHoldings);
   const [savedTokenChains, setSavedTokenChains] = useState<TokenChain[]>(() => initialUserInputs.tokenChains);
   const [savedCollateralChains, setSavedCollateralChains] = useState<CollateralChain[]>(() => initialUserInputs.collateralChains);
-  const [apiStatus, setApiStatus] = useState<'idle' | 'loading' | 'saving' | 'saved' | 'error'>('idle');
+  const [apiStatus, setApiStatus] = useState<'idle' | 'loading' | 'saving' | 'saved' | 'error'>('loading');
   const [apiMessage, setApiMessage] = useState('');
   const [activityLog, setActivityLog] = useState<ActivityLogItem[]>([]);
   const [expandedPrivateNotes, setExpandedPrivateNotes] = useState<string[]>([]);
   const [tokenizationReminder, setTokenizationReminder] = useState<TokenizationReminder | null>(null);
 
   useEffect(() => {
-    if (process.env.NEXT_PUBLIC_INTERNAL_FLOAT_API_HYDRATE !== 'true') return;
-
     let cancelled = false;
 
     async function loadUserInputs() {
       setApiStatus('loading');
       try {
-        const data = await authenticatedFetch('/user-inputs') as InternalFloatV2UserInput;
+        const data = await authenticatedFetch(`/user-inputs?ticker=${encodeURIComponent(ticker)}`) as InternalFloatV2UserInput;
         if (cancelled) return;
+        if (data.ticker && data.ticker.toUpperCase() !== ticker.toUpperCase()) {
+          throw new Error(`User inputs returned for ${data.ticker} instead of ${ticker}.`);
+        }
         if (Array.isArray(data.privateHoldings)) {
           setPrivateHoldings(data.privateHoldings);
           setSavedPrivateHoldings(data.privateHoldings);
@@ -348,11 +351,12 @@ export function InternalFloatV2Client({
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [ticker]);
 
   useEffect(() => {
+    const storageKey = `${activityLogStorageKeyPrefix}:${ticker.toUpperCase()}`;
     try {
-      const stored = localStorage.getItem(activityLogStorageKey);
+      const stored = localStorage.getItem(storageKey);
       if (stored) {
         const parsed = JSON.parse(stored);
         if (Array.isArray(parsed)) {
@@ -365,15 +369,16 @@ export function InternalFloatV2Client({
     }
 
     setActivityLog([]);
-  }, []);
+  }, [ticker]);
 
   useEffect(() => {
+    const storageKey = `${activityLogStorageKeyPrefix}:${ticker.toUpperCase()}`;
     if (!activityLog.length) {
-      localStorage.removeItem(activityLogStorageKey);
+      localStorage.removeItem(storageKey);
       return;
     }
-    localStorage.setItem(activityLogStorageKey, JSON.stringify(activityLog.slice(0, 10)));
-  }, [activityLog]);
+    localStorage.setItem(storageKey, JSON.stringify(activityLog.slice(0, 10)));
+  }, [activityLog, ticker]);
 
   const privateShares = privateHoldings.filter(row => row.includeInDeduction).reduce((sum, row) => sum + numeric(row.shares), 0);
   const tokenizedShares = tokenChains.reduce((sum, row) => sum + row.shares, 0);
@@ -579,7 +584,8 @@ export function InternalFloatV2Client({
     }
 
     try {
-      const updated = await authenticatedFetch(userInputEndpoints[editPanel], {
+      const endpoint = `${userInputEndpoints[editPanel]}?ticker=${encodeURIComponent(ticker)}`;
+      const updated = await authenticatedFetch(endpoint, {
         method: 'PUT',
         body: JSON.stringify(payload),
       }) as InternalFloatV2UserInput;

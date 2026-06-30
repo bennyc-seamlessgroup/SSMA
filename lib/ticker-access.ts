@@ -25,7 +25,7 @@ function arrayTickers(value: unknown) {
       return [normalizeTicker((item as CompanyAccessEntry).ticker, '')];
     }
     return [];
-  }).filter(Boolean);
+  }).filter(ticker => Boolean(ticker) && ticker !== 'NONE');
 }
 
 export function allowedTickersFromProfile(profile: TickerAccessProfile | null | undefined) {
@@ -34,9 +34,10 @@ export function allowedTickersFromProfile(profile: TickerAccessProfile | null | 
     ...arrayTickers(profile?.tickers),
     ...arrayTickers(profile?.companyAccess),
     ...arrayTickers(profile?.company_access),
-  ].filter(Boolean);
+  ].filter(ticker => Boolean(ticker) && ticker !== 'NONE');
   const unique = Array.from(new Set(values));
-  return unique.length ? unique : [defaultTicker];
+  if (unique.length) return unique;
+  return profile ? [] : [defaultTicker];
 }
 
 export function companyAccessFromProfile(profile: TickerAccessProfile | null | undefined) {
@@ -69,7 +70,7 @@ export function companyAccessFromProfile(profile: TickerAccessProfile | null | u
 export function defaultTickerFromProfile(profile: TickerAccessProfile | null | undefined) {
   const allowed = allowedTickersFromProfile(profile);
   const preferred = normalizeTicker(profile?.defaultTicker ?? profile?.default_ticker ?? profile?.ticker, '');
-  return preferred && allowed.includes(preferred) ? preferred : allowed[0];
+  return preferred && allowed.includes(preferred) ? preferred : allowed[0] ?? defaultTicker;
 }
 
 export function profileAllowsTicker(profile: TickerAccessProfile | null | undefined, ticker: string) {
@@ -77,6 +78,8 @@ export function profileAllowsTicker(profile: TickerAccessProfile | null | undefi
 }
 
 export function authorizedMonitorRedirect(pathname: string, profile: TickerAccessProfile | null | undefined) {
+  const allowed = allowedTickersFromProfile(profile);
+  if (!allowed.length) return `/monitor/${defaultTicker}/companies`;
   const defaultCompany = defaultTickerFromProfile(profile);
   const match = pathname.match(/^\/monitor\/([^/]+)(\/.*)?$/i);
   if (!match) return `/monitor/${defaultCompany}/dashboard-v2`;

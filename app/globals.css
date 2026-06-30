@@ -7987,6 +7987,69 @@ html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal :where(
   color: var(--saas-muted);
 }
 
+.company-invite-panel {
+  margin-top: 14px;
+}
+
+.company-invite-form {
+  display: grid;
+  grid-template-columns: minmax(240px, 1.4fr) minmax(140px, .6fr) auto;
+  align-items: end;
+  gap: 12px;
+  margin-top: 16px;
+}
+
+.company-invite-form label {
+  display: grid;
+  gap: 6px;
+  color: #344861;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.company-invite-form .button {
+  min-height: 40px;
+  white-space: nowrap;
+}
+
+.company-invite-message {
+  margin: 12px 0 0;
+  padding: 9px 11px;
+  border-radius: 7px;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.company-invite-message.success {
+  color: #087f65;
+  background: #ecfdf5;
+}
+
+.company-invite-message.error {
+  color: #b4233c;
+  background: #fff1f2;
+}
+
+html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .company-invite-form label {
+  color: #a9b9ce;
+}
+
+html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .company-invite-message.success {
+  color: #7dd3b0;
+  background: #0e2a23;
+}
+
+html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .company-invite-message.error {
+  color: #fda4af;
+  background: #35131c;
+}
+
+@media (max-width: 760px) {
+  .company-invite-form {
+    grid-template-columns: 1fr;
+  }
+}
+
 .market-calendar-panel { margin-top: 18px; overflow: hidden; }
 .market-calendar-panel__head { align-items: flex-start; gap: 20px; }
 .market-event-legend { display: flex; flex-wrap: wrap; gap: 10px 14px; justify-content: flex-end; color: var(--saas-muted); font-size: 12px; font-weight: 700; }
