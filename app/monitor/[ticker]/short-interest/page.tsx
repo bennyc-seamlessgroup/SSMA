@@ -2,6 +2,7 @@ import { ImportDataPreviewPage } from '@/components/ImportDataPreviewPage';
 import { InfoTooltip } from '@/components/InfoTooltip';
 import { parseAiAnalysis, readAiAnalysis } from '@/lib/ai-analysis';
 import { readImportFile, readPageContent } from '@/lib/import-data';
+import { evaluateShortInterestWatchItems, type WatchItemSeverity } from '@/lib/short-interest/watchItemRules';
 import { aiAnalysisFile, normalizeTicker, shortInterestFile } from '@/lib/ticker-data';
 import type { ReactNode } from 'react';
 
@@ -21,13 +22,14 @@ function text(value: unknown, fallback: string) {
   return typeof value === 'string' && value.trim() ? value : fallback;
 }
 
-function textList(value: unknown, fallback: string[]) {
-  return Array.isArray(value) ? value.filter(item => typeof item === 'string' && item.trim()) as string[] : fallback;
-}
-
 function numeric(value: unknown) {
   const parsed = typeof value === 'number' ? value : Number(String(value ?? '').replace(/[$,%]/g, '').replace(/,/g, ''));
   return Number.isFinite(parsed) ? parsed : null;
+}
+
+function optionalNumeric(value: unknown) {
+  if (value === null || value === undefined || value === '') return null;
+  return numeric(value);
 }
 
 function latest(items: Row[], dateKey = 'date') {
@@ -65,6 +67,16 @@ function signed(value: number, options?: Intl.NumberFormatOptions) {
   if (value > 0) return `+${formatted}`;
   if (value < 0) return `-${formatted}`;
   return formatted;
+}
+
+function percentageChange(current: number | null, previous: number | null) {
+  if (current === null || previous === null || previous === 0) return undefined;
+  return ((current - previous) / previous) * 100;
+}
+
+function conciseSentences(value: string, limit = 2) {
+  const matches = value.match(/[^.!?]+[.!?]+|[^.!?]+$/g) ?? [];
+  return matches.map(sentence => sentence.trim()).filter(Boolean).slice(0, limit);
 }
 
 function sourceChip(source: string) {
@@ -182,20 +194,23 @@ function DeltaBadge({ info, suffix = '', display }: { info: ReturnType<typeof de
   );
 }
 
-function KpiCard({ label, value, detail, change, suffix, deltaDisplay }: {
-  label: string;
-  value: ReactNode;
-  detail?: string;
-  change: ReturnType<typeof delta>;
-  suffix?: string;
-  deltaDisplay?: string;
-}) {
+function ExecutiveMetric({ label, value, changePercent }: { label: string; value: string; changePercent?: number | null }) {
+  const tone = typeof changePercent !== 'number' || !Number.isFinite(changePercent)
+    ? 'neutral'
+    : changePercent > 0
+      ? 'up'
+      : changePercent < 0
+        ? 'down'
+        : 'neutral';
   return (
-    <div className="terminal-card terminal-stat short-kpi-card">
+    <div className="short-executive-metric">
       <span>{label}</span>
       <strong>{value}</strong>
-      <DeltaBadge info={change} suffix={suffix} display={deltaDisplay} />
-      {detail && <small>{detail}</small>}
+      <em className={tone}>
+        {typeof changePercent === 'number' && Number.isFinite(changePercent)
+          ? `${changePercent > 0 ? '+' : ''}${changePercent.toLocaleString('en-US', { maximumFractionDigits: 2 })}%`
+          : 'No prior period'}
+      </em>
     </div>
   );
 }
@@ -207,12 +222,18 @@ function shortScoreExplanation(score: number, level: string) {
   return `${level} pressure means current short-side conditions are relatively contained. The score does not indicate meaningful pressure unless the underlying inputs begin to worsen.`;
 }
 
-const shortScoreGuide = [
-  { label: 'Low', range: '0-39', meaning: 'Contained pressure' },
-  { label: 'Moderate', range: '40-64', meaning: 'Watch for tightening' },
-  { label: 'High', range: '65-79', meaning: 'Elevated pressure' },
-  { label: 'Extreme', range: '80-100', meaning: 'Severe pressure' },
-];
+function shortScoreSummary(score: number, level: string) {
+  if (score >= 80) return `${level} short-side pressure. Escalate monitoring of borrow cost, utilization, and inventory.`;
+  if (score >= 65) return `${level} short-side pressure. Watch borrow cost, utilization, and available inventory.`;
+  if (score >= 40) return `${level} pressure. Monitor whether multiple short-market inputs tighten together.`;
+  return `${level} pressure. Current short-market conditions remain relatively contained.`;
+}
+
+type ShortSignal = {
+  label: string;
+  status: string;
+  severity: WatchItemSeverity;
+};
 
 export default async function ShortInterestPage({ params }: Readonly<{ params: Promise<{ ticker: string }> }>) {
   const { ticker } = await params;
@@ -258,6 +279,8 @@ export default async function ShortInterestPage({ params }: Readonly<{ params: P
   const previousAvailability = record(previousDaily.availability);
   const latestShortScore = record(latestDaily.shortScore);
   const previousShortScore = record(previousDaily.shortScore);
+  const latestClosing = record(latestDaily.closingPrices);
+  const previousClosing = record(previousDaily.closingPrices);
   const shortInterestDelta = delta(numeric(latestShortInterest.shortInterestShares), numeric(previousShortInterest.shortInterestShares), { maximumFractionDigits: 0 });
   const shortInterestPctDelta = delta(numeric(latestShortInterest.shortInterestPcFreeFloat), numeric(previousShortInterest.shortInterestPcFreeFloat), { maximumFractionDigits: 2 });
   const daysToCoverDelta = delta(numeric(latestDaysToCover.daysToCover), numeric(previousDaysToCover.daysToCover), { maximumFractionDigits: 2 });
@@ -276,12 +299,77 @@ export default async function ShortInterestPage({ params }: Readonly<{ params: P
   const shortScoreLevelCard = record(shortCards?.shortScoreLevel);
   const currentInterpretation = record(ortexData.currentInterpretation);
   const aiInterpretation = parseAiAnalysis(aiAnalysis?.short_interest_current_interpretation);
-  const managementWatchItems = textList(ortexData.managementWatchItems, [
-    'Borrow fee movement above current levels',
-    'Any decline in available shares to borrow',
-    'Short-interest increases confirmed by ORTEX daily records',
-    'Days-to-cover rising with lower trading liquidity',
-  ]);
+  const interpretationHeadline = text(aiInterpretation.headline, text(currentInterpretation.headline, 'Short positioning remains under management review'));
+  const interpretationBody = text(aiInterpretation.body, text(currentInterpretation.body, shortScoreExplanation(shortScore, shortScoreLevel)));
+  const ftdRows = rows(ortexData.ftd);
+  const latestFtd = latest(ftdRows);
+  const previousFtd = [...ftdRows].sort((a, b) => String(b.date ?? '').localeCompare(String(a.date ?? '')))[1] ?? {};
+  const ftdShares = optionalNumeric(shortCurrent.ftdShares ?? latestFtd.ftdShares);
+  const ftdChangePercent = optionalNumeric(shortCurrent.ftdChangePercent)
+    ?? percentageChange(ftdShares, numeric(previousFtd.ftdShares));
+  const shortInterestChangePercent = numeric(shortInterestCard.changePercent) ?? shortInterestDelta?.percent;
+  const borrowFeeChangePercent = numeric(borrowFeeCard.changePercent) ?? borrowFeeDelta?.percent;
+  const sharesAvailableChangePercent = numeric(sharesAvailableCard.changePercent) ?? sharesAvailableDelta?.percent;
+  const priceChangePercent = percentageChange(numeric(latestClosing.close), numeric(previousClosing.close));
+  const volumeChangePercent = percentageChange(numeric(latestClosing.volume), numeric(previousClosing.volume));
+  const floatShares = shortInterestPercent
+    ? (shortInterestShares ?? 0) / (shortInterestPercent / 100)
+    : undefined;
+  const watchItems = evaluateShortInterestWatchItems({
+    shortInterestPercent: shortInterestPercent ?? undefined,
+    shortInterestShares: shortInterestShares ?? undefined,
+    shortInterestChangePercent: shortInterestChangePercent ?? undefined,
+    daysToCover: daysToCover ?? undefined,
+    borrowFeePercent: borrowFee ?? undefined,
+    borrowFeeChangePercent: borrowFeeChangePercent ?? undefined,
+    utilizationPercent: utilization ?? undefined,
+    sharesAvailable: sharesAvailable ?? undefined,
+    sharesAvailableChangePercent: sharesAvailableChangePercent ?? undefined,
+    ftdShares: ftdShares ?? undefined,
+    ftdChangePercent: ftdChangePercent ?? undefined,
+    priceChangePercent,
+    volumeChangePercent,
+    floatShares,
+  });
+  const guideBullets = [
+    interpretationHeadline,
+    ...conciseSentences(interpretationBody),
+  ].slice(0, 3);
+  const watchNext = watchItems[0]?.suggestedAction
+    ?? 'Continue monitoring short exposure, borrow cost, utilization, and available inventory for material changes.';
+  const signals: ShortSignal[] = [
+    {
+      label: 'Short Interest Trend',
+      status: (shortInterestChangePercent ?? 0) >= 20 ? 'Rising rapidly' : (shortInterestChangePercent ?? 0) > 0 ? 'Rising' : (shortInterestChangePercent ?? 0) < 0 ? 'Falling' : 'Stable',
+      severity: (shortInterestChangePercent ?? 0) >= 20 ? 'high' : (shortInterestChangePercent ?? 0) > 0 ? 'medium' : 'low',
+    },
+    {
+      label: 'Borrow Fee Pressure',
+      status: (borrowFee ?? 0) >= 50 ? 'Extreme' : (borrowFee ?? 0) >= 30 ? 'Elevated' : 'Normal',
+      severity: (borrowFee ?? 0) >= 50 ? 'high' : (borrowFee ?? 0) >= 30 ? 'medium' : 'low',
+    },
+    {
+      label: 'Utilization Pressure',
+      status: (utilization ?? 0) >= 85 ? 'High' : (utilization ?? 0) >= 60 ? 'Moderate' : 'Low',
+      severity: (utilization ?? 0) >= 85 ? 'high' : (utilization ?? 0) >= 60 ? 'medium' : 'low',
+    },
+    {
+      label: 'Availability Stress',
+      status: (sharesAvailable ?? Infinity) <= 100_000 ? 'Constrained' : (sharesAvailableChangePercent ?? 0) <= -30 ? 'Tightening' : 'Available',
+      severity: (sharesAvailable ?? Infinity) <= 100_000 ? 'high' : (sharesAvailableChangePercent ?? 0) <= -30 ? 'medium' : 'low',
+    },
+    {
+      label: 'Days to Cover Risk',
+      status: (daysToCover ?? 0) >= 5 ? 'High' : (daysToCover ?? 0) >= 3 ? 'Moderate' : 'Low',
+      severity: (daysToCover ?? 0) >= 5 ? 'high' : (daysToCover ?? 0) >= 3 ? 'medium' : 'low',
+    },
+    {
+      label: 'FTD Pressure',
+      status: ftdShares === null ? 'No data' : (ftdShares >= 500_000 || (ftdChangePercent ?? 0) >= 50) ? 'Building' : 'Normal',
+      severity: ftdShares === null ? 'info' : (ftdShares >= 500_000 || (ftdChangePercent ?? 0) >= 50) ? 'medium' : 'low',
+    },
+  ];
+  const scoreProgress = Math.min(100, Math.max(0, shortScore));
 
   return (
     <ImportDataPreviewPage
@@ -304,52 +392,96 @@ export default async function ShortInterestPage({ params }: Readonly<{ params: P
           </div>
         </div>
 
-        <div className="lending-pressure-hero-grid short-interest-score-grid">
-          <div className={`lending-pressure-hero short-score-hero ${shortScoreTone}`}>
-            <span>Short Score</span>
-            <strong>{shortScore ? `${shortScore} / 100` : 'No Source'}</strong>
-            <div className="short-score-status-row">
-              <em>{String(shortScoreLevelCard.valueDisplay ?? shortScoreLevel)}</em>
-              <DeltaBadge info={shortScoreDelta} display={String(shortScoreCard.deltaDisplay ?? '')} />
-            </div>
-            <p>{shortScoreExplanation(shortScore, shortScoreLevel)}</p>
-          </div>
-          <div className="terminal-card short-score-guide-card">
-            <span>Score Guide</span>
-            <div className="short-score-guide-table">
-              {shortScoreGuide.map(row => (
-                <div className={row.label.toLowerCase() === shortScoreTone ? 'active' : ''} key={row.label}>
-                  <strong>{row.label}</strong>
-                  <em>{row.range}</em>
-                  <span>{row.meaning}</span>
+        <div className="short-executive-grid">
+          <article className={`terminal-card short-executive-card short-executive-score ${shortScoreTone}`}>
+            <span>Short Interest Score</span>
+            <div className="short-score-compact">
+              <div
+                className="short-score-radial"
+                style={{ background: `conic-gradient(var(--short-score-accent) ${scoreProgress}%, #e8eef7 ${scoreProgress}% 100%)` }}
+              >
+                <div>
+                  <strong>{shortScore || 'N/A'}</strong>
+                  <small>/ 100</small>
                 </div>
-              ))}
+              </div>
+              <div className="short-score-compact__copy">
+                <em>{String(shortScoreLevelCard.valueDisplay ?? shortScoreLevel)} Risk</em>
+                <DeltaBadge info={shortScoreDelta} display={String(shortScoreCard.deltaDisplay ?? '')} />
+                <p>{shortScoreSummary(shortScore, shortScoreLevel)}</p>
+              </div>
             </div>
-          </div>
-        </div>
+          </article>
 
-        <div className="lending-kpi-row short-interest-kpi-grid">
-          <KpiCard label="Short Interest" value={formatNumber(shortInterestShares)} change={shortInterestDelta} suffix=" shares" deltaDisplay={String(shortInterestCard.deltaDisplay ?? '')} />
-          <KpiCard label="SI % Float" value={formatPercent(shortInterestPercent, { maximumFractionDigits: 2 })} change={shortInterestPctDelta} suffix=" pts" deltaDisplay={String(siPercentCard.deltaDisplay ?? '')} />
-          <KpiCard label="Days To Cover" value={formatNumber(daysToCover, { maximumFractionDigits: 2 })} change={daysToCoverDelta} deltaDisplay={String(daysToCoverCard.deltaDisplay ?? '')} />
-          <KpiCard label="Borrow Fee" value={formatPercent(borrowFee, { maximumFractionDigits: 2 })} change={borrowFeeDelta} suffix=" pts" deltaDisplay={String(borrowFeeCard.deltaDisplay ?? '')} />
-          <KpiCard label="Shares Available" value={formatNumber(sharesAvailable)} change={sharesAvailableDelta} suffix=" shares" deltaDisplay={String(sharesAvailableCard.deltaDisplay ?? '')} />
-          <KpiCard label="Utilization" value={formatPercent(utilization, { maximumFractionDigits: 2 })} change={utilizationDelta} suffix=" pts" deltaDisplay={String(utilizationCard.deltaDisplay ?? '')} />
-        </div>
+          <article className="terminal-card short-executive-card short-key-metrics-card">
+            <span>Key Short Metrics</span>
+            <div className="short-executive-metrics">
+              <ExecutiveMetric label="Short Interest %" value={String(siPercentCard.valueDisplay ?? formatPercent(shortInterestPercent, { maximumFractionDigits: 2 }))} changePercent={numeric(siPercentCard.changePercent) ?? shortInterestPctDelta?.percent} />
+              <ExecutiveMetric label="Short Interest Shares" value={String(shortInterestCard.valueDisplay ?? formatNumber(shortInterestShares))} changePercent={shortInterestChangePercent} />
+              <ExecutiveMetric label="Days to Cover" value={String(daysToCoverCard.valueDisplay ?? formatNumber(daysToCover, { maximumFractionDigits: 2 }))} changePercent={numeric(daysToCoverCard.changePercent) ?? daysToCoverDelta?.percent} />
+              <ExecutiveMetric label="Borrow Fee" value={String(borrowFeeCard.valueDisplay ?? formatPercent(borrowFee, { maximumFractionDigits: 2 }))} changePercent={borrowFeeChangePercent} />
+              <ExecutiveMetric label="Utilization" value={String(utilizationCard.valueDisplay ?? formatPercent(utilization, { maximumFractionDigits: 2 }))} changePercent={numeric(utilizationCard.changePercent) ?? utilizationDelta?.percent} />
+            </div>
+          </article>
 
-        <div className="short-interest-analysis-grid">
-          <div className="terminal-card short-pressure-card">
-            <span>Current Interpretation</span>
-            <strong>{text(aiInterpretation.headline, text(currentInterpretation.headline, (borrowFee ?? 0) >= 25 || shortScore >= 65 ? 'Borrow pressure is visible' : 'Short pressure is moderate'))}</strong>
-            <p>{text(aiInterpretation.body, text(currentInterpretation.body, `Current data shows ${formatNumber(shortInterestShares)} reported short shares, ${formatPercent(shortInterestPercent, { maximumFractionDigits: 2 })} short interest as a percentage of float, and a ${formatPercent(borrowFee, { maximumFractionDigits: 2 })} borrow fee. This overview helps management understand whether short sellers are facing rising cost, tighter inventory, or increasing positioning pressure.`))}</p>
-          </div>
-          <div className="terminal-card short-pressure-card">
-            <span>Management Watch Items</span>
+          <article className="terminal-card short-executive-card short-management-guide">
+            <span>Management Interpretation Guide</span>
             <ul>
-              {managementWatchItems.map(item => <li key={item}>{item}</li>)}
+              {guideBullets.map((item, index) => <li key={`${index}-${item}`}>{item}</li>)}
             </ul>
+            <div>
+              <strong>What management should watch next</strong>
+              <p>{watchNext}</p>
+            </div>
+          </article>
+        </div>
+
+        <div className="short-signal-strip" aria-label="Current short-interest signals">
+          {signals.map(signal => (
+            <div className={`short-signal-pill ${signal.severity}`} key={signal.label}>
+              <i aria-hidden="true" />
+              <span>{signal.label}</span>
+              <strong>{signal.status}</strong>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      <section className="terminal-section short-management-watch-section">
+        <div className="terminal-section__head">
+          <div>
+            <span>Rule-Based Monitoring</span>
+            <h2>Management Watch Items</h2>
+            <p className="section-subtitle">Triggered from transparent short-interest, borrow-market, utilization, availability, settlement, and price-volume rules.</p>
           </div>
         </div>
+        {watchItems.length ? (
+          <div className="short-watch-grid">
+            {watchItems.map(item => (
+              <article className={`short-watch-card ${item.severity}`} key={item.id}>
+                <div className="short-watch-card__meta">
+                  <em>{item.severity}</em>
+                  <span>{item.category}</span>
+                </div>
+                <h3>{item.title}</h3>
+                <p>{item.message}</p>
+                <div className="short-watch-card__detail">
+                  <span>Why triggered</span>
+                  <p>{item.reason}</p>
+                </div>
+                <div className="short-watch-card__detail action">
+                  <span>Suggested action</span>
+                  <p>{item.suggestedAction}</p>
+                </div>
+              </article>
+            ))}
+          </div>
+        ) : (
+          <div className="short-watch-calm">
+            <strong>No major management watch items triggered</strong>
+            <p>No major management watch items triggered based on current short interest rules.</p>
+          </div>
+        )}
       </section>
 
       <section className="terminal-section short-interest-trends-section">

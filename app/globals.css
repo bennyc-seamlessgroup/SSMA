@@ -18393,6 +18393,615 @@ html[data-portal-design="b"] .monitor-portal .short-interest-kpi-grid .short-kpi
   font-size: 10.5px !important;
 }
 
+html[data-portal-design="b"] .monitor-portal .short-executive-grid {
+  display: grid;
+  grid-template-columns: minmax(240px, .78fr) minmax(350px, 1.08fr) minmax(340px, 1.04fr);
+  gap: 10px;
+  align-items: stretch;
+}
+
+html[data-portal-design="b"] .monitor-portal .short-executive-card {
+  min-width: 0;
+  min-height: 224px;
+  padding: 15px;
+  border: 1px solid #e1e8f0;
+  border-radius: 8px;
+  background: #fff;
+  box-shadow: 0 4px 14px rgba(15, 23, 42, .035);
+}
+
+html[data-portal-design="b"] .monitor-portal .short-executive-card > span {
+  display: block;
+  margin-bottom: 13px;
+  color: #64748b;
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: .09em;
+  text-transform: uppercase;
+}
+
+html[data-portal-design="b"] .monitor-portal .short-executive-score {
+  --short-score-accent: #2f6dd5;
+}
+
+html[data-portal-design="b"] .monitor-portal .short-executive-score.low {
+  --short-score-accent: #15966f;
+}
+
+html[data-portal-design="b"] .monitor-portal .short-executive-score.moderate {
+  --short-score-accent: #d99112;
+}
+
+html[data-portal-design="b"] .monitor-portal .short-executive-score.high,
+html[data-portal-design="b"] .monitor-portal .short-executive-score.extreme {
+  --short-score-accent: #dc4a4a;
+}
+
+html[data-portal-design="b"] .monitor-portal .short-score-compact {
+  display: grid;
+  grid-template-columns: 112px minmax(0, 1fr);
+  gap: 14px;
+  align-items: center;
+}
+
+html[data-portal-design="b"] .monitor-portal .short-score-radial {
+  width: 112px;
+  aspect-ratio: 1;
+  padding: 9px;
+  border-radius: 50%;
+}
+
+html[data-portal-design="b"] .monitor-portal .short-score-radial > div {
+  display: flex;
+  align-items: baseline;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  background: #fff;
+}
+
+html[data-portal-design="b"] .monitor-portal .short-score-radial strong {
+  align-self: center;
+  color: #10233c;
+  font-size: 30px;
+  font-weight: 700;
+  line-height: 1;
+}
+
+html[data-portal-design="b"] .monitor-portal .short-score-radial small {
+  align-self: center;
+  margin: 11px 0 0 3px;
+  color: #8290a5;
+  font-size: 10px;
+  font-weight: 600;
+}
+
+html[data-portal-design="b"] .monitor-portal .short-score-compact__copy {
+  min-width: 0;
+}
+
+html[data-portal-design="b"] .monitor-portal .short-score-compact__copy > em {
+  display: inline-flex;
+  padding: 4px 8px;
+  border-radius: 999px;
+  color: var(--short-score-accent);
+  background: color-mix(in srgb, var(--short-score-accent) 10%, white);
+  font-size: 10.5px;
+  font-style: normal;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+html[data-portal-design="b"] .monitor-portal .short-score-compact__copy .short-kpi-delta {
+  align-items: flex-start;
+  flex-direction: column;
+  gap: 2px;
+  width: 100%;
+  margin-top: 10px;
+}
+
+html[data-portal-design="b"] .monitor-portal .short-score-compact__copy .short-kpi-delta strong,
+html[data-portal-design="b"] .monitor-portal .short-score-compact__copy .short-kpi-delta em {
+  font-size: 10.5px !important;
+  white-space: normal;
+}
+
+html[data-portal-design="b"] .monitor-portal .short-score-compact__copy p {
+  margin: 10px 0 0;
+  color: #52647d;
+  font-size: 11.5px;
+  line-height: 1.45;
+}
+
+html[data-portal-design="b"] .monitor-portal .short-score-compact__copy time {
+  display: block;
+  margin-top: 9px;
+  color: #8290a5;
+  font-size: 9.5px;
+  font-weight: 600;
+  line-height: 1.35;
+}
+
+html[data-portal-design="b"] .monitor-portal .short-executive-metrics {
+  display: grid;
+  gap: 0;
+}
+
+html[data-portal-design="b"] .monitor-portal .short-executive-metric {
+  display: grid;
+  grid-template-columns: minmax(130px, 1fr) auto 68px;
+  align-items: center;
+  gap: 10px;
+  min-height: 34px;
+  padding: 7px 0;
+  border-bottom: 1px solid #edf1f5;
+}
+
+html[data-portal-design="b"] .monitor-portal .short-executive-metric:last-child {
+  border-bottom: 0;
+}
+
+html[data-portal-design="b"] .monitor-portal .short-executive-metric span {
+  min-width: 0;
+  color: #52647d;
+  font-size: 11.5px;
+  font-weight: 600;
+}
+
+html[data-portal-design="b"] .monitor-portal .short-executive-metric strong {
+  color: #10233c;
+  font-size: 14px;
+  font-weight: 700;
+  text-align: right;
+  white-space: nowrap;
+}
+
+html[data-portal-design="b"] .monitor-portal .short-executive-metric em {
+  font-size: 10.5px;
+  font-style: normal;
+  font-weight: 700;
+  text-align: right;
+  white-space: nowrap;
+}
+
+html[data-portal-design="b"] .monitor-portal .short-executive-metric em.up {
+  color: #087f65;
+}
+
+html[data-portal-design="b"] .monitor-portal .short-executive-metric em.down {
+  color: #c53c50;
+}
+
+html[data-portal-design="b"] .monitor-portal .short-executive-metric em.neutral {
+  color: #8290a5;
+}
+
+html[data-portal-design="b"] .monitor-portal .short-management-guide ul {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+html[data-portal-design="b"] .monitor-portal .short-management-guide li {
+  position: relative;
+  margin: 0;
+  padding-left: 15px;
+  color: #344861;
+  font-size: 11.5px;
+  line-height: 1.42;
+}
+
+html[data-portal-design="b"] .monitor-portal .short-management-guide li::before {
+  position: absolute;
+  top: 6px;
+  left: 0;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #3b76d6;
+  content: "";
+}
+
+html[data-portal-design="b"] .monitor-portal .short-management-guide > div {
+  margin-top: 12px;
+  padding: 10px;
+  border-left: 3px solid #3b76d6;
+  border-radius: 0 6px 6px 0;
+  background: #f4f8fd;
+}
+
+html[data-portal-design="b"] .monitor-portal .short-management-guide > div strong {
+  display: block;
+  color: #203650;
+  font-size: 10.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+html[data-portal-design="b"] .monitor-portal .short-management-guide > div p {
+  margin: 4px 0 0;
+  color: #52647d;
+  font-size: 11px;
+  line-height: 1.4;
+}
+
+html[data-portal-design="b"] .monitor-portal .lending-management-guide > div strong:not(:first-child) {
+  margin-top: 9px;
+}
+
+html[data-portal-design="b"] .monitor-portal .lending-management-guide > div p b {
+  color: #203650;
+  font-weight: 700;
+}
+
+html[data-portal-design="b"] .monitor-portal .short-signal-strip {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 8px;
+  margin-top: 10px;
+}
+
+html[data-portal-design="b"] .monitor-portal .short-signal-pill {
+  display: grid;
+  grid-template-columns: 7px minmax(0, 1fr);
+  gap: 2px 7px;
+  align-items: center;
+  min-width: 0;
+  padding: 9px 10px;
+  border: 1px solid #e2e8f0;
+  border-radius: 7px;
+  background: #fff;
+}
+
+html[data-portal-design="b"] .monitor-portal .short-signal-pill i {
+  grid-row: 1 / 3;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #8090a6;
+}
+
+html[data-portal-design="b"] .monitor-portal .short-signal-pill span,
+html[data-portal-design="b"] .monitor-portal .short-signal-pill strong {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+html[data-portal-design="b"] .monitor-portal .short-signal-pill span {
+  color: #718097;
+  font-size: 9.5px;
+  font-weight: 600;
+}
+
+html[data-portal-design="b"] .monitor-portal .short-signal-pill strong {
+  color: #203650;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+html[data-portal-design="b"] .monitor-portal .short-signal-pill.critical i {
+  background: #be123c;
+}
+
+html[data-portal-design="b"] .monitor-portal .short-signal-pill.high i {
+  background: #dc4a4a;
+}
+
+html[data-portal-design="b"] .monitor-portal .short-signal-pill.medium i {
+  background: #d99112;
+}
+
+html[data-portal-design="b"] .monitor-portal .short-signal-pill.low i {
+  background: #15966f;
+}
+
+html[data-portal-design="b"] .monitor-portal .short-signal-pill.info i {
+  background: #3b76d6;
+}
+
+html[data-portal-design="b"] .monitor-portal .lending-signal-strip {
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+}
+
+html[data-portal-design="b"] .monitor-portal .lending-pressure-breakdown {
+  margin-top: 10px;
+  padding: 14px;
+  border: 1px solid #e1e8f0;
+  border-radius: 8px;
+  background: #fff;
+  box-shadow: 0 4px 14px rgba(15, 23, 42, .035);
+}
+
+html[data-portal-design="b"] .monitor-portal .lending-pressure-breakdown__head {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 14px;
+  margin-bottom: 9px;
+}
+
+html[data-portal-design="b"] .monitor-portal .lending-pressure-breakdown__head span {
+  display: block;
+  color: #64748b;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: .09em;
+  text-transform: uppercase;
+}
+
+html[data-portal-design="b"] .monitor-portal .lending-pressure-breakdown__head strong {
+  display: block;
+  margin-top: 3px;
+  color: #203650;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+html[data-portal-design="b"] .monitor-portal .lending-pressure-breakdown__head small {
+  color: #8290a5;
+  font-size: 9.5px;
+}
+
+html[data-portal-design="b"] .monitor-portal .lending-contribution-list {
+  display: grid;
+  gap: 0;
+}
+
+html[data-portal-design="b"] .monitor-portal .lending-contribution-list > div {
+  display: grid;
+  grid-template-columns: minmax(125px, .75fr) minmax(160px, 1.4fr) 64px minmax(150px, 1fr);
+  align-items: center;
+  gap: 10px;
+  min-height: 32px;
+  padding: 6px 0;
+  border-top: 1px solid #edf1f5;
+}
+
+html[data-portal-design="b"] .monitor-portal .lending-contribution-list span,
+html[data-portal-design="b"] .monitor-portal .lending-contribution-list strong,
+html[data-portal-design="b"] .monitor-portal .lending-contribution-list small {
+  min-width: 0;
+}
+
+html[data-portal-design="b"] .monitor-portal .lending-contribution-list span {
+  color: #52647d;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+html[data-portal-design="b"] .monitor-portal .lending-contribution-list strong {
+  color: #203650;
+  font-size: 11px;
+  font-weight: 700;
+  text-align: right;
+}
+
+html[data-portal-design="b"] .monitor-portal .lending-contribution-list small {
+  overflow: hidden;
+  color: #718097;
+  font-size: 9.5px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+html[data-portal-design="b"] .monitor-portal .lending-contribution-track {
+  height: 7px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: #edf2f8;
+}
+
+html[data-portal-design="b"] .monitor-portal .lending-contribution-track i {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: #3b76d6;
+}
+
+html[data-portal-design="b"] .monitor-portal .lending-contribution-list > div:nth-child(2) .lending-contribution-track i {
+  background: #dc5b5b;
+}
+
+html[data-portal-design="b"] .monitor-portal .lending-contribution-list > div:nth-child(3) .lending-contribution-track i {
+  background: #d99112;
+}
+
+html[data-portal-design="b"] .monitor-portal .lending-contribution-list > div:nth-child(4) .lending-contribution-track i {
+  background: #6f72d8;
+}
+
+html[data-portal-design="b"] .monitor-portal .lending-contribution-list > div.unavailable {
+  opacity: .58;
+}
+
+html[data-portal-design="b"] .monitor-portal .lending-pressure-breakdown > p {
+  margin: 8px 0 0;
+  padding-top: 8px;
+  border-top: 1px solid #edf1f5;
+  color: #718097;
+  font-size: 9.5px;
+  line-height: 1.4;
+}
+
+html[data-portal-design="b"] .monitor-portal .lending-trends-section {
+  margin: 0 0 12px;
+  background: rgba(255, 255, 255, .88);
+}
+
+html[data-portal-design="b"] .monitor-portal .lending-trends-section .terminal-section__head {
+  margin-bottom: 12px;
+  padding-bottom: 10px;
+  border-width: 0 0 1px;
+  border-style: solid;
+  border-color: #e5e7eb;
+}
+
+html[data-portal-design="b"] .monitor-portal .lending-trends-section .terminal-section__head h2 {
+  font-size: 15px;
+  font-weight: 600;
+}
+
+html[data-portal-design="b"] .monitor-portal .lending-trends-section .lending-trend-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  margin-top: 0;
+}
+
+html[data-portal-design="b"] .monitor-portal .lending-trends-section .chart-card {
+  min-height: 244px;
+  padding: 13px;
+  border-radius: 7px;
+}
+
+html[data-portal-design="b"] .monitor-portal .lending-trends-section .chart-card h3 {
+  margin-bottom: 9px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: .09em;
+}
+
+html[data-portal-design="b"] .monitor-portal .lending-trends-section .lending-mini-trend {
+  min-height: 180px;
+}
+
+html[data-portal-design="b"] .monitor-portal .short-management-watch-section {
+  margin: 0 0 12px;
+  background: rgba(255, 255, 255, .88);
+}
+
+html[data-portal-design="b"] .monitor-portal .short-management-watch-section .terminal-section__head {
+  margin-bottom: 12px;
+  padding-bottom: 10px;
+  border-width: 0 0 1px;
+  border-style: solid;
+  border-color: #e5e7eb;
+}
+
+html[data-portal-design="b"] .monitor-portal .short-management-watch-section .terminal-section__head h2 {
+  font-size: 15px;
+  font-weight: 600;
+}
+
+html[data-portal-design="b"] .monitor-portal .short-watch-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(290px, 1fr));
+  gap: 10px;
+}
+
+html[data-portal-design="b"] .monitor-portal .short-watch-card {
+  min-width: 0;
+  padding: 13px 14px;
+  border: 1px solid #e1e8f0;
+  border-left: 3px solid #3b76d6;
+  border-radius: 7px;
+  background: #fff;
+}
+
+html[data-portal-design="b"] .monitor-portal .short-watch-card.critical {
+  border-left-color: #be123c;
+}
+
+html[data-portal-design="b"] .monitor-portal .short-watch-card.high {
+  border-left-color: #e05252;
+}
+
+html[data-portal-design="b"] .monitor-portal .short-watch-card.medium {
+  border-left-color: #d99112;
+}
+
+html[data-portal-design="b"] .monitor-portal .short-watch-card.low {
+  border-left-color: #15966f;
+}
+
+html[data-portal-design="b"] .monitor-portal .short-watch-card__meta {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+
+html[data-portal-design="b"] .monitor-portal .short-watch-card__meta em {
+  padding: 3px 6px;
+  border-radius: 999px;
+  color: #a16207;
+  background: #fff6dc;
+  font-size: 9px;
+  font-style: normal;
+  font-weight: 700;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+}
+
+html[data-portal-design="b"] .monitor-portal .short-watch-card.critical .short-watch-card__meta em,
+html[data-portal-design="b"] .monitor-portal .short-watch-card.high .short-watch-card__meta em {
+  color: #b4233c;
+  background: #fff0f2;
+}
+
+html[data-portal-design="b"] .monitor-portal .short-watch-card__meta span {
+  color: #718097;
+  font-size: 10px;
+  font-weight: 600;
+}
+
+html[data-portal-design="b"] .monitor-portal .short-watch-card h3 {
+  margin: 9px 0 5px;
+  color: #10233c;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+html[data-portal-design="b"] .monitor-portal .short-watch-card > p,
+html[data-portal-design="b"] .monitor-portal .short-watch-card__detail p {
+  margin: 0;
+  color: #52647d;
+  font-size: 11.5px;
+  line-height: 1.42;
+}
+
+html[data-portal-design="b"] .monitor-portal .short-watch-card__detail {
+  margin-top: 9px;
+  padding-top: 8px;
+  border-top: 1px solid #edf1f5;
+}
+
+html[data-portal-design="b"] .monitor-portal .short-watch-card__detail span {
+  display: block;
+  margin-bottom: 3px;
+  color: #718097;
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+}
+
+html[data-portal-design="b"] .monitor-portal .short-watch-card__detail.action p {
+  color: #294d7c;
+  font-weight: 600;
+}
+
+html[data-portal-design="b"] .monitor-portal .short-watch-calm {
+  padding: 18px;
+  border: 1px solid #dce8e3;
+  border-radius: 7px;
+  background: #f5fbf8;
+}
+
+html[data-portal-design="b"] .monitor-portal .short-watch-calm strong {
+  color: #17684f;
+  font-size: 13px;
+}
+
+html[data-portal-design="b"] .monitor-portal .short-watch-calm p {
+  margin: 4px 0 0;
+  color: #587064;
+  font-size: 11.5px;
+}
+
 html[data-portal-design="b"] .monitor-portal .short-interest-analysis-grid {
   grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
   gap: 10px;
@@ -18481,7 +19090,88 @@ html[data-portal-design="b"] .monitor-portal .short-interest-chart .trend-marker
 }
 
 html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .short-interest-overview,
-html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .short-interest-trends-section {
+html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .short-interest-trends-section,
+html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .short-management-watch-section {
+  background: rgba(10, 21, 38, .86);
+}
+
+html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .short-executive-card,
+html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .short-signal-pill,
+html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .short-watch-card,
+html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .lending-pressure-breakdown {
+  border-color: #24364d;
+  background: #0d1b2d;
+  box-shadow: none;
+}
+
+html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .short-score-radial > div {
+  background: #0d1b2d;
+}
+
+html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .short-score-radial strong,
+html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .short-executive-metric strong,
+html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .short-signal-pill strong,
+html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .short-watch-card h3,
+html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .lending-pressure-breakdown__head strong,
+html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .lending-contribution-list strong {
+  color: #edf5ff;
+}
+
+html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .short-score-compact__copy p,
+html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .short-executive-metric span,
+html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .short-management-guide li,
+html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .short-signal-pill span,
+html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .short-watch-card > p,
+html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .short-watch-card__detail p,
+html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .lending-contribution-list span,
+html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .lending-contribution-list small,
+html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .lending-pressure-breakdown > p {
+  color: #a9b9ce;
+}
+
+html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .short-executive-metric,
+html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .short-watch-card__detail {
+  border-color: #213249;
+}
+
+html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .short-management-guide > div {
+  border-left-color: #5b8cff;
+  background: #102542;
+}
+
+html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .short-management-guide > div strong,
+html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .short-management-guide > div p,
+html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .short-watch-card__detail.action p {
+  color: #c7d8ee;
+}
+
+html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .short-watch-calm {
+  border-color: #225344;
+  background: #0e2a23;
+}
+
+html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .short-watch-calm strong {
+  color: #7dd3b0;
+}
+
+html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .short-watch-calm p {
+  color: #9ac7b7;
+}
+
+html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .lending-management-guide > div p b {
+  color: #edf5ff;
+}
+
+html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .lending-contribution-list > div,
+html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .lending-pressure-breakdown > p {
+  border-color: #213249;
+}
+
+html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .lending-contribution-track {
+  background: #1b2d44;
+}
+
+html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .lending-trends-section {
   background: rgba(10, 21, 38, .86);
 }
 
@@ -20222,6 +20912,27 @@ html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .float-
 }
 
 @media (max-width: 1320px) {
+  html[data-portal-design="b"] .monitor-portal .short-executive-grid {
+    grid-template-columns: minmax(240px, .8fr) minmax(360px, 1.2fr);
+  }
+
+  html[data-portal-design="b"] .monitor-portal .short-management-guide {
+    grid-column: 1 / -1;
+    min-height: 0;
+  }
+
+  html[data-portal-design="b"] .monitor-portal .short-signal-strip {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  html[data-portal-design="b"] .monitor-portal .lending-signal-strip {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  html[data-portal-design="b"] .monitor-portal .lending-trends-section .lending-trend-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
   html[data-portal-design="b"] .monitor-portal .short-interest-kpi-grid,
   html[data-portal-design="b"] .monitor-portal .short-interest-overview .short-interest-kpi-grid {
     grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -20233,6 +20944,32 @@ html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .float-
 }
 
 @media (max-width: 860px) {
+  html[data-portal-design="b"] .monitor-portal .short-executive-grid {
+    grid-template-columns: 1fr;
+  }
+
+  html[data-portal-design="b"] .monitor-portal .short-management-guide {
+    grid-column: auto;
+  }
+
+  html[data-portal-design="b"] .monitor-portal .short-signal-strip {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  html[data-portal-design="b"] .monitor-portal .lending-signal-strip,
+  html[data-portal-design="b"] .monitor-portal .lending-trends-section .lending-trend-grid {
+    grid-template-columns: 1fr;
+  }
+
+  html[data-portal-design="b"] .monitor-portal .lending-contribution-list > div {
+    grid-template-columns: minmax(110px, .8fr) minmax(130px, 1.2fr) 56px;
+  }
+
+  html[data-portal-design="b"] .monitor-portal .lending-contribution-list small {
+    grid-column: 1 / -1;
+    white-space: normal;
+  }
+
   html[data-portal-design="b"] .monitor-portal .short-interest-score-grid,
   html[data-portal-design="b"] .monitor-portal .short-interest-analysis-grid,
   html[data-portal-design="b"] .monitor-portal .short-interest-trend-grid {
@@ -20242,5 +20979,48 @@ html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .float-
   html[data-portal-design="b"] .monitor-portal .short-interest-kpi-grid,
   html[data-portal-design="b"] .monitor-portal .short-interest-overview .short-interest-kpi-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 520px) {
+  html[data-portal-design="b"] .monitor-portal .short-score-compact {
+    grid-template-columns: 96px minmax(0, 1fr);
+  }
+
+  html[data-portal-design="b"] .monitor-portal .short-score-radial {
+    width: 96px;
+  }
+
+  html[data-portal-design="b"] .monitor-portal .short-executive-metric {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+
+  html[data-portal-design="b"] .monitor-portal .short-executive-metric em {
+    grid-column: 1 / -1;
+    text-align: left;
+  }
+
+  html[data-portal-design="b"] .monitor-portal .short-signal-strip {
+    grid-template-columns: 1fr;
+  }
+
+  html[data-portal-design="b"] .monitor-portal .lending-pressure-breakdown__head {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 5px;
+  }
+
+  html[data-portal-design="b"] .monitor-portal .lending-contribution-list > div {
+    grid-template-columns: minmax(0, 1fr) 52px;
+  }
+
+  html[data-portal-design="b"] .monitor-portal .lending-contribution-track {
+    grid-column: 1 / -1;
+    grid-row: 2;
+  }
+
+  html[data-portal-design="b"] .monitor-portal .lending-contribution-list strong {
+    grid-column: 2;
+    grid-row: 1;
   }
 }
