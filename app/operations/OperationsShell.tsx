@@ -3,6 +3,7 @@ import { OperationsUserPortalLink } from '@/components/OperationsUserPortalLink'
 
 const navItems = [
   ['Dashboard', '/operations/dashboard'],
+  ['Market Data (New)', '/operations/market-data'],
   ['SEC Filing Entry', '/operations/sec-filings'],
   ['Narrative Social Upload', '/operations/narrative-social'],
   ['Ownership', '/operations/ownership'],

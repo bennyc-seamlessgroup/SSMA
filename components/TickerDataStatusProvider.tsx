@@ -2,6 +2,7 @@
 
 import { createContext, useContext, useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { getPublicTickerDataStatus } from '@/lib/public-import-data';
 
 export type TickerPageDataStatus = {
   version: string;
@@ -16,31 +17,43 @@ export type TickerDataStatus = {
 };
 
 const TickerDataStatusContext = createContext<TickerDataStatus | null>(null);
-const pollIntervalMs = 30_000;
+const configuredPollSeconds = Number(process.env.NEXT_PUBLIC_IMPORT_DATA_POLL_SECONDS ?? 60);
+const pollIntervalMs = Math.max(30, Number.isFinite(configuredPollSeconds) ? configuredPollSeconds : 60) * 1000;
 
 export function TickerDataStatusProvider({ ticker, children }: { ticker: string; children: React.ReactNode }) {
   const router = useRouter();
   const [status, setStatus] = useState<TickerDataStatus | null>(null);
   const lastVersion = useRef<string | null>(null);
+  const serverFallbackAttempted = useRef(false);
 
   useEffect(() => {
     let cancelled = false;
     let requestInFlight = false;
+    const controller = new AbortController();
     lastVersion.current = null;
+    serverFallbackAttempted.current = false;
     setStatus(null);
 
     async function poll() {
       if (document.visibilityState === 'hidden' || requestInFlight) return;
       requestInFlight = true;
       try {
-        const response = await fetch(`/api/ticker-data-status/${encodeURIComponent(ticker)}`, { cache: 'no-store' });
-        if (!response.ok) return;
-        const next = await response.json() as TickerDataStatus;
+        let next = await getPublicTickerDataStatus(ticker, controller.signal) as TickerDataStatus;
+        if (!next.updatedAt) {
+          if (serverFallbackAttempted.current) return;
+          serverFallbackAttempted.current = true;
+          const fallbackResponse = await fetch(`/api/ticker-data-status/${encodeURIComponent(ticker)}`, { cache: 'no-store' });
+          if (!fallbackResponse.ok) return;
+          next = await fallbackResponse.json() as TickerDataStatus;
+        }
         if (cancelled) return;
         const changed = Boolean(lastVersion.current && lastVersion.current !== next.version);
         lastVersion.current = next.version;
         setStatus(next);
-        if (changed) router.refresh();
+        if (changed) {
+          window.dispatchEvent(new CustomEvent('import-data-updated', { detail: next }));
+          router.refresh();
+        }
       } catch {
         // Retain the last successful status during brief network failures.
       } finally {
@@ -56,6 +69,7 @@ export function TickerDataStatusProvider({ ticker, children }: { ticker: string;
     document.addEventListener('visibilitychange', handleVisibility);
     return () => {
       cancelled = true;
+      controller.abort();
       window.clearInterval(interval);
       document.removeEventListener('visibilitychange', handleVisibility);
     };

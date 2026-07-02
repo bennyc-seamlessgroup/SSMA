@@ -8,6 +8,7 @@ export type CompanyAccessEntry = {
 };
 
 export type TickerAccessProfile = {
+  role?: unknown;
   ticker?: unknown;
   tickers?: unknown;
   defaultTicker?: unknown;
@@ -29,6 +30,9 @@ function arrayTickers(value: unknown) {
 }
 
 export function allowedTickersFromProfile(profile: TickerAccessProfile | null | undefined) {
+  if (String(profile?.role ?? '').trim().toUpperCase() === 'DEMO') {
+    return [defaultTicker];
+  }
   const values = [
     normalizeTicker(profile?.ticker, ''),
     ...arrayTickers(profile?.tickers),

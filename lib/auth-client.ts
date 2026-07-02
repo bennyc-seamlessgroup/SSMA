@@ -18,6 +18,7 @@ export type AuthTokens = {
 };
 
 export type AuthenticatedProfile = Record<string, unknown> & {
+  role?: string;
   ticker?: string;
   tickers?: string[];
   defaultTicker?: string;
@@ -267,12 +268,13 @@ export function signOut() {
 export async function authenticatedFetch(path: string, options: RequestInit = {}) {
   const tokens = getStoredTokens();
   if (!tokens?.idToken) throw new Error('Not authenticated');
+  const isMultipart = typeof FormData !== 'undefined' && options.body instanceof FormData;
 
   const doFetch = (idToken: string) => fetch(`${apiGatewayUrl}${path}`, {
     ...options,
     headers: {
       Authorization: idToken,
-      'Content-Type': 'application/json',
+      ...(isMultipart ? {} : { 'Content-Type': 'application/json' }),
       ...(options.headers ?? {}),
     },
   });

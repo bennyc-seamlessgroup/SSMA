@@ -1,4 +1,3 @@
-import crypto from 'crypto';
 import { redditSocialPrefix, xSocialPrefix } from '@/lib/ticker-data';
 
 export type PublicSocialPlatform = 'Reddit' | 'X';
@@ -34,6 +33,15 @@ const bucketObjectBase = 'https://data-sync-platform-website-data.s3.us-east-1.a
 const cacheMs = 30_000;
 const listCache = new Map<string, CacheEntry<S3Object[]>>();
 const mentionsCache = new Map<string, CacheEntry<PublicSocialMention[]>>();
+
+function stableVersion(value: string) {
+  let hash = 2166136261;
+  for (let index = 0; index < value.length; index += 1) {
+    hash ^= value.charCodeAt(index);
+    hash = Math.imul(hash, 16777619);
+  }
+  return (hash >>> 0).toString(16).padStart(8, '0');
+}
 
 function decodeXml(value: string) {
   return value
@@ -151,10 +159,7 @@ export async function publicSocialPrefixVersion(prefix: string) {
   return {
     prefix,
     updatedAt: latest ? new Date(latest).toISOString() : null,
-    version: crypto
-      .createHash('sha256')
-      .update(objects.map(item => `${item.key}:${item.etag || item.lastModified || item.size}`).join('|'))
-      .digest('hex'),
+    version: stableVersion(objects.map(item => `${item.key}:${item.etag || item.lastModified || item.size}`).join('|')),
     count: objects.length,
   };
 }

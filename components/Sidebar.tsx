@@ -6,6 +6,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { UserMenu } from './UserMenu';
 import { DevModeToggle } from './DevModeToggle';
 import { useTickerDataStatus } from './TickerDataStatusProvider';
+import { getAuthenticatedProfile } from '@/lib/auth-client';
 
 const groups = [
   {
@@ -104,6 +105,7 @@ export function Sidebar({
   const [seenImportDataVersion, setSeenImportDataVersion] = useState(importDataVersion);
   const [seenPageImportVersions, setSeenPageImportVersions] = useState<Record<string, string>>({});
   const [designBPanel, setDesignBPanel] = useState<'workspace' | 'settings' | 'development'>('workspace');
+  const [isOperator, setIsOperator] = useState(false);
   const [collapsedGroups, setCollapsedGroups] = useState<Record<string, boolean>>(() =>
     Object.fromEntries(groups.filter(group => group.muted).map(group => [group.label, true])),
   );
@@ -129,6 +131,20 @@ export function Sidebar({
   useEffect(() => {
     setSeenPageImportVersions({});
   }, [ticker]);
+
+  useEffect(() => {
+    let cancelled = false;
+    getAuthenticatedProfile()
+      .then(profile => {
+        if (!cancelled) setIsOperator(String(profile.role ?? '').trim().toUpperCase() === 'OPERATOR');
+      })
+      .catch(() => {
+        if (!cancelled) setIsOperator(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   useEffect(() => {
     setSeenPageImportVersions(current => {
@@ -212,25 +228,27 @@ export function Sidebar({
               <path d="M19.4 15a1.7 1.7 0 0 0 .34 1.88l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.7 1.7 0 0 0-1.88-.34 1.7 1.7 0 0 0-1.03 1.56V21a2 2 0 1 1-4 0v-.09A1.7 1.7 0 0 0 8.97 19.35a1.7 1.7 0 0 0-1.88.34l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.7 1.7 0 0 0 4.6 15a1.7 1.7 0 0 0-1.56-1.03H3a2 2 0 1 1 0-4h.09A1.7 1.7 0 0 0 4.65 8.94a1.7 1.7 0 0 0-.34-1.88l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.7 1.7 0 0 0 9 4.57 1.7 1.7 0 0 0 10 3.01V3a2 2 0 1 1 4 0v.09a1.7 1.7 0 0 0 1.03 1.56 1.7 1.7 0 0 0 1.88-.34l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.7 1.7 0 0 0-.34 1.88A1.7 1.7 0 0 0 20.91 10H21a2 2 0 1 1 0 4h-.09A1.7 1.7 0 0 0 19.4 15Z" />
             </svg>
           </button>
-          <button
-            type="button"
-            className={designBPanel === 'development' ? 'active' : ''}
-            title="Development use only"
-            aria-label="Development use only"
-            onClick={() => {
-              setDesignBPanel('development');
-              setCollapsedGroups(current => ({
-                ...current,
-                ...Object.fromEntries(groups.filter(group => group.muted).map(group => [group.label, false])),
-              }));
-            }}
-          >
-            <svg viewBox="0 0 24 24" aria-hidden="true">
-              <path d="m8 9-4 3 4 3" />
-              <path d="m16 9 4 3-4 3" />
-              <path d="m14 5-4 14" />
-            </svg>
-          </button>
+          {isOperator ? (
+            <button
+              type="button"
+              className={designBPanel === 'development' ? 'active' : ''}
+              title="Development use only"
+              aria-label="Development use only"
+              onClick={() => {
+                setDesignBPanel('development');
+                setCollapsedGroups(current => ({
+                  ...current,
+                  ...Object.fromEntries(groups.filter(group => group.muted).map(group => [group.label, false])),
+                }));
+              }}
+            >
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="m8 9-4 3 4 3" />
+                <path d="m16 9 4 3-4 3" />
+                <path d="m14 5-4 14" />
+              </svg>
+            </button>
+          ) : null}
         </nav>
       </div>
 

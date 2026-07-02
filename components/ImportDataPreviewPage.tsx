@@ -1,7 +1,10 @@
-import { readImportJson, type ImportEnvelope } from '@/lib/import-data';
+'use client';
+
+import type { ImportEnvelope } from '@/lib/import-data';
 import { ImportDataTable } from '@/components/ImportDataTable';
 import { InfoTooltip } from '@/components/InfoTooltip';
 import { ImportDataTabs } from '@/components/ImportDataTabs';
+import { usePublicImportFiles } from '@/components/usePublicImportFiles';
 
 type ImportDataPreviewPageProps = {
   title: string;
@@ -136,40 +139,41 @@ function ImportDataRenderer({ data }: { data: unknown }) {
   return <p className="page__desc import-empty">{formatValue(data)}</p>;
 }
 
-export async function ImportDataPreviewPage({ title, description, files, children }: ImportDataPreviewPageProps) {
-  const datasets = await Promise.all(files.map(async file => {
-    try {
-      const payload = await readImportJson<Record<string, unknown>>(file);
-      const hasEnvelope = isRecord(payload) && Object.prototype.hasOwnProperty.call(payload, 'data');
-      const envelope = (hasEnvelope ? payload : {}) as ImportEnvelope;
-      const data = hasEnvelope ? envelope.data : payload;
-      const recordCount = envelope.recordCount
-        ?? (Array.isArray(data) ? data.length : 1);
+export function ImportDataPreviewPage({ title, description, files, children }: ImportDataPreviewPageProps) {
+  const { data: payloads, loading } = usePublicImportFiles(files);
+  const datasets = files.map(file => {
+    const payload = payloads?.[file];
+    if (!payload || !isRecord(payload)) {
       return {
         id: file.replace(/[^a-zA-Z0-9]+/g, '-'),
         file,
         title: cleanTitle(file),
-        sourcePlatform: envelope.sourcePlatform ?? 'Internal',
-        recordCount,
-        status: envelope.status ?? 'ready',
-        notes: envelope.notes ?? 'Ready for portal workflow.',
-        importedAt: envelope.importedAt ?? String(payload.created_at_utc ?? ''),
-        data,
-      };
-    } catch {
-      return {
-        id: file.replace(/[^a-zA-Z0-9]+/g, '-'),
-        file,
-        title: cleanTitle(file),
-        sourcePlatform: 'Missing import file',
+        sourcePlatform: loading ? 'Loading public data' : 'Missing import file',
         recordCount: 0,
-        status: 'missing',
-        notes: 'This import file is mapped but was not found in the active data source.',
+        status: loading ? 'loading' : 'missing',
+        notes: loading
+          ? 'Loading this dataset directly from public object storage.'
+          : 'This import file is mapped but was not found in the active data source.',
         importedAt: '',
         data: [],
       };
     }
-  }));
+    const hasEnvelope = Object.prototype.hasOwnProperty.call(payload, 'data');
+    const envelope = (hasEnvelope ? payload : {}) as ImportEnvelope;
+    const dataset = hasEnvelope ? envelope.data : payload;
+    const recordCount = envelope.recordCount ?? (Array.isArray(dataset) ? dataset.length : 1);
+    return {
+      id: file.replace(/[^a-zA-Z0-9]+/g, '-'),
+      file,
+      title: cleanTitle(file),
+      sourcePlatform: envelope.sourcePlatform ?? 'Internal',
+      recordCount,
+      status: envelope.status ?? 'ready',
+      notes: envelope.notes ?? 'Ready for portal workflow.',
+      importedAt: envelope.importedAt ?? String(payload.created_at_utc ?? ''),
+      data: dataset,
+    };
+  });
 
   return (
     <div className="page">

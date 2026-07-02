@@ -3696,11 +3696,157 @@ html[data-design-b-theme="dark"] .monitor-portal .report-timeline-step.is-latest
   font-weight: 800;
 }
 
+.ops-market-data-page {
+  display: grid;
+  gap: 16px;
+}
+
+.ops-market-data-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.6fr) minmax(300px, .7fr);
+  gap: 16px;
+}
+
+.ops-market-batch-panel {
+  align-self: start;
+}
+
+.ops-market-dropzone {
+  display: grid;
+  width: 100%;
+  min-height: 156px;
+  place-items: center;
+  gap: 7px;
+  padding: 20px;
+  border: 1px dashed #9eb7d6;
+  border-radius: 12px;
+  background: #f8fbff;
+  color: #52677f;
+  cursor: pointer;
+  text-align: center;
+}
+
+.ops-market-dropzone:hover,
+.ops-market-dropzone.is-ready {
+  border-color: #2457b8;
+  background: #f0f6ff;
+}
+
+.ops-market-dropzone svg {
+  width: 28px;
+  height: 28px;
+  fill: none;
+  stroke: #2457b8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.7;
+}
+
+.ops-market-dropzone strong {
+  color: #102033;
+  font-size: 14px;
+}
+
+.ops-market-dropzone span {
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.ops-market-schema {
+  display: grid;
+  gap: 7px;
+  margin: 12px 0;
+  padding: 11px;
+  border: 1px solid #e0e9f4;
+  border-radius: 10px;
+  background: #f8fbff;
+}
+
+.ops-market-schema strong {
+  color: #52677f;
+  font-size: 11px;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+
+.ops-market-schema code {
+  overflow-wrap: anywhere;
+  color: #2457b8;
+  font-size: 11px;
+  line-height: 1.5;
+}
+
+.ops-market-message {
+  margin: 0;
+  padding: 10px 12px;
+  border: 1px solid #bbf7d0;
+  border-radius: 9px;
+  background: #f0fdf4;
+}
+
+.ops-market-message.bad {
+  border-color: #fecdd3;
+  background: #fff1f2;
+}
+
+.ops-market-table {
+  min-width: 1220px;
+}
+
+.float-v2-demo-banner {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin-bottom: 12px;
+  padding: 11px 13px;
+  border: 1px solid #bfdbfe;
+  border-radius: 8px;
+  background: #eff6ff;
+  color: #1e3a5f;
+}
+
+.float-v2-demo-banner svg {
+  flex: 0 0 auto;
+  width: 18px;
+  height: 18px;
+  fill: none;
+  stroke: #2563eb;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.7;
+}
+
+.float-v2-demo-banner div {
+  display: grid;
+  gap: 2px;
+}
+
+.float-v2-demo-banner strong {
+  font-size: 12px;
+}
+
+.float-v2-demo-banner span {
+  color: #52677f;
+  font-size: 11px;
+  line-height: 1.45;
+}
+
+html[data-design-b-theme="dark"] .float-v2-demo-banner {
+  border-color: #23466f;
+  background: #0d223c;
+  color: #dbeafe;
+}
+
+html[data-design-b-theme="dark"] .float-v2-demo-banner span {
+  color: #9db4cf;
+}
+
 @media (max-width: 1100px) {
   .ops-shell,
   .ops-login-card,
   .ops-sec-grid,
-  .ops-upload-grid {
+  .ops-upload-grid,
+  .ops-market-data-grid {
     grid-template-columns: 1fr;
   }
 

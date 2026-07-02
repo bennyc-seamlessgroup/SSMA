@@ -310,6 +310,7 @@ export function InternalFloatV2Client({
   initialUserInputs,
   institutionalOverview,
   insiderSuggestionSources = [],
+  demoMode = false,
 }: {
   ticker: string;
   initialHoldings: ManualHolding[];
@@ -317,6 +318,7 @@ export function InternalFloatV2Client({
   initialUserInputs: InternalFloatV2UserInput;
   institutionalOverview?: InstitutionalOwnershipOverview;
   insiderSuggestionSources?: InsiderSuggestionSource[];
+  demoMode?: boolean;
 }) {
   const [editPanel, setEditPanel] = useState<EditPanel>(null);
   const [ownership] = useState<OwnershipData>(() => seedOwnership(initialHoldings, initialAdjustments, institutionalOverview));
@@ -327,7 +329,7 @@ export function InternalFloatV2Client({
   const [savedPrivateHoldings, setSavedPrivateHoldings] = useState<PrivateHolding[]>(() => initialUserInputs.privateHoldings);
   const [savedTokenChains, setSavedTokenChains] = useState<TokenChain[]>(() => initialUserInputs.tokenChains);
   const [savedCollateralChains, setSavedCollateralChains] = useState<CollateralChain[]>(() => initialUserInputs.collateralChains);
-  const [apiStatus, setApiStatus] = useState<'idle' | 'loading' | 'saving' | 'saved' | 'error'>('loading');
+  const [apiStatus, setApiStatus] = useState<'idle' | 'loading' | 'saving' | 'saved' | 'error'>(demoMode ? 'idle' : 'loading');
   const [apiMessage, setApiMessage] = useState('');
   const [activityLog, setActivityLog] = useState<ActivityLogItem[]>([]);
   const [expandedPrivateNotes, setExpandedPrivateNotes] = useState<string[]>([]);
@@ -368,6 +370,11 @@ export function InternalFloatV2Client({
   }
 
   useEffect(() => {
+    if (demoMode) {
+      setApiStatus('idle');
+      setApiMessage('');
+      return undefined;
+    }
     let cancelled = false;
 
     async function loadUserInputs() {
@@ -407,9 +414,13 @@ export function InternalFloatV2Client({
     };
     // The request helper is intentionally scoped to the active ticker.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [ticker]);
+  }, [demoMode, ticker]);
 
   useEffect(() => {
+    if (demoMode) {
+      setActivityLog([]);
+      return;
+    }
     const storageKey = `${activityLogStorageKeyPrefix}:${ticker.toUpperCase()}`;
     try {
       const stored = localStorage.getItem(storageKey);
@@ -425,18 +436,24 @@ export function InternalFloatV2Client({
     }
 
     setActivityLog([]);
-  }, [ticker]);
+  }, [demoMode, ticker]);
 
   useEffect(() => {
+    if (demoMode) return;
     const storageKey = `${activityLogStorageKeyPrefix}:${ticker.toUpperCase()}`;
     if (!activityLog.length) {
       localStorage.removeItem(storageKey);
       return;
     }
     localStorage.setItem(storageKey, JSON.stringify(activityLog.slice(0, 10)));
-  }, [activityLog, ticker]);
+  }, [activityLog, demoMode, ticker]);
 
   useEffect(() => {
+    if (demoMode) {
+      setDismissedInsiderSuggestions([]);
+      setInsiderDismissalsLoaded(true);
+      return;
+    }
     const userId = getCurrentUser()?.sub ?? 'current-user';
     const storageKey = `${insiderDismissalStorageKeyPrefix}:${userId}:${ticker.toUpperCase()}`;
     try {
@@ -448,13 +465,15 @@ export function InternalFloatV2Client({
     } finally {
       setInsiderDismissalsLoaded(true);
     }
-  }, [ticker]);
+  }, [demoMode, ticker]);
 
   function persistDismissedInsiderSuggestions(next: string[]) {
-    const userId = getCurrentUser()?.sub ?? 'current-user';
-    const storageKey = `${insiderDismissalStorageKeyPrefix}:${userId}:${ticker.toUpperCase()}`;
     setDismissedInsiderSuggestions(next);
-    localStorage.setItem(storageKey, JSON.stringify(next));
+    if (!demoMode) {
+      const userId = getCurrentUser()?.sub ?? 'current-user';
+      const storageKey = `${insiderDismissalStorageKeyPrefix}:${userId}:${ticker.toUpperCase()}`;
+      localStorage.setItem(storageKey, JSON.stringify(next));
+    }
   }
 
   const privateShares = privateHoldings.filter(row => row.includeInDeduction).reduce((sum, row) => sum + numeric(row.shares), 0);
@@ -553,6 +572,16 @@ export function InternalFloatV2Client({
     setSuggestionActionId(suggestionId);
     setApiStatus('saving');
     setApiMessage('');
+    if (demoMode) {
+      setPrivateHoldings(nextRows);
+      setSavedPrivateHoldings(nextRows);
+      persistDismissedInsiderSuggestions(Array.from(new Set([...dismissedInsiderSuggestions, suggestionId])));
+      setApiStatus('saved');
+      setApiMessage(`${row.name} was added for this demo session. Changes will reset when the page reloads.`);
+      addActivity('Saved', 'Management / Strategic', row.name, `${formatNumber(row.shares)} demonstration shares added from a suggestion.`);
+      setSuggestionActionId(null);
+      return;
+    }
     try {
       const updated = await workspaceInputsRequest('PUT', 'privateHoldings', nextRows);
 
@@ -709,6 +738,20 @@ export function InternalFloatV2Client({
         setApiMessage(collateralRowError(invalidRow));
         return;
       }
+    }
+
+    if (demoMode) {
+      if (savedPanel === 'private') setSavedPrivateHoldings([...privateHoldings]);
+      if (savedPanel === 'tokenized') setSavedTokenChains([...tokenChains]);
+      if (savedPanel === 'collateral') setSavedCollateralChains([...collateralChains]);
+      setApiStatus('saved');
+      setApiMessage('Demo changes applied for this session only. No data was saved.');
+      setEditPanel(null);
+      if (diff.changed > 0) {
+        addActivity('Saved', sectionLabel(savedPanel), 'Applied demo changes', `${describeDiff(diff)}. ${payload.length} total demonstration rows.`);
+        if (savedPanel === 'tokenized') setTokenizationReminder(tokenizationReminderFor(diff));
+      }
+      return;
     }
 
     try {
@@ -1012,6 +1055,15 @@ export function InternalFloatV2Client({
 
   return (
     <>
+      {demoMode ? (
+        <div className="float-v2-demo-banner" role="note">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3 2.8 19h18.4L12 3Z" /><path d="M12 9v4M12 17h.01" /></svg>
+          <div>
+            <strong>Interactive demonstration</strong>
+            <span>All names and values on this page are fictional. You can edit the data, but changes remain in this browser session and are never saved.</span>
+          </div>
+        </div>
+      ) : null}
       <section className="terminal-section float-hero-section">
         <div className="terminal-section__head">
           <div>
