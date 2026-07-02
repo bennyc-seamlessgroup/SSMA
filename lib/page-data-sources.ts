@@ -17,7 +17,7 @@ export type PageDataSource =
   | { type: 'social-data' };
 
 export function getPageDataSources(ticker: string): Record<string, PageDataSource> {
-  return {
+  const sources: Record<string, PageDataSource> = {
   'dashboard-v2': {
     type: 'import-files',
     files: [dashboardV2File(ticker), 'dashboard_v2_events.json', dashboardMarginFile(ticker)],
@@ -64,26 +64,21 @@ export function getPageDataSources(ticker: string): Record<string, PageDataSourc
     type: 'import-files',
     files: [`dashboard_${ticker.toUpperCase()}_consolidated_4_web.json`],
   },
-  'internal-float': {
-    type: 'import-files',
-    files: ['internal_float/internal_float_analysis.json', 'internal_float/manual_holdings.json', 'internal_float/float_adjustments.json'],
-  },
   reports: {
     type: 'report-archive',
   },
-  'import-data': {
-    type: 'import-files',
-    files: ['metadata/import_log.json'],
-  },
-  'source-map': {
-    type: 'import-files',
-    files: ['metadata/source_map.json'],
-  },
-  'data-dictionary': {
-    type: 'import-files',
-    files: ['metadata/data_dictionary.json'],
-  },
   };
+
+  sources['import-data'] = {
+    type: 'import-files',
+    files: Array.from(new Set(
+      Object.values(sources)
+        .filter((source): source is Extract<PageDataSource, { type: 'import-files' }> => source.type === 'import-files')
+        .flatMap(source => source.files),
+    )),
+  };
+
+  return sources;
 }
 
 export function slugFromPathname(pathname: string) {

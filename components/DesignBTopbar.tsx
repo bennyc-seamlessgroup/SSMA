@@ -34,10 +34,7 @@ const routeLabels: Record<string, { section: string; page: string }> = {
   policy: { section: 'Settings', page: 'Security Policy' },
   'api-connectors': { section: 'Settings', page: 'Connectors' },
   dashboard: { section: 'Development', page: 'Dashboard Obsolete' },
-  'internal-float': { section: 'Development', page: 'Internal Float Obsolete' },
-  'import-data': { section: 'Development', page: 'Import Pool' },
-  'source-map': { section: 'Development', page: 'Source Map' },
-  'data-dictionary': { section: 'Development', page: 'Dictionary' },
+  'import-data': { section: 'Development', page: 'Data Sources' },
 };
 
 function applyCollapsedState(collapsed: boolean) {
@@ -76,6 +73,9 @@ export function DesignBTopbar({
   }, []);
 
   const current = useMemo(() => {
+    if (pathname.endsWith('/internal-float-v2/dtc-upload')) {
+      return { section: 'Internal Float', page: 'DTC Report Upload' };
+    }
     const slug = slugFromPathname(pathname);
     return routeLabels[slug] ?? { section: 'Workspace', page: slug ? slug.replace(/-/g, ' ') : 'Overview' };
   }, [pathname]);

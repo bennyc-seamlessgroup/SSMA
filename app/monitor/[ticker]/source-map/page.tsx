@@ -1,33 +1,6 @@
-import { ImportDataTable } from '@/components/ImportDataTable';
-import { readSourceMap } from '@/lib/import-data';
+import { redirect } from 'next/navigation';
 
-export default async function SourceMapPage() {
-  const sourceMap = await readSourceMap();
-  const rows = sourceMap.data.map(row => ({
-    file: row.file,
-    category: row.category,
-    expectedSource: row.expectedSource,
-    connectorOwner: row.connectorOwner,
-    updateCadence: row.updateCadence,
-    status: row.status,
-  }));
-
-  return (
-    <div className="page">
-      <div className="page__header">
-        <div>
-          <h1 className="page__title">Source Map</h1>
-          <p className="page__desc">Expected future provider ownership for each standardized import data file.</p>
-        </div>
-      </div>
-
-      <section className="panel">
-        <ImportDataTable
-          columns={['file', 'category', 'expectedSource', 'connectorOwner', 'updateCadence', 'status']}
-          rows={rows}
-          pageSize={50}
-        />
-      </section>
-    </div>
-  );
+export default async function SourceMapPage({ params }: Readonly<{ params: Promise<{ ticker: string }> }>) {
+  const { ticker } = await params;
+  redirect(`/monitor/${ticker}/import-data`);
 }

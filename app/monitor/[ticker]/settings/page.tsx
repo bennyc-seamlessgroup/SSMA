@@ -37,7 +37,7 @@ const settingGroups = [
     title: 'Security & Governance',
     rows: [
       ['Security Policy', 'Session controls, access review, and protected workspace rules', 'policy'],
-      ['Data Sources', 'Import pool, source map, data dictionary, and connector readiness', 'import-data'],
+      ['Connectors & Data Sources', 'Current ticker-aware JSON outputs and pipeline readiness', 'api-connectors'],
       ['Audit Trail', 'Report archive history and future user activity logs', 'reports'],
     ],
   },

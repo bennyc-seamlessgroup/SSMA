@@ -2,6 +2,7 @@
 
 import { InfoTooltip } from '@/components/InfoTooltip';
 import { authenticatedFetch, getCurrentUser } from '@/lib/auth-client';
+import Link from 'next/link';
 import { useEffect, useMemo, useState } from 'react';
 import type { FloatAdjustments, InternalFloatV2UserInput, ManualHolding } from '@/lib/internal-float';
 
@@ -988,7 +989,6 @@ export function InternalFloatV2Client({
       <section className="terminal-section float-hero-section">
         <div className="terminal-section__head">
           <div>
-            <span>Section 1</span>
             <h2>Executive Summary</h2>
             <p className="section-subtitle">Key float figures and the current reduction from internal share assumptions.</p>
           </div>
@@ -1012,7 +1012,7 @@ export function InternalFloatV2Client({
       </section>
 
       <section className="terminal-section">
-        <div className="terminal-section__head"><div><span>Section 2</span><h2>Ownership & Internal Float Breakdown</h2><p className="section-subtitle">Visual breakdown of issued shares, real tradable float, and internal float assumptions.</p></div></div>
+        <div className="terminal-section__head"><div><h2>Ownership & Internal Float Breakdown</h2><p className="section-subtitle">Visual breakdown of issued shares, real tradable float, and internal float assumptions.</p></div></div>
         <div className="float-v2-two-col">
           <Donut title="Ownership Structure" center={compact(ownership.sharesOutstanding)} segments={ownershipSegments} />
           <Donut title="Internal Float" center={compact(internalFloatShares)} segments={internalFloatSegments} />
@@ -1021,7 +1021,7 @@ export function InternalFloatV2Client({
 
       <section className="terminal-section">
         <div className="terminal-section__head">
-          <div><span>Section 3</span><h2>Shares Outstanding vs Real Tradable Float</h2><p className="section-subtitle">Shows each deduction from shares outstanding used to estimate the real tradable float.</p></div>
+          <div><h2>Shares Outstanding vs Real Tradable Float</h2><p className="section-subtitle">Shows each deduction from shares outstanding used to estimate the real tradable float.</p></div>
         </div>
         <Waterfall
           sharesOutstanding={ownership.sharesOutstanding}
@@ -1035,7 +1035,7 @@ export function InternalFloatV2Client({
 
       <section className="terminal-section">
         <div className="terminal-section__head">
-          <div><span>Section 4</span><h2>Management / Strategic Holdings</h2><p className="section-subtitle">Internal deduction assumptions used to estimate real tradable float.</p></div>
+          <div><h2>Management / Strategic Holdings</h2><p className="section-subtitle">Internal deduction assumptions used to estimate real tradable float.</p></div>
           <button className="button secondary" type="button" onClick={() => openEditPanel('private')}>Edit</button>
         </div>
         {availableInsiderSuggestions.length > 0 && (
@@ -1077,7 +1077,7 @@ export function InternalFloatV2Client({
 
       <section className="terminal-section">
         <div className="terminal-section__head">
-          <div><span>Section 5</span><h2>Tokenized Shares & Providers</h2><p className="section-subtitle">Manual tokenized share assumptions grouped by blockchain and provider.</p></div>
+          <div><h2>Tokenized Shares & Providers</h2><p className="section-subtitle">Manual tokenized share assumptions grouped by blockchain and provider.</p></div>
           <div className="float-v2-section-actions">
             <button className="button secondary" type="button" onClick={() => openEditPanel('tokenized')}>Edit</button>
           </div>
@@ -1095,7 +1095,7 @@ export function InternalFloatV2Client({
 
       <section className="terminal-section">
         <div className="terminal-section__head">
-          <div><span>Section 6</span><h2>Collateralized Shares & DeFi Exposure</h2><p className="section-subtitle">Shares pledged into DeFi lending protocols as collateral.</p></div>
+          <div><h2>Collateralized Shares & DeFi Exposure</h2><p className="section-subtitle">Shares pledged into DeFi lending protocols as collateral.</p></div>
           <div className="float-v2-section-actions">
             <button className="button secondary" type="button" onClick={() => openEditPanel('collateral')}>Edit</button>
           </div>
@@ -1119,13 +1119,37 @@ export function InternalFloatV2Client({
       </section>
 
       <section className="terminal-section">
-        <div className="terminal-section__head"><div><span>Section 7</span><h2>Traditional Custody Breakdown</h2><p className="section-subtitle">Reference view for future DTC Position Report integration.</p></div></div>
-        <div className="terminal-card"><RankedBars rows={custodyRows.map(row => ({ key: row.id, label: row.name, value: row.shares }))} total={floatBeforeInternalAdjustments} /></div>
+        <div className="terminal-section__head">
+          <div>
+            <div className="float-v2-sample-heading">
+              <h2>Traditional Custody Breakdown</h2>
+              <span>Sample only</span>
+            </div>
+            <p className="section-subtitle">Example of the broker and custodian breakdown available after we process your DTC Position Report.</p>
+          </div>
+          <Link className="button primary" href={`/monitor/${ticker}/internal-float-v2/dtc-upload`}>
+            Upload DTC Report
+          </Link>
+        </div>
+        <div className="float-v2-custody-service">
+          <div>
+            <strong>Managed DTC report processing</strong>
+            <p>Upload your report and our operations team will normalize the positions for this workspace.</p>
+          </div>
+          <div>
+            <strong>$100</strong>
+            <span>per report</span>
+          </div>
+        </div>
+        <div className="terminal-card float-v2-custody-sample">
+          <span className="float-v2-sample-watermark" aria-hidden="true">Sample</span>
+          <RankedBars rows={custodyRows.map(row => ({ key: row.id, label: row.name, value: row.shares }))} total={floatBeforeInternalAdjustments} />
+        </div>
       </section>
 
       <div className="float-v2-bottom-layout">
         <section className="terminal-section">
-        <div className="terminal-section__head"><div><span>Section 8</span><h2>Share Allocation Tree</h2><p className="section-subtitle">Hierarchical view of how shares flow into the real tradable float estimate.</p></div></div>
+        <div className="terminal-section__head"><div><h2>Share Allocation Tree</h2><p className="section-subtitle">Hierarchical view of how shares flow into the real tradable float estimate.</p></div></div>
           <div className="terminal-card float-v2-tree">
             {allocationTree.map(row => (
               <div key={`${row.level}-${row.label}`} style={{ marginLeft: `${row.level * 28}px` }}>
@@ -1136,7 +1160,7 @@ export function InternalFloatV2Client({
           </div>
         </section>
         <section className="terminal-section float-v2-activity-section">
-          <div className="terminal-section__head"><div><span>Section 9</span><h2>Activity Log</h2><p className="section-subtitle">Recent manual input changes for this browser session.</p></div></div>
+          <div className="terminal-section__head"><div><h2>Activity Log</h2><p className="section-subtitle">Recent manual input changes for this browser session.</p></div></div>
           {renderActivityLog()}
         </section>
       </div>

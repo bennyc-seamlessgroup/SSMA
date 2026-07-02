@@ -20216,6 +20216,325 @@ html[data-portal-design="b"] .monitor-portal .float-v2-ranked-bars {
   gap: 9px;
 }
 
+html[data-portal-design="b"] .monitor-portal .float-v2-sample-heading {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+}
+
+html[data-portal-design="b"] .monitor-portal .float-v2-sample-heading span,
+html[data-portal-design="b"] .monitor-portal .dtc-prototype-badge {
+  display: inline-flex;
+  align-items: center;
+  min-height: 22px;
+  border: 1px solid #f2cf72;
+  border-radius: 999px;
+  background: #fff8e6;
+  padding: 2px 8px;
+  color: #9a6300;
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+}
+
+html[data-portal-design="b"] .monitor-portal .float-v2-custody-service {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 10px;
+  border: 1px solid #dbe6f3;
+  border-radius: 7px;
+  background: #f8fbff;
+  padding: 11px 13px;
+}
+
+html[data-portal-design="b"] .monitor-portal .float-v2-custody-service > div:first-child {
+  display: grid;
+  gap: 3px;
+}
+
+html[data-portal-design="b"] .monitor-portal .float-v2-custody-service strong {
+  color: #16243a;
+  font-size: 13px;
+  font-weight: 650;
+}
+
+html[data-portal-design="b"] .monitor-portal .float-v2-custody-service p {
+  margin: 0;
+  color: #64748d;
+  font-size: 11.5px;
+}
+
+html[data-portal-design="b"] .monitor-portal .float-v2-custody-service > div:last-child {
+  display: flex;
+  align-items: baseline;
+  gap: 5px;
+  white-space: nowrap;
+}
+
+html[data-portal-design="b"] .monitor-portal .float-v2-custody-service > div:last-child strong {
+  color: #2457b8;
+  font-size: 20px;
+}
+
+html[data-portal-design="b"] .monitor-portal .float-v2-custody-service > div:last-child span {
+  color: #64748d;
+  font-size: 10.5px;
+}
+
+html[data-portal-design="b"] .monitor-portal .float-v2-custody-sample {
+  position: relative;
+  overflow: hidden;
+}
+
+html[data-portal-design="b"] .monitor-portal .float-v2-sample-watermark {
+  position: absolute;
+  top: 12px;
+  right: 14px;
+  z-index: 1;
+  color: rgba(37, 87, 184, .12);
+  font-size: 34px;
+  font-weight: 800;
+  letter-spacing: .08em;
+  line-height: 1;
+  pointer-events: none;
+  text-transform: uppercase;
+}
+
+.dtc-upload-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(260px, 340px);
+  gap: 12px;
+  align-items: start;
+}
+
+.dtc-upload-main,
+.dtc-upload-sidebar {
+  display: grid;
+  gap: 12px;
+  min-width: 0;
+}
+
+.dtc-upload-dropzone {
+  display: grid;
+  place-items: center;
+  gap: 7px;
+  width: 100%;
+  min-height: 250px;
+  border: 1px dashed #9eb7d7;
+  border-radius: 8px;
+  background: #f8fbff;
+  color: #16243a;
+  cursor: pointer;
+  padding: 24px;
+  text-align: center;
+  transition: border-color .16s ease, background .16s ease;
+}
+
+.dtc-upload-dropzone:hover,
+.dtc-upload-dropzone.has-file {
+  border-color: #3b82f6;
+  background: #f1f7ff;
+}
+
+.dtc-upload-dropzone svg {
+  width: 34px;
+  height: 34px;
+  margin-bottom: 5px;
+  fill: none;
+  stroke: #2563eb;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.7;
+}
+
+.dtc-upload-dropzone strong {
+  max-width: 100%;
+  color: #16243a;
+  font-size: 15px;
+  font-weight: 650;
+  overflow-wrap: anywhere;
+}
+
+.dtc-upload-dropzone span {
+  color: #3b5f8f;
+  font-size: 12px;
+}
+
+.dtc-upload-dropzone small {
+  color: #7b8da6;
+  font-size: 10.5px;
+}
+
+.dtc-upload-confirmation {
+  display: flex;
+  align-items: flex-start;
+  gap: 9px;
+  margin-top: 12px;
+  color: #425875;
+  font-size: 11.5px;
+  line-height: 1.5;
+}
+
+.dtc-upload-confirmation input {
+  width: 15px;
+  height: 15px;
+  margin-top: 1px;
+  accent-color: #2563eb;
+}
+
+.dtc-upload-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px solid #e3e8f0;
+}
+
+.dtc-upload-message {
+  margin: 12px 0 0;
+  border-radius: 7px;
+  padding: 9px 11px;
+  font-size: 11.5px;
+  line-height: 1.45;
+}
+
+.dtc-upload-message.error {
+  background: #fff1f2;
+  color: #be123c;
+}
+
+.dtc-upload-message.success {
+  background: #ecfdf3;
+  color: #087443;
+}
+
+.dtc-price-card,
+.dtc-process-card {
+  padding: 15px;
+}
+
+.dtc-price-card > span,
+.dtc-price-card > small {
+  display: block;
+  color: #64748d;
+  font-size: 11px;
+}
+
+.dtc-price-card > strong {
+  display: block;
+  margin-top: 7px;
+  color: #16243a;
+  font-size: 34px;
+  font-weight: 650;
+  line-height: 1;
+}
+
+.dtc-price-card ul {
+  display: grid;
+  gap: 9px;
+  margin: 16px 0 0;
+  padding: 14px 0 0;
+  border-top: 1px solid #e3e8f0;
+  list-style: none;
+}
+
+.dtc-price-card li {
+  position: relative;
+  padding-left: 18px;
+  color: #425875;
+  font-size: 11.5px;
+}
+
+.dtc-price-card li::before {
+  content: "✓";
+  position: absolute;
+  left: 0;
+  color: #0f9f6e;
+  font-weight: 800;
+}
+
+.dtc-process-card h2 {
+  margin: 0 0 14px;
+  color: #16243a;
+  font-size: 14px;
+}
+
+.dtc-process-card ol {
+  display: grid;
+  gap: 12px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.dtc-process-card li {
+  display: grid;
+  grid-template-columns: 26px minmax(0, 1fr);
+  gap: 9px;
+  align-items: start;
+}
+
+.dtc-process-card li > span {
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 999px;
+  background: #eaf3ff;
+  color: #2457b8;
+  font-size: 10px;
+  font-weight: 750;
+}
+
+.dtc-process-card li div {
+  display: grid;
+  gap: 2px;
+}
+
+html[data-portal-design="b"] .monitor-portal .dtc-process-card li strong {
+  color: #273951;
+  font-size: 12px;
+  font-weight: 650;
+  line-height: 1.25;
+}
+
+.dtc-process-card li small {
+  color: #718096;
+  font-size: 10.5px;
+  line-height: 1.4;
+}
+
+@media (max-width: 960px) {
+  .dtc-upload-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .dtc-upload-sidebar {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 620px) {
+  html[data-portal-design="b"] .monitor-portal .float-v2-custody-service,
+  html[data-portal-design="b"] .monitor-portal .float-v2-sample-heading {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .dtc-upload-sidebar {
+    grid-template-columns: 1fr;
+  }
+
+  .dtc-upload-actions {
+    align-items: stretch;
+    flex-direction: column-reverse;
+  }
+}
+
 html[data-portal-design="b"] .monitor-portal .float-v2-insider-suggestions {
   display: grid;
   grid-template-columns: minmax(220px, .55fr) minmax(0, 1.45fr);
@@ -20978,6 +21297,43 @@ html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .float-
 html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .float-v2-insider-suggestions__list article {
   border-color: rgba(245, 190, 72, .2);
   background: rgba(15, 29, 51, .72);
+}
+
+html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .float-v2-custody-service,
+html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .dtc-upload-dropzone,
+html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .dtc-price-card,
+html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .dtc-process-card {
+  border-color: rgba(148, 163, 184, .18);
+  background: rgba(15, 29, 51, .72);
+}
+
+html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal :where(
+  .float-v2-custody-service strong,
+  .dtc-upload-dropzone strong,
+  .dtc-price-card > strong,
+  .dtc-process-card h2,
+  .dtc-process-card li strong
+) {
+  color: #f4f8ff;
+}
+
+html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal :where(
+  .float-v2-custody-service p,
+  .float-v2-custody-service > div:last-child span,
+  .dtc-upload-dropzone span,
+  .dtc-upload-dropzone small,
+  .dtc-upload-confirmation,
+  .dtc-price-card > span,
+  .dtc-price-card > small,
+  .dtc-price-card li,
+  .dtc-process-card li small
+) {
+  color: #a8bad2;
+}
+
+html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .dtc-upload-actions,
+html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .dtc-price-card ul {
+  border-color: rgba(148, 163, 184, .16);
 }
 
 html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .float-v2-edit-modal {

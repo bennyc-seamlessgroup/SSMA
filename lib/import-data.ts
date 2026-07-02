@@ -17,35 +17,11 @@ export type ImportEnvelope<T = unknown> = {
   data: T;
 };
 
-export type SourceMapEntry = {
-  file: string;
-  category: string;
-  expectedSource: string;
-  connectorOwner: string;
-  updateCadence: string;
-  status: string;
-};
-
-export type DataDictionaryEntry = {
-  field: string;
-  definition: string;
-};
-
 export type ImportLogEntry = {
   sourceFile: string;
   destinationFile: string;
   detectedDataType: string;
   importTime: string;
-  status: string;
-  notes: string;
-};
-
-export type ImportDataPoolRow = {
-  category: string;
-  fileName: string;
-  sourcePlatform: string;
-  lastUpdated: string;
-  recordCount: number;
   status: string;
   notes: string;
 };
@@ -455,33 +431,8 @@ export async function readPageContent<T extends Record<string, unknown> = Record
   }
 }
 
-export async function readSourceMap() {
-  return readJsonFile<{ importedAt: string; recordCount: number; data: SourceMapEntry[] }>('metadata/source_map.json');
-}
-
-export async function readDataDictionary() {
-  return readJsonFile<{ importedAt: string; recordCount: number; data: DataDictionaryEntry[] }>('metadata/data_dictionary.json');
-}
-
 export async function readImportLog() {
   return readJsonFile<{ importedAt: string; recordCount: number; data: ImportLogEntry[] }>('metadata/import_log.json');
-}
-
-export async function readImportDataPoolRows(): Promise<ImportDataPoolRow[]> {
-  const sourceMap = (await readSourceMap()).data;
-  return Promise.all(sourceMap.map(async entry => {
-    const relativePath = entry.file.replace(/^import_data\//, '');
-    const envelope = await readImportFile(relativePath);
-    return {
-      category: entry.category,
-      fileName: entry.file,
-      sourcePlatform: envelope.sourcePlatform ?? entry.expectedSource,
-      lastUpdated: envelope.importedAt ?? '',
-      recordCount: envelope.recordCount ?? 0,
-      status: envelope.status ?? entry.status,
-      notes: envelope.notes ?? '',
-    };
-  }));
 }
 
 function asRows(value: unknown): Record<string, unknown>[] {

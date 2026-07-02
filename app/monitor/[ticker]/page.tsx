@@ -74,7 +74,7 @@ export default async function WorkspacePortalPage({ params, searchParams }: Read
           </div>
           <div className="section-list">
             <Link className="quick-action" href={`/monitor/${company.ticker}/reports`}><span><strong>Review {company.ticker} archive</strong><small>Download sent reports</small></span><span>→</span></Link>
-            <Link className="quick-action" href={`/monitor/${company.ticker}/news`}><span><strong>Review disclosure stream</strong><small>Filings and company PRs</small></span><span>→</span></Link>
+            <Link className="quick-action" href={`/monitor/${company.ticker}/event-calendar`}><span><strong>Review disclosure stream</strong><small>SEC filing records for this ticker</small></span><span>→</span></Link>
             <Link className="quick-action" href={`/monitor/${company.ticker}/short-interest`}><span><strong>Check short-interest view</strong><small>Public short-interest and borrow context</small></span><span>→</span></Link>
             <Link className="quick-action" href={`/monitor/${company.ticker}/sentiment`}><span><strong>Review narrative signals</strong><small>Sentiment and topic tags for this ticker</small></span><span>→</span></Link>
           </div>
