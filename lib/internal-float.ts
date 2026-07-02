@@ -69,6 +69,7 @@ export type InternalFloatV2CollateralChain = {
 
 export type InternalFloatV2UserInput = {
   userId: string;
+  workspaceId?: string;
   ticker: string;
   privateHoldings: InternalFloatV2PrivateHolding[];
   custodyRows: InternalFloatV2CustodyRow[];
@@ -94,6 +95,30 @@ export function internalFloatV2UserInputPaths(ticker = 'CURR') {
     `internal_float/${normalizedTicker}_v2_user_inputs.json`,
     'internal_float/v2_user_inputs.json',
   ];
+}
+
+export function internalFloatWorkspaceId(ticker = 'CURR') {
+  return `workspace:${ticker.toUpperCase()}`;
+}
+
+export function selectInternalFloatWorkspaceInput(users: InternalFloatV2UserInput[], ticker = 'CURR') {
+  const normalizedTicker = ticker.toUpperCase();
+  const workspaceUserId = internalFloatWorkspaceId(normalizedTicker);
+  const tickerUsers = users.filter(row => row.ticker.toUpperCase() === normalizedTicker);
+  const configuredSeedUserId = process.env.INTERNAL_FLOAT_WORKSPACE_SEED_USER_ID?.trim();
+  const source = tickerUsers.find(row => row.userId === workspaceUserId || row.workspaceId === normalizedTicker)
+    ?? (configuredSeedUserId ? tickerUsers.find(row => row.userId === configuredSeedUserId) : undefined)
+    ?? [...tickerUsers].reverse().find(row => row.userId !== 'demo-user')
+    ?? tickerUsers.find(row => row.userId === 'demo-user')
+    ?? tickerUsers[0]
+    ?? defaultInternalFloatV2UserInput;
+
+  return {
+    ...source,
+    userId: workspaceUserId,
+    workspaceId: normalizedTicker,
+    ticker: normalizedTicker,
+  } satisfies InternalFloatV2UserInput;
 }
 
 export const defaultInternalFloatV2UserInput: InternalFloatV2UserInput = {
@@ -364,10 +389,9 @@ export async function readInternalFloatV2UserInputSource(userId = 'demo-user', t
     try {
       const envelope = await readImportFile<InternalFloatV2UserInputsEnvelope>(path);
       const users = Array.isArray(envelope.data?.users) ? envelope.data.users : [];
-      const userInput = users.find(row => row.userId === userId && row.ticker.toUpperCase() === normalizedTicker)
-        ?? users.find(row => row.ticker.toUpperCase() === normalizedTicker)
-        ?? users[0]
-        ?? defaultInternalFloatV2UserInput;
+      const userInput = users.length
+        ? selectInternalFloatWorkspaceInput(users, normalizedTicker)
+        : { ...defaultInternalFloatV2UserInput, userId, ticker: normalizedTicker };
       return { envelope, path, userInput, usedDefault: !users.length };
     } catch {
       // Continue to the legacy demo path before falling back to defaults.

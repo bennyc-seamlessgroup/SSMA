@@ -137,7 +137,7 @@ function getErrorMessage(error: unknown) {
   return String(error);
 }
 
-async function signedS3Fetch(method: 'GET' | 'HEAD', key: string, params = new URLSearchParams()) {
+async function signedS3Fetch(method: 'GET' | 'HEAD' | 'PUT', key: string, params = new URLSearchParams(), body?: string) {
   const { region, bucket, accessKeyId, secretAccessKey } = s3Config();
   const host = `${bucket}.s3.${region}.amazonaws.com`;
   const now = new Date();
@@ -145,9 +145,10 @@ async function signedS3Fetch(method: 'GET' | 'HEAD', key: string, params = new U
   const dateStamp = amzDate.slice(0, 8);
   const canonicalUri = `/${encodeS3Key(key)}`;
   const canonicalQueryString = buildCanonicalQuery(params);
+  const payloadHash = body === undefined ? 'UNSIGNED-PAYLOAD' : sha256Hex(body);
   const canonicalHeaders = [
     `host:${host}`,
-    `x-amz-content-sha256:UNSIGNED-PAYLOAD`,
+    `x-amz-content-sha256:${payloadHash}`,
     `x-amz-date:${amzDate}`,
   ].join('\n') + '\n';
   const signedHeaders = 'host;x-amz-content-sha256;x-amz-date';
@@ -157,7 +158,7 @@ async function signedS3Fetch(method: 'GET' | 'HEAD', key: string, params = new U
     canonicalQueryString,
     canonicalHeaders,
     signedHeaders,
-    'UNSIGNED-PAYLOAD',
+    payloadHash,
   ].join('\n');
   const credentialScope = `${dateStamp}/${region}/s3/aws4_request`;
   const stringToSign = [
@@ -180,9 +181,11 @@ async function signedS3Fetch(method: 'GET' | 'HEAD', key: string, params = new U
         cache: 'no-store',
         headers: {
           Authorization: authorization,
-          'x-amz-content-sha256': 'UNSIGNED-PAYLOAD',
+          ...(body === undefined ? {} : { 'Content-Type': 'application/json' }),
+          'x-amz-content-sha256': payloadHash,
           'x-amz-date': amzDate,
         },
+        body,
       });
     } catch (error) {
       lastError = error;
@@ -419,6 +422,28 @@ export async function readImportFile<T = unknown>(relativePath: string) {
 
 export async function readImportJson<T = unknown>(relativePath: string) {
   return readJsonFile<T>(relativePath);
+}
+
+export async function writeImportJson(relativePath: string, value: unknown) {
+  const normalizedPath = normalizeImportPath(relativePath);
+  const content = `${JSON.stringify(value, null, 2)}\n`;
+
+  if (importDataSource() === 's3') {
+    const response = await signedS3Fetch('PUT', normalizedPath, new URLSearchParams(), content);
+    if (!response.ok) {
+      throw new Error(`Unable to write S3 import data file ${normalizedPath}: ${response.status} ${response.statusText}`);
+    }
+    s3IndexCache = null;
+    s3ContentCache.delete(normalizedPath);
+    s3ContentRequests.delete(normalizedPath);
+    return;
+  }
+
+  const fullPath = path.join(importDataRoot, normalizedPath);
+  const temporaryPath = `${fullPath}.${process.pid}.${Date.now()}.tmp`;
+  fs.mkdirSync(path.dirname(fullPath), { recursive: true });
+  fs.writeFileSync(temporaryPath, content, 'utf8');
+  fs.renameSync(temporaryPath, fullPath);
 }
 
 export async function readPageContent<T extends Record<string, unknown> = Record<string, unknown>>(pageKey: string): Promise<T> {

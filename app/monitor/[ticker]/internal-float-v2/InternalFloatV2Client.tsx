@@ -1,7 +1,7 @@
 'use client';
 
 import { InfoTooltip } from '@/components/InfoTooltip';
-import { authenticatedFetch, getCurrentUser } from '@/lib/auth-client';
+import { getCurrentUser, getStoredTokens } from '@/lib/auth-client';
 import Link from 'next/link';
 import { useEffect, useMemo, useState } from 'react';
 import type { FloatAdjustments, InternalFloatV2UserInput, ManualHolding } from '@/lib/internal-float';
@@ -61,10 +61,10 @@ const protocolOptions = ['Aave', 'Euler', 'Kamino', 'Morpho'];
 const activityLogStorageKeyPrefix = 'internal-float-v2-activity-log';
 const insiderDismissalStorageKeyPrefix = 'internal-float-v2-dismissed-insiders';
 
-const userInputEndpoints: Record<Exclude<EditPanel, null>, string> = {
-  private: '/user-inputs/private-holdings',
-  tokenized: '/user-inputs/token-chains',
-  collateral: '/user-inputs/collateral-chains',
+const userInputSections: Record<Exclude<EditPanel, null>, 'privateHoldings' | 'tokenChains' | 'collateralChains'> = {
+  private: 'privateHoldings',
+  tokenized: 'tokenChains',
+  collateral: 'collateralChains',
 };
 
 function numeric(value: unknown) {
@@ -336,13 +336,44 @@ export function InternalFloatV2Client({
   const [insiderDismissalsLoaded, setInsiderDismissalsLoaded] = useState(false);
   const [suggestionActionId, setSuggestionActionId] = useState<string | null>(null);
 
+  async function workspaceInputsRequest(
+    method: 'GET' | 'PUT',
+    section?: 'privateHoldings' | 'tokenChains' | 'collateralChains',
+    rows?: unknown[],
+  ) {
+    const idToken = getStoredTokens()?.idToken;
+    if (!idToken) throw new Error('Your session is not available. Please sign in again.');
+    const response = await fetch(`/api/internal-float-workspace/${encodeURIComponent(ticker)}`, {
+      method,
+      cache: 'no-store',
+      headers: {
+        Authorization: idToken,
+        ...(method === 'PUT' ? { 'Content-Type': 'application/json' } : {}),
+      },
+      ...(method === 'PUT' ? { body: JSON.stringify({ section, rows }) } : {}),
+    });
+    const text = await response.text();
+    let payload: (InternalFloatV2UserInput & { message?: string }) | null = null;
+    if (text) {
+      try {
+        payload = JSON.parse(text) as InternalFloatV2UserInput & { message?: string };
+      } catch {
+        throw new Error('The shared Internal Float service returned an invalid response.');
+      }
+    }
+    if (!response.ok || !payload) {
+      throw new Error(payload?.message || 'Unable to access shared Internal Float inputs.');
+    }
+    return payload;
+  }
+
   useEffect(() => {
     let cancelled = false;
 
     async function loadUserInputs() {
       setApiStatus('loading');
       try {
-        const data = await authenticatedFetch(`/user-inputs?ticker=${encodeURIComponent(ticker)}`) as InternalFloatV2UserInput;
+        const data = await workspaceInputsRequest('GET');
         if (cancelled) return;
         if (data.ticker && data.ticker.toUpperCase() !== ticker.toUpperCase()) {
           throw new Error(`User inputs returned for ${data.ticker} instead of ${ticker}.`);
@@ -374,6 +405,8 @@ export function InternalFloatV2Client({
     return () => {
       cancelled = true;
     };
+    // The request helper is intentionally scoped to the active ticker.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ticker]);
 
   useEffect(() => {
@@ -521,10 +554,7 @@ export function InternalFloatV2Client({
     setApiStatus('saving');
     setApiMessage('');
     try {
-      const updated = await authenticatedFetch(`${userInputEndpoints.private}?ticker=${encodeURIComponent(ticker)}`, {
-        method: 'PUT',
-        body: JSON.stringify(nextRows),
-      }) as InternalFloatV2UserInput;
+      const updated = await workspaceInputsRequest('PUT', 'privateHoldings', nextRows);
 
       if (!Array.isArray(updated.privateHoldings) || !rowsMatch(updated.privateHoldings, nextRows)) {
         throw new Error('The suggested holding was not confirmed by the server. Please try again.');
@@ -682,11 +712,7 @@ export function InternalFloatV2Client({
     }
 
     try {
-      const endpoint = `${userInputEndpoints[editPanel]}?ticker=${encodeURIComponent(ticker)}`;
-      const updated = await authenticatedFetch(endpoint, {
-        method: 'PUT',
-        body: JSON.stringify(payload),
-      }) as InternalFloatV2UserInput;
+      const updated = await workspaceInputsRequest('PUT', userInputSections[editPanel], payload);
 
       const confirmedRows = savedPanel === 'private'
         ? updated.privateHoldings
