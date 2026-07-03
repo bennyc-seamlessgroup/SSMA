@@ -78,7 +78,6 @@ export function UserMenu({ ticker }: { ticker: string }) {
           <Link href={`/monitor/${ticker}/user-profile`} onClick={() => setIsOpen(false)}>User Profile</Link>
           <Link href={`/monitor/${ticker}/companies`} onClick={() => setIsOpen(false)}>Company Management</Link>
           <Link href={`/monitor/${ticker}/settings`} onClick={() => setIsOpen(false)}>Settings</Link>
-          <Link href={`/monitor/${ticker}/billing`} onClick={() => setIsOpen(false)}>Billing & Plan</Link>
           <Link href={`/monitor/${ticker}/email-settings`} onClick={() => setIsOpen(false)}>Delivery Settings</Link>
           <button className="user-menu__link-button" type="button" onClick={() => {
             setIsOpen(false);

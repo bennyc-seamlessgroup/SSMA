@@ -4,8 +4,12 @@ import { InfoTooltip } from '@/components/InfoTooltip';
 import { PortalPageLoading } from '@/components/PortalPageLoading';
 import { getCurrentUser, getStoredTokens } from '@/lib/auth-client';
 import Link from 'next/link';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import type { FloatAdjustments, InternalFloatV2UserInput, ManualHolding } from '@/lib/internal-float';
+import {
+  buildInternalFloatActivity,
+  type InternalFloatActivityItem,
+} from '@/lib/internal-float-audit';
 
 type OwnershipData = {
   sharesOutstanding: number;
@@ -42,14 +46,6 @@ type TokenChain = { id: string; chain: string; shares: number; provider: string 
 type CollateralChain = { id: string; chain: string; shares: number; protocol: string };
 type Segment = { label: string; value: number; color: string };
 type EditPanel = 'private' | 'tokenized' | 'collateral' | null;
-type ActivityLogItem = {
-  id: string;
-  action: 'Added' | 'Deleted' | 'Saved' | 'Loaded';
-  section: string;
-  label: string;
-  detail: string;
-  createdAt: string;
-};
 type TokenizationReminder = {
   summary: string;
   message: string;
@@ -59,7 +55,6 @@ const colors = ['#2453a6', '#0f8a6a', '#d89018', '#6f7bd9', '#8896a8', '#c2415b'
 const privateCategories = ['Founder', 'CEO', 'Management', 'Insider', 'Strategic Investor', 'Family Office', 'Long-Term Holder', 'Transfer Agent', 'Other'];
 const tokenizationProviderOptions = ['Securitize', 'xStocks', 'Ondo', 'bStocks'];
 const protocolOptions = ['Aave', 'Euler', 'Kamino', 'Morpho'];
-const activityLogStorageKeyPrefix = 'internal-float-v2-activity-log';
 const insiderDismissalStorageKeyPrefix = 'internal-float-v2-dismissed-insiders';
 
 const userInputSections: Record<Exclude<EditPanel, null>, 'privateHoldings' | 'tokenChains' | 'collateralChains'> = {
@@ -107,10 +102,6 @@ function rowsMatch(left: unknown[], right: unknown[]) {
 
 function id(prefix: string) {
   return `${prefix}-${Date.now()}-${Math.random().toString(16).slice(2)}`;
-}
-
-function activityId() {
-  return id('activity');
 }
 
 function formatActivityTime(value: string) {
@@ -332,7 +323,7 @@ export function InternalFloatV2Client({
   const [savedCollateralChains, setSavedCollateralChains] = useState<CollateralChain[]>(() => initialUserInputs.collateralChains);
   const [apiStatus, setApiStatus] = useState<'idle' | 'loading' | 'saving' | 'saved' | 'error'>(demoMode ? 'idle' : 'loading');
   const [apiMessage, setApiMessage] = useState('');
-  const [activityLog, setActivityLog] = useState<ActivityLogItem[]>([]);
+  const [activityLog, setActivityLog] = useState<InternalFloatActivityItem[]>(() => initialUserInputs.activityLog ?? []);
   const [expandedPrivateNotes, setExpandedPrivateNotes] = useState<string[]>([]);
   const [tokenizationReminder, setTokenizationReminder] = useState<TokenizationReminder | null>(null);
   const [dismissedInsiderSuggestions, setDismissedInsiderSuggestions] = useState<string[]>([]);
@@ -399,6 +390,7 @@ export function InternalFloatV2Client({
           setCollateralChains(data.collateralChains);
           setSavedCollateralChains(data.collateralChains);
         }
+        setActivityLog(Array.isArray(data.activityLog) ? data.activityLog : []);
         setApiStatus('idle');
         setApiMessage('');
       } catch (error) {
@@ -416,38 +408,6 @@ export function InternalFloatV2Client({
     // The request helper is intentionally scoped to the active ticker.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [demoMode, ticker]);
-
-  useEffect(() => {
-    if (demoMode) {
-      setActivityLog([]);
-      return;
-    }
-    const storageKey = `${activityLogStorageKeyPrefix}:${ticker.toUpperCase()}`;
-    try {
-      const stored = localStorage.getItem(storageKey);
-      if (stored) {
-        const parsed = JSON.parse(stored);
-        if (Array.isArray(parsed)) {
-          setActivityLog(parsed.filter(item => item?.action === 'Saved').slice(0, 10));
-          return;
-        }
-      }
-    } catch {
-      // Ignore malformed prototype activity logs.
-    }
-
-    setActivityLog([]);
-  }, [demoMode, ticker]);
-
-  useEffect(() => {
-    if (demoMode) return;
-    const storageKey = `${activityLogStorageKeyPrefix}:${ticker.toUpperCase()}`;
-    if (!activityLog.length) {
-      localStorage.removeItem(storageKey);
-      return;
-    }
-    localStorage.setItem(storageKey, JSON.stringify(activityLog.slice(0, 10)));
-  }, [activityLog, demoMode, ticker]);
 
   useEffect(() => {
     if (demoMode) {
@@ -507,17 +467,6 @@ export function InternalFloatV2Client({
     return map;
   }, new Map<string, number>())).map(([protocol, shares]) => ({ id: protocol, protocol, shares }));
 
-  const allocationTree = useMemo(() => [
-    { level: 0, label: 'Shares Outstanding', value: ownership.sharesOutstanding },
-    { level: 1, label: 'Institutions', value: ownership.institutionShares },
-    { level: 1, label: 'Market Float', value: floatBeforeInternalAdjustments },
-    { level: 2, label: 'Internal Float', value: internalFloatShares },
-    { level: 3, label: 'Management / Strategic', value: privateFloatShares },
-    { level: 3, label: 'Tokenized', value: tokenizedShares },
-    { level: 3, label: 'Collateralized', value: collateralizedShares },
-    { level: 2, label: 'Real Tradable Float', value: realTradableFloat },
-  ], [collateralizedShares, floatBeforeInternalAdjustments, internalFloatShares, ownership, privateFloatShares, realTradableFloat, tokenizedShares]);
-
   const availableInsiderSuggestions = insiderDismissalsLoaded
     ? insiderSuggestionSources.filter(row => {
       if (!row.name?.trim() || numeric(row.shares) <= 0) return false;
@@ -538,15 +487,9 @@ export function InternalFloatV2Client({
     setCollateralChains(current => current.map(row => row.id === id ? { ...row, ...patch } : row));
   }
 
-  function addActivity(action: ActivityLogItem['action'], section: string, label: string, detail: string) {
-    setActivityLog(current => [{
-      id: activityId(),
-      action,
-      section,
-      label,
-      detail,
-      createdAt: new Date().toISOString(),
-    }, ...current].slice(0, 10));
+  function activityActor() {
+    const user = getCurrentUser();
+    return String(user?.email || user?.name || user?.nickname || user?.sub || 'Demo user');
   }
 
   function dismissInsiderSuggestion(row: InsiderSuggestionSource) {
@@ -579,7 +522,10 @@ export function InternalFloatV2Client({
       persistDismissedInsiderSuggestions(Array.from(new Set([...dismissedInsiderSuggestions, suggestionId])));
       setApiStatus('saved');
       setApiMessage(`${row.name} was added for this demo session. Changes will reset when the page reloads.`);
-      addActivity('Saved', 'Management / Strategic', row.name, `${formatNumber(row.shares)} demonstration shares added from a suggestion.`);
+      setActivityLog(current => [
+        ...buildInternalFloatActivity('privateHoldings', privateHoldings, nextRows, activityActor()),
+        ...current,
+      ]);
       setSuggestionActionId(null);
       return;
     }
@@ -592,10 +538,10 @@ export function InternalFloatV2Client({
 
       setPrivateHoldings(updated.privateHoldings);
       setSavedPrivateHoldings(updated.privateHoldings);
+      setActivityLog(updated.activityLog ?? []);
       persistDismissedInsiderSuggestions(Array.from(new Set([...dismissedInsiderSuggestions, suggestionId])));
       setApiStatus('saved');
       setApiMessage(`${row.name} was added to Management / Strategic Holdings.`);
-      addActivity('Saved', 'Management / Strategic', row.name, `${formatNumber(row.shares)} reported shares added from an insider suggestion.`);
     } catch (error) {
       setApiStatus('error');
       setApiMessage(error instanceof Error ? error.message : 'Unable to add the suggested holding.');
@@ -749,7 +695,20 @@ export function InternalFloatV2Client({
       setApiMessage('Demo changes applied for this session only. No data was saved.');
       setEditPanel(null);
       if (diff.changed > 0) {
-        addActivity('Saved', sectionLabel(savedPanel), 'Applied demo changes', `${describeDiff(diff)}. ${payload.length} total demonstration rows.`);
+        const beforeRows = savedPanel === 'private'
+          ? savedPrivateHoldings
+          : savedPanel === 'tokenized'
+            ? savedTokenChains
+            : savedCollateralChains;
+        setActivityLog(current => [
+          ...buildInternalFloatActivity(
+            userInputSections[savedPanel],
+            beforeRows,
+            payload,
+            activityActor(),
+          ),
+          ...current,
+        ]);
         if (savedPanel === 'tokenized') setTokenizationReminder(tokenizationReminderFor(diff));
       }
       return;
@@ -785,9 +744,9 @@ export function InternalFloatV2Client({
 
       setApiStatus('saved');
       setApiMessage('Saved. Institutional ownership consolidation will refresh shortly.');
+      setActivityLog(updated.activityLog ?? []);
       setEditPanel(null);
       if (diff.changed > 0) {
-        addActivity('Saved', sectionLabel(savedPanel), 'Saved record changes', `${describeDiff(diff)}. ${Array.isArray(payload) ? payload.length : 0} total rows synced.`);
         if (savedPanel === 'tokenized') setTokenizationReminder(tokenizationReminderFor(diff));
       }
     } catch (error) {
@@ -799,13 +758,6 @@ export function InternalFloatV2Client({
   function renderActivityLog() {
     return (
       <aside className="terminal-card float-v2-activity-card" aria-label="Internal float activity log">
-        <div className="float-v2-activity-head">
-          <div>
-            <span>Activity Log</span>
-            <h3>Recent Input Changes</h3>
-          </div>
-          <button className="button ghost" type="button" onClick={() => setActivityLog([])}>Clear</button>
-        </div>
         <div className="float-v2-activity-list">
           {activityLog.length ? (
             activityLog.map(item => (
@@ -816,8 +768,9 @@ export function InternalFloatV2Client({
                     <strong>{item.label}</strong>
                     <time>{formatActivityTime(item.createdAt)}</time>
                   </div>
-                  <p>{item.action} · {item.section}</p>
+                  <p>{item.section}</p>
                   <small>{item.detail}</small>
+                  <small className="float-v2-activity-actor">By {item.actor || 'Unknown user'}</small>
                 </div>
               </article>
             ))
@@ -1229,23 +1182,15 @@ export function InternalFloatV2Client({
         </div>
       </section>
 
-      <div className="float-v2-bottom-layout">
-        <section className="terminal-section">
-        <div className="terminal-section__head"><div><h2>Share Allocation Tree</h2><p className="section-subtitle">Hierarchical view of how shares flow into the real tradable float estimate.</p></div></div>
-          <div className="terminal-card float-v2-tree">
-            {allocationTree.map(row => (
-              <div key={`${row.level}-${row.label}`} style={{ marginLeft: `${row.level * 28}px` }}>
-                <span>{row.level === 0 ? '' : row.level === 1 ? '├──' : '└──'} {row.label}</span>
-                <strong>{formatNumber(row.value)}</strong>
-              </div>
-            ))}
+      <section className="terminal-section float-v2-activity-section">
+        <div className="terminal-section__head">
+          <div>
+            <h2>Activity Log</h2>
+            <p className="section-subtitle">Permanent audit history for saved workspace input changes.</p>
           </div>
-        </section>
-        <section className="terminal-section float-v2-activity-section">
-          <div className="terminal-section__head"><div><h2>Activity Log</h2><p className="section-subtitle">Recent manual input changes for this browser session.</p></div></div>
-          {renderActivityLog()}
-        </section>
-      </div>
+        </div>
+        {renderActivityLog()}
+      </section>
       {renderEditModal()}
       {tokenizationReminder && (
         <div className="modal-backdrop" role="presentation" onMouseDown={() => setTokenizationReminder(null)}>

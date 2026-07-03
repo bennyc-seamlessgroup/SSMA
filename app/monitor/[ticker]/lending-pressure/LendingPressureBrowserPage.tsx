@@ -4,11 +4,9 @@ import { ImportDataPreviewPage } from '@/components/ImportDataPreviewPage';
 import { InfoTooltip } from '@/components/InfoTooltip';
 import { PortalPageLoading } from '@/components/PortalPageLoading';
 import { PageDisclaimerNotice } from '@/components/PageDisclaimerNotice';
-import { usePortalTimeZone } from '@/components/usePortalTimeZone';
 import { usePublicImportFiles } from '@/components/usePublicImportFiles';
-import { evaluateLendingPressureWatchItems, type LendingWatchItemSeverity } from '@/lib/lending-pressure/watchItemRules';
+import type { LendingWatchItemSeverity } from '@/lib/lending-pressure/watchItemRules';
 import { aiAnalysisFile, lendingPressureFile, normalizeTicker } from '@/lib/ticker-data';
-import { formatPortalDateTime } from '@/lib/timezone';
 import type { ReactNode } from 'react';
 
 type Row = Record<string, unknown>;
@@ -22,15 +20,6 @@ type AiAnalysis = {
   created_at_utc?: string;
   lending_pressure_analysis?: string;
 };
-
-function parseAiAnalysis(value: unknown) {
-  const lines = String(value ?? '')
-    .replaceAll('**', '')
-    .split(/\n+/)
-    .map(line => line.trim())
-    .filter(Boolean);
-  return { headline: lines[0] ?? '', body: lines.slice(1).join(' ') };
-}
 
 function rows(value: unknown): Row[] {
   return Array.isArray(value) ? value.filter(item => item && typeof item === 'object') as Row[] : [];
@@ -57,11 +46,6 @@ function optionalNumeric(value: unknown) {
 function percentageChange(current: number | null, previous: number | null) {
   if (current === null || previous === null || previous === 0) return undefined;
   return ((current - previous) / previous) * 100;
-}
-
-function conciseSentences(value: string, limit = 1) {
-  const matches = value.match(/[^.!?]+[.!?]+|[^.!?]+$/g) ?? [];
-  return matches.map(sentence => sentence.trim()).filter(Boolean).slice(0, limit);
 }
 
 function latest(items: Row[]) {
@@ -105,6 +89,24 @@ function sourceChip(source: string) {
 
 function InfoTitle({ children, text }: { children: ReactNode; text: string }) {
   return <span className="with-info">{children} <InfoTooltip text={text} /></span>;
+}
+
+function AiSummary({ value }: { value: string }) {
+  const paragraphs = value.split(/\n+/).map(paragraph => paragraph.trim()).filter(Boolean);
+  return (
+    <div className="short-ai-analysis-copy">
+      {paragraphs.map((paragraph, paragraphIndex) => {
+        const parts = paragraph.split(/(\*\*[^*]+\*\*)/g).filter(Boolean);
+        return (
+          <p key={`${paragraphIndex}-${paragraph.slice(0, 24)}`}>
+            {parts.map((part, partIndex) => part.startsWith('**') && part.endsWith('**')
+              ? <strong key={`${partIndex}-${part}`}>{part.slice(2, -2)}</strong>
+              : <span key={`${partIndex}-${part.slice(0, 16)}`}>{part}</span>)}
+          </p>
+        );
+      })}
+    </div>
+  );
 }
 
 function TrendLine({ values, labels, label, valueFormatter = formatCompactNumber }: {
@@ -180,7 +182,7 @@ function ExecutiveMetric({ label, value, changePercent }: { label: string; value
       <strong>{value}</strong>
       <em className={tone}>
         {typeof changePercent === 'number' && Number.isFinite(changePercent)
-          ? `${changePercent > 0 ? '+' : ''}${changePercent.toLocaleString('en-US', { maximumFractionDigits: 2 })}%`
+          ? `${changePercent > 0 ? '+' : ''}${changePercent.toLocaleString('en-US', { maximumFractionDigits: 2 })}% vs yesterday`
           : 'No prior period'}
       </em>
     </div>
@@ -201,19 +203,11 @@ type LendingSignal = {
   trend?: 'up' | 'down';
 };
 
-type LendingContribution = {
-  label: string;
-  contribution: number | null;
-  maxPoints: number;
-  detail: string;
-};
-
 export function LendingPressureBrowserPage({ ticker }: { ticker: string }) {
   const normalizedTicker = normalizeTicker(ticker);
   const dataFile = lendingPressureFile(normalizedTicker);
   const analysisFile = aiAnalysisFile(normalizedTicker);
   const contentFile = 'content/page_content.json';
-  const timeZone = usePortalTimeZone();
   const { data, error, loading } = usePublicImportFiles([dataFile, analysisFile, contentFile]);
 
   if (loading && !data) return <PortalPageLoading variant="lendingPressure" />;
@@ -232,6 +226,9 @@ export function LendingPressureBrowserPage({ ticker }: { ticker: string }) {
   const latestDaily = sortedDailyRows[0] ?? {};
   const previousDaily = sortedDailyRows[1] ?? {};
   const trendRows = [...dailyRows].sort((a, b) => String(a.date ?? '').localeCompare(String(b.date ?? ''))).slice(-7);
+  const availabilityTrendRows = trendRows.filter(row => optionalNumeric(record(row.availability).shortAvailabilityShares) !== null);
+  const utilizationTrendRows = trendRows.filter(row => optionalNumeric(record(row.availability).shortAvailabilityPct) !== null);
+  const borrowFeeTrendRows = trendRows.filter(row => optionalNumeric(record(row.borrowFeeAll).costToBorrowAll) !== null);
   const latestAvailability = record(latestDaily.availability);
   const previousAvailability = record(previousDaily.availability);
   const latestOnLoan = record(latestDaily.onLoan);
@@ -259,7 +256,6 @@ export function LendingPressureBrowserPage({ ticker }: { ticker: string }) {
   const onLoanCard = record(lendingCards.onLoan);
   const displayPressureScore = numeric(lendingSummary.pressureScore) ?? pressureScore;
   const displayLevel = String(lendingSummary.level ?? level);
-  const lendingAnalysis = parseAiAnalysis(aiAnalysis?.lending_pressure_analysis);
   const utilizationChangePercent = optionalNumeric(utilizationCard.changePercent)
     ?? percentageChange(utilizationPct, previousUtilizationPct);
   const borrowFeeChangePercent = optionalNumeric(borrowFeeCard.changePercent)
@@ -278,37 +274,10 @@ export function LendingPressureBrowserPage({ ticker }: { ticker: string }) {
   const protocolLockupChangePercent = optionalNumeric(current.protocolLockupChangePercent);
   const lockedCollateralShares = optionalNumeric(current.lockedCollateralShares);
   const lockedCollateralChangePercent = optionalNumeric(current.lockedCollateralChangePercent);
-  const shortInterestPercent = optionalNumeric(current.shortInterestPercent);
-  const daysToCover = optionalNumeric(current.daysToCover);
-  const priceChangePercent = optionalNumeric(current.priceChangePercent);
-  const volumeChangePercent = optionalNumeric(current.volumeChangePercent);
-  const watchItems = evaluateLendingPressureWatchItems({
-    utilizationPercent: utilizationPct,
-    utilizationChangePercent: utilizationChangePercent ?? undefined,
-    borrowFeePercent: borrowFee,
-    borrowFeeChangePercent: borrowFeeChangePercent ?? undefined,
-    sharesAvailable,
-    sharesAvailableChangePercent: sharesAvailableChangePercent ?? undefined,
-    onLoanShares: onLoanShares ?? undefined,
-    onLoanChangePercent: onLoanChangePercent ?? undefined,
-    averageDurationDays: averageDurationDays ?? undefined,
-    averageDurationChangePercent: averageDurationChangePercent ?? undefined,
-    loanValueUsd: loanValueUsd ?? undefined,
-    loanValueChangePercent: loanValueChangePercent ?? undefined,
-    protocolLockupPercent: protocolLockupPercent ?? undefined,
-    protocolLockupChangePercent: protocolLockupChangePercent ?? undefined,
-    lockedCollateralShares: lockedCollateralShares ?? undefined,
-    lockedCollateralChangePercent: lockedCollateralChangePercent ?? undefined,
-    shortInterestPercent: shortInterestPercent ?? undefined,
-    daysToCover: daysToCover ?? undefined,
-    priceChangePercent: priceChangePercent ?? undefined,
-    volumeChangePercent: volumeChangePercent ?? undefined,
-  });
-  const interpretationHeadline = text(lendingAnalysis.headline, text(lendingData.aiLendingAnalysis, 'Lending conditions remain under management review'));
-  const interpretationSummary = conciseSentences(text(lendingAnalysis.body, text(pageContent.aiLendingAnalysis, 'Monitor utilization, borrow cost, and available inventory for material changes.')))[0] ?? '';
-  const watchNext = watchItems[0]?.suggestedAction
-    ?? 'Continue monitoring utilization, borrow fee, availability, and changes in reported on-loan balances.';
-  const updatedAt = aiAnalysis?.created_at_utc ?? lendingEnvelope.importedAt ?? null;
+  const aiSummary = text(
+    aiAnalysis?.lending_pressure_analysis,
+    text(lendingData.aiLendingAnalysis, text(pageContent.aiLendingAnalysis, lendingScoreSummary(displayPressureScore, displayLevel))),
+  ).trim();
   const scoreProgress = Math.min(100, Math.max(0, displayPressureScore));
   const signals: LendingSignal[] = [
     {
@@ -351,18 +320,11 @@ export function LendingPressureBrowserPage({ ticker }: { ticker: string }) {
       severity: utilizationPct >= 85 && borrowFee >= 30 ? 'medium' : 'low',
     },
   ];
-  const utilizationComponent = numeric(lendingComponents.utilizationPressure) ?? utilizationPressure;
-  const borrowFeeComponent = numeric(lendingComponents.borrowFeePressure) ?? borrowFeePressure;
-  const availabilityComponent = numeric(lendingComponents.availabilityPressure) ?? availabilityPressure;
-  const borrowDemandComponent = numeric(lendingComponents.borrowDemandScore) ?? borrowDemandScore;
-  const contributions: LendingContribution[] = [
-    { label: 'Utilization', contribution: utilizationComponent * .30, maxPoints: 30, detail: `${formatPercent(utilizationPct, { maximumFractionDigits: 1 })} current utilization` },
-    { label: 'Borrow Fee', contribution: borrowFeeComponent * .30, maxPoints: 30, detail: `${formatPercent(borrowFee, { maximumFractionDigits: 2 })} current fee` },
-    { label: 'Availability', contribution: availabilityComponent * .25, maxPoints: 25, detail: `${formatNumber(sharesAvailable)} shares available` },
-    { label: 'Borrow Demand Model', contribution: borrowDemandComponent * .15, maxPoints: 15, detail: String(lendingComponents.borrowDemand ?? 'Model contribution') },
-    { label: 'On Loan', contribution: onLoanShares === null ? null : 0, maxPoints: 15, detail: onLoanShares === null ? 'No source data' : `${formatNumber(onLoanShares)} shares on loan` },
-    { label: 'Average Duration', contribution: averageDurationDays === null ? null : 0, maxPoints: 15, detail: averageDurationDays === null ? 'No source data' : `${formatNumber(averageDurationDays, { maximumFractionDigits: 2 })} days` },
-    { label: 'Protocol Lock-up', contribution: protocolLockupPercent === null ? null : 0, maxPoints: 15, detail: protocolLockupPercent === null ? 'No source data' : `${formatPercent(protocolLockupPercent)} collateralized share lock-up` },
+  const scoreRanges = [
+    { range: '0-30', level: 'Low', description: 'Borrow-market pressure is relatively contained.', active: displayPressureScore <= 30 },
+    { range: '31-60', level: 'Moderate', description: 'Conditions warrant monitoring but are not uniformly stressed.', active: displayPressureScore >= 31 && displayPressureScore <= 60 },
+    { range: '61-80', level: 'High', description: 'Tightening supply or cost may pressure short sellers.', active: displayPressureScore >= 61 && displayPressureScore <= 80 },
+    { range: '81-100', level: 'Extreme', description: 'Severe lending pressure warrants close review.', active: displayPressureScore >= 81 },
   ];
 
   return (
@@ -387,17 +349,26 @@ export function LendingPressureBrowserPage({ ticker }: { ticker: string }) {
         <div className="short-executive-grid lending-executive-grid">
           <article className={`terminal-card short-executive-card short-executive-score lending-executive-score ${displayLevel.toLowerCase()}`}>
             <span>Lending Pressure Score</span>
-            <div className="short-score-compact">
-              <div
-                className="short-score-radial"
-                style={{ background: `conic-gradient(var(--short-score-accent) ${scoreProgress}%, #e8eef7 ${scoreProgress}% 100%)` }}
-              >
-                <div><strong>{displayPressureScore}</strong><small>/ 100</small></div>
+            <div className="lending-score-layout">
+              <div className="short-score-compact">
+                <div
+                  className="short-score-radial"
+                  style={{ background: `conic-gradient(var(--short-score-accent) ${scoreProgress}%, #e8eef7 ${scoreProgress}% 100%)` }}
+                >
+                  <div><strong>{displayPressureScore}</strong><small>/ 100</small></div>
+                </div>
+                <div className="short-score-compact__copy">
+                  <em>{displayLevel} Pressure</em>
+                  <p>{lendingScoreSummary(displayPressureScore, displayLevel)}</p>
+                </div>
               </div>
-              <div className="short-score-compact__copy">
-                <em>{displayLevel} Pressure</em>
-                <p>{lendingScoreSummary(displayPressureScore, displayLevel)}</p>
-                {updatedAt && <time dateTime={updatedAt}>Updated {formatPortalDateTime(updatedAt, timeZone)}</time>}
+              <div className="short-score-card-ranges" aria-label="Lending Pressure Score interpretation ranges">
+                {scoreRanges.map(row => (
+                  <div className={row.active ? 'active' : ''} key={row.range}>
+                    <strong>{row.range}</strong>
+                    <span><b>{row.level}</b>{row.description}</span>
+                  </div>
+                ))}
               </div>
             </div>
           </article>
@@ -407,28 +378,13 @@ export function LendingPressureBrowserPage({ ticker }: { ticker: string }) {
             <div className="short-executive-metrics">
               <ExecutiveMetric label="Utilization" value={String(utilizationCard.valueDisplay ?? formatPercent(utilizationPct, { maximumFractionDigits: 1 }))} changePercent={utilizationChangePercent} />
               <ExecutiveMetric label="Borrow Fee" value={String(borrowFeeCard.valueDisplay ?? formatPercent(borrowFee, { maximumFractionDigits: 2 }))} changePercent={borrowFeeChangePercent} />
-              <ExecutiveMetric label="Shares Available" value={String(sharesAvailableCard.valueDisplay ?? formatNumber(sharesAvailable))} changePercent={sharesAvailableChangePercent} />
+              <ExecutiveMetric label="Shortable Shares" value={String(sharesAvailableCard.valueDisplay ?? formatNumber(sharesAvailable))} changePercent={sharesAvailableChangePercent} />
               <ExecutiveMetric label="On Loan Shares" value={onLoanShares === null ? 'N/A' : formatNumber(onLoanShares)} changePercent={onLoanChangePercent} />
               <ExecutiveMetric label="Loan Value" value={loanValueUsd === null ? 'N/A' : `$${formatNumber(loanValueUsd)}`} changePercent={loanValueChangePercent} />
               <ExecutiveMetric label="Average Duration" value={averageDurationDays === null ? 'N/A' : `${formatNumber(averageDurationDays, { maximumFractionDigits: 2 })}d`} changePercent={averageDurationChangePercent} />
             </div>
           </article>
 
-          <article className="terminal-card short-executive-card short-management-guide lending-management-guide">
-            <span>Management Interpretation Guide</span>
-            <ul>
-              <li>The score combines utilization, borrow fee, availability, and reported borrow demand.</li>
-              <li>High utilization can indicate less lendable inventory remains available.</li>
-              <li>Rising borrow fees can increase the cost of maintaining short positions.</li>
-              <li>Falling availability can signal recalls, new borrowing, or lending-pool withdrawal.</li>
-            </ul>
-            <div>
-              <strong>Current interpretation</strong>
-              <p><b>{interpretationHeadline}</b>{interpretationSummary ? ` ${interpretationSummary}` : ''}</p>
-              <strong>What management should watch next</strong>
-              <p>{watchNext}</p>
-            </div>
-          </article>
         </div>
 
         <div className="short-signal-strip lending-signal-strip" aria-label="Current lending-pressure signals">
@@ -441,53 +397,12 @@ export function LendingPressureBrowserPage({ ticker }: { ticker: string }) {
           ))}
         </div>
 
-        <div className="terminal-card lending-pressure-breakdown">
-          <div className="lending-pressure-breakdown__head">
-            <div><span>Lending Pressure Breakdown</span><strong>Weighted contribution to the {displayPressureScore}-point score</strong></div>
-            <small>Unavailable components are not inferred.</small>
-          </div>
-          <div className="lending-contribution-list">
-            {contributions.map(row => (
-              <div className={row.contribution === null ? 'unavailable' : ''} key={row.label}>
-                <span>{row.label}</span>
-                <div className="lending-contribution-track">
-                  <i style={{ width: `${row.contribution === null ? 0 : Math.min(100, (row.contribution / row.maxPoints) * 100)}%` }} />
-                </div>
-                <strong>{row.contribution === null ? 'N/A' : `${row.contribution.toLocaleString('en-US', { maximumFractionDigits: 1 })} pts`}</strong>
-                <small>{row.detail}</small>
-              </div>
-            ))}
-          </div>
-          <p>The backend composite also includes its borrow-demand model. Protocol lock-up refers to tokenized shares pledged as collateral, not shares lent out.</p>
-        </div>
-      </section>
+        <article className="terminal-card short-executive-card short-management-guide lending-management-guide short-ai-analysis-card">
+          <span>AI Analysis</span>
+          <AiSummary value={aiSummary || 'Data unavailable'} />
+          <small>AI-assisted interpretation. Review underlying data before making decisions.</small>
+        </article>
 
-      <section className="terminal-section short-management-watch-section lending-management-watch-section">
-        <div className="terminal-section__head">
-          <div>
-            <span>Rule-Based Monitoring</span>
-            <h2>Management Watch Items</h2>
-            <p className="section-subtitle">Triggered from transparent utilization, borrow-fee, availability, on-loan, duration, protocol lock-up, and squeeze-risk rules.</p>
-          </div>
-        </div>
-        {watchItems.length ? (
-          <div className="short-watch-grid">
-            {watchItems.map(item => (
-              <article className={`short-watch-card ${item.severity}`} key={item.id}>
-                <div className="short-watch-card__meta"><em>{item.severity}</em><span>{item.category}</span></div>
-                <h3>{item.title}</h3>
-                <p>{item.message}</p>
-                <div className="short-watch-card__detail"><span>Why triggered</span><p>{item.reason}</p></div>
-                <div className="short-watch-card__detail action"><span>Suggested action</span><p>{item.suggestedAction}</p></div>
-              </article>
-            ))}
-          </div>
-        ) : (
-          <div className="short-watch-calm">
-            <strong>No major management watch items triggered</strong>
-            <p>No major management watch items triggered based on current lending pressure rules.</p>
-          </div>
-        )}
       </section>
 
       <section className="terminal-section lending-trends-section">
@@ -499,9 +414,9 @@ export function LendingPressureBrowserPage({ ticker }: { ticker: string }) {
           </div>
         </div>
         <div className="lending-trend-grid">
-          <div className="terminal-card chart-card"><h3><InfoTitle text="Trend of shares available to borrow. Declining availability can indicate tightening borrow supply.">Shares Available Trend</InfoTitle></h3><TrendLine label="Available" labels={trendRows.map(row => shortDateLabel(row.date))} values={trendRows.map(row => numeric(record(row.availability).shortAvailabilityShares) ?? 0)} /></div>
-          <div className="terminal-card chart-card"><h3><InfoTitle text="Utilization is currently mapped to the availability percentage in the consolidated lending file.">Utilization Trend</InfoTitle></h3><TrendLine label="Utilization" labels={trendRows.map(row => shortDateLabel(row.date))} values={trendRows.map(row => numeric(record(row.availability).shortAvailabilityPct) ?? 0)} valueFormatter={value => `${formatNumber(value, { maximumFractionDigits: 2 })}%`} /></div>
-          <div className="terminal-card chart-card"><h3><InfoTitle text="Borrow fee trend shows whether short sellers are paying more to maintain or open short positions.">Borrow Fee Trend</InfoTitle></h3><TrendLine label="Borrow Fee" labels={trendRows.map(row => shortDateLabel(row.date))} values={trendRows.map(row => numeric(record(row.borrowFeeAll).costToBorrowAll) ?? 0)} valueFormatter={value => `${formatNumber(value, { maximumFractionDigits: 2 })}%`} /></div>
+          <div className="terminal-card chart-card"><h3><InfoTitle text="Trend of shares available to borrow. Declining availability can indicate tightening borrow supply.">Shortable Shares Trend</InfoTitle></h3><TrendLine label="Available" labels={availabilityTrendRows.map(row => shortDateLabel(row.date))} values={availabilityTrendRows.map(row => optionalNumeric(record(row.availability).shortAvailabilityShares) as number)} /></div>
+          <div className="terminal-card chart-card"><h3><InfoTitle text="Utilization is currently mapped to the availability percentage in the consolidated lending file.">Utilization Trend</InfoTitle></h3><TrendLine label="Utilization" labels={utilizationTrendRows.map(row => shortDateLabel(row.date))} values={utilizationTrendRows.map(row => optionalNumeric(record(row.availability).shortAvailabilityPct) as number)} valueFormatter={value => `${formatNumber(value, { maximumFractionDigits: 2 })}%`} /></div>
+          <div className="terminal-card chart-card"><h3><InfoTitle text="Borrow fee trend shows whether short sellers are paying more to maintain or open short positions.">Borrow Fee Trend</InfoTitle></h3><TrendLine label="Borrow Fee" labels={borrowFeeTrendRows.map(row => shortDateLabel(row.date))} values={borrowFeeTrendRows.map(row => optionalNumeric(record(row.borrowFeeAll).costToBorrowAll) as number)} valueFormatter={value => `${formatNumber(value, { maximumFractionDigits: 2 })}%`} /></div>
         </div>
       </section>
       <PageDisclaimerNotice noticeKey="lendingPressure" disclaimerKey="securitiesLending" />

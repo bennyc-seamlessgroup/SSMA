@@ -5,9 +5,9 @@ import { InfoTooltip } from '@/components/InfoTooltip';
 import { PortalPageLoading } from '@/components/PortalPageLoading';
 import { PageDisclaimerNotice } from '@/components/PageDisclaimerNotice';
 import { usePublicImportFiles } from '@/components/usePublicImportFiles';
-import { evaluateShortInterestWatchItems, type WatchItemSeverity } from '@/lib/short-interest/watchItemRules';
+import type { WatchItemSeverity } from '@/lib/short-interest/watchItemRules';
 import { aiAnalysisFile, normalizeTicker, shortInterestFile } from '@/lib/ticker-data';
-import type { ReactNode } from 'react';
+import { useState, type ReactNode } from 'react';
 
 type Row = Record<string, unknown>;
 type ImportEnvelope<T> = {
@@ -18,15 +18,6 @@ type ImportEnvelope<T> = {
 type AiAnalysis = {
   short_interest_current_interpretation?: string;
 };
-
-function parseAiAnalysis(value: unknown) {
-  const lines = String(value ?? '')
-    .replaceAll('**', '')
-    .split(/\n+/)
-    .map(line => line.trim())
-    .filter(Boolean);
-  return { headline: lines[0] ?? '', body: lines.slice(1).join(' ') };
-}
 
 function rows(value: unknown): Row[] {
   return Array.isArray(value) ? value.filter(item => item && typeof item === 'object') as Row[] : [];
@@ -92,17 +83,30 @@ function percentageChange(current: number | null, previous: number | null) {
   return ((current - previous) / previous) * 100;
 }
 
-function conciseSentences(value: string, limit = 2) {
-  const matches = value.match(/[^.!?]+[.!?]+|[^.!?]+$/g) ?? [];
-  return matches.map(sentence => sentence.trim()).filter(Boolean).slice(0, limit);
-}
-
 function sourceChip(source: string) {
   return <span className="source-chip ready">Source: {source}</span>;
 }
 
 function InfoTitle({ children, text }: { children: ReactNode; text: string }) {
   return <span className="with-info">{children} <InfoTooltip text={text} /></span>;
+}
+
+function AiSummary({ value }: { value: string }) {
+  const paragraphs = value.split(/\n+/).map(paragraph => paragraph.trim()).filter(Boolean);
+  return (
+    <div className="short-ai-analysis-copy">
+      {paragraphs.map((paragraph, paragraphIndex) => {
+        const parts = paragraph.split(/(\*\*[^*]+\*\*)/g).filter(Boolean);
+        return (
+          <p key={`${paragraphIndex}-${paragraph.slice(0, 24)}`}>
+            {parts.map((part, partIndex) => part.startsWith('**') && part.endsWith('**')
+              ? <strong key={`${partIndex}-${part}`}>{part.slice(2, -2)}</strong>
+              : <span key={`${partIndex}-${part.slice(0, 16)}`}>{part}</span>)}
+          </p>
+        );
+      })}
+    </div>
+  );
 }
 
 function shortDateLabel(value: unknown) {
@@ -226,9 +230,208 @@ function ExecutiveMetric({ label, value, changePercent }: { label: string; value
       <strong>{value}</strong>
       <em className={tone}>
         {typeof changePercent === 'number' && Number.isFinite(changePercent)
-          ? `${changePercent > 0 ? '+' : ''}${changePercent.toLocaleString('en-US', { maximumFractionDigits: 2 })}%`
+          ? `${changePercent > 0 ? '+' : ''}${changePercent.toLocaleString('en-US', { maximumFractionDigits: 2 })}% vs yesterday`
           : 'No prior period'}
       </em>
+    </div>
+  );
+}
+
+type BriefingMetric = 'shares' | 'floatPercent' | 'daysToCover';
+
+type BriefingTrendRow = {
+  date: string;
+  shares: number | null;
+  floatPercent: number | null;
+  daysToCover: number | null;
+};
+
+const briefingMetricConfig: Record<BriefingMetric, {
+  label: string;
+  color: string;
+  format: (value: number | null) => string;
+}> = {
+  shares: {
+    label: 'Short Interest Shares',
+    color: '#2f6dd5',
+    format: value => value === null ? 'Data unavailable' : formatNumber(value),
+  },
+  floatPercent: {
+    label: 'Short Interest Float %',
+    color: '#d98b16',
+    format: value => value === null ? 'Data unavailable' : formatPercent(value, { maximumFractionDigits: 2 }),
+  },
+  daysToCover: {
+    label: 'Days to Cover',
+    color: '#15966f',
+    format: value => value === null ? 'Data unavailable' : `${formatNumber(value, { maximumFractionDigits: 2 })} days`,
+  },
+};
+
+function metricRange(values: Array<number | null>) {
+  const valid = values.filter((value): value is number => value !== null && Number.isFinite(value));
+  if (!valid.length) return { min: 0, max: 1 };
+  const rawMin = Math.min(...valid);
+  const rawMax = Math.max(...valid);
+  const padding = Math.max((rawMax - rawMin) * .12, Math.abs(rawMax) * .025, .1);
+  return { min: Math.max(0, rawMin - padding), max: rawMax + padding };
+}
+
+function ShortInterestCombinedChart({ data }: { data: BriefingTrendRow[] }) {
+  const [enabled, setEnabled] = useState<Record<BriefingMetric, boolean>>({
+    shares: true,
+    floatPercent: true,
+    daysToCover: true,
+  });
+  const [focusedMetric, setFocusedMetric] = useState<BriefingMetric>('floatPercent');
+  const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
+  const metrics = Object.keys(briefingMetricConfig) as BriefingMetric[];
+  const secondaryMetric = focusedMetric === 'shares'
+    ? (enabled.floatPercent ? 'floatPercent' : 'daysToCover')
+    : focusedMetric;
+  const width = 1000;
+  const height = 330;
+  const plot = { left: 78, right: 86, top: 24, bottom: 52 };
+  const plotWidth = width - plot.left - plot.right;
+  const plotHeight = height - plot.top - plot.bottom;
+  const ranges = Object.fromEntries(metrics.map(metric => [
+    metric,
+    metricRange(data.map(row => row[metric])),
+  ])) as Record<BriefingMetric, { min: number; max: number }>;
+  const x = (index: number) => plot.left + (data.length <= 1 ? plotWidth / 2 : (index / (data.length - 1)) * plotWidth);
+  const y = (metric: BriefingMetric, value: number) => {
+    const range = ranges[metric];
+    return plot.top + (1 - ((value - range.min) / Math.max(range.max - range.min, .0001))) * plotHeight;
+  };
+  const linePoints = (metric: BriefingMetric) => data
+    .map((row, index) => row[metric] === null ? null : `${x(index)},${y(metric, row[metric] as number)}`)
+    .filter(Boolean)
+    .join(' ');
+  const focusedIndex = hoveredIndex ?? Math.max(0, data.length - 1);
+
+  if (!data.length) {
+    return <div className="short-briefing-chart-empty">Short-interest trend data unavailable.</div>;
+  }
+
+  return (
+    <div className="short-briefing-chart">
+      <div className="short-briefing-chart__legend" aria-label="Trend metrics">
+        {metrics.map(metric => (
+          <button
+            type="button"
+            className={`${enabled[metric] ? 'active' : ''} ${focusedMetric === metric ? 'focused' : ''}`}
+            key={metric}
+            onClick={() => setEnabled(current => ({ ...current, [metric]: !current[metric] }))}
+            onMouseEnter={() => setFocusedMetric(metric)}
+          >
+            <i style={{ background: briefingMetricConfig[metric].color }} />
+            {briefingMetricConfig[metric].label}
+          </button>
+        ))}
+      </div>
+      <div className="short-briefing-chart__canvas">
+        <svg
+          viewBox={`0 0 ${width} ${height}`}
+          role="img"
+          aria-label="Short interest shares, float percentage, and days to cover trend"
+          onMouseLeave={() => setHoveredIndex(null)}
+          onMouseMove={event => {
+            const bounds = event.currentTarget.getBoundingClientRect();
+            const svgX = ((event.clientX - bounds.left) / bounds.width) * width;
+            const index = Math.round(((svgX - plot.left) / plotWidth) * Math.max(0, data.length - 1));
+            setHoveredIndex(Math.max(0, Math.min(data.length - 1, index)));
+          }}
+        >
+          {[0, .25, .5, .75, 1].map((ratio, index) => {
+            const gridY = plot.top + ratio * plotHeight;
+            const sharesRange = ranges.shares;
+            const secondaryRange = ranges[secondaryMetric];
+            const sharesValue = sharesRange.max - ratio * (sharesRange.max - sharesRange.min);
+            const secondaryValue = secondaryRange.max - ratio * (secondaryRange.max - secondaryRange.min);
+            return (
+              <g key={ratio}>
+                <line className="short-briefing-chart__grid" x1={plot.left} x2={width - plot.right} y1={gridY} y2={gridY} />
+                <text className="short-briefing-chart__axis" x={plot.left - 12} y={gridY + 4} textAnchor="end">{formatCompactNumber(sharesValue)}</text>
+                <text className="short-briefing-chart__axis" x={width - plot.right + 12} y={gridY + 4}>
+                  {secondaryMetric === 'floatPercent'
+                    ? `${formatNumber(secondaryValue, { maximumFractionDigits: 1 })}%`
+                    : formatNumber(secondaryValue, { maximumFractionDigits: 1 })}
+                </text>
+                {index === 0 && (
+                  <>
+                    <text className="short-briefing-chart__axis-title" x={plot.left} y={12}>Shares</text>
+                    <text className="short-briefing-chart__axis-title" x={width - plot.right} y={12} textAnchor="end">
+                      {secondaryMetric === 'floatPercent' ? 'Float %' : 'Days to Cover'}
+                    </text>
+                  </>
+                )}
+              </g>
+            );
+          })}
+          {metrics.map(metric => enabled[metric] && (
+            <polyline
+              key={metric}
+              className={`short-briefing-chart__line ${focusedMetric === metric ? 'focused' : ''}`}
+              points={linePoints(metric)}
+              style={{ stroke: briefingMetricConfig[metric].color }}
+              onMouseEnter={() => setFocusedMetric(metric)}
+            />
+          ))}
+          {hoveredIndex !== null && (
+            <line
+              className="short-briefing-chart__cursor"
+              x1={x(hoveredIndex)}
+              x2={x(hoveredIndex)}
+              y1={plot.top}
+              y2={plot.top + plotHeight}
+            />
+          )}
+          {metrics.map(metric => enabled[metric] && data[focusedIndex]?.[metric] !== null && (
+            <circle
+              key={`${metric}-${focusedIndex}`}
+              cx={x(focusedIndex)}
+              cy={y(metric, data[focusedIndex][metric] as number)}
+              r={focusedMetric === metric ? 5 : 3.5}
+              fill={briefingMetricConfig[metric].color}
+              stroke="#fff"
+              strokeWidth="2"
+            />
+          ))}
+          {data.map((row, index) => (
+            <text
+              className="short-briefing-chart__date"
+              key={`${row.date}-${index}`}
+              x={x(index)}
+              y={height - 18}
+              textAnchor={index === 0 ? 'start' : index === data.length - 1 ? 'end' : 'middle'}
+            >
+              {shortDateLabel(row.date)}
+            </text>
+          ))}
+        </svg>
+        {hoveredIndex !== null && (
+          <div
+            className="short-briefing-chart__tooltip"
+            style={{
+              left: `${(x(hoveredIndex) / width) * 100}%`,
+              transform: hoveredIndex === 0
+                ? 'translateX(0)'
+                : hoveredIndex === data.length - 1
+                  ? 'translateX(-100%)'
+                  : 'translateX(-50%)',
+            }}
+          >
+            <strong>{data[hoveredIndex].date}</strong>
+            {metrics.filter(metric => enabled[metric]).map(metric => (
+              <span className={focusedMetric === metric ? 'focused' : ''} key={metric}>
+                <i style={{ background: briefingMetricConfig[metric].color }} />
+                {briefingMetricConfig[metric].label}
+                <b>{briefingMetricConfig[metric].format(data[hoveredIndex][metric])}</b>
+              </span>
+            ))}
+          </div>
+        )}
+      </div>
     </div>
   );
 }
@@ -277,6 +480,9 @@ export function ShortInterestBrowserPage({ ticker }: { ticker: string }) {
   const shortInterestTrendRows = dailyRows
     .sort((a, b) => String(a.date ?? '').localeCompare(String(b.date ?? '')))
     .slice(-7);
+  const shortSharesTrendRows = shortInterestTrendRows.filter(row => optionalNumeric(record(row.shortInterest).shortInterestShares) !== null);
+  const borrowFeeTrendRows = shortInterestTrendRows.filter(row => optionalNumeric(record(row.borrowFeeAll).costToBorrowAll) !== null);
+  const availabilityTrendRows = shortInterestTrendRows.filter(row => optionalNumeric(record(row.availability).shortAvailabilityShares) !== null);
   const sortedDailyRows = [...dailyRows].sort((a, b) => String(b.date ?? '').localeCompare(String(a.date ?? '')));
   const latestDaily = sortedDailyRows[0] ?? {};
   const previousDaily = sortedDailyRows[1] ?? {};
@@ -319,9 +525,6 @@ export function ShortInterestBrowserPage({ ticker }: { ticker: string }) {
   const shortScoreCard = record(shortCards?.shortScore);
   const shortScoreLevelCard = record(shortCards?.shortScoreLevel);
   const currentInterpretation = record(ortexData.currentInterpretation);
-  const aiInterpretation = parseAiAnalysis(aiAnalysis?.short_interest_current_interpretation);
-  const interpretationHeadline = text(aiInterpretation.headline, text(currentInterpretation.headline, 'Short positioning remains under management review'));
-  const interpretationBody = text(aiInterpretation.body, text(currentInterpretation.body, shortScoreExplanation(shortScore, shortScoreLevel)));
   const ftdRows = rows(ortexData.ftd);
   const latestFtd = latest(ftdRows);
   const previousFtd = [...ftdRows].sort((a, b) => String(b.date ?? '').localeCompare(String(a.date ?? '')))[1] ?? {};
@@ -331,33 +534,16 @@ export function ShortInterestBrowserPage({ ticker }: { ticker: string }) {
   const shortInterestChangePercent = numeric(shortInterestCard.changePercent) ?? shortInterestDelta?.percent;
   const borrowFeeChangePercent = numeric(borrowFeeCard.changePercent) ?? borrowFeeDelta?.percent;
   const sharesAvailableChangePercent = numeric(sharesAvailableCard.changePercent) ?? sharesAvailableDelta?.percent;
-  const priceChangePercent = percentageChange(numeric(latestClosing.close), numeric(previousClosing.close));
-  const volumeChangePercent = percentageChange(numeric(latestClosing.volume), numeric(previousClosing.volume));
-  const floatShares = shortInterestPercent
-    ? (shortInterestShares ?? 0) / (shortInterestPercent / 100)
-    : undefined;
-  const watchItems = evaluateShortInterestWatchItems({
-    shortInterestPercent: shortInterestPercent ?? undefined,
-    shortInterestShares: shortInterestShares ?? undefined,
-    shortInterestChangePercent: shortInterestChangePercent ?? undefined,
-    daysToCover: daysToCover ?? undefined,
-    borrowFeePercent: borrowFee ?? undefined,
-    borrowFeeChangePercent: borrowFeeChangePercent ?? undefined,
-    utilizationPercent: utilization ?? undefined,
-    sharesAvailable: sharesAvailable ?? undefined,
-    sharesAvailableChangePercent: sharesAvailableChangePercent ?? undefined,
-    ftdShares: ftdShares ?? undefined,
-    ftdChangePercent: ftdChangePercent ?? undefined,
-    priceChangePercent,
-    volumeChangePercent,
-    floatShares,
-  });
-  const guideBullets = [
-    interpretationHeadline,
-    ...conciseSentences(interpretationBody),
-  ].slice(0, 3);
-  const watchNext = watchItems[0]?.suggestedAction
-    ?? 'Continue monitoring short exposure, borrow cost, utilization, and available inventory for material changes.';
+  const aiSummary = text(
+    aiAnalysis?.short_interest_current_interpretation,
+    text(currentInterpretation.body, shortScoreExplanation(shortScore, shortScoreLevel)),
+  ).trim();
+  const scoreRanges = [
+    { range: '0-39', level: 'Low', description: 'Short-side pressure is relatively contained.', active: shortScore < 40 },
+    { range: '40-64', level: 'Moderate', description: 'Pressure is developing and should be monitored.', active: shortScore >= 40 && shortScore < 65 },
+    { range: '65-79', level: 'High', description: 'Elevated conditions may increase squeeze risk.', active: shortScore >= 65 && shortScore < 80 },
+    { range: '80-100', level: 'Extreme', description: 'Severe short-side pressure warrants close review.', active: shortScore >= 80 },
+  ];
   const signals: ShortSignal[] = [
     {
       label: 'Short Interest Trend',
@@ -395,7 +581,7 @@ export function ShortInterestBrowserPage({ ticker }: { ticker: string }) {
   return (
     <ImportDataPreviewPage
       title="Short Interest Intelligence"
-      description="Short interest, borrow fee, shares available, days to cover, and squeeze risk from the consolidated ORTEX import data."
+      description="Executive short-interest briefing built from the latest available market data."
       files={[
         dataFile,
         analysisFile,
@@ -409,27 +595,37 @@ export function ShortInterestBrowserPage({ ticker }: { ticker: string }) {
             <p className="section-subtitle">{text(pageContent.overviewSubtitle, 'Executive view of short exposure, borrow pressure, available inventory, and squeeze-risk inputs.')}</p>
           </div>
           <div className="terminal-section-actions">
-            {sourceChip(ortexEnvelope.sourcePlatform ?? 'Ortex')}
+            {sourceChip(ortexEnvelope.sourcePlatform ?? 'Market data')}
           </div>
         </div>
 
         <div className="short-executive-grid">
           <article className={`terminal-card short-executive-card short-executive-score ${shortScoreTone}`}>
             <span>Short Interest Score</span>
-            <div className="short-score-compact">
-              <div
-                className="short-score-radial"
-                style={{ background: `conic-gradient(var(--short-score-accent) ${scoreProgress}%, #e8eef7 ${scoreProgress}% 100%)` }}
-              >
-                <div>
-                  <strong>{shortScore || 'N/A'}</strong>
-                  <small>/ 100</small>
+            <div className="short-overview-score-layout">
+              <div className="short-score-compact">
+                <div
+                  className="short-score-radial"
+                  style={{ background: `conic-gradient(var(--short-score-accent) ${scoreProgress}%, #e8eef7 ${scoreProgress}% 100%)` }}
+                >
+                  <div>
+                    <strong>{numeric(shortCurrent.shortScore) === null ? 'N/A' : shortScore}</strong>
+                    <small>/ 100</small>
+                  </div>
+                </div>
+                <div className="short-score-compact__copy">
+                  <em>{String(shortScoreLevelCard.valueDisplay ?? shortScoreLevel)} Risk</em>
+                  <DeltaBadge info={shortScoreDelta} display={String(shortScoreCard.deltaDisplay ?? '')} />
+                  <p>{shortScoreSummary(shortScore, shortScoreLevel)}</p>
                 </div>
               </div>
-              <div className="short-score-compact__copy">
-                <em>{String(shortScoreLevelCard.valueDisplay ?? shortScoreLevel)} Risk</em>
-                <DeltaBadge info={shortScoreDelta} display={String(shortScoreCard.deltaDisplay ?? '')} />
-                <p>{shortScoreSummary(shortScore, shortScoreLevel)}</p>
+              <div className="short-score-card-ranges" aria-label="Short Interest Score interpretation ranges">
+                {scoreRanges.map(row => (
+                  <div className={row.active ? 'active' : ''} key={row.range}>
+                    <strong>{row.range}</strong>
+                    <span><b>{row.level}</b>{row.description}</span>
+                  </div>
+                ))}
               </div>
             </div>
           </article>
@@ -445,16 +641,6 @@ export function ShortInterestBrowserPage({ ticker }: { ticker: string }) {
             </div>
           </article>
 
-          <article className="terminal-card short-executive-card short-management-guide">
-            <span>Management Interpretation Guide</span>
-            <ul>
-              {guideBullets.map((item, index) => <li key={`${index}-${item}`}>{item}</li>)}
-            </ul>
-            <div>
-              <strong>What management should watch next</strong>
-              <p>{watchNext}</p>
-            </div>
-          </article>
         </div>
 
         <div className="short-signal-strip" aria-label="Current short-interest signals">
@@ -466,43 +652,12 @@ export function ShortInterestBrowserPage({ ticker }: { ticker: string }) {
             </div>
           ))}
         </div>
-      </section>
 
-      <section className="terminal-section short-management-watch-section">
-        <div className="terminal-section__head">
-          <div>
-            <span>Rule-Based Monitoring</span>
-            <h2>Management Watch Items</h2>
-            <p className="section-subtitle">Triggered from transparent short-interest, borrow-market, utilization, availability, settlement, and price-volume rules.</p>
-          </div>
-        </div>
-        {watchItems.length ? (
-          <div className="short-watch-grid">
-            {watchItems.map(item => (
-              <article className={`short-watch-card ${item.severity}`} key={item.id}>
-                <div className="short-watch-card__meta">
-                  <em>{item.severity}</em>
-                  <span>{item.category}</span>
-                </div>
-                <h3>{item.title}</h3>
-                <p>{item.message}</p>
-                <div className="short-watch-card__detail">
-                  <span>Why triggered</span>
-                  <p>{item.reason}</p>
-                </div>
-                <div className="short-watch-card__detail action">
-                  <span>Suggested action</span>
-                  <p>{item.suggestedAction}</p>
-                </div>
-              </article>
-            ))}
-          </div>
-        ) : (
-          <div className="short-watch-calm">
-            <strong>No major management watch items triggered</strong>
-            <p>No major management watch items triggered based on current short interest rules.</p>
-          </div>
-        )}
+        <article className="terminal-card short-executive-card short-management-guide short-ai-analysis-card">
+          <span>AI Analysis</span>
+          <AiSummary value={aiSummary || 'Data unavailable'} />
+          <small>AI-assisted interpretation. Review underlying data before making decisions.</small>
+        </article>
       </section>
 
       <section className="terminal-section short-interest-trends-section">
@@ -510,10 +665,10 @@ export function ShortInterestBrowserPage({ ticker }: { ticker: string }) {
           <div>
             <span>Trend Analysis</span>
             <h2>Short Interest Movement</h2>
-            <p className="section-subtitle">ORTEX-backed trend charts for short exposure, borrow cost, and borrow availability.</p>
+            <p className="section-subtitle">Trend charts for short exposure, borrow cost, and borrow availability.</p>
           </div>
           <div className="terminal-section-actions">
-            {sourceChip(ortexEnvelope.sourcePlatform ?? 'Ortex')}
+            {sourceChip(ortexEnvelope.sourcePlatform ?? 'Market data')}
           </div>
         </div>
         <div className="short-interest-trend-grid">
@@ -521,16 +676,16 @@ export function ShortInterestBrowserPage({ ticker }: { ticker: string }) {
             <h3><InfoTitle text="Trend of reported short-interest shares. Rising values indicate more shares have been sold short.">Short Interest Trend</InfoTitle></h3>
             <TrendLine
               label="Shares"
-              labels={shortInterestTrendRows.map(row => shortDateLabel(row.date))}
-              values={shortInterestTrendRows.map(row => numeric(record(row.shortInterest).shortInterestShares) ?? 0)}
+              labels={shortSharesTrendRows.map(row => shortDateLabel(row.date))}
+              values={shortSharesTrendRows.map(row => optionalNumeric(record(row.shortInterest).shortInterestShares) as number)}
             />
           </div>
           <div className="terminal-card chart-card">
             <h3><InfoTitle text="Cost to borrow shows how expensive it is for short sellers to maintain or open short positions.">Borrow Fee Trend</InfoTitle></h3>
             <TrendLine
               label="CTB"
-              labels={shortInterestTrendRows.map(row => shortDateLabel(row.date))}
-              values={shortInterestTrendRows.map(row => numeric(record(row.borrowFeeAll).costToBorrowAll) ?? 0)}
+              labels={borrowFeeTrendRows.map(row => shortDateLabel(row.date))}
+              values={borrowFeeTrendRows.map(row => optionalNumeric(record(row.borrowFeeAll).costToBorrowAll) as number)}
               valueFormatter={value => `${formatNumber(value, { maximumFractionDigits: 2 })}%`}
             />
           </div>
@@ -538,8 +693,8 @@ export function ShortInterestBrowserPage({ ticker }: { ticker: string }) {
             <h3><InfoTitle text="Shortable shares indicate how many shares may still be available for borrowing. Lower inventory can increase borrow pressure.">Shortable Shares Trend</InfoTitle></h3>
             <TrendLine
               label="Available"
-              labels={shortInterestTrendRows.map(row => shortDateLabel(row.date))}
-              values={shortInterestTrendRows.map(row => numeric(record(row.availability).shortAvailabilityShares) ?? 0)}
+              labels={availabilityTrendRows.map(row => shortDateLabel(row.date))}
+              values={availabilityTrendRows.map(row => optionalNumeric(record(row.availability).shortAvailabilityShares) as number)}
             />
           </div>
         </div>

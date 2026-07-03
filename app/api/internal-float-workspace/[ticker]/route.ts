@@ -8,6 +8,10 @@ import {
   type InternalFloatV2UserInput,
 } from '@/lib/internal-float';
 import { normalizeTicker } from '@/lib/ticker-data';
+import {
+  buildInternalFloatActivity,
+  type InternalFloatEditableSection,
+} from '@/lib/internal-float-audit';
 
 export const dynamic = 'force-dynamic';
 
@@ -15,10 +19,36 @@ type UserInputsEnvelope = {
   users: InternalFloatV2UserInput[];
 };
 
-type EditableSection = 'privateHoldings' | 'tokenChains' | 'collateralChains';
-
 function unauthorized(message: string, status = 401) {
   return NextResponse.json({ message }, { status });
+}
+
+function actorFromToken(authorization: string) {
+  try {
+    const payload = authorization.replace(/^Bearer\s+/i, '').split('.')[1];
+    if (!payload) return 'Authenticated user';
+    const decoded = JSON.parse(Buffer.from(payload, 'base64url').toString('utf8')) as Record<string, unknown>;
+    return String(decoded.email || decoded.name || decoded.nickname || decoded.sub || 'Authenticated user');
+  } catch {
+    return 'Authenticated user';
+  }
+}
+
+async function authenticatedActor(request: Request) {
+  const authorization = request.headers.get('authorization') ?? '';
+  const apiGatewayUrl = process.env.NEXT_PUBLIC_API_GATEWAY_URL;
+  if (!apiGatewayUrl) return actorFromToken(authorization);
+  try {
+    const response = await fetch(`${apiGatewayUrl}/profile`, {
+      cache: 'no-store',
+      headers: { Authorization: authorization },
+    });
+    if (!response.ok) return actorFromToken(authorization);
+    const profile = await response.json() as Record<string, unknown>;
+    return String(profile.email || profile.name || profile.nickname || profile.sub || actorFromToken(authorization));
+  } catch {
+    return actorFromToken(authorization);
+  }
 }
 
 async function authorizeTicker(request: Request, ticker: string) {
@@ -70,7 +100,7 @@ export async function PUT(request: Request, context: { params: Promise<{ ticker:
   const ticker = normalizeTicker(rawTicker);
   if (!await authorizeTicker(request, ticker)) return unauthorized('You do not have access to this workspace.', 403);
 
-  const body = await request.json() as { section?: EditableSection; rows?: unknown };
+  const body = await request.json() as { section?: InternalFloatEditableSection; rows?: unknown };
   if (!body.section || !['privateHoldings', 'tokenChains', 'collateralChains'].includes(body.section)) {
     return NextResponse.json({ message: 'Invalid Internal Float section.' }, { status: 400 });
   }
@@ -81,9 +111,15 @@ export async function PUT(request: Request, context: { params: Promise<{ ticker:
   const { path, envelope } = await readWorkspaceEnvelope(ticker);
   const users = Array.isArray(envelope.data?.users) ? envelope.data.users : [];
   const current = workspaceInput(envelope, ticker);
+  const section = body.section;
+  const currentRows = Array.isArray(current[section]) ? current[section] as unknown as Record<string, unknown>[] : [];
+  const nextRows = body.rows as Record<string, unknown>[];
+  const actor = await authenticatedActor(request);
+  const activity = buildInternalFloatActivity(section, currentRows, nextRows, actor);
   const updated: InternalFloatV2UserInput = {
     ...current,
-    [body.section]: body.rows,
+    [section]: body.rows,
+    activityLog: [...activity, ...(current.activityLog ?? [])],
   };
   const workspaceUserId = internalFloatWorkspaceId(ticker);
   const nextUsers = [

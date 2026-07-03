@@ -41,6 +41,7 @@ const groups = [
     muted: true,
     items: [
       ['Data Sources', 'import-data'],
+      ['Billing & Plan', 'billing'],
     ],
   },
 ];
@@ -49,17 +50,15 @@ const settingsGroups = [
   {
     label: 'Account',
     items: [
-      ['Settings Overview', 'settings'],
+      ['General', 'settings'],
       ['User Profile', 'user-profile'],
       ['Role & Permissions', 'role-permissions'],
-      ['Billing & Plan', 'billing'],
     ],
   },
   {
     label: 'Workspace',
     items: [
       ['Company Management', 'companies'],
-      ['Workspace Settings', 'settings'],
     ],
   },
   {
@@ -167,8 +166,11 @@ export function Sidebar({
   useEffect(() => {
     const slug = pathname.split('/').filter(Boolean)[2] ?? '';
     const settingsSlugs = new Set(settingsGroups.flatMap(group => group.items.map(([, itemSlug]) => itemSlug)));
+    const developmentSlugs = new Set(groups.filter(group => group.muted).flatMap(group => group.items.map(([, itemSlug]) => itemSlug)));
     if (settingsSlugs.has(slug)) {
       setDesignBPanel('settings');
+    } else if (developmentSlugs.has(slug)) {
+      setDesignBPanel('development');
     }
   }, [pathname]);
 

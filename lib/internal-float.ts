@@ -1,6 +1,7 @@
 import fs from 'fs';
 import path from 'path';
 import { readImportFile, type ImportEnvelope } from '@/lib/import-data';
+import type { InternalFloatActivityItem } from '@/lib/internal-float-audit';
 
 export type ManualHolding = {
   id: string;
@@ -75,6 +76,7 @@ export type InternalFloatV2UserInput = {
   custodyRows: InternalFloatV2CustodyRow[];
   tokenChains: InternalFloatV2TokenChain[];
   collateralChains: InternalFloatV2CollateralChain[];
+  activityLog?: InternalFloatActivityItem[];
 };
 
 type InternalFloatV2UserInputsEnvelope = {
@@ -147,6 +149,7 @@ export const defaultInternalFloatV2UserInput: InternalFloatV2UserInput = {
     { id: 'sol-c', chain: 'SOL', shares: 500000, protocol: 'Kamino' },
     { id: 'bnb-c', chain: 'BNB', shares: 200000, protocol: 'Euler' },
   ],
+  activityLog: [],
 };
 
 export const holderTypeOptions = [

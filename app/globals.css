@@ -967,7 +967,11 @@
 
 .ci-orbit-nodes {
   position: absolute;
-  inset: 16px;
+  top: 50%;
+  left: 50%;
+  width: 280px;
+  height: 280px;
+  margin: -140px 0 0 -140px;
   animation: ciOrbit 22s linear infinite;
 }
 
@@ -997,12 +1001,12 @@
   animation: ciOrbitReverse 22s linear infinite;
 }
 
-.ci-node-a { top: 0; left: calc(50% - 24px); }
-.ci-node-b { right: 22px; top: 22%; }
-.ci-node-c { right: 22px; bottom: 22%; }
-.ci-node-d { bottom: 0; left: calc(50% - 24px); }
-.ci-node-e { left: 22px; bottom: 22%; }
-.ci-node-f { left: 22px; top: 22%; }
+.ci-node-a { top: -24px; left: 116px; }
+.ci-node-b { top: 46px; left: 237px; }
+.ci-node-c { top: 186px; left: 237px; }
+.ci-node-d { top: 256px; left: 116px; }
+.ci-node-e { top: 186px; left: -5px; }
+.ci-node-f { top: 46px; left: -5px; }
 
 .ci-platform,
 .ci-reports,
@@ -1188,6 +1192,14 @@
 
 .ci-card-market path { stroke: #60a5fa; }
 .ci-card-sentiment path { stroke: #22c55e; }
+.ci-card-market path {
+  animation: ciLineTrace 4.8s ease-in-out infinite;
+}
+
+.ci-card-sentiment path {
+  animation: ciLineTrace 5.2s .5s ease-in-out infinite;
+}
+
 .ci-card-scenario span {
   width: max-content;
   border-radius: 999px;
@@ -1199,9 +1211,22 @@
   text-transform: uppercase;
 }
 
-.ci-card-scenario path:nth-child(1) { stroke: #f59e0b; }
-.ci-card-scenario path:nth-child(2) { stroke: #22c55e; stroke-dasharray: 4 5; }
-.ci-card-scenario path:nth-child(3) { stroke: #ef4444; stroke-dasharray: 2 6; }
+.ci-card-scenario path:nth-child(1) {
+  stroke: #f59e0b;
+  animation: ciLineTrace 5.4s ease-in-out infinite;
+}
+
+.ci-card-scenario path:nth-child(2) {
+  stroke: #22c55e;
+  stroke-dasharray: 4 5;
+  animation: ciDashTravel 2.8s linear infinite;
+}
+
+.ci-card-scenario path:nth-child(3) {
+  stroke: #ef4444;
+  stroke-dasharray: 2 6;
+  animation: ciDashTravelReverse 3.4s linear infinite;
+}
 
 .ci-card-line svg {
   width: 100%;
@@ -1217,17 +1242,19 @@
 
 .ci-card-line path:nth-child(1) {
   stroke: #60a5fa;
-  animation: ciDashFlow 3.4s ease-in-out infinite;
+  animation: ciLineTrace 4.6s ease-in-out infinite;
 }
 
 .ci-card-line path:nth-child(2) {
   stroke: #34d399;
   stroke-dasharray: 3 5;
+  animation: ciDashTravel 2.6s linear infinite;
 }
 
 .ci-card-line path:nth-child(3) {
   stroke: #f87171;
   stroke-dasharray: 2 6;
+  animation: ciDashTravelReverse 3.1s linear infinite;
 }
 
 .ci-card-timeline {
@@ -1267,6 +1294,8 @@
 
 .ci-card-donut > div,
 .ci-card-gauge > div {
+  position: relative;
+  isolation: isolate;
   display: flex;
   width: 88px;
   height: 88px;
@@ -1275,14 +1304,28 @@
   flex-direction: column;
   border-radius: 999px;
   color: #ffffff;
+  background: #020617;
 }
 
-.ci-card-donut > div {
-  background: radial-gradient(circle at center, #020617 0 47%, transparent 48%), conic-gradient(#22c55e 0 32%, #4f46e5 32% 74%, #94a3b8 74% 100%);
+.ci-card-donut > div::before,
+.ci-card-gauge > div::before {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  inset: 0;
+  border-radius: inherit;
+  -webkit-mask: radial-gradient(circle, transparent 0 47%, #000 49% 100%);
+  mask: radial-gradient(circle, transparent 0 47%, #000 49% 100%);
 }
 
-.ci-card-gauge > div {
-  background: radial-gradient(circle at center, #020617 0 48%, transparent 49%), conic-gradient(#22c55e 0 28%, #facc15 28% 52%, #ef4444 52% 78%, #334155 78% 100%);
+.ci-card-donut > div::before {
+  background: conic-gradient(#22c55e 0 32%, #4f46e5 32% 74%, #94a3b8 74% 100%);
+  animation: ciRingRotate 10s linear infinite;
+}
+
+.ci-card-gauge > div::before {
+  background: conic-gradient(#22c55e 0 28%, #facc15 28% 52%, #ef4444 52% 78%, #334155 78% 100%);
+  animation: ciRingRotate 12s reverse linear infinite;
 }
 
 .ci-card-donut strong,
@@ -1691,6 +1734,29 @@
 @keyframes ciDashFlow {
   0%, 100% { stroke-dasharray: 0 0; opacity: 1; }
   50% { stroke-dasharray: 9 5; opacity: .82; }
+}
+
+@keyframes ciLineTrace {
+  0%, 100% {
+    opacity: .78;
+    transform: translateY(1px);
+  }
+  50% {
+    opacity: 1;
+    transform: translateY(-2px);
+  }
+}
+
+@keyframes ciDashTravel {
+  to { stroke-dashoffset: -36; }
+}
+
+@keyframes ciDashTravelReverse {
+  to { stroke-dashoffset: 36; }
+}
+
+@keyframes ciRingRotate {
+  to { transform: rotate(360deg); }
 }
 
 @media (max-width: 1120px) {
@@ -5436,6 +5502,1184 @@ html[data-design-b-theme="dark"] .auth-checking-shell .auth-checking span {
 
   .public-demo-welcome__actions .button {
     justify-content: center;
+  }
+}
+
+/* Short Interest executive briefing */
+html[data-portal-design="b"] .monitor-portal .short-briefing-kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+}
+
+html[data-portal-design="b"] .monitor-portal .short-briefing-kpi {
+  position: relative;
+  display: grid;
+  min-width: 0;
+  min-height: 126px;
+  align-content: start;
+  gap: 10px;
+  padding: 14px;
+  overflow: visible;
+  border-color: #dfe6ee;
+  box-shadow: none;
+}
+
+html[data-portal-design="b"] .monitor-portal .short-briefing-kpi.risk::before {
+  content: "";
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 3px;
+  border-radius: 7px 0 0 7px;
+  background: #dc4a4a;
+}
+
+html[data-portal-design="b"] .monitor-portal .short-briefing-kpi__label {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 6px;
+  color: #64748b;
+  font-size: 10px;
+  font-weight: 650;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+
+html[data-portal-design="b"] .monitor-portal .short-briefing-kpi__label > span:first-child {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+html[data-portal-design="b"] .monitor-portal .short-briefing-kpi > strong {
+  color: #10243d;
+  font-size: clamp(22px, 2vw, 29px);
+  font-weight: 650;
+  letter-spacing: 0;
+  line-height: 1.05;
+}
+
+html[data-portal-design="b"] .monitor-portal .short-briefing-kpi__footer {
+  display: flex;
+  min-width: 0;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: auto;
+}
+
+html[data-portal-design="b"] .monitor-portal .short-briefing-kpi .short-kpi-delta {
+  display: grid;
+  min-width: 0;
+  gap: 2px;
+  line-height: 1.2;
+}
+
+html[data-portal-design="b"] .monitor-portal .short-briefing-kpi .short-kpi-delta strong,
+html[data-portal-design="b"] .monitor-portal .short-briefing-kpi .short-kpi-delta em {
+  overflow-wrap: anywhere;
+  white-space: normal;
+}
+
+html[data-portal-design="b"] .monitor-portal .short-briefing-kpi .short-kpi-delta.up,
+html[data-portal-design="b"] .monitor-portal .short-briefing-kpi .short-kpi-delta.up strong,
+html[data-portal-design="b"] .monitor-portal .short-briefing-kpi .short-kpi-delta.up em {
+  color: #c9364f;
+}
+
+html[data-portal-design="b"] .monitor-portal .short-briefing-kpi .short-kpi-delta.down,
+html[data-portal-design="b"] .monitor-portal .short-briefing-kpi .short-kpi-delta.down strong,
+html[data-portal-design="b"] .monitor-portal .short-briefing-kpi .short-kpi-delta.down em {
+  color: #078465;
+}
+
+html[data-portal-design="b"] .monitor-portal .short-briefing-kpi__trend {
+  display: grid;
+  flex: 0 0 auto;
+  width: 24px;
+  height: 24px;
+  place-items: center;
+  border-radius: 50%;
+  background: #f1f5f9;
+  color: #64748b;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+html[data-portal-design="b"] .monitor-portal .short-briefing-kpi__trend.up {
+  color: #c9364f;
+  background: #fff1f2;
+}
+
+html[data-portal-design="b"] .monitor-portal .short-briefing-kpi__trend.down {
+  color: #078465;
+  background: #ecfdf5;
+}
+
+html[data-portal-design="b"] .monitor-portal .short-briefing-interpretation,
+html[data-portal-design="b"] .monitor-portal .short-briefing-trend-section,
+html[data-portal-design="b"] .monitor-portal .short-briefing-history-section,
+html[data-portal-design="b"] .monitor-portal .short-briefing-methodology {
+  border-color: #dfe6ee;
+  box-shadow: none;
+}
+
+html[data-portal-design="b"] .monitor-portal :is(
+  .short-briefing-interpretation,
+  .short-briefing-trend-section,
+  .short-briefing-history-section
+) > .terminal-section__head {
+  border: 0;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+html[data-portal-design="b"] .monitor-portal .short-briefing-interpretation {
+  position: relative;
+  overflow: hidden;
+}
+
+html[data-portal-design="b"] .monitor-portal .short-briefing-interpretation::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto;
+  height: 3px;
+  background: #2f6dd5;
+}
+
+html[data-portal-design="b"] .monitor-portal .short-briefing-interpretation.high::before,
+html[data-portal-design="b"] .monitor-portal .short-briefing-interpretation.extreme::before {
+  background: #dc4a4a;
+}
+
+html[data-portal-design="b"] .monitor-portal .short-briefing-interpretation.moderate::before {
+  background: #d99112;
+}
+
+html[data-portal-design="b"] .monitor-portal .short-briefing-risk-badge {
+  display: inline-flex;
+  min-height: 27px;
+  align-items: center;
+  padding: 0 9px;
+  border: 1px solid #cddbf0;
+  border-radius: 999px;
+  color: #3152b4;
+  background: #f2f6fd;
+  font-size: 10px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+html[data-portal-design="b"] .monitor-portal .short-briefing-risk-badge.high,
+html[data-portal-design="b"] .monitor-portal .short-briefing-risk-badge.extreme {
+  border-color: #fecdd3;
+  color: #be123c;
+  background: #fff1f2;
+}
+
+html[data-portal-design="b"] .monitor-portal .short-briefing-risk-badge.moderate {
+  border-color: #fde68a;
+  color: #a16207;
+  background: #fffbeb;
+}
+
+html[data-portal-design="b"] .monitor-portal .short-briefing-interpretation__grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.65fr) minmax(280px, .85fr);
+  gap: 12px;
+}
+
+html[data-portal-design="b"] .monitor-portal .short-briefing-interpretation__memo {
+  display: grid;
+  gap: 10px;
+}
+
+html[data-portal-design="b"] .monitor-portal .short-briefing-interpretation__memo article,
+html[data-portal-design="b"] .monitor-portal .short-briefing-watch {
+  padding: 13px;
+  border: 1px solid #e2e8f0;
+  border-radius: 7px;
+  background: #f9fbfd;
+}
+
+html[data-portal-design="b"] .monitor-portal .short-briefing-interpretation__memo span,
+html[data-portal-design="b"] .monitor-portal .short-briefing-watch > span {
+  display: block;
+  margin-bottom: 7px;
+  color: #3152b4;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+
+html[data-portal-design="b"] .monitor-portal .short-briefing-interpretation__memo p {
+  margin: 0;
+  color: #334a64;
+  font-size: 12.5px;
+  line-height: 1.6;
+}
+
+html[data-portal-design="b"] .monitor-portal .short-briefing-watch {
+  display: flex;
+  flex-direction: column;
+}
+
+html[data-portal-design="b"] .monitor-portal .short-briefing-watch ul {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+html[data-portal-design="b"] .monitor-portal .short-briefing-watch li {
+  position: relative;
+  padding-left: 15px;
+  color: #40556e;
+  font-size: 11.5px;
+  line-height: 1.45;
+}
+
+html[data-portal-design="b"] .monitor-portal .short-briefing-watch li::before {
+  content: "";
+  position: absolute;
+  top: .55em;
+  left: 1px;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: #2f6dd5;
+}
+
+html[data-portal-design="b"] .monitor-portal .short-briefing-confidence {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-top: auto;
+  padding-top: 14px;
+}
+
+html[data-portal-design="b"] .monitor-portal .short-briefing-confidence span {
+  display: grid;
+  gap: 3px;
+  color: #8290a3;
+  font-size: 9px;
+  text-transform: uppercase;
+}
+
+html[data-portal-design="b"] .monitor-portal .short-briefing-confidence strong {
+  color: #273b53;
+  font-size: 10.5px;
+  font-weight: 650;
+  text-transform: none;
+}
+
+html[data-portal-design="b"] .monitor-portal .short-briefing-ai-note {
+  margin: 11px 0 0;
+  color: #8290a3;
+  font-size: 9.5px;
+}
+
+html[data-portal-design="b"] .monitor-portal .short-briefing-chart {
+  display: grid;
+  gap: 10px;
+}
+
+html[data-portal-design="b"] .monitor-portal .short-briefing-chart__legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+}
+
+html[data-portal-design="b"] .monitor-portal .short-briefing-chart__legend button {
+  display: inline-flex;
+  min-height: 29px;
+  align-items: center;
+  gap: 6px;
+  padding: 0 9px;
+  border: 1px solid #dce4ee;
+  border-radius: 6px;
+  color: #718096;
+  background: #fff;
+  font-size: 10.5px;
+  cursor: pointer;
+}
+
+html[data-portal-design="b"] .monitor-portal .short-briefing-chart__legend button:not(.active) {
+  opacity: .42;
+}
+
+html[data-portal-design="b"] .monitor-portal .short-briefing-chart__legend button.focused {
+  border-color: #9eb9df;
+  color: #20344d;
+  background: #f7faff;
+}
+
+html[data-portal-design="b"] .monitor-portal .short-briefing-chart__legend i {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+
+html[data-portal-design="b"] .monitor-portal .short-briefing-chart__canvas {
+  position: relative;
+  min-width: 0;
+}
+
+html[data-portal-design="b"] .monitor-portal .short-briefing-chart__canvas svg {
+  display: block;
+  width: 100%;
+  min-width: 680px;
+  height: auto;
+  overflow: visible;
+}
+
+html[data-portal-design="b"] .monitor-portal .short-briefing-chart__canvas {
+  overflow-x: auto;
+  overflow-y: visible;
+}
+
+html[data-portal-design="b"] .monitor-portal .short-briefing-chart__grid {
+  stroke: #e8edf3;
+  stroke-width: 1;
+}
+
+html[data-portal-design="b"] .monitor-portal .short-briefing-chart__axis,
+html[data-portal-design="b"] .monitor-portal .short-briefing-chart__date {
+  fill: #7c8da3;
+  font-size: 10px;
+  font-weight: 550;
+}
+
+html[data-portal-design="b"] .monitor-portal .short-briefing-chart__axis-title {
+  fill: #52657c;
+  font-size: 10px;
+  font-weight: 650;
+}
+
+html[data-portal-design="b"] .monitor-portal .short-briefing-chart__line {
+  fill: none;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.8;
+  opacity: .58;
+  transition: opacity .18s ease, stroke-width .18s ease;
+  vector-effect: non-scaling-stroke;
+  cursor: crosshair;
+}
+
+html[data-portal-design="b"] .monitor-portal .short-briefing-chart__line.focused {
+  stroke-width: 2.4;
+  opacity: 1;
+}
+
+html[data-portal-design="b"] .monitor-portal .short-briefing-chart__cursor {
+  stroke: #a9b8ca;
+  stroke-dasharray: 3 4;
+  stroke-width: 1;
+  vector-effect: non-scaling-stroke;
+}
+
+html[data-portal-design="b"] .monitor-portal .short-briefing-chart__tooltip {
+  position: absolute;
+  z-index: 5;
+  top: 28px;
+  display: grid;
+  width: min(270px, calc(100vw - 80px));
+  gap: 6px;
+  padding: 10px;
+  border-radius: 6px;
+  color: #dbe7f5;
+  background: #162238;
+  box-shadow: 0 10px 30px rgba(15, 23, 42, .22);
+  pointer-events: none;
+}
+
+html[data-portal-design="b"] .monitor-portal .short-briefing-chart__tooltip > strong {
+  color: #fff;
+  font-size: 11px;
+}
+
+html[data-portal-design="b"] .monitor-portal .short-briefing-chart__tooltip span {
+  display: grid;
+  grid-template-columns: 8px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 6px;
+  color: #aab9cb;
+  font-size: 9.5px;
+}
+
+html[data-portal-design="b"] .monitor-portal .short-briefing-chart__tooltip span.focused {
+  color: #fff;
+}
+
+html[data-portal-design="b"] .monitor-portal .short-briefing-chart__tooltip i {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+}
+
+html[data-portal-design="b"] .monitor-portal .short-briefing-chart__tooltip b {
+  color: inherit;
+  font-weight: 650;
+}
+
+html[data-portal-design="b"] .monitor-portal .short-briefing-chart-empty {
+  display: grid;
+  min-height: 240px;
+  place-items: center;
+  color: #7c8da3;
+  font-size: 12px;
+}
+
+html[data-portal-design="b"] .monitor-portal .short-briefing-table-wrap {
+  overflow-x: auto;
+  border: 1px solid #e2e8f0;
+  border-radius: 7px;
+}
+
+html[data-portal-design="b"] .monitor-portal .short-briefing-table {
+  width: 100%;
+  min-width: 760px;
+  border-collapse: collapse;
+}
+
+html[data-portal-design="b"] .monitor-portal .short-briefing-table th,
+html[data-portal-design="b"] .monitor-portal .short-briefing-table td {
+  padding: 10px 12px;
+  border-bottom: 1px solid #e8edf3;
+  color: #40556e;
+  font-size: 10.5px;
+  text-align: left;
+  white-space: nowrap;
+}
+
+html[data-portal-design="b"] .monitor-portal .short-briefing-table th {
+  color: #718096;
+  background: #f8fafc;
+  font-size: 9px;
+  font-weight: 650;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+}
+
+html[data-portal-design="b"] .monitor-portal .short-briefing-table tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+html[data-portal-design="b"] .monitor-portal .short-briefing-table td.positive {
+  color: #078465;
+}
+
+html[data-portal-design="b"] .monitor-portal .short-briefing-table td.negative {
+  color: #c9364f;
+}
+
+html[data-portal-design="b"] .monitor-portal .short-history-signal {
+  display: inline-flex;
+  min-height: 22px;
+  align-items: center;
+  padding: 0 7px;
+  border-radius: 999px;
+  color: #52657c;
+  background: #edf2f7;
+  font-size: 9px;
+  font-weight: 650;
+}
+
+html[data-portal-design="b"] .monitor-portal .short-history-signal.improving {
+  color: #078465;
+  background: #eaf8f3;
+}
+
+html[data-portal-design="b"] .monitor-portal .short-history-signal.elevated {
+  color: #a16207;
+  background: #fff8df;
+}
+
+html[data-portal-design="b"] .monitor-portal .short-history-signal.deteriorating {
+  color: #be123c;
+  background: #fff1f2;
+}
+
+html[data-portal-design="b"] .monitor-portal .short-briefing-methodology {
+  padding: 0;
+  overflow: hidden;
+}
+
+html[data-portal-design="b"] .monitor-portal .short-briefing-methodology summary {
+  padding: 12px 14px;
+  color: #273b53;
+  font-size: 11.5px;
+  font-weight: 650;
+  cursor: pointer;
+}
+
+html[data-portal-design="b"] .monitor-portal .short-briefing-methodology ul {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  padding: 0 30px 14px;
+  color: #64748b;
+  font-size: 10.5px;
+  line-height: 1.5;
+}
+
+html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .short-briefing-kpi,
+html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .short-briefing-interpretation,
+html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .short-briefing-trend-section,
+html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .short-briefing-history-section,
+html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .short-briefing-methodology,
+html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .short-briefing-interpretation__memo article,
+html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .short-briefing-watch {
+  border-color: #293f58;
+  background: #0b192b;
+}
+
+html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal :is(
+  .short-briefing-interpretation,
+  .short-briefing-trend-section,
+  .short-briefing-history-section
+) > .terminal-section__head {
+  border-bottom-color: #293f58;
+}
+
+html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .short-briefing-kpi > strong,
+html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .short-briefing-confidence strong,
+html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .short-briefing-methodology summary {
+  color: #e5edf7;
+}
+
+html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .short-briefing-interpretation__memo p,
+html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .short-briefing-watch li,
+html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .short-briefing-methodology ul {
+  color: #a9b9cc;
+}
+
+html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .short-briefing-chart__legend button {
+  border-color: #304861;
+  color: #9db0c8;
+  background: #0d1e32;
+}
+
+html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .short-briefing-chart__legend button.focused {
+  color: #e5edf7;
+  background: #10243a;
+}
+
+html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .short-briefing-chart__grid {
+  stroke: #24384f;
+}
+
+html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .short-briefing-chart__axis,
+html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .short-briefing-chart__date {
+  fill: #8fa3ba;
+}
+
+html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .short-briefing-chart__axis-title {
+  fill: #b5c4d5;
+}
+
+html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .short-briefing-table-wrap {
+  border-color: #293f58;
+}
+
+html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .short-briefing-table th {
+  color: #9db0c8;
+  background: #102033;
+}
+
+html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .short-briefing-table td {
+  border-bottom-color: #24384f;
+  color: #b8c7d8;
+}
+
+@media (max-width: 980px) {
+  html[data-portal-design="b"] .monitor-portal .short-briefing-kpi-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  html[data-portal-design="b"] .monitor-portal .short-briefing-interpretation__grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 560px) {
+  html[data-portal-design="b"] .monitor-portal .short-briefing-kpi-grid {
+    grid-template-columns: 1fr;
+  }
+
+  html[data-portal-design="b"] .monitor-portal .short-briefing-kpi {
+    min-height: 112px;
+  }
+
+  html[data-portal-design="b"] .monitor-portal .short-briefing-interpretation .terminal-section__head {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  html[data-portal-design="b"] .monitor-portal .short-briefing-confidence {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* General settings and company management */
+.settings-general-page {
+  max-width: 1120px;
+}
+
+.settings-general-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.25fr) minmax(320px, .75fr);
+  gap: 14px;
+}
+
+.settings-general-page .settings-panel {
+  min-width: 0;
+  padding: 14px;
+  border-color: #dce4ee;
+  border-radius: 7px;
+  box-shadow: none;
+}
+
+.settings-general-page .settings-panel__head {
+  align-items: center;
+  margin-bottom: 14px;
+}
+
+.settings-general-page .settings-panel__head h2 {
+  margin-top: 3px;
+  font-size: 14px;
+}
+
+.settings-general-page .language-switch {
+  gap: 8px;
+}
+
+.settings-general-page .language-switch button {
+  min-width: 0;
+  padding: 11px;
+  border-radius: 6px;
+}
+
+.settings-general-page .settings-note {
+  font-size: 10px;
+  line-height: 1.5;
+}
+
+.company-management-page {
+  max-width: 1160px;
+}
+
+.company-management-page .company-management-section,
+.company-management-page .company-invite-panel {
+  margin: 0;
+}
+
+.company-management-page .terminal-section__head {
+  border: 0;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.company-count-badge {
+  display: inline-flex;
+  min-height: 26px;
+  align-items: center;
+  padding: 0 9px;
+  border: 1px solid #d6e1ee;
+  border-radius: 6px;
+  background: #f7f9fc;
+  color: #60748d;
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.company-access-list {
+  display: grid;
+  border: 1px solid #dce4ee;
+  border-radius: 7px;
+  overflow: hidden;
+}
+
+.company-access-card {
+  display: grid;
+  grid-template-columns: 42px minmax(180px, 1.3fr) minmax(100px, .55fr) minmax(130px, .7fr) auto 34px;
+  align-items: center;
+  gap: 12px;
+  min-height: 66px;
+  padding: 10px 12px;
+  border-bottom: 1px solid #e5ebf2;
+  background: #fff;
+}
+
+.company-access-card:last-child {
+  border-bottom: 0;
+}
+
+.company-access-card:hover {
+  background: #f9fbfd;
+}
+
+.company-access-ticker {
+  display: grid;
+  width: 38px;
+  height: 38px;
+  place-items: center;
+  border-radius: 6px;
+  background: #edf4ff;
+  color: #2457b8;
+  font-size: 10px;
+  font-weight: 800;
+}
+
+.company-access-identity,
+.company-access-detail {
+  display: grid;
+  min-width: 0;
+  gap: 3px;
+}
+
+.company-access-identity strong {
+  overflow: hidden;
+  color: #20344d;
+  font-size: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.company-access-identity small,
+.company-access-detail > span {
+  color: #7b8ca1;
+  font-size: 9px;
+}
+
+.company-access-detail strong {
+  color: #40556e;
+  font-size: 10px;
+}
+
+.company-access-open {
+  display: grid;
+  width: 30px;
+  height: 30px;
+  place-items: center;
+  border: 1px solid #ccd9e8;
+  border-radius: 6px;
+  color: #2457b8;
+  background: #fff;
+}
+
+.company-access-open:hover {
+  border-color: #8fb0dd;
+  background: #f3f7fd;
+}
+
+.company-access-open svg {
+  width: 15px;
+  height: 15px;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.8;
+}
+
+.company-access-loading {
+  display: flex;
+  min-height: 66px;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+}
+
+.company-access-loading > span {
+  width: 38px;
+  height: 38px;
+  border-radius: 6px;
+  background: #edf1f6;
+}
+
+.company-access-loading > div {
+  display: grid;
+  width: min(280px, 60%);
+  gap: 7px;
+}
+
+.company-access-loading b,
+.company-access-loading i {
+  display: block;
+  height: 9px;
+  border-radius: 5px;
+  background: #edf1f6;
+}
+
+.company-access-loading i {
+  width: 55%;
+}
+
+.company-access-empty {
+  padding: 22px;
+  color: #708299;
+  font-size: 11px;
+  text-align: center;
+}
+
+.company-management-page .company-invite-form {
+  margin-top: 0;
+}
+
+html[data-design-b-theme="dark"] .monitor-portal .settings-general-page .settings-panel,
+html[data-design-b-theme="dark"] .monitor-portal .company-access-list,
+html[data-design-b-theme="dark"] .monitor-portal .company-access-card {
+  border-color: #293f58;
+  background: #0b192b;
+}
+
+html[data-design-b-theme="dark"] .monitor-portal .company-management-page .terminal-section__head {
+  border-bottom-color: #293f58;
+}
+
+html[data-design-b-theme="dark"] .monitor-portal .company-access-card:hover {
+  background: #0d1e32;
+}
+
+html[data-design-b-theme="dark"] .monitor-portal .company-count-badge,
+html[data-design-b-theme="dark"] .monitor-portal .company-access-open {
+  border-color: #304861;
+  background: #0d1e32;
+  color: #8cb9ef;
+}
+
+html[data-design-b-theme="dark"] .monitor-portal .company-access-ticker {
+  background: #102b4b;
+  color: #78aceb;
+}
+
+html[data-design-b-theme="dark"] .monitor-portal .company-access-identity strong,
+html[data-design-b-theme="dark"] .monitor-portal .company-access-detail strong {
+  color: #e5edf7;
+}
+
+html[data-design-b-theme="dark"] .monitor-portal .company-access-loading > span,
+html[data-design-b-theme="dark"] .monitor-portal .company-access-loading b,
+html[data-design-b-theme="dark"] .monitor-portal .company-access-loading i {
+  background: #13263d;
+}
+
+@media (max-width: 900px) {
+  .settings-general-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .company-access-card {
+    grid-template-columns: 42px minmax(150px, 1fr) minmax(90px, auto) auto 34px;
+  }
+
+  .company-access-date {
+    display: none;
+  }
+}
+
+@media (max-width: 620px) {
+  .settings-general-page .language-switch {
+    grid-template-columns: 1fr;
+  }
+
+  .company-access-card {
+    grid-template-columns: 38px minmax(0, 1fr) auto;
+    gap: 9px;
+  }
+
+  .company-access-detail,
+  .company-access-card > .status-pill {
+    grid-column: 2;
+  }
+
+  .company-access-open {
+    grid-column: 3;
+    grid-row: 1;
+  }
+}
+
+/* Preserve risk-direction colors for the Short Interest briefing in dark mode. */
+html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .short-briefing-kpi .short-kpi-delta.up,
+html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .short-briefing-kpi .short-kpi-delta.up strong,
+html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .short-briefing-kpi .short-kpi-delta.up em {
+  color: #fb7185 !important;
+}
+
+html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .short-briefing-kpi .short-kpi-delta.down,
+html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .short-briefing-kpi .short-kpi-delta.down strong,
+html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .short-briefing-kpi .short-kpi-delta.down em {
+  color: #34d399 !important;
+}
+
+html[data-portal-design="b"] .monitor-portal .short-interest-overview,
+html[data-portal-design="b"] .monitor-portal .short-interest-trends-section,
+html[data-portal-design="b"] .monitor-portal .lending-page-overview,
+html[data-portal-design="b"] .monitor-portal .lending-trends-section {
+  margin-bottom: 12px;
+}
+
+html[data-portal-design="b"] .monitor-portal .short-ai-analysis-card {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 14px;
+}
+
+html[data-portal-design="b"] .monitor-portal .short-ai-analysis-card > span {
+  margin-bottom: 0;
+}
+
+html[data-portal-design="b"] .monitor-portal .short-ai-analysis-card > .short-ai-analysis-copy {
+  margin-top: 0;
+}
+
+html[data-portal-design="b"] .monitor-portal .lending-page-overview .lending-executive-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+html[data-portal-design="b"] .monitor-portal .lending-page-overview .lending-management-guide {
+  grid-column: 1 / -1;
+  min-height: 0;
+}
+
+html[data-portal-design="b"] .monitor-portal .lending-page-overview .lending-score-layout {
+  display: grid;
+  grid-template-columns: minmax(225px, 1fr) minmax(230px, 1fr);
+  gap: 16px;
+  align-items: start;
+}
+
+html[data-portal-design="b"] .monitor-portal .lending-score-layout .short-score-compact,
+html[data-portal-design="b"] .monitor-portal .short-overview-score-layout .short-score-compact {
+  grid-template-columns: 1fr;
+  justify-items: center;
+  align-content: start;
+  gap: 10px;
+}
+
+html[data-portal-design="b"] .monitor-portal .lending-score-layout .short-score-compact__copy,
+html[data-portal-design="b"] .monitor-portal .short-overview-score-layout .short-score-compact__copy {
+  width: 100%;
+  text-align: center;
+}
+
+html[data-portal-design="b"] .monitor-portal .short-overview-score-layout .short-score-compact__copy .short-kpi-delta {
+  align-items: center;
+}
+
+html[data-portal-design="b"] .monitor-portal .lending-score-layout .short-score-card-ranges {
+  margin-top: 0;
+  padding-top: 0;
+  border-top: 0;
+}
+
+html[data-portal-design="b"] .monitor-portal .lending-score-layout .short-score-card-ranges > div {
+  grid-template-columns: 52px minmax(0, 1fr);
+  gap: 9px;
+  padding: 8px 9px;
+}
+
+html[data-portal-design="b"] .monitor-portal .lending-score-layout .short-score-card-ranges > div > strong {
+  font-size: 10.5px;
+}
+
+html[data-portal-design="b"] .monitor-portal .lending-score-layout .short-score-card-ranges span {
+  font-size: 10px;
+  line-height: 1.4;
+}
+
+html[data-portal-design="b"] .monitor-portal .lending-score-layout .short-score-card-ranges b {
+  font-size: 10.5px;
+}
+
+html[data-portal-design="b"] .monitor-portal .lending-management-guide .short-ai-analysis-copy {
+  gap: 12px;
+}
+
+html[data-portal-design="b"] .monitor-portal .lending-management-guide .short-ai-analysis-copy p {
+  font-size: 13.5px;
+  line-height: 1.7;
+}
+
+html[data-portal-design="b"] .monitor-portal .lending-management-guide .short-ai-analysis-copy strong {
+  font-size: 14px;
+}
+
+html[data-portal-design="b"] .monitor-portal .lending-page-overview .lending-signal-strip {
+  margin-top: 14px;
+}
+
+html[data-portal-design="b"] .monitor-portal .lending-page-overview .short-ai-analysis-card,
+html[data-portal-design="b"] .monitor-portal .short-interest-overview .short-ai-analysis-card {
+  min-height: 0;
+  margin-top: 14px;
+}
+
+html[data-portal-design="b"] .monitor-portal .short-interest-overview .short-executive-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+html[data-portal-design="b"] .monitor-portal .short-interest-overview .short-overview-score-layout {
+  display: grid;
+  grid-template-columns: minmax(225px, 1fr) minmax(230px, 1fr);
+  gap: 16px;
+  align-items: start;
+}
+
+html[data-portal-design="b"] .monitor-portal .short-overview-score-layout .short-score-card-ranges {
+  margin-top: 0;
+  padding-top: 0;
+  border-top: 0;
+}
+
+html[data-portal-design="b"] .monitor-portal :is(.lending-market-snapshot, .short-key-metrics-card) .short-executive-metric {
+  grid-template-columns: minmax(90px, 1fr) minmax(72px, auto) minmax(94px, 118px);
+  gap: 8px;
+  padding-right: 4px;
+}
+
+html[data-portal-design="b"] .monitor-portal :is(.lending-market-snapshot, .short-key-metrics-card) .short-executive-metric em {
+  max-width: 118px;
+  line-height: 1.3;
+  white-space: normal;
+}
+
+html[data-portal-design="b"] .monitor-portal .short-ai-analysis-copy {
+  display: grid;
+  gap: 10px;
+}
+
+html[data-portal-design="b"] .monitor-portal .short-ai-analysis-copy p {
+  margin: 0;
+  color: #40556e;
+  font-size: 12px;
+  line-height: 1.65;
+}
+
+html[data-portal-design="b"] .monitor-portal .short-ai-analysis-copy strong {
+  display: block;
+  margin-bottom: 3px;
+  color: #162a43;
+  font-size: 12.5px;
+  font-weight: 700;
+}
+
+html[data-portal-design="b"] .monitor-portal .short-ai-analysis-card > small {
+  margin-top: auto;
+  padding-top: 10px;
+  border-top: 1px solid #e2e8f0;
+  color: #8290a3;
+  font-size: 9.5px;
+  line-height: 1.45;
+}
+
+html[data-portal-design="b"] .monitor-portal .short-score-card-ranges {
+  display: grid;
+  gap: 5px;
+  margin-top: 13px;
+  padding-top: 11px;
+  border-top: 1px solid #e2e8f0;
+}
+
+html[data-portal-design="b"] .monitor-portal .short-score-card-ranges > div {
+  display: grid;
+  grid-template-columns: 45px minmax(0, 1fr);
+  gap: 7px;
+  align-items: start;
+  padding: 6px 7px;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  color: #718096;
+  background: #f8fafc;
+}
+
+html[data-portal-design="b"] .monitor-portal .short-score-card-ranges > div.active {
+  border-color: color-mix(in srgb, var(--short-score-accent) 35%, #dbe4ef);
+  color: #334a64;
+  background: color-mix(in srgb, var(--short-score-accent) 7%, white);
+}
+
+html[data-portal-design="b"] .monitor-portal .short-score-card-ranges > div > strong {
+  color: #52657c;
+  font-size: 9.5px;
+  font-weight: 700;
+}
+
+html[data-portal-design="b"] .monitor-portal .short-score-card-ranges span {
+  display: grid;
+  gap: 2px;
+  font-size: 9px;
+  line-height: 1.35;
+}
+
+html[data-portal-design="b"] .monitor-portal .short-score-card-ranges b {
+  color: #273b53;
+  font-size: 9.5px;
+  font-weight: 700;
+}
+
+html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .short-ai-analysis-copy p {
+  color: #b8c7d8;
+}
+
+html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .short-ai-analysis-copy strong {
+  color: #eef4fb;
+}
+
+html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .short-ai-analysis-card > small {
+  border-top-color: #293f58;
+  color: #8498af;
+}
+
+html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .short-score-card-ranges {
+  border-top-color: #293f58;
+}
+
+html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .short-score-card-ranges > div {
+  color: #8fa3ba;
+  background: #0e1d30;
+}
+
+html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .short-score-card-ranges > div.active {
+  border-color: color-mix(in srgb, var(--short-score-accent) 50%, #293f58);
+  color: #c6d3e2;
+  background: color-mix(in srgb, var(--short-score-accent) 13%, #0b192b);
+}
+
+html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .short-score-card-ranges > div > strong,
+html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .short-score-card-ranges b {
+  color: #e5edf7;
+}
+
+@media (max-width: 1080px) {
+  html[data-portal-design="b"] .monitor-portal .lending-page-overview .lending-score-layout {
+    grid-template-columns: 1fr;
+  }
+
+  html[data-portal-design="b"] .monitor-portal .short-interest-overview .short-overview-score-layout {
+    grid-template-columns: 1fr;
+  }
+
+  html[data-portal-design="b"] .monitor-portal .lending-score-layout .short-score-card-ranges,
+  html[data-portal-design="b"] .monitor-portal .short-overview-score-layout .short-score-card-ranges {
+    padding-top: 11px;
+    border-top: 1px solid #e2e8f0;
+  }
+
+  html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal :is(.lending-score-layout, .short-overview-score-layout) .short-score-card-ranges {
+    border-top-color: #293f58;
+  }
+}
+
+@media (max-width: 860px) {
+  html[data-portal-design="b"] .monitor-portal .lending-page-overview .lending-executive-grid,
+  html[data-portal-design="b"] .monitor-portal .short-interest-overview .short-executive-grid {
+    grid-template-columns: 1fr;
   }
 }
 
@@ -21773,10 +23017,12 @@ html[data-portal-design="b"] .monitor-portal .float-v2-activity-card {
 }
 
 html[data-portal-design="b"] .monitor-portal .float-v2-activity-section .float-v2-activity-card {
+  min-height: 430px;
   max-height: 520px;
   padding: 0;
   border: 0;
   background: transparent;
+  grid-template-rows: minmax(0, 1fr);
 }
 
 html[data-portal-design="b"] .monitor-portal .float-v2-activity-section .float-v2-activity-head {
@@ -21907,6 +23153,21 @@ html[data-portal-design="b"] .monitor-portal .float-v2-activity-item small {
   color: #64748d;
   font-size: 12px;
   line-height: 1.45;
+}
+
+html[data-portal-design="b"] .monitor-portal .float-v2-activity-item .float-v2-activity-actor {
+  margin-top: 2px;
+  color: #3152b4;
+  font-size: 10.5px;
+  font-weight: 600;
+}
+
+html[data-portal-design="b"] .monitor-portal .float-v2-activity-item.removed > i {
+  background: #ef4444;
+}
+
+html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .float-v2-activity-item .float-v2-activity-actor {
+  color: #7eb6f3;
 }
 
 html[data-portal-design="b"] .monitor-portal .float-v2-activity-empty {

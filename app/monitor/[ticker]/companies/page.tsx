@@ -3,7 +3,6 @@
 import Link from 'next/link';
 import { useEffect, useMemo, useState } from 'react';
 import { useParams } from 'next/navigation';
-import { SettingsBackLink } from '@/components/SettingsBackLink';
 import { authenticatedFetch, getAuthenticatedProfile } from '@/lib/auth-client';
 import { companyAccessFromProfile } from '@/lib/ticker-access';
 import { buildDashboard } from '@/lib/mock-data';
@@ -79,50 +78,65 @@ export default function CompaniesPage() {
     }
   }
 
+  function formatEffectiveDate(value: string | null) {
+    if (!value) return 'Not available';
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return value;
+    return date.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+  }
+
   return (
-    <div className="page">
-      <div className="page__header">
-        <div>
-          <h1 className="page__title">Company Management</h1>
-          <p className="page__desc">Switch between issuer workspaces granted by your user profile.</p>
-        </div>
-        <div className="page-header-actions">
-          <SettingsBackLink ticker={ticker} />
-        </div>
-      </div>
-
-      <section className="panel">
-        <div className="portal-panel__head">
+    <div className="page company-management-page">
+      <section className="terminal-section company-management-section">
+        <div className="terminal-section__head">
           <div>
-            <h2>Covered companies</h2>
-            <p>Company access is managed by the authenticated profile.</p>
+            <span>Workspace Portfolio</span>
+            <h2>Covered Companies</h2>
+            <p className="section-subtitle">Open the issuer workspaces assigned to your account.</p>
           </div>
-          <span className="status-pill muted">{accountCompanies.length} companies</span>
+          <span className="company-count-badge">{accountCompanies.length} {accountCompanies.length === 1 ? 'company' : 'companies'}</span>
         </div>
 
-        <div className="workspace-table company-workspace-table">
-          <div className="workspace-table__head"><span>Company</span><span>Role</span><span>Status</span><span>Effective Date</span><span>Action</span></div>
-          {loading && <div className="workspace-row company-workspace-loading"><span>Loading profile access...</span></div>}
-          {accountCompanies.map(company => (
-            <div className="workspace-row" key={company.ticker}>
-              <div><strong>{company.name}</strong><small>{company.ticker} · {company.exchange}</small></div>
-              <span>{company.role}</span>
-              <span className={`status-pill ${company.status === 'ACTIVE' ? 'success' : 'muted'}`}>{company.status}</span>
-              <span>{company.effectiveDate ?? 'Not available'}</span>
-              <Link className="text-link" href={`/monitor/${company.ticker}/dashboard-v2`}>Open</Link>
+        <div className="company-access-list">
+          {loading && (
+            <div className="company-access-loading" role="status">
+              <span />
+              <div><b /><i /></div>
             </div>
+          )}
+          {accountCompanies.map(company => (
+            <article className="company-access-card" key={company.ticker}>
+              <span className="company-access-ticker">{company.ticker}</span>
+              <div className="company-access-identity">
+                <strong>{company.name}</strong>
+                <small>{company.exchange}</small>
+              </div>
+              <div className="company-access-detail">
+                <span>Role</span>
+                <strong>{company.role}</strong>
+              </div>
+              <div className="company-access-detail company-access-date">
+                <span>Access since</span>
+                <strong>{formatEffectiveDate(company.effectiveDate)}</strong>
+              </div>
+              <span className={`status-pill ${company.status === 'ACTIVE' ? 'success' : 'muted'}`}>{company.status}</span>
+              <Link className="company-access-open" href={`/monitor/${company.ticker}/dashboard-v2`} aria-label={`Open ${company.name}`}>
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6" /></svg>
+              </Link>
+            </article>
           ))}
           {!loading && !accountCompanies.length && (
-            <div className="workspace-row company-workspace-loading"><span>No company access is assigned to this profile.</span></div>
+            <div className="company-access-empty">No company access is assigned to this profile.</div>
           )}
         </div>
       </section>
 
-      <section className="panel company-invite-panel">
-        <div className="portal-panel__head">
+      <section className="terminal-section company-invite-panel">
+        <div className="terminal-section__head">
           <div>
+            <span>Invitations</span>
             <h2>Invite User to Ticker</h2>
-            <p>Create a pending invitation for a new user and register the ticker when needed.</p>
+            <p className="section-subtitle">Create a pending workspace invitation for another user.</p>
           </div>
         </div>
         <form className="company-invite-form" onSubmit={inviteUser}>
@@ -153,17 +167,6 @@ export default function CompaniesPage() {
           </button>
         </form>
         {inviteMessage && <p className={`company-invite-message ${inviteStatus}`}>{inviteMessage}</p>}
-      </section>
-
-      <section className="grid cols-2">
-        <div className="panel">
-          <h2 className="panel__title">Workspace Access</h2>
-          <p className="page__desc" style={{ margin: 0 }}>The profile API determines which ticker workspaces this account can open.</p>
-        </div>
-        <div className="panel">
-          <h2 className="panel__title">Data Resolution</h2>
-          <p className="page__desc" style={{ margin: 0 }}>Each workspace resolves its JSON files using the selected ticker in the existing filename convention.</p>
-        </div>
       </section>
     </div>
   );
