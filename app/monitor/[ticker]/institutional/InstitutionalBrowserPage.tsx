@@ -1,6 +1,7 @@
 'use client';
 
 import { PortalPageLoading } from '@/components/PortalPageLoading';
+import { PageDisclaimerNotice } from '@/components/PageDisclaimerNotice';
 import { usePortalTimeZone } from '@/components/usePortalTimeZone';
 import { usePublicImportFiles } from '@/components/usePublicImportFiles';
 import { useTickerDataStatus } from '@/components/TickerDataStatusProvider';
@@ -151,6 +152,7 @@ export function InstitutionalBrowserPage({ ticker }: { ticker: string }) {
       <section className="panel">
         <InstitutionalTabs holdings={holdings} activistFilings={activistFilings} ticker={normalizedTicker} companyName={company.company_name} />
       </section>
+      <PageDisclaimerNotice noticeKey="ownership" disclaimerKey="regulatoryFiling" />
       <InstitutionalDevTables
         overviewFile={overviewFile}
         securityFile={securityFile}

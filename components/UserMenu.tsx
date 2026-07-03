@@ -2,17 +2,35 @@
 
 import Link from 'next/link';
 import { useEffect, useRef, useState } from 'react';
-import { getCurrentUser, signOut } from '@/lib/auth-client';
+import { getAuthenticatedProfile, getCurrentUser, signOut } from '@/lib/auth-client';
 
 export function UserMenu({ ticker }: { ticker: string }) {
   const [isOpen, setIsOpen] = useState(false);
-  const [email, setEmail] = useState('Signed in');
+  const [email, setEmail] = useState(() => {
+    const tokenEmail = getCurrentUser()?.email;
+    return typeof tokenEmail === 'string' ? tokenEmail.trim() : '';
+  });
   const menuRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
-    const user = getCurrentUser();
-    if (typeof user?.email === 'string') setEmail(user.email);
+    let cancelled = false;
+    getAuthenticatedProfile()
+      .then(profile => {
+        if (!cancelled && typeof profile.email === 'string' && profile.email.trim()) {
+          setEmail(profile.email.trim());
+        }
+      })
+      .catch(() => {
+        const tokenEmail = getCurrentUser()?.email;
+        if (!cancelled && typeof tokenEmail === 'string') setEmail(tokenEmail.trim());
+      });
+    return () => {
+      cancelled = true;
+    };
   }, []);
+
+  const avatarLetter = email ? email.charAt(0).toUpperCase() : 'U';
+  const displayName = email.includes('@') ? email.split('@')[0] : 'User';
 
   useEffect(() => {
     if (!isOpen) return;
@@ -41,9 +59,9 @@ export function UserMenu({ ticker }: { ticker: string }) {
   return (
     <div className="user-menu" ref={menuRef}>
       <button className="user-menu__button" onClick={() => setIsOpen(open => !open)} aria-expanded={isOpen}>
-        <span className="user-avatar">BC</span>
+        <span className="user-avatar" aria-hidden="true">{avatarLetter}</span>
         <span className="user-menu__meta">
-          <strong>{email.includes('@') ? email.split('@')[0] : 'User'}</strong>
+          <strong>{displayName}</strong>
           <small>IR Admin</small>
         </span>
       </button>
@@ -52,7 +70,7 @@ export function UserMenu({ ticker }: { ticker: string }) {
         <div className="user-menu__panel">
           <div className="user-menu__head">
             <strong>Currenc Intelligence</strong>
-            <span>{email}</span>
+            <span>{email || 'Signed in'}</span>
           </div>
           <Link href={`/monitor/${ticker}/user-profile`} onClick={() => setIsOpen(false)}>User Profile</Link>
           <Link href={`/monitor/${ticker}/companies`} onClick={() => setIsOpen(false)}>Company Management</Link>

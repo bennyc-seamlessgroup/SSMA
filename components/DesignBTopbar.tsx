@@ -76,11 +76,15 @@ export function DesignBTopbar({
     if (pathname.endsWith('/internal-float-v2/dtc-upload')) {
       return { section: 'Internal Float', page: 'DTC Report Upload' };
     }
+    if (pathname.endsWith('/settings/alerts')) {
+      return { section: 'Settings', page: 'Alert Rules' };
+    }
     const slug = slugFromPathname(pathname);
     return routeLabels[slug] ?? { section: 'Workspace', page: slug ? slug.replace(/-/g, ' ') : 'Overview' };
   }, [pathname]);
   const currentSlug = slugFromPathname(pathname);
-  const pageUpdatedAt = tickerStatus?.pages[currentSlug]?.updatedAt ?? null;
+  const pageStatus = tickerStatus?.pages[currentSlug];
+  const pageUpdatedAt = pageStatus?.updatedAt ?? null;
 
   const toggleCollapsed = () => {
     const next = !collapsed;
@@ -161,12 +165,14 @@ export function DesignBTopbar({
           </nav>
         </div>
 
-        <div className="portal-design-b-heading-actions">
-          <div className="portal-design-b-update">
-            <span>Last Update</span>
-            <strong>{formatImportDataUpdatedAt(pageUpdatedAt, timeZone)}</strong>
+        {pageStatus ? (
+          <div className="portal-design-b-heading-actions">
+            <div className="portal-design-b-update">
+              <span>Last Update</span>
+              <strong>{formatImportDataUpdatedAt(pageUpdatedAt, timeZone)}</strong>
+            </div>
           </div>
-        </div>
+        ) : null}
       </div>
     </div>
   );

@@ -1,4 +1,5 @@
 import { ImportDataPreviewPage } from '@/components/ImportDataPreviewPage';
+import { PageDisclaimerNotice } from '@/components/PageDisclaimerNotice';
 
 const conditions = [
   {
@@ -127,6 +128,7 @@ export default function SqueezeReadinessPage() {
           ))}
         </div>
       </section>
+      <PageDisclaimerNotice noticeKey="scores" disclaimerKey="proprietaryScore" />
     </ImportDataPreviewPage>
   );
 }

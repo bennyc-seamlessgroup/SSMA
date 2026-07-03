@@ -134,6 +134,12 @@ Backend should own:
 - all LLM-generated sections once LLM is implemented
 - final `report-data.json`
 
+The live portal PDF route injects the approved report footer and full disclaimer from
+`lib/legal/disclaimers.ts` into `legalDisclaimers.footer` and
+`legalDisclaimers.full` before rendering. A standalone backend renderer must provide
+the same two fields or perform the same injection so every report page has the short
+footer and the final PDF page contains the full disclaimer.
+
 Template should own:
 
 - visual layout

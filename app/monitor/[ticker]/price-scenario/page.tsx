@@ -1,3 +1,5 @@
+import { PageDisclaimerNotice } from '@/components/PageDisclaimerNotice';
+
 const scenarios = [
   ['Base Case', '60%', '$5.20', '+30%', 'Normal appreciation without significant squeeze activity.'],
   ['Moderate Squeeze', '25%', '$8.40', '+110%', 'Partial short covering and increased retail participation.'],
@@ -23,6 +25,7 @@ export default function PriceScenarioPage() {
           {['Short Interest', 'Borrow Fee', 'Effective Float', 'Sentiment', 'Options Activity'].map(driver => <div className="section" key={driver}>{driver}</div>)}
         </div>
       </section>
+      <PageDisclaimerNotice noticeKey="scenarios" disclaimerKey="forecast" />
     </div>
   );
 }

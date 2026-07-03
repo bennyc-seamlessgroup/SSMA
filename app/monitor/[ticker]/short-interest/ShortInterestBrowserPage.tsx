@@ -3,6 +3,7 @@
 import { ImportDataPreviewPage } from '@/components/ImportDataPreviewPage';
 import { InfoTooltip } from '@/components/InfoTooltip';
 import { PortalPageLoading } from '@/components/PortalPageLoading';
+import { PageDisclaimerNotice } from '@/components/PageDisclaimerNotice';
 import { usePublicImportFiles } from '@/components/usePublicImportFiles';
 import { evaluateShortInterestWatchItems, type WatchItemSeverity } from '@/lib/short-interest/watchItemRules';
 import { aiAnalysisFile, normalizeTicker, shortInterestFile } from '@/lib/ticker-data';
@@ -543,6 +544,7 @@ export function ShortInterestBrowserPage({ ticker }: { ticker: string }) {
           </div>
         </div>
       </section>
+      <PageDisclaimerNotice noticeKey="shortInterest" disclaimerKey="regulatoryFiling" />
     </ImportDataPreviewPage>
   );
 }

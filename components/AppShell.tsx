@@ -2,6 +2,7 @@ import { Sidebar } from './Sidebar';
 import { MonitorExpertChat } from './MonitorExpertChat';
 import { AuthGuard } from './AuthGuard';
 import { DesignBTopbar } from './DesignBTopbar';
+import { DisclaimerFooter } from './DisclaimerFooter';
 import { TickerDataStatusProvider } from './TickerDataStatusProvider';
 
 export function AppShell({
@@ -23,6 +24,7 @@ export function AppShell({
           <main className="portal-main main-content">
             <DesignBTopbar ticker={ticker} companyName={companyName} />
             {children}
+            <DisclaimerFooter />
           </main>
           <MonitorExpertChat ticker={ticker} />
         </div>

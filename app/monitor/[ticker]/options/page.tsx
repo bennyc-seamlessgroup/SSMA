@@ -1,4 +1,5 @@
 import { ImportDataPreviewPage } from '@/components/ImportDataPreviewPage';
+import { PageDisclaimerNotice } from '@/components/PageDisclaimerNotice';
 
 export default function OptionsPage() {
   return (
@@ -12,6 +13,8 @@ export default function OptionsPage() {
         'options/gamma_exposure.json',
         'options/expiration_wall.json',
       ]}
-    />
+    >
+      <PageDisclaimerNotice noticeKey="options" disclaimerKey="optionsGamma" />
+    </ImportDataPreviewPage>
   );
 }

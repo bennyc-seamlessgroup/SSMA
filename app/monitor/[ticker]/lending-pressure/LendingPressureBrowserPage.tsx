@@ -3,6 +3,7 @@
 import { ImportDataPreviewPage } from '@/components/ImportDataPreviewPage';
 import { InfoTooltip } from '@/components/InfoTooltip';
 import { PortalPageLoading } from '@/components/PortalPageLoading';
+import { PageDisclaimerNotice } from '@/components/PageDisclaimerNotice';
 import { usePortalTimeZone } from '@/components/usePortalTimeZone';
 import { usePublicImportFiles } from '@/components/usePublicImportFiles';
 import { evaluateLendingPressureWatchItems, type LendingWatchItemSeverity } from '@/lib/lending-pressure/watchItemRules';
@@ -503,6 +504,7 @@ export function LendingPressureBrowserPage({ ticker }: { ticker: string }) {
           <div className="terminal-card chart-card"><h3><InfoTitle text="Borrow fee trend shows whether short sellers are paying more to maintain or open short positions.">Borrow Fee Trend</InfoTitle></h3><TrendLine label="Borrow Fee" labels={trendRows.map(row => shortDateLabel(row.date))} values={trendRows.map(row => numeric(record(row.borrowFeeAll).costToBorrowAll) ?? 0)} valueFormatter={value => `${formatNumber(value, { maximumFractionDigits: 2 })}%`} /></div>
         </div>
       </section>
+      <PageDisclaimerNotice noticeKey="lendingPressure" disclaimerKey="securitiesLending" />
     </ImportDataPreviewPage>
   );
 }

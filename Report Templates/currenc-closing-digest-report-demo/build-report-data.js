@@ -106,6 +106,10 @@ function buildReportData() {
       timeZoneName: 'short',
     }),
     status: marketPressure >= 70 ? 'Elevated Closing Risk' : marketPressure >= 45 ? 'Moderate Closing Risk' : 'Low Closing Risk',
+    legalDisclaimers: {
+      footer: 'For informational purposes only. Not investment advice. Market data and AI-assisted analysis may be inaccurate, delayed, or incomplete.',
+      full: 'This report has been prepared by Currenc Intelligence using proprietary analytics, public information, third-party market data, and AI-assisted technologies. It is provided solely for informational purposes and does not constitute investment advice, legal advice, tax advice, accounting advice, investment research, solicitation, or an offer to buy or sell any security. Currenc Intelligence does not guarantee the completeness, accuracy, timeliness, or reliability of any data, analysis, score, forecast, scenario, or alert contained in this report. Users should perform independent due diligence and consult qualified professional advisors before making decisions. Past performance does not guarantee future results.',
+    },
     kpis: [
       { label: 'Market Pressure', value: `${marketPressure} / 100`, delta: marketPressure >= 70 ? 'Elevated Closing Risk' : marketPressure >= 45 ? 'Moderate Closing Risk' : 'Low Closing Risk' },
       { label: 'Borrow Fee', value: fmtPct(current.borrowFee), delta: cardSet.borrowFee?.deltaDisplay || 'vs prior close' },

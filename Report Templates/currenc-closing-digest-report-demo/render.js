@@ -95,20 +95,25 @@ function kpiCards(items) {
   )).join('');
 }
 
+function reportFooter(pageNumber, text) {
+  return `<div class="footer"><span class="report-legal">${esc(text)}</span><span>Page ${pageNumber}</span></div>`;
+}
+
 function renderReport(data) {
   const charts = data.charts || [];
   const social = data.social || {};
   const llm = data.llmSections || {};
   const filings = data.secFilings || [];
+  const legal = data.legalDisclaimers || {};
 
   return `
 <section class="page cover">
   <div class="brand">CURRENC INTELLIGENCE</div>
   <h1>Daily Close<br/>Post-Market Report</h1>
   <p class="sub">A management-focused daily close report covering price action, borrow conditions, short pressure, social narrative, catalysts, and the next-session watchlist.</p>
-  <div class="toc"><div><span>Executive Snapshot</span><span>Page 2</span></div><div><span>Daily Market Battlefield</span><span>Page 3</span></div><div><span>Pressure Detail</span><span>Page 4</span></div><div><span>Narrative, Catalysts & Actions</span><span>Pages 5-6</span></div></div>
+  <div class="toc"><div><span>Executive Snapshot</span><span>Page 2</span></div><div><span>Daily Market Battlefield</span><span>Page 3</span></div><div><span>Pressure Detail</span><span>Page 4</span></div><div><span>Narrative, Catalysts & Actions</span><span>Pages 5-6</span></div><div><span>Legal Disclaimer</span><span>Page 7</span></div></div>
   <div class="coverbox"><div><div class="brand">COMPANY</div><h2>${esc(data.company)} (${esc(data.ticker)})</h2></div><div><div class="brand">REPORT DATE</div><h2>${esc(data.reportDate)}</h2><p class="sub" style="font-size:12px">${esc(data.generatedAt)}</p></div></div>
-  <div class="footer"><span>Daily close prototype</span><span>Page 1</span></div>
+  ${reportFooter(1, legal.footer)}
 </section>
 
 <section class="page">
@@ -119,14 +124,14 @@ function renderReport(data) {
     <div class="card"><h3>Executive Summary</h3>${pendingLLM(llm.executiveSummary)}</div>
   </div>
   <div class="note"><b>Daily report scope:</b> this report is focused on same-day market, borrow, short pressure, social, and catalyst signals that are relevant to the next trading session.</div>
-  <div class="footer"><span>CURRENC Intelligence - Daily Close Report</span><span>Page 2</span></div>
+  ${reportFooter(2, legal.footer)}
 </section>
 
 <section class="page">
   <div class="top"><div><p class="kicker">Daily Market Battlefield</p><h2 class="title">Price, Borrow Cost, Volume, and Availability</h2></div><span class="badge">Daily Close</span></div>
   <div class="grid grid2"><div class="card chart-card">${chartSvg(charts[0])}</div><div class="card chart-card">${chartSvg(charts[1])}</div></div>
   <div class="grid grid2"><div class="card chart-card">${chartSvg(charts[2])}</div><div class="card chart-card">${chartSvg(charts[3])}</div></div>
-  <div class="footer"><span>CURRENC Intelligence - Daily Close Report</span><span>Page 3</span></div>
+  ${reportFooter(3, legal.footer)}
 </section>
 
 <section class="page">
@@ -136,7 +141,7 @@ function renderReport(data) {
     <div class="card"><h3>Borrow / Short Interpretation</h3>${pendingLLM(llm.borrowShortInterpretation)}</div>
     <div class="card"><h3>Management Watch Items</h3>${alertRows(data.managementWatchItems, false)}</div>
   </div>
-  <div class="footer"><span>CURRENC Intelligence - Daily Close Report</span><span>Page 4</span></div>
+  ${reportFooter(4, legal.footer)}
 </section>
 
 <section class="page">
@@ -150,7 +155,7 @@ function renderReport(data) {
     <div class="card"><h3>Latest SEC Filings</h3><p class="small">Most recent filing records only. Full filing history should remain in the portal.</p><table class="table"><thead><tr><th>Date</th><th>Form</th><th>Title</th></tr></thead><tbody>${filings.map((row) => `<tr><td>${esc(row.date)}</td><td>${esc(row.formType)}</td><td><b>${esc(row.title)}</b></td></tr>`).join('')}</tbody></table></div>
     <div class="card"><h3>Narrative Summary</h3>${pendingLLM(llm.narrativeSummary)}</div>
   </div>
-  <div class="footer"><span>CURRENC Intelligence - Daily Close Report</span><span>Page 5</span></div>
+  ${reportFooter(5, legal.footer)}
 </section>
 
 <section class="page">
@@ -160,6 +165,16 @@ function renderReport(data) {
     <div class="card"><h3>Management Action Queue</h3>${pendingLLM(llm.managementActionQueue)}</div>
   </div>
   <div class="card"><h3>Data Timing Note</h3><p class="small">This daily report uses market, borrow, social, and filing signals that can inform the next-session watchlist. Longer-cycle strategic datasets should be handled in separate periodic reports.</p></div>
-  <div class="footer"><span>CURRENC Intelligence - Daily Close Report</span><span>Page 6</span></div>
+  ${reportFooter(6, legal.footer)}
+</section>
+
+<section class="page report-disclaimer-page">
+  <div class="top"><div><p class="kicker">Legal & Compliance</p><h2 class="title">Important Disclaimer</h2></div><span class="badge">Information Only</span></div>
+  <div class="report-disclaimer-copy">
+    <h3>Currenc Intelligence Daily Close Report</h3>
+    <p>${esc(legal.full)}</p>
+  </div>
+  <div class="report-disclaimer-note">This disclaimer applies to all data, analytics, scores, alerts, scenarios, summaries, and AI-assisted content presented in this report.</div>
+  ${reportFooter(7, legal.footer)}
 </section>`;
 }

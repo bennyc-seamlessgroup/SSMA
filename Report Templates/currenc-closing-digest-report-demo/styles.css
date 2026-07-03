@@ -75,8 +75,47 @@ body {
   font-size: 10px;
 }
 
+.footer .report-legal {
+  max-width: 165mm;
+  padding-right: 8mm;
+  line-height: 1.35;
+}
+
 .cover .footer {
   color: #b9c9df;
+}
+
+.report-disclaimer-page {
+  background: #f7f9fc;
+}
+
+.report-disclaimer-copy {
+  margin-top: 38mm;
+  padding: 18mm 16mm;
+  border: 1px solid #d9e4f2;
+  border-left: 4px solid #2457b8;
+  border-radius: 12px;
+  background: #fff;
+}
+
+.report-disclaimer-copy h3 {
+  margin: 0 0 8mm;
+  color: #081d35;
+  font-size: 20px;
+}
+
+.report-disclaimer-copy p {
+  margin: 0;
+  color: #344b68;
+  font-size: 14px;
+  line-height: 1.75;
+}
+
+.report-disclaimer-note {
+  margin-top: 12mm;
+  color: #65768c;
+  font-size: 11px;
+  line-height: 1.5;
 }
 
 .kicker {

@@ -4,6 +4,8 @@ import { useState } from 'react';
 import { DashboardV2Chart } from './DashboardV2Chart';
 import { DashboardV2Kpis, type PeriodKey } from './DashboardV2Kpis';
 import type { DashboardMarginRecord } from '@/lib/operations/dashboard-margin-store';
+import { CustomAlertCenter } from './CustomAlertCenter';
+import { PageDisclaimerNotice } from '@/components/PageDisclaimerNotice';
 
 type TrendPoint = {
   date: string;
@@ -25,13 +27,27 @@ type CompanyEvent = {
   source?: string;
 };
 
-export function DashboardV2Client({ data, events, marginRecords }: { data: TrendPoint[]; events: CompanyEvent[]; marginRecords: DashboardMarginRecord[] }) {
+export function DashboardV2Client({
+  ticker,
+  data,
+  events,
+  marginRecords,
+  current,
+}: {
+  ticker: string;
+  data: TrendPoint[];
+  events: CompanyEvent[];
+  marginRecords: DashboardMarginRecord[];
+  current: Record<string, unknown> | null;
+}) {
   const [period, setPeriod] = useState<PeriodKey>('1Y');
 
   return (
     <>
       <DashboardV2Kpis data={data} period={period} marginRecords={marginRecords} />
+      <CustomAlertCenter ticker={ticker} data={data} current={current} />
       <DashboardV2Chart data={data} events={events} period={period} onPeriodChange={setPeriod} />
+      <PageDisclaimerNotice noticeKey="dashboard" disclaimerKey="globalPlatform" />
     </>
   );
 }

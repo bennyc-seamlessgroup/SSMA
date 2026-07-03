@@ -5,6 +5,10 @@
   "reportDate": "Jun 11, 2026",
   "generatedAt": "Jun 18, 2026, 12:22 PM GMT+8",
   "status": "Moderate Closing Risk",
+  "legalDisclaimers": {
+    "footer": "For informational purposes only. Not investment advice. Market data and AI-assisted analysis may be inaccurate, delayed, or incomplete.",
+    "full": "This report has been prepared by Currenc Intelligence using proprietary analytics, public information, third-party market data, and AI-assisted technologies. It is provided solely for informational purposes and does not constitute investment advice, legal advice, tax advice, accounting advice, investment research, solicitation, or an offer to buy or sell any security. Currenc Intelligence does not guarantee the completeness, accuracy, timeliness, or reliability of any data, analysis, score, forecast, scenario, or alert contained in this report. Users should perform independent due diligence and consult qualified professional advisors before making decisions. Past performance does not guarantee future results."
+  },
   "kpis": [
     {
       "label": "Market Pressure",

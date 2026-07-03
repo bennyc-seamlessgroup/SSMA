@@ -6,6 +6,23 @@ The active report template reads one replaceable JSON file:
 report-data.json
 ```
 
+## Legal disclaimer fields
+
+The renderer expects these fields:
+
+```json
+{
+  "legalDisclaimers": {
+    "footer": "Short disclaimer rendered on every report page.",
+    "full": "Full legal disclaimer rendered on the final report page."
+  }
+}
+```
+
+In the live portal renderer, these values are injected from
+`lib/legal/disclaimers.ts`. Backend implementations must preserve this injection and
+must not replace approved legal copy with generated or model-written text.
+
 Backend should generate this file daily after market close. The template does not call APIs and does not calculate business logic. It only renders values already prepared by backend.
 
 ## Required Top-Level Shape

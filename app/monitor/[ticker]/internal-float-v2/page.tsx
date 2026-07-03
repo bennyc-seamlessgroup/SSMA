@@ -1,5 +1,6 @@
 import { normalizeTicker } from '@/lib/ticker-data';
 import { InternalFloatRoleView } from './InternalFloatRoleView';
+import { PageDisclaimerNotice } from '@/components/PageDisclaimerNotice';
 
 export default async function InternalFloatV2Page({ params }: Readonly<{ params: Promise<{ ticker: string }> }>) {
   const { ticker } = await params;
@@ -27,6 +28,7 @@ export default async function InternalFloatV2Page({ params }: Readonly<{ params:
       </section>
 
       <InternalFloatRoleView ticker={normalizedTicker} />
+      <PageDisclaimerNotice noticeKey="internalFloat" disclaimerKey="internalFloat" />
     </div>
   );
 }

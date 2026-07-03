@@ -124,7 +124,7 @@ export function DashboardV2BrowserPage({ ticker }: { ticker: string }) {
         <p>Borrow market dashboard</p>
       </div>
 
-      <DashboardV2Client data={trendData} events={events} marginRecords={marginInputs} />
+      <DashboardV2Client ticker={normalizedTicker} data={trendData} events={events} marginRecords={marginInputs} current={current} />
       <DashboardV2DevTables
         file={dashboardFile}
         sourcePlatform={dashboardEnvelope.sourcePlatform ?? dashboardEnvelope.source ?? 'Internal'}

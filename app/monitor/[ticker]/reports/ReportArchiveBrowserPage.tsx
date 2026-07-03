@@ -7,6 +7,7 @@ import { listReportArchive, type ReportArchiveRecord } from '@/lib/report-archiv
 import { normalizeTicker } from '@/lib/ticker-data';
 import { ymdInPortalTimeZone } from '@/lib/timezone';
 import { ReportArchiveCenter } from './ReportArchiveCenter';
+import { PageDisclaimerNotice } from '@/components/PageDisclaimerNotice';
 
 export function ReportArchiveBrowserPage({ ticker }: { ticker: string }) {
   const normalizedTicker = normalizeTicker(ticker);
@@ -60,6 +61,7 @@ export function ReportArchiveBrowserPage({ ticker }: { ticker: string }) {
       </div>
       {error ? <section className="report-history-empty">{error}</section> : null}
       <ReportArchiveCenter ticker={normalizedTicker} reports={reports} todayDate={todayDate} />
+      <PageDisclaimerNotice noticeKey="reports" disclaimerKey="report" />
     </div>
   );
 }

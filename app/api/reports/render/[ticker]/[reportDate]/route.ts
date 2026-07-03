@@ -3,6 +3,7 @@ import { readFile } from 'fs/promises';
 import * as path from 'path';
 import { chromium } from 'playwright';
 import { reportDataUrl } from '@/lib/report-archive';
+import { reportFooterDisclaimer, reportFullDisclaimer } from '@/lib/legal/disclaimers';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -24,7 +25,14 @@ async function fetchReportData(ticker: string, reportDate: string) {
   if (!response.ok) {
     throw new Error(`Unable to load report data for ${ticker} ${reportDate}: ${response.status} ${response.statusText}`);
   }
-  return response.text();
+  const payload = await response.json() as Record<string, unknown>;
+  return JSON.stringify({
+    ...payload,
+    legalDisclaimers: {
+      footer: reportFooterDisclaimer,
+      full: reportFullDisclaimer,
+    },
+  });
 }
 
 async function createTemplateServer(reportDataJson: string) {

@@ -3,6 +3,7 @@ import { readOperationsSecFilings, type OperationsSecFilingRecord } from '@/lib/
 import { buildDashboard } from '@/lib/mock-data';
 import { normalizeTicker } from '@/lib/ticker-data';
 import { SecFilingsList, type SecFilingRow } from './SecFilingsList';
+import { PageDisclaimerNotice } from '@/components/PageDisclaimerNotice';
 
 export const dynamic = 'force-dynamic';
 
@@ -70,6 +71,7 @@ export default async function EventCalendarPage({ params }: Readonly<{ params: P
       </div>
 
       <SecFilingsList filings={filings} />
+      <PageDisclaimerNotice noticeKey="insider" disclaimerKey="regulatoryFiling" />
 
       <section className="terminal-section import-data-dev-panel">
         <div className="terminal-section__head">
