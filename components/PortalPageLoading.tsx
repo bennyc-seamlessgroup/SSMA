@@ -8,7 +8,8 @@ export type PortalLoadingVariant =
   | 'internalFloat'
   | 'sentiment'
   | 'secFilings'
-  | 'reports';
+  | 'reports'
+  | 'profile';
 
 function Kpis({ count = 5 }: { count?: number }) {
   return (
@@ -245,6 +246,21 @@ function ReportsLoading() {
   );
 }
 
+function ProfileLoading() {
+  return (
+    <div className="portal-loading-two-column" aria-hidden="true">
+      <section className="portal-loading-panel portal-loading-profile-form">
+        <PanelHead />
+        <List rows={5} />
+      </section>
+      <section className="portal-loading-panel portal-loading-profile-meta">
+        <PanelHead />
+        <List rows={4} compact />
+      </section>
+    </div>
+  );
+}
+
 export function PortalPageLoading({ variant = 'generic' }: { variant?: PortalLoadingVariant }) {
   const content = {
     generic: <GenericLoading />,
@@ -257,6 +273,7 @@ export function PortalPageLoading({ variant = 'generic' }: { variant?: PortalLoa
     sentiment: <SentimentLoading />,
     secFilings: <SecFilingsLoading />,
     reports: <ReportsLoading />,
+    profile: <ProfileLoading />,
   }[variant];
 
   return (

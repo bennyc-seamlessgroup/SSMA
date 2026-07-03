@@ -1,5 +1,7 @@
 'use client';
 
+import { endPublicDemoSession, isPublicDemoSession, publicDemoProfile } from './public-demo';
+
 export type CognitoUser = {
   sub?: string;
   email?: string;
@@ -121,6 +123,7 @@ export function getStoredTokens(): AuthTokens | null {
 }
 
 export function storeTokens(tokens: AuthTokens) {
+  endPublicDemoSession();
   sessionStorage.setItem(tokenKeys.accessToken, tokens.accessToken);
   sessionStorage.setItem(tokenKeys.idToken, tokens.idToken);
   sessionStorage.setItem(tokenKeys.refreshToken, tokens.refreshToken);
@@ -316,6 +319,7 @@ export function setCachedAuthenticatedProfile(profile: AuthenticatedProfile) {
 }
 
 export function getAuthenticatedProfile(force = false) {
+  if (typeof window !== 'undefined' && isPublicDemoSession()) return Promise.resolve(publicDemoProfile);
   if (force || !profileRequest) {
     profileRequest = authenticatedFetch('/profile') as Promise<AuthenticatedProfile>;
     profileRequest.catch(() => {

@@ -227,7 +227,7 @@ export default function LandingPage() {
             </p>
             <div className="ci-hero-actions">
               <a href="#request" className="ci-primary-button ci-large-button">Request Access <Icon name="arrow" /></a>
-              <a href="#platform" className="ci-secondary-button ci-large-button">Explore Platform <Icon name="spark" /></a>
+              <Link href="/demo" target="_blank" rel="noreferrer" className="ci-secondary-button ci-large-button">Live Demo <Icon name="spark" /></Link>
             </div>
             <div className="ci-mini-proof">
               <div><Icon name="book" /><strong>3 reports daily</strong><span>Pre, midday, close</span></div>
@@ -438,7 +438,7 @@ export default function LandingPage() {
         <h2>Ready to see the market clearly?</h2>
         <p>Request access to review how Currenc Intelligence can support short monitoring, ownership intelligence, and daily executive reporting.</p>
         <div>
-          <Link href="/login" className="ci-secondary-button ci-large-button">Open Portal</Link>
+          <Link href="/demo" target="_blank" rel="noreferrer" className="ci-secondary-button ci-large-button">Open Live Demo</Link>
           <a href="mailto:info@currencintelligence.com?subject=Currenc%20Intelligence%20Access%20Request" className="ci-primary-button ci-large-button">Request Access <Icon name="send" /></a>
         </div>
         <small><Icon name="lock" /> Secure platform · Institutional deployment · Daily report archive</small>

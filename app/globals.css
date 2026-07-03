@@ -5229,6 +5229,216 @@ html[data-design-b-theme="dark"] .legal-acknowledgement {
   }
 }
 
+/* Public live demo */
+.demo-launcher {
+  display: grid;
+  min-height: 100vh;
+  place-items: center;
+  align-content: center;
+  gap: 10px;
+  padding: 24px;
+  background: #f4f7fb;
+  color: #1b2e46;
+  text-align: center;
+}
+
+.demo-launcher__mark {
+  display: grid;
+  width: 48px;
+  height: 48px;
+  place-items: center;
+  border-radius: 8px;
+  background: #2457b8;
+  color: #fff;
+  font-size: 18px;
+  font-weight: 800;
+}
+
+.demo-launcher strong {
+  font-size: 15px;
+}
+
+.demo-launcher span {
+  color: #6b7e95;
+  font-size: 11px;
+}
+
+.public-demo-welcome-backdrop {
+  position: fixed;
+  z-index: 140;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  background: rgba(7, 17, 31, .58);
+  backdrop-filter: blur(3px);
+}
+
+.public-demo-welcome {
+  position: relative;
+  width: min(520px, 100%);
+  padding: 26px;
+  border: 1px solid #d8e3f0;
+  border-radius: 8px;
+  background: #fff;
+  box-shadow: 0 24px 70px rgba(15, 23, 42, .24);
+}
+
+.public-demo-welcome__close {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  display: grid;
+  width: 30px;
+  height: 30px;
+  place-items: center;
+  padding: 0;
+  border: 1px solid #dce4ee;
+  border-radius: 6px;
+  background: #fff;
+  color: #61748c;
+  cursor: pointer;
+}
+
+.public-demo-welcome__close svg,
+.public-demo-welcome__icon svg {
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.8;
+}
+
+.public-demo-welcome__close svg {
+  width: 15px;
+  height: 15px;
+}
+
+.public-demo-welcome__icon {
+  display: grid;
+  width: 42px;
+  height: 42px;
+  margin-bottom: 16px;
+  place-items: center;
+  border-radius: 8px;
+  background: #edf4ff;
+  color: #2457b8;
+}
+
+.public-demo-welcome__icon svg {
+  width: 22px;
+  height: 22px;
+}
+
+.public-demo-welcome > span {
+  color: #2457b8;
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+}
+
+.public-demo-welcome h1 {
+  margin: 7px 38px 8px 0;
+  color: #13263d;
+  font-size: 22px;
+  letter-spacing: 0;
+}
+
+.public-demo-welcome > p {
+  margin: 0;
+  color: #5b6f87;
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+.public-demo-welcome__note {
+  margin-top: 16px;
+  padding: 11px 12px;
+  border: 1px solid #dce6f1;
+  border-left: 3px solid #2457b8;
+  border-radius: 6px;
+  background: #f7faff;
+  color: #52677f;
+  font-size: 10px;
+  line-height: 1.5;
+}
+
+.public-demo-welcome__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 20px;
+}
+
+html[data-design-b-theme="dark"] .demo-launcher {
+  background: #07111f;
+  color: #edf4ff;
+}
+
+html[data-design-b-theme="dark"] .public-demo-welcome {
+  border-color: #2a405a;
+  background: #0b192b;
+}
+
+html[data-design-b-theme="dark"] .public-demo-welcome h1 {
+  color: #edf4ff;
+}
+
+html[data-design-b-theme="dark"] .public-demo-welcome > p {
+  color: #a1b4cc;
+}
+
+html[data-design-b-theme="dark"] .public-demo-welcome__close {
+  border-color: #30465f;
+  background: #0e2035;
+  color: #a9bad0;
+}
+
+html[data-design-b-theme="dark"] .public-demo-welcome__icon {
+  background: #102b4b;
+  color: #72aaf1;
+}
+
+html[data-design-b-theme="dark"] .public-demo-welcome__note {
+  border-color: #2a405a;
+  border-left-color: #4d8ee5;
+  background: #0d1d31;
+  color: #9eb1c9;
+}
+
+html[data-design-b-theme="dark"] .auth-checking-shell {
+  background: #07111f;
+}
+
+html[data-design-b-theme="dark"] .auth-checking-shell .auth-checking {
+  border-color: #2a405a;
+  background: #0b192b;
+}
+
+html[data-design-b-theme="dark"] .auth-checking-shell .auth-checking strong {
+  color: #edf4ff;
+}
+
+html[data-design-b-theme="dark"] .auth-checking-shell .auth-checking span {
+  color: #9eb1c9;
+}
+
+@media (max-width: 560px) {
+  .public-demo-welcome {
+    padding: 22px 18px;
+  }
+
+  .public-demo-welcome__actions {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .public-demo-welcome__actions .button {
+    justify-content: center;
+  }
+}
+
 /* User identity menu: contain long email addresses inside the popover. */
 html[data-portal-design="b"] .portal-design-b-actions .user-menu__panel {
   width: min(260px, calc(100vw - 24px));
@@ -9379,6 +9589,19 @@ html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal :where(
   box-shadow: rgba(2, 8, 23, .14) 0 28px 70px -38px;
   padding: 34px;
   text-align: center;
+}
+
+.auth-checking-shell {
+  display: grid;
+  width: 100%;
+  min-height: 100vh;
+  place-items: center;
+  padding: 24px;
+  background: #f4f7fb;
+}
+
+.auth-checking-shell .auth-checking {
+  width: min(460px, 100%);
 }
 
 .auth-callback-card h1,

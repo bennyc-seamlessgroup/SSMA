@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { authenticatedFetch, decodeJWT, getStoredTokens, setCachedAuthenticatedProfile } from '@/lib/auth-client';
+import { PortalPageLoading } from '@/components/PortalPageLoading';
 
 type Profile = {
   sub?: string;
@@ -101,6 +102,8 @@ export function UserProfileClient() {
     }
   }
 
+  if (isLoading) return <PortalPageLoading variant="profile" />;
+
   const metadata = {
     sub: profile?.sub ?? tokenUser?.sub,
     email: profile?.email ?? (typeof tokenUser?.email === 'string' ? tokenUser.email : undefined),
@@ -118,29 +121,25 @@ export function UserProfileClient() {
         <div className="user-profile-card__head">
           <h2>Edit Profile Settings</h2>
         </div>
-        {isLoading ? (
-          <p className="settings-note">Loading profile from API Gateway...</p>
-        ) : (
-          <form className="user-profile-form" onSubmit={saveProfile}>
-            <label>
-              <span>Full Name</span>
-              <input className="input" value={form.name} onChange={event => setForm(current => ({ ...current, name: event.target.value }))} placeholder="e.g. Benny" />
-            </label>
-            <label>
-              <span>Nickname</span>
-              <input className="input" value={form.nickname} onChange={event => setForm(current => ({ ...current, nickname: event.target.value }))} placeholder="e.g. benny" />
-            </label>
-            <label>
-              <span>Phone Number</span>
-              <input className="input" value={form.phone_number} onChange={event => setForm(current => ({ ...current, phone_number: event.target.value }))} placeholder="e.g. +15550100" />
-            </label>
-            <label>
-              <span>Biography</span>
-              <textarea className="textarea" value={form.bio} onChange={event => setForm(current => ({ ...current, bio: event.target.value }))} placeholder="Write something about yourself..." rows={5} />
-            </label>
-            <button className="button" type="submit" disabled={isSaving}>{isSaving ? 'Saving...' : 'Save Changes'}</button>
-          </form>
-        )}
+        <form className="user-profile-form" onSubmit={saveProfile}>
+          <label>
+            <span>Full Name</span>
+            <input className="input" value={form.name} onChange={event => setForm(current => ({ ...current, name: event.target.value }))} placeholder="e.g. Benny" />
+          </label>
+          <label>
+            <span>Nickname</span>
+            <input className="input" value={form.nickname} onChange={event => setForm(current => ({ ...current, nickname: event.target.value }))} placeholder="e.g. benny" />
+          </label>
+          <label>
+            <span>Phone Number</span>
+            <input className="input" value={form.phone_number} onChange={event => setForm(current => ({ ...current, phone_number: event.target.value }))} placeholder="e.g. +15550100" />
+          </label>
+          <label>
+            <span>Biography</span>
+            <textarea className="textarea" value={form.bio} onChange={event => setForm(current => ({ ...current, bio: event.target.value }))} placeholder="Write something about yourself..." rows={5} />
+          </label>
+          <button className="button" type="submit" disabled={isSaving}>{isSaving ? 'Saving...' : 'Save Changes'}</button>
+        </form>
         {message && <p className="user-profile-message success">{message}</p>}
         {error && <p className="user-profile-message error">{error}</p>}
       </section>

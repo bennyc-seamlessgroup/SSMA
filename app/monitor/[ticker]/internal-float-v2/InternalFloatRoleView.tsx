@@ -14,6 +14,7 @@ import {
 import type { FloatAdjustments, InternalFloatV2UserInput } from '@/lib/internal-float';
 import { institutionalOverviewFile, normalizeTicker } from '@/lib/ticker-data';
 import { InternalFloatV2Client, type InsiderSuggestionSource, type InstitutionalOwnershipOverview } from './InternalFloatV2Client';
+import { isPublicDemoSession } from '@/lib/public-demo';
 
 type OwnershipEnvelope = {
   data?: {
@@ -96,6 +97,10 @@ export function InternalFloatRoleView({ ticker }: { ticker: string }) {
   const [role, setRole] = useState<string | null>(null);
 
   useEffect(() => {
+    if (isPublicDemoSession()) {
+      setRole('DEMO');
+      return;
+    }
     let cancelled = false;
     getAuthenticatedProfile()
       .then(profile => {

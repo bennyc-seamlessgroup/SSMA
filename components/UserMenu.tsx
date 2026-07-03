@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { useEffect, useRef, useState } from 'react';
 import { getAuthenticatedProfile, getCurrentUser, signOut } from '@/lib/auth-client';
+import { endPublicDemoSession, isPublicDemoSession } from '@/lib/public-demo';
 
 export function UserMenu({ ticker }: { ticker: string }) {
   const [isOpen, setIsOpen] = useState(false);
@@ -10,10 +11,12 @@ export function UserMenu({ ticker }: { ticker: string }) {
     const tokenEmail = getCurrentUser()?.email;
     return typeof tokenEmail === 'string' ? tokenEmail.trim() : '';
   });
+  const [isDemo, setIsDemo] = useState(false);
   const menuRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     let cancelled = false;
+    setIsDemo(isPublicDemoSession());
     getAuthenticatedProfile()
       .then(profile => {
         if (!cancelled && typeof profile.email === 'string' && profile.email.trim()) {
@@ -62,7 +65,7 @@ export function UserMenu({ ticker }: { ticker: string }) {
         <span className="user-avatar" aria-hidden="true">{avatarLetter}</span>
         <span className="user-menu__meta">
           <strong>{displayName}</strong>
-          <small>IR Admin</small>
+          <small>{isDemo ? 'Demo Viewer' : 'IR Admin'}</small>
         </span>
       </button>
 
@@ -79,8 +82,13 @@ export function UserMenu({ ticker }: { ticker: string }) {
           <Link href={`/monitor/${ticker}/email-settings`} onClick={() => setIsOpen(false)}>Delivery Settings</Link>
           <button className="user-menu__link-button" type="button" onClick={() => {
             setIsOpen(false);
-            signOut();
-          }}>Sign out</button>
+            if (isDemo) {
+              endPublicDemoSession();
+              window.location.assign('/');
+            } else {
+              signOut();
+            }
+          }}>{isDemo ? 'Exit demo' : 'Sign out'}</button>
         </div>
       )}
     </div>

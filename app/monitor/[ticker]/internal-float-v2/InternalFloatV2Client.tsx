@@ -1,6 +1,7 @@
 'use client';
 
 import { InfoTooltip } from '@/components/InfoTooltip';
+import { PortalPageLoading } from '@/components/PortalPageLoading';
 import { getCurrentUser, getStoredTokens } from '@/lib/auth-client';
 import Link from 'next/link';
 import { useEffect, useMemo, useState } from 'react';
@@ -1053,6 +1054,10 @@ export function InternalFloatV2Client({
     );
   }
 
+  if (apiStatus === 'loading' || !insiderDismissalsLoaded) {
+    return <PortalPageLoading variant="internalFloat" />;
+  }
+
   return (
     <>
       {demoMode ? (
@@ -1071,7 +1076,6 @@ export function InternalFloatV2Client({
             <p className="section-subtitle">Key float figures and the current reduction from internal share assumptions.</p>
           </div>
         </div>
-        {apiStatus === 'loading' && <p className="float-v2-api-message">Loading saved user inputs...</p>}
         {apiStatus === 'error' && apiMessage && !editPanel && <p className="float-v2-api-message error">{apiMessage}</p>}
         {apiStatus === 'saved' && apiMessage && !editPanel && <p className="float-v2-api-message success">{apiMessage}</p>}
 

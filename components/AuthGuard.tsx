@@ -5,6 +5,7 @@ import { useEffect, useState } from 'react';
 import { getAuthenticatedProfile, getStoredTokens, isTokenValid, refreshTokens } from '@/lib/auth-client';
 import { allowedTickersFromProfile, authorizedMonitorRedirect, profileAllowsTicker } from '@/lib/ticker-access';
 import { defaultTicker } from '@/lib/ticker-data';
+import { isPublicDemoSession, publicDemoTicker } from '@/lib/public-demo';
 
 export function AuthGuard({ children, ticker }: { children: React.ReactNode; ticker: string }) {
   const router = useRouter();
@@ -33,6 +34,14 @@ export function AuthGuard({ children, ticker }: { children: React.ReactNode; tic
 
     async function verifySession() {
       setStatus('checking');
+      if (isPublicDemoSession()) {
+        if (ticker.toUpperCase() !== publicDemoTicker) {
+          window.location.replace(`/monitor/${publicDemoTicker}/dashboard-v2`);
+          return;
+        }
+        if (!cancelled) setStatus('authenticated');
+        return;
+      }
       const tokens = getStoredTokens();
       if (tokens?.idToken && isTokenValid(tokens.idToken, 0)) {
         try {
@@ -81,9 +90,11 @@ export function AuthGuard({ children, ticker }: { children: React.ReactNode; tic
 
   if (status !== 'authenticated') {
     return (
-      <div className="auth-checking">
-        <strong>Checking secure session</strong>
-        <span>Redirecting to sign in if authentication is required.</span>
+      <div className="auth-checking-shell">
+        <div className="auth-checking">
+          <strong>Checking secure session</strong>
+          <span>Redirecting to sign in if authentication is required.</span>
+        </div>
       </div>
     );
   }

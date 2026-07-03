@@ -3,6 +3,7 @@ import { MonitorExpertChat } from './MonitorExpertChat';
 import { AuthGuard } from './AuthGuard';
 import { DesignBTopbar } from './DesignBTopbar';
 import { DisclaimerFooter } from './DisclaimerFooter';
+import { PublicDemoWelcome } from './PublicDemoWelcome';
 import { TickerDataStatusProvider } from './TickerDataStatusProvider';
 
 export function AppShell({
@@ -26,6 +27,7 @@ export function AppShell({
             {children}
             <DisclaimerFooter />
           </main>
+          <PublicDemoWelcome />
           <MonitorExpertChat ticker={ticker} />
         </div>
       </TickerDataStatusProvider>
