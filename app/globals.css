@@ -18694,23 +18694,12 @@ html[data-design-b-theme="dark"] .monitor-portal :where(.narrative-filter-group 
   box-shadow: 0 0 0 3px rgba(59, 130, 246, .12);
 }
 
-.hotkey-help {
-  margin: 10px 0 0;
-  color: #64748b;
-  font-size: 12px;
-}
-
-.hotkey-help code,
 .hotkey-table kbd {
   border: 1px solid #dbe6f3;
   border-radius: 6px;
   background: #f6f9ff;
   color: #1e3a8a;
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-}
-
-.hotkey-help code {
-  padding: 2px 5px;
 }
 
 .hotkey-count {
@@ -18815,7 +18804,7 @@ html[data-design-b-theme="dark"] .monitor-portal :where(.narrative-filter-group 
   opacity: .45;
 }
 
-html[data-design-b-theme="dark"] .monitor-portal :where(.hotkey-form input, .hotkey-table, .hotkey-help code, .hotkey-table kbd) {
+html[data-design-b-theme="dark"] .monitor-portal :where(.hotkey-form input, .hotkey-table, .hotkey-table kbd) {
   border-color: rgba(148, 163, 184, .2);
 }
 
@@ -18824,7 +18813,7 @@ html[data-design-b-theme="dark"] .monitor-portal .hotkey-form input {
   color: #edf4ff;
 }
 
-html[data-design-b-theme="dark"] .monitor-portal :where(.hotkey-help code, .hotkey-table kbd, .hotkey-table__head) {
+html[data-design-b-theme="dark"] .monitor-portal :where(.hotkey-table kbd, .hotkey-table__head) {
   background: rgba(30, 64, 175, .16);
   color: #bfdbfe;
 }
@@ -18834,7 +18823,7 @@ html[data-design-b-theme="dark"] .monitor-portal .hotkey-table__row {
   color: #cbd5e1;
 }
 
-html[data-design-b-theme="dark"] .monitor-portal :where(.hotkey-count, .hotkey-help, .hotkey-table__row time, .hotkey-empty) {
+html[data-design-b-theme="dark"] .monitor-portal :where(.hotkey-count, .hotkey-table__row time, .hotkey-empty) {
   color: #9fb2ca;
 }
 

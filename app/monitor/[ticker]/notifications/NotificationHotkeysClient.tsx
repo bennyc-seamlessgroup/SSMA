@@ -18,7 +18,7 @@ type HotkeyResponse = HotkeyMapping[] | {
 type LoadState = 'loading' | 'idle' | 'saving' | 'deleting' | 'error';
 
 function normalizeHotkey(value: string) {
-  return value.trim().toLowerCase().replace(/\s+/g, '');
+  return value.trim();
 }
 
 function mappingsFromResponse(response: HotkeyResponse) {
@@ -149,7 +149,6 @@ export function NotificationHotkeysClient({ ticker }: { ticker: string }) {
               <input
                 value={hotkey}
                 onChange={event => setHotkey(event.target.value)}
-                placeholder="e.g. alt+a or shift+h"
                 autoComplete="off"
                 spellCheck={false}
                 required
@@ -159,7 +158,6 @@ export function NotificationHotkeysClient({ ticker }: { ticker: string }) {
               {state === 'saving' ? 'Saving...' : 'Save hotkey'}
             </button>
           </form>
-          <p className="hotkey-help">Use the same key representation expected by KWatch, such as <code>alt+a</code> or <code>shift+h</code>.</p>
         </section>
       )}
 
