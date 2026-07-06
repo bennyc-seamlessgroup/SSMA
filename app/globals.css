@@ -18653,6 +18653,214 @@ html[data-design-b-theme="dark"] .monitor-portal :where(.narrative-filter-group 
   color: #061b31;
 }
 
+.hotkey-settings-stack {
+  display: grid;
+  gap: 16px;
+}
+
+.hotkey-editor {
+  max-width: 760px;
+}
+
+.hotkey-form {
+  display: grid;
+  grid-template-columns: minmax(240px, 1fr) auto;
+  align-items: end;
+  gap: 12px;
+}
+
+.hotkey-form label {
+  display: grid;
+  gap: 7px;
+  color: #31445f;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.hotkey-form input {
+  width: 100%;
+  min-height: 40px;
+  border: 1px solid #dbe6f3;
+  border-radius: 8px;
+  padding: 0 12px;
+  background: #fff;
+  color: #061b31;
+  font: inherit;
+  outline: none;
+}
+
+.hotkey-form input:focus {
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, .12);
+}
+
+.hotkey-help {
+  margin: 10px 0 0;
+  color: #64748b;
+  font-size: 12px;
+}
+
+.hotkey-help code,
+.hotkey-table kbd {
+  border: 1px solid #dbe6f3;
+  border-radius: 6px;
+  background: #f6f9ff;
+  color: #1e3a8a;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+}
+
+.hotkey-help code {
+  padding: 2px 5px;
+}
+
+.hotkey-count {
+  color: #64748b;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.hotkey-message {
+  margin-bottom: 12px;
+  border: 1px solid #bbf7d0;
+  border-radius: 8px;
+  padding: 9px 11px;
+  background: #f0fdf4;
+  color: #047857;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.hotkey-message.is-error {
+  border-color: #fecaca;
+  background: #fff1f2;
+  color: #be123c;
+}
+
+.hotkey-empty {
+  display: grid;
+  justify-items: start;
+  gap: 5px;
+  min-height: 100px;
+  align-content: center;
+  border: 1px dashed #dbe6f3;
+  border-radius: 8px;
+  padding: 18px;
+  color: #64748b;
+  font-size: 13px;
+}
+
+.hotkey-empty strong {
+  color: #0f172a;
+  font-size: 14px;
+}
+
+.hotkey-table {
+  overflow: hidden;
+  border: 1px solid #e5edf5;
+  border-radius: 8px;
+}
+
+.hotkey-table__head,
+.hotkey-table__row {
+  display: grid;
+  grid-template-columns: minmax(120px, .55fr) minmax(180px, 1fr) minmax(180px, .9fr) 72px;
+  align-items: center;
+  gap: 14px;
+  padding: 11px 13px;
+}
+
+.hotkey-table.is-readonly .hotkey-table__head,
+.hotkey-table__row.is-readonly {
+  grid-template-columns: minmax(120px, .55fr) minmax(180px, 1fr) minmax(180px, .9fr);
+}
+
+.hotkey-table__head {
+  background: #f6f9ff;
+  color: #60738e;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+
+.hotkey-table__row {
+  border-top: 1px solid #e5edf5;
+  color: #31445f;
+  font-size: 12px;
+}
+
+.hotkey-table__row kbd {
+  justify-self: start;
+  padding: 5px 8px;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.hotkey-table__row time {
+  color: #64748b;
+}
+
+.hotkey-delete {
+  border: 0;
+  background: transparent;
+  color: #dc2626;
+  cursor: pointer;
+  font: inherit;
+  font-weight: 700;
+  padding: 5px 0;
+}
+
+.hotkey-delete:disabled {
+  cursor: wait;
+  opacity: .45;
+}
+
+html[data-design-b-theme="dark"] .monitor-portal :where(.hotkey-form input, .hotkey-table, .hotkey-help code, .hotkey-table kbd) {
+  border-color: rgba(148, 163, 184, .2);
+}
+
+html[data-design-b-theme="dark"] .monitor-portal .hotkey-form input {
+  background: #081525;
+  color: #edf4ff;
+}
+
+html[data-design-b-theme="dark"] .monitor-portal :where(.hotkey-help code, .hotkey-table kbd, .hotkey-table__head) {
+  background: rgba(30, 64, 175, .16);
+  color: #bfdbfe;
+}
+
+html[data-design-b-theme="dark"] .monitor-portal .hotkey-table__row {
+  border-color: rgba(148, 163, 184, .14);
+  color: #cbd5e1;
+}
+
+html[data-design-b-theme="dark"] .monitor-portal :where(.hotkey-count, .hotkey-help, .hotkey-table__row time, .hotkey-empty) {
+  color: #9fb2ca;
+}
+
+html[data-design-b-theme="dark"] .monitor-portal .hotkey-empty {
+  border-color: rgba(148, 163, 184, .25);
+}
+
+html[data-design-b-theme="dark"] .monitor-portal .hotkey-empty strong {
+  color: #edf4ff;
+}
+
+@media (max-width: 720px) {
+  .hotkey-form {
+    grid-template-columns: 1fr;
+  }
+
+  .hotkey-table {
+    overflow-x: auto;
+  }
+
+  .hotkey-table__head,
+  .hotkey-table__row {
+    min-width: 680px;
+  }
+}
+
 .page-header-actions {
   display: inline-flex;
   align-items: center;
