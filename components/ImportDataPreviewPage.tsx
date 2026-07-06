@@ -26,7 +26,7 @@ function formatValue(value: unknown) {
   if (typeof value === 'number') return value.toLocaleString('en-US', { maximumFractionDigits: 4 });
   if (typeof value === 'boolean') return value ? 'Yes' : 'No';
   if (Array.isArray(value)) return `${value.length} records`;
-  if (isRecord(value)) return 'Object';
+  if (isRecord(value)) return JSON.stringify(value);
   return String(value);
 }
 
@@ -130,7 +130,15 @@ function ImportDataRenderer({ data }: { data: unknown }) {
         {arrayEntries.map(([key, value]) => (
           <div className="import-subsection" key={key}>
             <h4>{formatLabel(key)}</h4>
-            <DataRowsTable rows={value.filter(isRecord)} />
+            {value.some(isRecord)
+              ? <DataRowsTable rows={value.filter(isRecord)} />
+              : (
+                <ImportDataTable
+                  columns={['value']}
+                  rows={value.map(item => ({ value: formatValue(item) }))}
+                  pageSize={10}
+                />
+              )}
           </div>
         ))}
       </div>

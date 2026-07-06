@@ -75,7 +75,6 @@ function dashboardAlertValues(data: TrendPoint[], current: Record<string, unknow
     borrowFeeRate: numeric(currentRow.borrowFee, currentRow.feeRate, latestValue(data, row => row.feeRate)),
     utilization: numeric(currentRow.utilization, latestValue(data, row => row.utilization)),
     availableShares: numeric(currentRow.availableShares, currentRow.shortAvailabilityShares, latestValue(data, row => row.shortableShares)),
-    onLoanShares: numeric(currentRow.onLoanShares, currentRow.sharesOnLoan, sourceRecords.onLoanShares),
     ftdCount: numeric(currentRow.ftdCount, currentRow.ftdShares, ftd.ftdShares),
     ftdValue: numeric(currentRow.ftdValue, currentRow.ftdValueUsd, ftd.ftdValue),
     priceDrawdown,

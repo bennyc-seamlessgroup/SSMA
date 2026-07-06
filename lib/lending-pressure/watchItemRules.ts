@@ -4,9 +4,7 @@ export type LendingWatchItemCategory =
   | 'Utilization'
   | 'Borrow Fee'
   | 'Availability'
-  | 'On Loan'
   | 'Average Duration'
-  | 'Loan Value'
   | 'Protocol Lock-up'
   | 'Squeeze Risk'
   | 'Price/Volume';
@@ -18,12 +16,8 @@ export interface LendingPressureRuleInput {
   borrowFeeChangePercent?: number;
   sharesAvailable?: number;
   sharesAvailableChangePercent?: number;
-  onLoanShares?: number;
-  onLoanChangePercent?: number;
   averageDurationDays?: number;
   averageDurationChangePercent?: number;
-  loanValueUsd?: number;
-  loanValueChangePercent?: number;
   protocolLockupPercent?: number;
   protocolLockupChangePercent?: number;
   lockedCollateralShares?: number;
@@ -64,11 +58,8 @@ export const lendingPressureThresholds = {
   borrowFeeSpikePercent: 30,
   lowShareAvailability: 100_000,
   availabilityDropPercent: -30,
-  onLoanIncreasePercent: 20,
-  stressedOnLoanIncreasePercent: 10,
   longAverageDurationDays: 30,
   durationSpikePercent: 25,
-  loanValueExpansionPercent: 30,
   highProtocolLockupPercent: 20,
   protocolLockupSpikePercent: 20,
   squeezeShortInterestPercent: 10,
@@ -93,10 +84,6 @@ function percent(value: number | undefined) {
 
 function shares(value: number | undefined) {
   return isNumber(value) ? value.toLocaleString('en-US', { maximumFractionDigits: 0 }) : 'unavailable';
-}
-
-function currency(value: number | undefined) {
-  return isNumber(value) ? `$${value.toLocaleString('en-US', { maximumFractionDigits: 0 })}` : 'unavailable';
 }
 
 export const lendingPressureWatchRules: LendingPressureWatchRule[] = [
@@ -188,35 +175,7 @@ export const lendingPressureWatchRules: LendingPressureWatchRule[] = [
     isTriggered: input => isNumber(input.sharesAvailableChangePercent) && input.sharesAvailableChangePercent <= lendingPressureThresholds.availabilityDropPercent,
     reason: input => `Available shares changed ${percent(input.sharesAvailableChangePercent)}; the decline trigger is ${lendingPressureThresholds.availabilityDropPercent}%.`,
   },
-  // Rule I: identify a material increase in shares reported on loan.
-  {
-    id: 'on-loan-rising',
-    title: 'On Loan Shares Rising',
-    severity: 'medium',
-    category: 'On Loan',
-    message: 'Shares on loan have increased materially.',
-    suggestedAction: 'Compare with short interest changes to determine whether this reflects active shorting or borrow positioning.',
-    isTriggered: input => isNumber(input.onLoanChangePercent) && input.onLoanChangePercent >= lendingPressureThresholds.onLoanIncreasePercent,
-    reason: input => `On-loan shares increased ${percent(input.onLoanChangePercent)}; the trigger is ${lendingPressureThresholds.onLoanIncreasePercent}%.`,
-  },
-  // Rule J: combine rising on-loan balances with constrained borrow availability.
-  {
-    id: 'on-loan-low-availability',
-    title: 'On Loan Pressure With Low Availability',
-    severity: 'high',
-    category: 'On Loan',
-    message: 'On loan shares are increasing while available borrow inventory is limited.',
-    suggestedAction: 'Monitor for continued borrow tightening and squeeze-supportive conditions.',
-    isTriggered: input => (
-      isNumber(input.onLoanShares)
-      && isNumber(input.sharesAvailable)
-      && isNumber(input.onLoanChangePercent)
-      && input.sharesAvailable <= lendingPressureThresholds.lowShareAvailability
-      && input.onLoanChangePercent >= lendingPressureThresholds.stressedOnLoanIncreasePercent
-    ),
-    reason: input => `${shares(input.onLoanShares)} shares are on loan, availability is ${shares(input.sharesAvailable)}, and on-loan shares increased ${percent(input.onLoanChangePercent)}.`,
-  },
-  // Rule K: identify persistent borrow positions based on average duration.
+  // Identify persistent borrow positions based on average duration.
   {
     id: 'long-average-duration',
     title: 'Long Average Loan Duration',
@@ -227,7 +186,7 @@ export const lendingPressureWatchRules: LendingPressureWatchRule[] = [
     isTriggered: input => isNumber(input.averageDurationDays) && input.averageDurationDays >= lendingPressureThresholds.longAverageDurationDays,
     reason: input => `Average duration is ${input.averageDurationDays?.toLocaleString('en-US', { maximumFractionDigits: 2 })} days; the trigger is ${lendingPressureThresholds.longAverageDurationDays} days.`,
   },
-  // Rule L: detect a material increase in average loan duration.
+  // Detect a material increase in average loan duration.
   {
     id: 'average-duration-spike',
     title: 'Average Duration Increasing',
@@ -238,18 +197,7 @@ export const lendingPressureWatchRules: LendingPressureWatchRule[] = [
     isTriggered: input => isNumber(input.averageDurationChangePercent) && input.averageDurationChangePercent >= lendingPressureThresholds.durationSpikePercent,
     reason: input => `Average duration increased ${percent(input.averageDurationChangePercent)}; the trigger is ${lendingPressureThresholds.durationSpikePercent}%.`,
   },
-  // Rule M: identify material expansion in the reported value of outstanding loans.
-  {
-    id: 'loan-value-expansion',
-    title: 'Loan Value Expansion',
-    severity: 'medium',
-    category: 'Loan Value',
-    message: 'Total loan value has increased materially.',
-    suggestedAction: 'Compare with price movement and on-loan share changes to determine whether the increase is price-driven or borrow-driven.',
-    isTriggered: input => isNumber(input.loanValueChangePercent) && input.loanValueChangePercent >= lendingPressureThresholds.loanValueExpansionPercent,
-    reason: input => `Loan value is ${currency(input.loanValueUsd)} and increased ${percent(input.loanValueChangePercent)}; the trigger is ${lendingPressureThresholds.loanValueExpansionPercent}%.`,
-  },
-  // Rule N: flag a meaningful share of tokenized equity locked or pledged as collateral.
+  // Flag a meaningful share of tokenized equity locked or pledged as collateral.
   {
     id: 'high-protocol-lockup',
     title: 'High Protocol Lock-up Utilization',

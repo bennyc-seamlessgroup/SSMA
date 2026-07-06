@@ -6,7 +6,8 @@ import { PortalPageLoading } from '@/components/PortalPageLoading';
 import { PageDisclaimerNotice } from '@/components/PageDisclaimerNotice';
 import { usePublicImportFiles } from '@/components/usePublicImportFiles';
 import type { LendingWatchItemSeverity } from '@/lib/lending-pressure/watchItemRules';
-import { aiAnalysisFile, lendingPressureFile, normalizeTicker } from '@/lib/ticker-data';
+import type { DashboardMarginFile, DashboardMarginRecord } from '@/lib/operations/dashboard-margin-store';
+import { aiAnalysisFile, dashboardMarginFile, lendingPressureFile, normalizeTicker } from '@/lib/ticker-data';
 import type { ReactNode } from 'react';
 
 type Row = Record<string, unknown>;
@@ -207,8 +208,9 @@ export function LendingPressureBrowserPage({ ticker }: { ticker: string }) {
   const normalizedTicker = normalizeTicker(ticker);
   const dataFile = lendingPressureFile(normalizedTicker);
   const analysisFile = aiAnalysisFile(normalizedTicker);
+  const marginFile = dashboardMarginFile(normalizedTicker);
   const contentFile = 'content/page_content.json';
-  const { data, error, loading } = usePublicImportFiles([dataFile, analysisFile, contentFile]);
+  const { data, error, loading } = usePublicImportFiles([dataFile, analysisFile, marginFile, contentFile]);
 
   if (loading && !data) return <PortalPageLoading variant="lendingPressure" />;
   if (error || !data) {
@@ -219,6 +221,11 @@ export function LendingPressureBrowserPage({ ticker }: { ticker: string }) {
   const contentEnvelope = (data[contentFile] ?? {}) as ImportEnvelope<Record<string, Row>>;
   const pageContent = record((contentEnvelope.data ?? {}).lendingPressure);
   const aiAnalysis = (data[analysisFile] ?? null) as AiAnalysis | null;
+  const marginPayload = (data[marginFile] ?? {}) as Partial<DashboardMarginFile>;
+  const marginRecords = (Array.isArray(marginPayload.records) ? marginPayload.records : []) as DashboardMarginRecord[];
+  const sortedMarginRecords = [...marginRecords].filter(row => row.date).sort((a, b) => b.date.localeCompare(a.date));
+  const latestMarginRecord = sortedMarginRecords[0];
+  const previousMarginRecord = sortedMarginRecords[1];
   const lendingData = record(lendingEnvelope.data);
   const current = record(lendingData.current);
   const dailyRows = rows(lendingData.daily);
@@ -231,8 +238,6 @@ export function LendingPressureBrowserPage({ ticker }: { ticker: string }) {
   const borrowFeeTrendRows = trendRows.filter(row => optionalNumeric(record(row.borrowFeeAll).costToBorrowAll) !== null);
   const latestAvailability = record(latestDaily.availability);
   const previousAvailability = record(previousDaily.availability);
-  const latestOnLoan = record(latestDaily.onLoan);
-  const previousOnLoan = record(previousDaily.onLoan);
   const previousBorrowFeeRow = record(previousDaily.borrowFeeAll);
   const borrowFee = numeric(current.costToBorrowAll) ?? 0;
   const sharesAvailable = numeric(current.shortAvailabilityShares) ?? 0;
@@ -248,12 +253,10 @@ export function LendingPressureBrowserPage({ ticker }: { ticker: string }) {
   const level = pressureScore >= 81 ? 'Extreme' : pressureScore >= 61 ? 'High' : pressureScore >= 31 ? 'Moderate' : 'Low';
   const lendingDerived = record(record(lendingData.derived).lendingPressurePage);
   const lendingSummary = record(lendingDerived.summary);
-  const lendingComponents = record(lendingDerived.components);
   const lendingCards = record(lendingDerived.cards);
   const sharesAvailableCard = record(lendingCards.sharesAvailable);
   const utilizationCard = record(lendingCards.utilization);
   const borrowFeeCard = record(lendingCards.borrowFee);
-  const onLoanCard = record(lendingCards.onLoan);
   const displayPressureScore = numeric(lendingSummary.pressureScore) ?? pressureScore;
   const displayLevel = String(lendingSummary.level ?? level);
   const utilizationChangePercent = optionalNumeric(utilizationCard.changePercent)
@@ -262,14 +265,9 @@ export function LendingPressureBrowserPage({ ticker }: { ticker: string }) {
     ?? percentageChange(borrowFee, previousBorrowFee);
   const sharesAvailableChangePercent = optionalNumeric(sharesAvailableCard.changePercent)
     ?? percentageChange(sharesAvailable, previousSharesAvailable);
-  const onLoanShares = optionalNumeric(current.sharesOnLoan ?? latestOnLoan.sharesOnLoan ?? onLoanCard.value);
-  const previousOnLoanShares = optionalNumeric(previousOnLoan.sharesOnLoan ?? onLoanCard.previousValue);
-  const onLoanChangePercent = optionalNumeric(onLoanCard.changePercent)
-    ?? percentageChange(onLoanShares, previousOnLoanShares);
-  const averageDurationDays = optionalNumeric(current.averageDurationDays ?? current.averageDuration);
-  const averageDurationChangePercent = optionalNumeric(current.averageDurationChangePercent);
-  const loanValueUsd = optionalNumeric(current.loanValueUsd ?? current.loanValue);
-  const loanValueChangePercent = optionalNumeric(current.loanValueChangePercent);
+  const averageDurationDays = optionalNumeric(latestMarginRecord?.averageDurationDays);
+  const previousAverageDurationDays = optionalNumeric(previousMarginRecord?.averageDurationDays);
+  const averageDurationChangePercent = percentageChange(averageDurationDays, previousAverageDurationDays);
   const protocolLockupPercent = optionalNumeric(current.protocolLockupPercent);
   const protocolLockupChangePercent = optionalNumeric(current.protocolLockupChangePercent);
   const lockedCollateralShares = optionalNumeric(current.lockedCollateralShares);
@@ -299,12 +297,6 @@ export function LendingPressureBrowserPage({ ticker }: { ticker: string }) {
       trend: (sharesAvailableChangePercent ?? 0) > 0 ? 'up' : (sharesAvailableChangePercent ?? 0) < 0 ? 'down' : undefined,
     },
     {
-      label: 'On Loan Trend',
-      status: onLoanShares === null ? 'No data' : (onLoanChangePercent ?? 0) >= 20 ? 'Rising' : 'Stable',
-      severity: onLoanShares === null ? 'info' : (onLoanChangePercent ?? 0) >= 20 ? 'medium' : 'low',
-      trend: onLoanShares === null ? undefined : (onLoanChangePercent ?? 0) > 0 ? 'up' : (onLoanChangePercent ?? 0) < 0 ? 'down' : undefined,
-    },
-    {
       label: 'Average Duration Risk',
       status: averageDurationDays === null ? 'No data' : averageDurationDays >= 30 ? 'Long' : 'Normal',
       severity: averageDurationDays === null ? 'info' : averageDurationDays >= 30 ? 'medium' : 'low',
@@ -331,7 +323,7 @@ export function LendingPressureBrowserPage({ ticker }: { ticker: string }) {
     <ImportDataPreviewPage
       title="Lending Pressure Intelligence"
       description={text(pageContent.pageDescription, 'Detailed borrow availability, utilization, and borrow fee data used to evaluate short seller pressure.')}
-      files={[dataFile, analysisFile]}
+      files={[dataFile, analysisFile, marginFile]}
     >
       <section className="terminal-section lending-page-overview">
         <div className="terminal-section__head">
@@ -379,8 +371,6 @@ export function LendingPressureBrowserPage({ ticker }: { ticker: string }) {
               <ExecutiveMetric label="Utilization" value={String(utilizationCard.valueDisplay ?? formatPercent(utilizationPct, { maximumFractionDigits: 1 }))} changePercent={utilizationChangePercent} />
               <ExecutiveMetric label="Borrow Fee" value={String(borrowFeeCard.valueDisplay ?? formatPercent(borrowFee, { maximumFractionDigits: 2 }))} changePercent={borrowFeeChangePercent} />
               <ExecutiveMetric label="Shortable Shares" value={String(sharesAvailableCard.valueDisplay ?? formatNumber(sharesAvailable))} changePercent={sharesAvailableChangePercent} />
-              <ExecutiveMetric label="On Loan Shares" value={onLoanShares === null ? 'N/A' : formatNumber(onLoanShares)} changePercent={onLoanChangePercent} />
-              <ExecutiveMetric label="Loan Value" value={loanValueUsd === null ? 'N/A' : `$${formatNumber(loanValueUsd)}`} changePercent={loanValueChangePercent} />
               <ExecutiveMetric label="Average Duration" value={averageDurationDays === null ? 'N/A' : `${formatNumber(averageDurationDays, { maximumFractionDigits: 2 })}d`} changePercent={averageDurationChangePercent} />
             </div>
           </article>

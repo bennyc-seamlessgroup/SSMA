@@ -67,13 +67,34 @@ function asArray(value: unknown): AdanosMention[] {
 }
 
 async function readPublicNarrativeFeed(prefix: string, platform: 'Reddit' | 'X') {
-  try {
-    const mentions = await readPublicSocialMentions(prefix, platform);
-    if (mentions.length) return mentions as AdanosMention[];
-  } catch {
-    // Public S3 prefix listing may be blocked. Do not fall back to bundled local data in production.
+  const mentions = await readPublicSocialMentions(prefix, platform);
+  return mentions as AdanosMention[];
+}
+
+async function readPublicNarrativeFeeds(
+  ticker: string,
+  prefixes: ReturnType<typeof getPublicSocialPrefixes>,
+) {
+  const [redditResult, xResult] = await Promise.allSettled([
+    readPublicNarrativeFeed(prefixes.reddit, 'Reddit'),
+    readPublicNarrativeFeed(prefixes.x, 'X'),
+  ]);
+
+  if (redditResult.status === 'fulfilled' && xResult.status === 'fulfilled') {
+    return { reddit: redditResult.value, x: xResult.value };
   }
-  return [];
+
+  const response = await fetch(`/api/social-data-feed?ticker=${encodeURIComponent(ticker)}`, {
+    cache: 'no-store',
+  });
+  if (!response.ok) {
+    throw new Error(`Social data fallback returned ${response.status} ${response.statusText}`);
+  }
+  const fallback = await response.json() as { reddit?: AdanosMention[]; x?: AdanosMention[] };
+  return {
+    reddit: redditResult.status === 'fulfilled' ? redditResult.value : (fallback.reddit ?? []),
+    x: xResult.status === 'fulfilled' ? xResult.value : (fallback.x ?? []),
+  };
 }
 
 function numeric(value: unknown) {
@@ -293,11 +314,12 @@ export function SentimentBrowserPage({ ticker }: { ticker: string }) {
   useEffect(() => {
     let cancelled = false;
     const load = async () => {
-      const [reddit, x] = await Promise.all([
-        readPublicNarrativeFeed(publicSocialPrefixes.reddit, 'Reddit'),
-        readPublicNarrativeFeed(publicSocialPrefixes.x, 'X'),
-      ]);
-      if (!cancelled) setPublicFeeds({ reddit, x });
+      try {
+        const feeds = await readPublicNarrativeFeeds(normalizedTicker, publicSocialPrefixes);
+        if (!cancelled) setPublicFeeds(feeds);
+      } catch {
+        if (!cancelled) setPublicFeeds({ reddit: [], x: [] });
+      }
     };
     void load();
     window.addEventListener('import-data-updated', load);
@@ -305,7 +327,7 @@ export function SentimentBrowserPage({ ticker }: { ticker: string }) {
       cancelled = true;
       window.removeEventListener('import-data-updated', load);
     };
-  }, [publicSocialPrefixes.reddit, publicSocialPrefixes.x]);
+  }, [normalizedTicker, publicSocialPrefixes.reddit, publicSocialPrefixes.x]);
 
   if (!publicFeeds || (stocktwitsState.loading && !stocktwitsState.data)) {
     return <PortalPageLoading variant="sentiment" />;

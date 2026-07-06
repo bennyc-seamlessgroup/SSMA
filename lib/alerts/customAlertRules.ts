@@ -42,7 +42,6 @@ export type CustomAlertValues = {
   borrowFeeRate?: number;
   utilization?: number;
   availableShares?: number;
-  onLoanShares?: number;
   ftdCount?: number;
   ftdValue?: number;
   priceDrawdown?: number;
@@ -141,20 +140,6 @@ export const defaultCustomAlertThresholds: CustomAlertThreshold[] = [
     description: 'Triggers when shares available to borrow fall below your selected inventory floor.',
     helperText: 'Lower available inventory can signal tightening borrow supply.',
     message: 'Shortable share inventory is below your configured minimum.',
-  },
-  {
-    id: 'on-loan-shares',
-    metric: 'onLoanShares',
-    label: 'On Loan Shares',
-    category: 'Lending & Borrowing Pressure',
-    enabled: true,
-    operator: '>',
-    threshold: 5_000_000,
-    unit: 'shares',
-    severity: 'medium',
-    description: 'Triggers when reported shares on loan exceed your selected level.',
-    helperText: 'On-loan shares measure the quantity currently borrowed in the lending market.',
-    message: 'Reported shares on loan are above your configured threshold.',
   },
   {
     id: 'ftd-count',

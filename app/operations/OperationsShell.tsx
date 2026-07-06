@@ -5,6 +5,7 @@ const navItems = [
   ['Dashboard', '/operations/dashboard'],
   ['Market Data (New)', '/operations/market-data'],
   ['SEC Filing Entry', '/operations/sec-filings'],
+  ['Notification Hotkeys', '/operations/hotkeys'],
   ['Narrative Social Upload', '/operations/narrative-social'],
   ['Ownership', '/operations/ownership'],
 ] as const;

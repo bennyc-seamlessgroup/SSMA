@@ -37,7 +37,7 @@ function formatCreatedAt(value: string) {
   }).format(date);
 }
 
-export function NotificationHotkeysClient({ ticker }: { ticker: string }) {
+export function HotkeyOperationsClient({ ticker }: { ticker: string }) {
   const normalizedTicker = ticker.trim().toUpperCase();
   const [mappings, setMappings] = useState<HotkeyMapping[]>([]);
   const [hotkey, setHotkey] = useState('');

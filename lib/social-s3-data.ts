@@ -12,6 +12,10 @@ export type PublicSocialMention = {
   sentiment_label: string;
   sentiment_score: null;
   followers?: number | null;
+  likes?: number | null;
+  retweets?: number | null;
+  upvotes?: number | null;
+  subreddit?: string;
   source_key: string;
   source_last_modified: string;
 };
@@ -61,8 +65,8 @@ function objectUrl(key: string) {
   return `${bucketObjectBase}/${key.split('/').map(encodeURIComponent).join('/')}`;
 }
 
-function stableObjectId(platform: PublicSocialPlatform, item: S3Object) {
-  return `${platform.toLowerCase()}-${item.key.replace(/[^a-zA-Z0-9]+/g, '-')}`;
+function stableObjectId(platform: PublicSocialPlatform, sourceKey: string, index: number) {
+  return `${platform.toLowerCase()}-${sourceKey.replace(/[^a-zA-Z0-9]+/g, '-')}-${index}`;
 }
 
 function numeric(value: unknown) {
@@ -79,21 +83,45 @@ function cleanTwitterAuthor(author: string) {
   return author.replace(/\s*:\s*[\d,]+\s+followers\s*$/i, '').trim();
 }
 
-function normalizePayload(platform: PublicSocialPlatform, item: S3Object, payload: Record<string, unknown>): PublicSocialMention {
+function payloadRows(payload: unknown): Record<string, unknown>[] {
+  if (Array.isArray(payload)) {
+    return payload.filter((row): row is Record<string, unknown> => Boolean(row) && typeof row === 'object');
+  }
+  if (!payload || typeof payload !== 'object') return [];
+  const record = payload as Record<string, unknown>;
+  if (Array.isArray(record.data)) return payloadRows(record.data);
+  if (Array.isArray(record.mentions)) return payloadRows(record.mentions);
+  if (Array.isArray(record.records)) return payloadRows(record.records);
+  return [record];
+}
+
+export function normalizePublicSocialPayload(
+  platform: PublicSocialPlatform,
+  sourceKey: string,
+  sourceLastModified: string,
+  payload: unknown,
+): PublicSocialMention[] {
+  return payloadRows(payload).map((row, index) => {
+  const payload = row;
   const author = String(payload.author ?? '').trim();
   return {
-    id: stableObjectId(platform, item),
+    id: String(payload.id ?? stableObjectId(platform, sourceKey, index)),
     platform,
     author: platform === 'X' ? cleanTwitterAuthor(author) : author,
-    timestamp: String(payload.datetime ?? payload.timestamp ?? item.lastModified ?? ''),
-    text: String(payload.content ?? payload.text ?? ''),
-    url: String(payload.link ?? payload.url ?? ''),
-    sentiment_label: String(payload.sentiment ?? payload.sentiment_label ?? 'neutral').toLowerCase(),
+    timestamp: String(payload.datetime ?? payload.timestamp ?? payload.created_utc ?? sourceLastModified ?? ''),
+    text: String(payload.content ?? payload.text ?? payload.text_snippet ?? ''),
+    url: String(payload.link ?? payload.url ?? payload.content_source_url ?? ''),
+    sentiment_label: String(payload.sentiment ?? payload.sentiment_label ?? payload.sentiment_score ?? 'neutral').toLowerCase(),
     sentiment_score: null,
-    followers: platform === 'X' ? parseTwitterFollowers(author) : null,
-    source_key: item.key,
-    source_last_modified: item.lastModified,
+    followers: numeric(payload.followers) ?? (platform === 'X' ? parseTwitterFollowers(author) : null),
+    likes: numeric(payload.likes),
+    retweets: numeric(payload.retweets),
+    upvotes: numeric(payload.upvotes),
+    subreddit: String(payload.subreddit ?? ''),
+    source_key: sourceKey,
+    source_last_modified: sourceLastModified,
   };
+  });
 }
 
 export async function listPublicSocialObjects(prefix: string): Promise<S3Object[]> {
@@ -136,13 +164,13 @@ export async function readPublicSocialMentions(prefix: string, platform: PublicS
   const settled = await Promise.allSettled(objects.map(async item => {
     const response = await fetch(objectUrl(item.key), { cache: 'no-store' });
     if (!response.ok) throw new Error(`Unable to fetch ${item.key}`);
-    const payload = await response.json() as Record<string, unknown>;
-    return normalizePayload(platform, item, payload);
+    const payload = await response.json() as unknown;
+    return normalizePublicSocialPayload(platform, item.key, item.lastModified, payload);
   }));
 
   const mentions = settled
-    .filter((result): result is PromiseFulfilledResult<PublicSocialMention> => result.status === 'fulfilled')
-    .map(result => result.value)
+    .filter((result): result is PromiseFulfilledResult<PublicSocialMention[]> => result.status === 'fulfilled')
+    .flatMap(result => result.value)
     .filter(item => item.text || item.url || item.author)
     .sort((a, b) => Date.parse(b.timestamp) - Date.parse(a.timestamp));
 

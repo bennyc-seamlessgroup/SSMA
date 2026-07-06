@@ -36,7 +36,7 @@ export function getPageDataSources(ticker: string): Record<string, PageDataSourc
   },
   'lending-pressure': {
     type: 'import-files',
-    files: [lendingPressureFile(ticker), aiAnalysisFile(ticker)],
+    files: [lendingPressureFile(ticker), aiAnalysisFile(ticker), dashboardMarginFile(ticker)],
   },
   'squeeze-readiness': {
     type: 'import-files',
