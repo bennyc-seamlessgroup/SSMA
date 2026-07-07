@@ -30,7 +30,12 @@ export function HotkeyWorkspace() {
       <div className="ops-ticker-context">
         <label>
           <span>Company ticker</span>
-          <input value={draft} maxLength={10} onChange={event => setDraft(event.target.value.toUpperCase())} />
+          <input
+            value={draft}
+            maxLength={10}
+            suppressHydrationWarning
+            onChange={event => setDraft(event.target.value.toUpperCase())}
+          />
         </label>
         <button type="button" onClick={loadWorkspace}>Load Workspace</button>
         <small>Notification mappings are managed per ticker.</small>

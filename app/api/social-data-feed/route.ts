@@ -31,12 +31,14 @@ export async function GET(request: Request) {
   try {
     const ticker = normalizeTicker(new URL(request.url).searchParams.get('ticker'));
     const prefixes = getPublicSocialPrefixes(ticker);
-    const [reddit, x] = await Promise.all([
+    const [reddit, x, facebook, linkedin] = await Promise.all([
       readPlatform(prefixes.reddit, 'Reddit'),
       readPlatform(prefixes.x, 'X'),
+      readPlatform(prefixes.facebook, 'Facebook'),
+      readPlatform(prefixes.linkedin, 'Linkedin'),
     ]);
 
-    return NextResponse.json({ reddit, x }, {
+    return NextResponse.json({ reddit, x, facebook, linkedin }, {
       headers: {
         'Cache-Control': 'public, s-maxage=30, stale-while-revalidate=120',
       },
@@ -45,6 +47,8 @@ export async function GET(request: Request) {
     return NextResponse.json({
       reddit: [],
       x: [],
+      facebook: [],
+      linkedin: [],
       error: error instanceof Error ? error.message : 'Unable to load social data.',
     }, { status: 500 });
   }

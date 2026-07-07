@@ -142,12 +142,14 @@ async function listPrefixStatus(prefix: string, signal?: AbortSignal): Promise<P
 
 async function socialStatus(ticker: string, signal?: AbortSignal): Promise<PublicPageDataStatus> {
   const normalizedTicker = normalizeTicker(ticker);
-  const [reddit, x, stocktwits] = await Promise.all([
+  const [reddit, x, facebook, linkedin, stocktwits] = await Promise.all([
     listPrefixStatus(`social-data/Reddit_${normalizedTicker}`, signal).catch(() => null),
     listPrefixStatus(`social-data/Twitter__${normalizedTicker}`, signal).catch(() => null),
+    listPrefixStatus(`social-data/Facebook_${normalizedTicker}`, signal).catch(() => null),
+    listPrefixStatus(`social-data/Linkedin_${normalizedTicker}`, signal).catch(() => null),
     importFilesStatus([stocktwitsFile(normalizedTicker)], signal).catch(() => null),
   ]);
-  const statuses = [reddit, x, stocktwits].filter((status): status is PublicPageDataStatus => Boolean(status));
+  const statuses = [reddit, x, facebook, linkedin, stocktwits].filter((status): status is PublicPageDataStatus => Boolean(status));
   return {
     version: stableVersion(statuses.map(status => status.version).join('|') || 'social:unavailable'),
     updatedAt: latestDate(statuses.map(status => status.updatedAt)),

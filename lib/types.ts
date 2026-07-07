@@ -194,7 +194,7 @@ export type ExecutiveScoreFactor = {
 };
 
 export type SentimentPlatformSnapshot = {
-  platform: 'X' | 'StockTwits' | 'Reddit';
+  platform: 'X' | 'StockTwits' | 'Reddit' | 'Facebook' | 'Linkedin';
   posts: number;
   positive: number;
   negative: number;

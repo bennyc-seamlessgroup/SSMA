@@ -16,7 +16,7 @@ export type MentionFeedRow = {
 };
 
 const PAGE_SIZE = 6;
-const feedTypes = ['All', 'X', 'Reddit', 'Stocktwits'] as const;
+const feedTypes = ['All', 'X', 'Reddit', 'Facebook', 'Linkedin', 'Stocktwits'] as const;
 const sentimentFilters = ['All Sentiment', 'Bullish', 'Neutral', 'Bearish'] as const;
 
 function sentimentTone(sentiment: string) {
@@ -73,6 +73,8 @@ function logoSrc(row: MentionFeedRow) {
 function logoLabel(row: MentionFeedRow) {
   if (row.platform === 'Reddit') return 'R';
   if (row.platform === 'X') return 'X';
+  if (row.platform === 'Facebook') return 'f';
+  if (row.platform === 'Linkedin') return 'in';
   if (row.platform === 'Stocktwits') return 'S';
   return row.platform.slice(0, 1).toUpperCase();
 }

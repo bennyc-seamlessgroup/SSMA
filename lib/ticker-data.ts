@@ -71,3 +71,11 @@ export function redditSocialPrefix(ticker: string) {
 export function xSocialPrefix(ticker: string) {
   return tickerFile('social-data/Twitter__{ticker}', ticker);
 }
+
+export function facebookSocialPrefix(ticker: string) {
+  return tickerFile('social-data/Facebook_{ticker}', ticker);
+}
+
+export function linkedinSocialPrefix(ticker: string) {
+  return tickerFile('social-data/Linkedin_{ticker}', ticker);
+}

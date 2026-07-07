@@ -1,6 +1,6 @@
-import { redditSocialPrefix, xSocialPrefix } from '@/lib/ticker-data';
+import { facebookSocialPrefix, linkedinSocialPrefix, redditSocialPrefix, xSocialPrefix } from '@/lib/ticker-data';
 
-export type PublicSocialPlatform = 'Reddit' | 'X';
+export type PublicSocialPlatform = 'Reddit' | 'X' | 'Facebook' | 'Linkedin';
 
 export type PublicSocialMention = {
   id: string;
@@ -83,6 +83,10 @@ function cleanTwitterAuthor(author: string) {
   return author.replace(/\s*:\s*[\d,]+\s+followers\s*$/i, '').trim();
 }
 
+function cleanAuthor(platform: PublicSocialPlatform, author: string) {
+  return platform === 'X' ? cleanTwitterAuthor(author) : author;
+}
+
 function payloadRows(payload: unknown): Record<string, unknown>[] {
   if (Array.isArray(payload)) {
     return payload.filter((row): row is Record<string, unknown> => Boolean(row) && typeof row === 'object');
@@ -107,7 +111,7 @@ export function normalizePublicSocialPayload(
   return {
     id: String(payload.id ?? stableObjectId(platform, sourceKey, index)),
     platform,
-    author: platform === 'X' ? cleanTwitterAuthor(author) : author,
+    author: cleanAuthor(platform, author),
     timestamp: String(payload.datetime ?? payload.timestamp ?? payload.created_utc ?? sourceLastModified ?? ''),
     text: String(payload.content ?? payload.text ?? payload.text_snippet ?? ''),
     url: String(payload.link ?? payload.url ?? payload.content_source_url ?? ''),
@@ -196,5 +200,7 @@ export function getPublicSocialPrefixes(ticker: string) {
   return {
     reddit: redditSocialPrefix(ticker),
     x: xSocialPrefix(ticker),
+    facebook: facebookSocialPrefix(ticker),
+    linkedin: linkedinSocialPrefix(ticker),
   } as const;
 }

@@ -66,7 +66,14 @@ function asArray(value: unknown): AdanosMention[] {
   return [];
 }
 
-async function readPublicNarrativeFeed(prefix: string, platform: 'Reddit' | 'X') {
+type PublicFeedState = {
+  reddit: AdanosMention[];
+  x: AdanosMention[];
+  facebook: AdanosMention[];
+  linkedin: AdanosMention[];
+};
+
+async function readPublicNarrativeFeed(prefix: string, platform: 'Reddit' | 'X' | 'Facebook' | 'Linkedin') {
   const mentions = await readPublicSocialMentions(prefix, platform);
   return mentions as AdanosMention[];
 }
@@ -75,13 +82,21 @@ async function readPublicNarrativeFeeds(
   ticker: string,
   prefixes: ReturnType<typeof getPublicSocialPrefixes>,
 ) {
-  const [redditResult, xResult] = await Promise.allSettled([
+  const results = await Promise.allSettled([
     readPublicNarrativeFeed(prefixes.reddit, 'Reddit'),
     readPublicNarrativeFeed(prefixes.x, 'X'),
+    readPublicNarrativeFeed(prefixes.facebook, 'Facebook'),
+    readPublicNarrativeFeed(prefixes.linkedin, 'Linkedin'),
   ]);
+  const [redditResult, xResult, facebookResult, linkedinResult] = results;
 
-  if (redditResult.status === 'fulfilled' && xResult.status === 'fulfilled') {
-    return { reddit: redditResult.value, x: xResult.value };
+  if (results.every(result => result.status === 'fulfilled')) {
+    return {
+      reddit: redditResult.status === 'fulfilled' ? redditResult.value : [],
+      x: xResult.status === 'fulfilled' ? xResult.value : [],
+      facebook: facebookResult.status === 'fulfilled' ? facebookResult.value : [],
+      linkedin: linkedinResult.status === 'fulfilled' ? linkedinResult.value : [],
+    };
   }
 
   const response = await fetch(`/api/social-data-feed?ticker=${encodeURIComponent(ticker)}`, {
@@ -90,10 +105,12 @@ async function readPublicNarrativeFeeds(
   if (!response.ok) {
     throw new Error(`Social data fallback returned ${response.status} ${response.statusText}`);
   }
-  const fallback = await response.json() as { reddit?: AdanosMention[]; x?: AdanosMention[] };
+  const fallback = await response.json() as Partial<PublicFeedState>;
   return {
     reddit: redditResult.status === 'fulfilled' ? redditResult.value : (fallback.reddit ?? []),
     x: xResult.status === 'fulfilled' ? xResult.value : (fallback.x ?? []),
+    facebook: facebookResult.status === 'fulfilled' ? facebookResult.value : (fallback.facebook ?? []),
+    linkedin: linkedinResult.status === 'fulfilled' ? linkedinResult.value : (fallback.linkedin ?? []),
   };
 }
 
@@ -136,14 +153,14 @@ function sentimentLabelFor(score: number) {
   return 'Neutral';
 }
 
-function deltaLabel(current: number, previous: number) {
+function deltaLabel(current: number, previous: number, label: string) {
   const delta = current - previous;
-  return `${delta >= 0 ? '↑ +' : '↓ '}${delta} vs previous period`;
+  return `${delta >= 0 ? '↑ +' : '↓ '}${delta} vs previous ${label}`;
 }
 
-function DeltaText({ current, previous }: { current: number; previous: number }) {
+function DeltaText({ current, previous, label }: { current: number; previous: number; label: string }) {
   const delta = current - previous;
-  return <small className={`narrative-delta ${delta >= 0 ? 'up' : 'down'}`}>{deltaLabel(current, previous)}</small>;
+  return <small className={`narrative-delta ${delta >= 0 ? 'up' : 'down'}`}>{deltaLabel(current, previous, label)}</small>;
 }
 
 function mentionTimestampMs(value: unknown) {
@@ -196,6 +213,18 @@ function feedRows(feed: AdanosMention[], platformLabel: string, timeZone: string
       metrics.push({ label: 'Likes', value: numeric(item.likes).toLocaleString('en-US') });
       metrics.push({ label: 'Reshares', value: numeric(item.reshares).toLocaleString('en-US') });
       engagementScore = numeric(item.followers);
+      sortLabel = 'Most Followers';
+    } else if (platformLabel === 'Facebook') {
+      metrics.push({ label: 'Followers', value: numeric(item.followers).toLocaleString('en-US') });
+      metrics.push({ label: 'Likes', value: numeric(item.likes).toLocaleString('en-US') });
+      metrics.push({ label: 'Comments', value: numeric(item.comments).toLocaleString('en-US') });
+      engagementScore = numeric(item.followers) || numeric(item.likes) + numeric(item.comments);
+      sortLabel = 'Most Followers';
+    } else if (platformLabel === 'Linkedin') {
+      metrics.push({ label: 'Followers', value: numeric(item.followers).toLocaleString('en-US') });
+      metrics.push({ label: 'Likes', value: numeric(item.likes).toLocaleString('en-US') });
+      metrics.push({ label: 'Comments', value: numeric(item.comments).toLocaleString('en-US') });
+      engagementScore = numeric(item.followers) || numeric(item.likes) + numeric(item.comments);
       sortLabel = 'Most Followers';
     }
 
@@ -271,6 +300,32 @@ function formatCompactNumber(value: number) {
   return value.toLocaleString('en-US');
 }
 
+function sentimentToneFromScore(score: number) {
+  const label = sentimentLabelFor(score);
+  if (label === 'Bullish') return 'positive';
+  if (label === 'Bearish') return 'negative';
+  return 'neutral';
+}
+
+function PlatformSentimentCard({ platforms }: {
+  platforms: Array<{ label: string; score: number; count: number }>;
+}) {
+  return (
+    <div className="narrative-kpi-card narrative-platform-card">
+      <KpiTitle text="Platform sentiment labels for the selected timeframe. Each platform is calculated from positive, neutral, and negative record counts.">Platform Sentiment</KpiTitle>
+      <div className="narrative-platform-summary">
+        {platforms.map(item => (
+          <div className="narrative-platform-row" key={item.label}>
+            <span>{item.label}</span>
+            <strong className={sentimentToneFromScore(item.score)}>{sentimentLabelFor(item.score)}</strong>
+            <small>{item.count.toLocaleString('en-US')} feeds</small>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 function DevJsonTables({ datasets, timeZone }: { datasets: Array<{ file: string; payload: SocialMentionsFile }>; timeZone: string }) {
   return (
     <section className="narrative-feed-panel dev-only">
@@ -309,7 +364,7 @@ export function SentimentBrowserPage({ ticker }: { ticker: string }) {
   const timeZone = usePortalTimeZone();
   const activeRange = rangeFromSearch(searchParams.get('range') ?? undefined);
   const stocktwitsState = usePublicImportFiles([stocktwitsPath]);
-  const [publicFeeds, setPublicFeeds] = useState<{ reddit: AdanosMention[]; x: AdanosMention[] } | null>(null);
+  const [publicFeeds, setPublicFeeds] = useState<PublicFeedState | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -318,7 +373,7 @@ export function SentimentBrowserPage({ ticker }: { ticker: string }) {
         const feeds = await readPublicNarrativeFeeds(normalizedTicker, publicSocialPrefixes);
         if (!cancelled) setPublicFeeds(feeds);
       } catch {
-        if (!cancelled) setPublicFeeds({ reddit: [], x: [] });
+        if (!cancelled) setPublicFeeds({ reddit: [], x: [], facebook: [], linkedin: [] });
       }
     };
     void load();
@@ -327,7 +382,13 @@ export function SentimentBrowserPage({ ticker }: { ticker: string }) {
       cancelled = true;
       window.removeEventListener('import-data-updated', load);
     };
-  }, [normalizedTicker, publicSocialPrefixes.reddit, publicSocialPrefixes.x]);
+  }, [
+    normalizedTicker,
+    publicSocialPrefixes.reddit,
+    publicSocialPrefixes.x,
+    publicSocialPrefixes.facebook,
+    publicSocialPrefixes.linkedin,
+  ]);
 
   if (!publicFeeds || (stocktwitsState.loading && !stocktwitsState.data)) {
     return <PortalPageLoading variant="sentiment" />;
@@ -335,12 +396,16 @@ export function SentimentBrowserPage({ ticker }: { ticker: string }) {
 
   const redditMentions = publicFeeds.reddit;
   const xMentions = publicFeeds.x;
+  const facebookMentions = publicFeeds.facebook;
+  const linkedinMentions = publicFeeds.linkedin;
   const stocktwitsJson = (stocktwitsState.data?.[stocktwitsPath] ?? {}) as SocialMentionsFile;
   const stocktwitsMentions = asArray(stocktwitsJson);
   const redditJson = { platform: 'Reddit', recordCount: redditMentions.length, originalFileName: publicSocialPrefixes.reddit, data: redditMentions };
   const xJson = { platform: 'X', recordCount: xMentions.length, originalFileName: publicSocialPrefixes.x, data: xMentions };
+  const facebookJson = { platform: 'Facebook', recordCount: facebookMentions.length, originalFileName: publicSocialPrefixes.facebook, data: facebookMentions };
+  const linkedinJson = { platform: 'Linkedin', recordCount: linkedinMentions.length, originalFileName: publicSocialPrefixes.linkedin, data: linkedinMentions };
 
-  const mentions = [...redditMentions, ...xMentions, ...stocktwitsMentions];
+  const mentions = [...redditMentions, ...xMentions, ...facebookMentions, ...linkedinMentions, ...stocktwitsMentions];
   const validMentionTimes = mentions.map(item => mentionTimestampMs(item.timestamp)).filter(value => value > 0);
   const latestMentionTime = validMentionTimes.length ? Math.max(...validMentionTimes) : Date.now();
   const dayMs = 24 * 60 * 60 * 1000;
@@ -352,6 +417,8 @@ export function SentimentBrowserPage({ ticker }: { ticker: string }) {
   const previousWindowMentions = filterWindow(mentions, previousWindowStart, currentWindowStart);
   const windowRedditMentions = filterWindow(redditMentions, currentWindowStart, latestMentionTime);
   const windowXMentions = filterWindow(xMentions, currentWindowStart, latestMentionTime);
+  const windowFacebookMentions = filterWindow(facebookMentions, currentWindowStart, latestMentionTime);
+  const windowLinkedinMentions = filterWindow(linkedinMentions, currentWindowStart, latestMentionTime);
   const windowStocktwitsMentions = filterWindow(stocktwitsMentions, currentWindowStart, latestMentionTime);
 
   const sentimentCounts = countBySentiment(windowMentions);
@@ -359,15 +426,28 @@ export function SentimentBrowserPage({ ticker }: { ticker: string }) {
   const previousAverageScore = averageScoreFor(previousWindowMentions);
   const redditScore = averageScoreFor(windowRedditMentions);
   const xScore = averageScoreFor(windowXMentions);
+  const facebookScore = averageScoreFor(windowFacebookMentions);
+  const linkedinScore = averageScoreFor(windowLinkedinMentions);
   const stocktwitsScore = averageScoreFor(windowStocktwitsMentions);
+  const platformSentiments = [
+    { label: 'Reddit', score: redditScore, count: windowRedditMentions.length },
+    { label: 'X', score: xScore, count: windowXMentions.length },
+    { label: 'Facebook', score: facebookScore, count: windowFacebookMentions.length },
+    { label: 'Linkedin', score: linkedinScore, count: windowLinkedinMentions.length },
+    { label: 'Stocktwits', score: stocktwitsScore, count: windowStocktwitsMentions.length },
+  ];
   const allRows = [
     ...feedRows(windowRedditMentions, 'Reddit', timeZone),
     ...feedRows(windowXMentions, 'X', timeZone),
+    ...feedRows(windowFacebookMentions, 'Facebook', timeZone),
+    ...feedRows(windowLinkedinMentions, 'Linkedin', timeZone),
     ...feedRows(windowStocktwitsMentions, 'Stocktwits', timeZone),
   ];
   const timelineMentions = [
     ...redditMentions.map(item => ({ timestampMs: mentionTimestampMs(item.timestamp), platform: 'Reddit' as const, score: sentimentValue(item) })),
     ...xMentions.map(item => ({ timestampMs: mentionTimestampMs(item.timestamp), platform: 'X' as const, score: sentimentValue(item) })),
+    ...facebookMentions.map(item => ({ timestampMs: mentionTimestampMs(item.timestamp), platform: 'Facebook' as const, score: sentimentValue(item) })),
+    ...linkedinMentions.map(item => ({ timestampMs: mentionTimestampMs(item.timestamp), platform: 'Linkedin' as const, score: sentimentValue(item) })),
     ...stocktwitsMentions.map(item => ({ timestampMs: mentionTimestampMs(item.timestamp), platform: 'Stocktwits' as const, score: sentimentValue(item) })),
   ].filter(item => item.timestampMs > 0);
 
@@ -375,7 +455,7 @@ export function SentimentBrowserPage({ ticker }: { ticker: string }) {
     <div className="page narrative-page">
       <div className="compact-page-header">
         <span>Social Sentiment</span>
-        <p>Track market sentiment and narrative momentum across X, Reddit, and Stocktwits.</p>
+        <p>Track market sentiment and narrative momentum across X, Reddit, Facebook, Linkedin, and Stocktwits.</p>
       </div>
 
       <NarrativeRangeSelector activeRange={activeRange.label} ranges={rangeOptions} />
@@ -391,12 +471,10 @@ export function SentimentBrowserPage({ ticker }: { ticker: string }) {
           <div className="narrative-kpi-card primary gauge-card">
             <KpiTitle text="Count-based composite sentiment. Positive records count as 100, neutral as 50, and negative as 0.">Overall Sentiment</KpiTitle>
             <SentimentGauge score={averageScore} />
-            <DeltaText current={averageScore} previous={previousAverageScore} />
+            <DeltaText current={averageScore} previous={previousAverageScore} label={activeRange.label} />
           </div>
-          <div className="narrative-kpi-card"><KpiTitle text="Reddit sentiment label in the selected timeframe using positive, neutral, and negative counts.">Reddit Sentiment</KpiTitle><strong>{sentimentLabelFor(redditScore)}</strong><small>{windowRedditMentions.length.toLocaleString('en-US')} feeds in timeframe</small></div>
-          <div className="narrative-kpi-card"><KpiTitle text="X sentiment label in the selected timeframe using positive, neutral, and negative counts.">X Sentiment</KpiTitle><strong>{sentimentLabelFor(xScore)}</strong><small>{windowXMentions.length.toLocaleString('en-US')} feeds in timeframe</small></div>
-          <div className="narrative-kpi-card"><KpiTitle text="Stocktwits sentiment label in the selected timeframe using positive, neutral, and negative counts.">Stocktwits Sentiment</KpiTitle><strong>{sentimentLabelFor(stocktwitsScore)}</strong><small>{windowStocktwitsMentions.length.toLocaleString('en-US')} feeds in timeframe</small></div>
-          <div className="narrative-kpi-card"><KpiTitle text="Total imported X, Reddit, and Stocktwits records in the selected timeframe.">Mentions</KpiTitle><strong>{formatCompactNumber(windowMentions.length)}</strong><small>{activeRange.label} window</small></div>
+          <PlatformSentimentCard platforms={platformSentiments} />
+          <div className="narrative-kpi-card"><KpiTitle text="Total imported platform records in the selected timeframe.">Mentions</KpiTitle><strong>{formatCompactNumber(windowMentions.length)}</strong><small>{activeRange.label} window</small></div>
         </div>
       </section>
 
@@ -435,6 +513,8 @@ export function SentimentBrowserPage({ ticker }: { ticker: string }) {
       <DevJsonTables timeZone={timeZone} datasets={[
         { file: `S3 prefix: ${publicSocialPrefixes.reddit}`, payload: redditJson },
         { file: `S3 prefix: ${publicSocialPrefixes.x}`, payload: xJson },
+        { file: `S3 prefix: ${publicSocialPrefixes.facebook}`, payload: facebookJson },
+        { file: `S3 prefix: ${publicSocialPrefixes.linkedin}`, payload: linkedinJson },
         { file: stocktwitsPath, payload: stocktwitsJson },
       ]} />
     </div>
