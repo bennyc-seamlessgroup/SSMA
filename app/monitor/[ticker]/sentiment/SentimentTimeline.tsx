@@ -1,34 +1,16 @@
 'use client';
 
-import { useMemo, useState } from 'react';
-import { usePortalTimeZone } from '@/components/usePortalTimeZone';
-import { normalizePortalTimeZone } from '@/lib/timezone';
+import type { AggregatedSentimentBucket, SentimentPlatformFilter } from '@/lib/sentiment-buckets';
+import { useState } from 'react';
 
-type TimelineMention = {
-  timestampMs: number;
-  platform: 'Reddit' | 'X' | 'Facebook' | 'Linkedin' | 'Stocktwits';
-  score: number;
+const platformColors: Record<SentimentPlatformFilter, string> = {
+  All: '#7c3aed',
+  X: 'var(--narrative-x-color, #111827)',
+  Reddit: '#ff4500',
+  Facebook: '#1877f2',
+  Linkedin: '#0a66c2',
+  Stocktwits: '#1296f3',
 };
-
-type SeriesKey = 'overall' | 'x' | 'reddit' | 'facebook' | 'linkedin' | 'stocktwits';
-type TimelineBucket = {
-  label: string;
-  overall: number | null;
-  x: number | null;
-  reddit: number | null;
-  facebook: number | null;
-  linkedin: number | null;
-  stocktwits: number | null;
-};
-
-const seriesConfig: Array<{ key: SeriesKey; label: string; color: string }> = [
-  { key: 'overall', label: 'Overall', color: '#7c3aed' },
-  { key: 'x', label: 'X', color: 'var(--narrative-x-color, #111827)' },
-  { key: 'reddit', label: 'Reddit', color: '#ff4500' },
-  { key: 'facebook', label: 'Facebook', color: '#1877f2' },
-  { key: 'linkedin', label: 'Linkedin', color: '#0a66c2' },
-  { key: 'stocktwits', label: 'Stocktwits', color: '#1296f3' },
-];
 
 const chart = {
   width: 1100,
@@ -38,74 +20,6 @@ const chart = {
   top: 16,
   bottom: 42,
 };
-
-function average(values: number[]) {
-  return values.length ? Math.round(values.reduce((sum, value) => sum + value, 0) / values.length) : null;
-}
-
-function formatTimeLabel(timestamp: number, timeZone: string) {
-  return new Intl.DateTimeFormat('en-US', {
-    hour: 'numeric',
-    hour12: true,
-    timeZone: normalizePortalTimeZone(timeZone),
-  }).format(new Date(timestamp));
-}
-
-function formatDateLabel(timestamp: number, rangeDays: number, timeZone: string) {
-  const options: Intl.DateTimeFormatOptions = rangeDays > 90
-    ? { month: 'short', year: '2-digit' }
-    : rangeDays > 7
-      ? { month: 'short', day: 'numeric' }
-      : { weekday: 'short', day: 'numeric' };
-  return new Intl.DateTimeFormat('en-US', {
-    ...options,
-    timeZone: normalizePortalTimeZone(timeZone),
-  }).format(new Date(timestamp));
-}
-
-function formatBucketLabel(start: number, rangeDays: number, timeZone: string) {
-  return rangeDays === 1 ? formatTimeLabel(start, timeZone) : formatDateLabel(start, rangeDays, timeZone);
-}
-
-function bucketCountFor(rangeDays: number) {
-  if (rangeDays === 1) return 12;
-  if (rangeDays <= 7) return 14;
-  if (rangeDays <= 30) return 20;
-  if (rangeDays <= 183) return 24;
-  return 30;
-}
-
-function buildSeries(points: TimelineMention[], rangeDays: number, timeZone: string): TimelineBucket[] {
-  const latest = Date.now();
-  const start = latest - rangeDays * 24 * 60 * 60 * 1000;
-  const filtered = points.filter(point => point.timestampMs >= start && point.timestampMs <= latest);
-  const bucketCount = bucketCountFor(rangeDays);
-  const bucketSize = Math.max((latest - start) / bucketCount, 1);
-
-  return Array.from({ length: bucketCount }, (_, index) => {
-    const bucketStart = start + index * bucketSize;
-    const bucketEnd = index === bucketCount - 1 ? latest : bucketStart + bucketSize;
-    const bucketPoints = filtered.filter(point => (
-      point.timestampMs >= bucketStart
-      && (index === bucketCount - 1 ? point.timestampMs <= bucketEnd : point.timestampMs < bucketEnd)
-    ));
-    const reddit = bucketPoints.filter(point => point.platform === 'Reddit').map(point => point.score);
-    const x = bucketPoints.filter(point => point.platform === 'X').map(point => point.score);
-    const facebook = bucketPoints.filter(point => point.platform === 'Facebook').map(point => point.score);
-    const linkedin = bucketPoints.filter(point => point.platform === 'Linkedin').map(point => point.score);
-    const stocktwits = bucketPoints.filter(point => point.platform === 'Stocktwits').map(point => point.score);
-
-    return {
-      label: formatBucketLabel(bucketStart, rangeDays, timeZone),
-      overall: average(bucketPoints.map(point => point.score)),
-      reddit: average(reddit),
-      x: average(x),
-      facebook: average(facebook),
-      linkedin: average(linkedin),
-      stocktwits: average(stocktwits),
-    };
-  });
-}
 
 function groupCenterX(index: number, total: number) {
   const plotWidth = chart.width - chart.left - chart.right;
@@ -126,32 +40,43 @@ function visibleLabelIndexes(length: number) {
   return indexes;
 }
 
-export function SentimentTimeline({ mentions, rangeDays }: { mentions: TimelineMention[]; rangeDays: number }) {
-  const [selectedSeries, setSelectedSeries] = useState<SeriesKey>('overall');
-  const [hovered, setHovered] = useState<number | null>(null);
-  const timeZone = usePortalTimeZone();
-  const series = useMemo(() => buildSeries(mentions, rangeDays, timeZone), [mentions, rangeDays, timeZone]);
-  const labels = useMemo(() => visibleLabelIndexes(series.length), [series.length]);
-  const selectedConfig = seriesConfig.find(item => item.key === selectedSeries) ?? seriesConfig[0];
+function platformLabel(platform: SentimentPlatformFilter) {
+  return platform === 'Linkedin' ? 'LinkedIn' : platform;
+}
+
+export function SentimentTimeline({
+  buckets,
+  selectedPlatform,
+  selectedBucketId,
+  onSelectBucket,
+}: {
+  buckets: AggregatedSentimentBucket[];
+  selectedPlatform: SentimentPlatformFilter;
+  selectedBucketId: string | null;
+  onSelectBucket: (bucket: AggregatedSentimentBucket) => void;
+}) {
+  const [hoveredBucketId, setHoveredBucketId] = useState<string | null>(null);
+  const labels = visibleLabelIndexes(buckets.length);
+  const selectedColor = platformColors[selectedPlatform];
   const plotWidth = chart.width - chart.left - chart.right;
-  const groupStep = plotWidth / Math.max(series.length, 1);
+  const groupStep = plotWidth / Math.max(buckets.length, 1);
   const barWidth = Math.min(Math.max(groupStep * .46, 5), 28);
-  const hoveredX = hovered !== null ? groupCenterX(hovered, series.length) : 0;
+  const selectedIndex = selectedBucketId ? buckets.findIndex(bucket => bucket.id === selectedBucketId) : -1;
+  const hoveredIndex = hoveredBucketId ? buckets.findIndex(bucket => bucket.id === hoveredBucketId) : -1;
+  const activeIndex = hoveredIndex >= 0 ? hoveredIndex : selectedIndex >= 0 ? selectedIndex : null;
+  const tooltipIndex = activeIndex;
+  const tooltipX = tooltipIndex !== null ? groupCenterX(tooltipIndex, buckets.length) : 0;
 
   return (
     <div className="narrative-timeline-card narrative-line-timeline">
       <div className="narrative-section-head narrative-timeline-head">
         <div>
           <h2>Sentiment Timeline</h2>
-          <p>One sentiment series at a time. Use the selector to compare platforms without duplicate bars per date.</p>
+          <p>Fixed date buckets keep every bar aligned to the selected timeframe.</p>
         </div>
-        <div className="narrative-timeline-select">
-          <span>Series</span>
-          <select value={selectedSeries} onChange={event => setSelectedSeries(event.target.value as SeriesKey)}>
-            {seriesConfig.map(item => (
-              <option key={item.key} value={item.key}>{item.label}</option>
-            ))}
-          </select>
+        <div className="narrative-timeline-current">
+          <i style={{ background: selectedColor }} />
+          {selectedPlatform}
         </div>
       </div>
 
@@ -160,7 +85,7 @@ export function SentimentTimeline({ mentions, rangeDays }: { mentions: TimelineM
           viewBox={`0 0 ${chart.width} ${chart.height}`}
           role="img"
           aria-label="Grouped sentiment scores over time"
-          onMouseLeave={() => setHovered(null)}
+          onMouseLeave={() => setHoveredBucketId(null)}
         >
           {[100, 75, 50, 25, 0].map(tick => (
             <g key={tick} className="narrative-line-grid">
@@ -169,11 +94,11 @@ export function SentimentTimeline({ mentions, rangeDays }: { mentions: TimelineM
             </g>
           ))}
 
-          {series.map((bucket, index) => labels.has(index) && (
+          {buckets.map((bucket, index) => labels.has(index) && (
             <text
               className="narrative-line-x-label"
               key={`${bucket.label}-${index}`}
-              x={groupCenterX(index, series.length)}
+              x={groupCenterX(index, buckets.length)}
               y={chart.height - 12}
               textAnchor="middle"
             >
@@ -182,45 +107,45 @@ export function SentimentTimeline({ mentions, rangeDays }: { mentions: TimelineM
           ))}
 
           <g>
-            {series.map((bucket, bucketIndex) => {
-              const value = bucket[selectedSeries];
-              if (value === null) return null;
+            {buckets.map((bucket, bucketIndex) => {
+              const value = bucket.score ?? 0;
               const y = yFor(value);
+              const selected = selectedBucketId === bucket.id;
               return (
                 <rect
-                  key={`${bucketIndex}-${selectedSeries}`}
-                  className="narrative-series-bar"
-                  x={groupCenterX(bucketIndex, series.length) - barWidth / 2}
+                  key={bucket.id}
+                  className={`narrative-series-bar ${selected ? 'selected' : ''} ${bucket.mentions ? '' : 'is-empty'}`}
+                  x={groupCenterX(bucketIndex, buckets.length) - barWidth / 2}
                   y={y}
                   width={barWidth}
                   height={Math.max(2, yFor(0) - y)}
                   rx={Math.min(5, barWidth / 2)}
-                  style={{ fill: selectedConfig.color, opacity: hovered === null || hovered === bucketIndex ? .92 : .28 }}
-                  onMouseEnter={() => setHovered(bucketIndex)}
+                  style={{ fill: selectedColor, opacity: selectedBucketId && !selected ? .32 : bucket.mentions ? .92 : .18 }}
+                  onMouseEnter={() => setHoveredBucketId(bucket.id)}
+                  onClick={() => onSelectBucket(bucket)}
                 />
               );
             })}
           </g>
         </svg>
 
-        {hovered !== null && (
+        {tooltipIndex !== null && (
           <div
-            className={`narrative-line-tooltip ${hoveredX > chart.width * .68 ? 'is-right' : ''}`}
-            style={{ left: `${(hoveredX / chart.width) * 100}%` }}
+            className={`narrative-line-tooltip ${tooltipX > chart.width * .68 ? 'is-right' : ''}`}
+            style={{ left: `${(tooltipX / chart.width) * 100}%` }}
           >
-            <strong>{series[hovered].label}</strong>
+            <strong>{buckets[tooltipIndex].tooltipLabel}</strong>
             <span className="focused">
-              <i style={{ background: selectedConfig.color }} />
-              {selectedConfig.label}
-              <b>{series[hovered][selectedSeries] ?? 'No data'}</b>
+              <i style={{ background: selectedColor }} />
+              {platformLabel(selectedPlatform)}
+              <b>{buckets[tooltipIndex].score ?? 'No data'}</b>
             </span>
+            <span>Mentions <b>{buckets[tooltipIndex].mentions}</b></span>
+            <span>Bullish <b>{buckets[tooltipIndex].positive}</b></span>
+            <span>Neutral <b>{buckets[tooltipIndex].neutral}</b></span>
+            <span>Bearish <b>{buckets[tooltipIndex].negative}</b></span>
           </div>
         )}
-
-        <div className="narrative-timeline-current">
-          <i style={{ background: selectedConfig.color }} />
-          {selectedConfig.label}
-        </div>
       </div>
     </div>
   );

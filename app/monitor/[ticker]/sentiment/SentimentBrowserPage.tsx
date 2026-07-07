@@ -6,6 +6,7 @@ import { PortalPageLoading } from '@/components/PortalPageLoading';
 import { usePortalTimeZone } from '@/components/usePortalTimeZone';
 import { usePublicImportFiles } from '@/components/usePublicImportFiles';
 import { getPublicSocialPrefixes, readPublicSocialMentions } from '@/lib/social-s3-data';
+import { aggregateSentimentByBucket, getSentimentBuckets, type SentimentPlatformFilter, type SentimentTimeframe } from '@/lib/sentiment-buckets';
 import { normalizeTicker, stocktwitsFile } from '@/lib/ticker-data';
 import { formatPortalDateTime } from '@/lib/timezone';
 import { useSearchParams } from 'next/navigation';
@@ -163,6 +164,12 @@ function DeltaText({ current, previous, label }: { current: number; previous: nu
   return <small className={`narrative-delta ${delta >= 0 ? 'up' : 'down'}`}>{deltaLabel(current, previous, label)}</small>;
 }
 
+function InlineDelta({ current, previous }: { current: number; previous: number | null }) {
+  if (previous === null) return <em>No prior data</em>;
+  const delta = current - previous;
+  return <em className={delta >= 0 ? 'up' : 'down'}>{delta >= 0 ? '+' : ''}{delta}</em>;
+}
+
 function mentionTimestampMs(value: unknown) {
   const date = new Date(String(value ?? ''));
   return Number.isNaN(date.getTime()) ? 0 : date.getTime();
@@ -294,12 +301,6 @@ function SentimentGauge({ score }: { score: number }) {
   );
 }
 
-function formatCompactNumber(value: number) {
-  if (value >= 1_000_000) return `${(value / 1_000_000).toFixed(1)}M`;
-  if (value >= 1_000) return `${(value / 1_000).toFixed(1)}K`;
-  return value.toLocaleString('en-US');
-}
-
 function sentimentToneFromScore(score: number) {
   const label = sentimentLabelFor(score);
   if (label === 'Bullish') return 'positive';
@@ -307,24 +308,43 @@ function sentimentToneFromScore(score: number) {
   return 'neutral';
 }
 
+function platformDisplayLabel(platform: SentimentPlatformFilter) {
+  return platform === 'Linkedin' ? 'LinkedIn' : platform;
+}
+
 function PlatformSentimentCard({ platforms }: {
-  platforms: Array<{ label: string; score: number; count: number }>;
+  platforms: Array<{ label: Exclude<SentimentPlatformFilter, 'All'>; score: number; previousScore: number | null; count: number }>;
 }) {
   return (
     <div className="narrative-kpi-card narrative-platform-card">
       <KpiTitle text="Platform sentiment labels for the selected timeframe. Each platform is calculated from positive, neutral, and negative record counts.">Platform Sentiment</KpiTitle>
-      <div className="narrative-platform-summary">
+      <div className="narrative-platform-table">
         {platforms.map(item => (
           <div className="narrative-platform-row" key={item.label}>
-            <span>{item.label}</span>
-            <strong className={sentimentToneFromScore(item.score)}>{sentimentLabelFor(item.score)}</strong>
-            <small>{item.count.toLocaleString('en-US')} feeds</small>
+            <span>{platformDisplayLabel(item.label)}</span>
+            {item.count > 0 ? (
+              <>
+                <strong className={sentimentToneFromScore(item.score)}>{sentimentLabelFor(item.score)}</strong>
+                <b>{item.score}</b>
+                <small>{item.count.toLocaleString('en-US')} feeds</small>
+                <InlineDelta current={item.score} previous={item.previousScore} />
+              </>
+            ) : (
+              <>
+                <strong className="empty">N/A</strong>
+                <b>No data</b>
+                <small>0 feeds</small>
+                <em>No prior data</em>
+              </>
+            )}
           </div>
         ))}
       </div>
     </div>
   );
 }
+
+const platformFilters: SentimentPlatformFilter[] = ['All', 'X', 'Reddit', 'Facebook', 'Linkedin', 'Stocktwits'];
 
 function DevJsonTables({ datasets, timeZone }: { datasets: Array<{ file: string; payload: SocialMentionsFile }>; timeZone: string }) {
   return (
@@ -363,6 +383,8 @@ export function SentimentBrowserPage({ ticker }: { ticker: string }) {
   const searchParams = useSearchParams();
   const timeZone = usePortalTimeZone();
   const activeRange = rangeFromSearch(searchParams.get('range') ?? undefined);
+  const [selectedPlatform, setSelectedPlatform] = useState<SentimentPlatformFilter>('All');
+  const [selectedBucketId, setSelectedBucketId] = useState<string | null>(null);
   const stocktwitsState = usePublicImportFiles([stocktwitsPath]);
   const [publicFeeds, setPublicFeeds] = useState<PublicFeedState | null>(null);
 
@@ -412,6 +434,7 @@ export function SentimentBrowserPage({ ticker }: { ticker: string }) {
   const currentWindowMs = activeRange.days * dayMs;
   const currentWindowStart = latestMentionTime - currentWindowMs;
   const previousWindowStart = latestMentionTime - currentWindowMs * 2;
+  const activeRangeLabel = activeRange.label as SentimentTimeframe;
 
   const windowMentions = filterWindow(mentions, currentWindowStart, latestMentionTime);
   const previousWindowMentions = filterWindow(mentions, previousWindowStart, currentWindowStart);
@@ -420,6 +443,11 @@ export function SentimentBrowserPage({ ticker }: { ticker: string }) {
   const windowFacebookMentions = filterWindow(facebookMentions, currentWindowStart, latestMentionTime);
   const windowLinkedinMentions = filterWindow(linkedinMentions, currentWindowStart, latestMentionTime);
   const windowStocktwitsMentions = filterWindow(stocktwitsMentions, currentWindowStart, latestMentionTime);
+  const previousRedditMentions = filterWindow(redditMentions, previousWindowStart, currentWindowStart);
+  const previousXMentions = filterWindow(xMentions, previousWindowStart, currentWindowStart);
+  const previousFacebookMentions = filterWindow(facebookMentions, previousWindowStart, currentWindowStart);
+  const previousLinkedinMentions = filterWindow(linkedinMentions, previousWindowStart, currentWindowStart);
+  const previousStocktwitsMentions = filterWindow(stocktwitsMentions, previousWindowStart, currentWindowStart);
 
   const sentimentCounts = countBySentiment(windowMentions);
   const averageScore = averageScoreFor(windowMentions);
@@ -430,11 +458,11 @@ export function SentimentBrowserPage({ ticker }: { ticker: string }) {
   const linkedinScore = averageScoreFor(windowLinkedinMentions);
   const stocktwitsScore = averageScoreFor(windowStocktwitsMentions);
   const platformSentiments = [
-    { label: 'Reddit', score: redditScore, count: windowRedditMentions.length },
-    { label: 'X', score: xScore, count: windowXMentions.length },
-    { label: 'Facebook', score: facebookScore, count: windowFacebookMentions.length },
-    { label: 'Linkedin', score: linkedinScore, count: windowLinkedinMentions.length },
-    { label: 'Stocktwits', score: stocktwitsScore, count: windowStocktwitsMentions.length },
+    { label: 'Reddit' as const, score: redditScore, previousScore: previousRedditMentions.length ? averageScoreFor(previousRedditMentions) : null, count: windowRedditMentions.length },
+    { label: 'X' as const, score: xScore, previousScore: previousXMentions.length ? averageScoreFor(previousXMentions) : null, count: windowXMentions.length },
+    { label: 'Facebook' as const, score: facebookScore, previousScore: previousFacebookMentions.length ? averageScoreFor(previousFacebookMentions) : null, count: windowFacebookMentions.length },
+    { label: 'Linkedin' as const, score: linkedinScore, previousScore: previousLinkedinMentions.length ? averageScoreFor(previousLinkedinMentions) : null, count: windowLinkedinMentions.length },
+    { label: 'Stocktwits' as const, score: stocktwitsScore, previousScore: previousStocktwitsMentions.length ? averageScoreFor(previousStocktwitsMentions) : null, count: windowStocktwitsMentions.length },
   ];
   const allRows = [
     ...feedRows(windowRedditMentions, 'Reddit', timeZone),
@@ -444,12 +472,23 @@ export function SentimentBrowserPage({ ticker }: { ticker: string }) {
     ...feedRows(windowStocktwitsMentions, 'Stocktwits', timeZone),
   ];
   const timelineMentions = [
-    ...redditMentions.map(item => ({ timestampMs: mentionTimestampMs(item.timestamp), platform: 'Reddit' as const, score: sentimentValue(item) })),
-    ...xMentions.map(item => ({ timestampMs: mentionTimestampMs(item.timestamp), platform: 'X' as const, score: sentimentValue(item) })),
-    ...facebookMentions.map(item => ({ timestampMs: mentionTimestampMs(item.timestamp), platform: 'Facebook' as const, score: sentimentValue(item) })),
-    ...linkedinMentions.map(item => ({ timestampMs: mentionTimestampMs(item.timestamp), platform: 'Linkedin' as const, score: sentimentValue(item) })),
-    ...stocktwitsMentions.map(item => ({ timestampMs: mentionTimestampMs(item.timestamp), platform: 'Stocktwits' as const, score: sentimentValue(item) })),
+    ...redditMentions.map(item => ({ timestampMs: mentionTimestampMs(item.timestamp), platform: 'Reddit' as const, score: sentimentValue(item), sentiment: mentionSentiment(item) })),
+    ...xMentions.map(item => ({ timestampMs: mentionTimestampMs(item.timestamp), platform: 'X' as const, score: sentimentValue(item), sentiment: mentionSentiment(item) })),
+    ...facebookMentions.map(item => ({ timestampMs: mentionTimestampMs(item.timestamp), platform: 'Facebook' as const, score: sentimentValue(item), sentiment: mentionSentiment(item) })),
+    ...linkedinMentions.map(item => ({ timestampMs: mentionTimestampMs(item.timestamp), platform: 'Linkedin' as const, score: sentimentValue(item), sentiment: mentionSentiment(item) })),
+    ...stocktwitsMentions.map(item => ({ timestampMs: mentionTimestampMs(item.timestamp), platform: 'Stocktwits' as const, score: sentimentValue(item), sentiment: mentionSentiment(item) })),
   ].filter(item => item.timestampMs > 0);
+  const sentimentBuckets = getSentimentBuckets(activeRangeLabel, currentWindowStart, latestMentionTime);
+  const aggregatedBuckets = aggregateSentimentByBucket(timelineMentions, sentimentBuckets, selectedPlatform);
+  const selectedBucket = selectedBucketId ? aggregatedBuckets.find(bucket => bucket.id === selectedBucketId) ?? null : null;
+  const platformRows = selectedPlatform === 'All' ? allRows : allRows.filter(row => row.platform === selectedPlatform);
+  const filteredRows = selectedBucket
+    ? platformRows.filter(row => row.timestampMs >= selectedBucket.startMs && row.timestampMs < selectedBucket.endMs)
+    : platformRows;
+  const platformCounts = Object.fromEntries(platformFilters.map(platform => [
+    platform,
+    platform === 'All' ? allRows.length : allRows.filter(row => row.platform === platform).length,
+  ])) as Record<SentimentPlatformFilter, number>;
 
   return (
     <div className="page narrative-page">
@@ -472,43 +511,66 @@ export function SentimentBrowserPage({ ticker }: { ticker: string }) {
             <KpiTitle text="Count-based composite sentiment. Positive records count as 100, neutral as 50, and negative as 0.">Overall Sentiment</KpiTitle>
             <SentimentGauge score={averageScore} />
             <DeltaText current={averageScore} previous={previousAverageScore} label={activeRange.label} />
+            <small>{windowMentions.length.toLocaleString('en-US')} feeds in selected timeframe</small>
           </div>
           <PlatformSentimentCard platforms={platformSentiments} />
-          <div className="narrative-kpi-card"><KpiTitle text="Total imported platform records in the selected timeframe.">Mentions</KpiTitle><strong>{formatCompactNumber(windowMentions.length)}</strong><small>{activeRange.label} window</small></div>
         </div>
       </section>
 
       <section className="narrative-feed-panel narrative-timeline-fullwidth">
-        <SentimentTimeline mentions={timelineMentions} rangeDays={activeRange.days} />
+        <div className="narrative-section-head">
+          <div>
+            <h2 className="panel__title">Sentiment Timeline & Social Feed <InfoTooltip text="Platform and date filters apply to both the timeline and feed list." /></h2>
+          </div>
+        </div>
+        <div className="narrative-filter-group narrative-platform-filter" aria-label="Platform filter">
+          {platformFilters.map(platform => (
+            <button
+              key={platform}
+              type="button"
+              className={selectedPlatform === platform ? 'active' : ''}
+              onClick={() => {
+                setSelectedPlatform(platform);
+                setSelectedBucketId(null);
+              }}
+            >
+              {platformDisplayLabel(platform)} ({platformCounts[platform].toLocaleString('en-US')})
+            </button>
+          ))}
+        </div>
+        <SentimentTimeline
+          buckets={aggregatedBuckets}
+          selectedPlatform={selectedPlatform}
+          selectedBucketId={selectedBucketId}
+          onSelectBucket={bucket => setSelectedBucketId(current => current === bucket.id ? null : bucket.id)}
+        />
+        {selectedBucket && (
+          <div className="narrative-date-filter-note">
+            <span>Filtered to {selectedBucket.tooltipLabel}</span>
+            <button type="button" onClick={() => setSelectedBucketId(null)}>Clear date filter</button>
+          </div>
+        )}
+        <div className="narrative-feed-under-chart">
+          <MentionFeedCards
+            rows={filteredRows}
+            hidePlatformFilter
+            emptyMessage="No social feeds captured for this platform and time window."
+          />
+        </div>
       </section>
 
-      <div className="narrative-command-layout">
-        <main className="narrative-command-main">
-          <section className="narrative-feed-panel">
-            <div className="narrative-section-head">
-              <div>
-                <h2 className="panel__title">Social Feed <InfoTooltip text="Social records filtered by the selected page timeframe." /></h2>
-              </div>
-            </div>
-            <MentionFeedCards rows={allRows} />
-          </section>
-        </main>
-
-        <aside className="narrative-radar">
-          <section className="narrative-feed-panel">
-            <div className="narrative-section-head">
-              <div>
-                <h2>{`Sentiment Breakdown (${activeRange.label})`}</h2>
-              </div>
-            </div>
-            <Donut total={windowMentions.length} segments={[
-              { label: 'Bullish', value: sentimentCounts.positive, color: '#16a34a' },
-              { label: 'Neutral', value: sentimentCounts.neutral, color: '#facc15' },
-              { label: 'Bearish', value: sentimentCounts.negative, color: '#ef4444' },
-            ]} />
-          </section>
-        </aside>
-      </div>
+      <section className="narrative-feed-panel narrative-feed-summary-panel">
+        <div className="narrative-section-head">
+          <div>
+            <h2 className="panel__title">Sentiment Breakdown ({activeRange.label})</h2>
+          </div>
+        </div>
+        <Donut total={windowMentions.length} segments={[
+          { label: 'Bullish', value: sentimentCounts.positive, color: '#16a34a' },
+          { label: 'Neutral', value: sentimentCounts.neutral, color: '#facc15' },
+          { label: 'Bearish', value: sentimentCounts.negative, color: '#ef4444' },
+        ]} />
+      </section>
 
       <DevJsonTables timeZone={timeZone} datasets={[
         { file: `S3 prefix: ${publicSocialPrefixes.reddit}`, payload: redditJson },

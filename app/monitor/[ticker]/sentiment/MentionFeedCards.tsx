@@ -16,7 +16,6 @@ export type MentionFeedRow = {
 };
 
 const PAGE_SIZE = 6;
-const feedTypes = ['All', 'X', 'Reddit', 'Facebook', 'Linkedin', 'Stocktwits'] as const;
 const sentimentFilters = ['All Sentiment', 'Bullish', 'Neutral', 'Bearish'] as const;
 
 function sentimentTone(sentiment: string) {
@@ -79,20 +78,26 @@ function logoLabel(row: MentionFeedRow) {
   return row.platform.slice(0, 1).toUpperCase();
 }
 
-export function MentionFeedCards({ rows }: { rows: MentionFeedRow[] }) {
+export function MentionFeedCards({
+  rows,
+  hidePlatformFilter = false,
+  emptyMessage = 'No social feeds captured for this platform and time window.',
+}: {
+  rows: MentionFeedRow[];
+  hidePlatformFilter?: boolean;
+  emptyMessage?: string;
+}) {
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
-  const [typeFilter, setTypeFilter] = useState<(typeof feedTypes)[number]>('All');
   const [sentimentFilter, setSentimentFilter] = useState<(typeof sentimentFilters)[number]>('All Sentiment');
   const [sortMode, setSortMode] = useState<'recent' | 'mentioned'>('recent');
   const filteredRows = useMemo(() => {
     return rows
-      .filter(row => typeFilter === 'All' || row.platform === typeFilter)
       .filter(row => sentimentFilter === 'All Sentiment' || sentimentLabel(row.sentiment) === sentimentFilter)
       .sort((a, b) => {
         if (sortMode === 'mentioned') return engagement(b) - engagement(a);
         return b.timestampMs - a.timestampMs;
       });
-  }, [rows, sentimentFilter, sortMode, typeFilter]);
+  }, [rows, sentimentFilter, sortMode]);
   const visibleRows = useMemo(
     () => filteredRows.slice(0, visibleCount),
     [filteredRows, visibleCount],
@@ -105,30 +110,16 @@ export function MentionFeedCards({ rows }: { rows: MentionFeedRow[] }) {
   const platformSortLabel = useMemo(() => {
     const labels = Array.from(new Set(
       rows
-        .filter(row => typeFilter === 'All' || row.platform === typeFilter)
         .map(row => row.sortLabel)
         .filter(Boolean),
     ));
-    if (typeFilter === 'All') return 'Most Engaged';
     return labels[0] ?? 'Most Engaged';
-  }, [rows, typeFilter]);
-  const typeCounts = useMemo(() => {
-    return Object.fromEntries(feedTypes.map(type => [
-      type,
-      type === 'All' ? rows.length : rows.filter(row => row.platform === type).length,
-    ])) as Record<(typeof feedTypes)[number], number>;
   }, [rows]);
 
   return (
     <div className="narrative-feed-shell">
       <div className="narrative-command-filters">
-        <div className="narrative-filter-group" aria-label="Feed type filter">
-          {feedTypes.map(type => (
-            <button key={type} type="button" className={typeFilter === type ? 'active' : ''} onClick={() => { setTypeFilter(type); resetVisibleRows(); }}>
-              {type} ({typeCounts[type].toLocaleString('en-US')})
-            </button>
-          ))}
-        </div>
+        {!hidePlatformFilter && <span className="narrative-feed-filter-label">Feed filters</span>}
         <div className="narrative-filter-selects">
           <select value={sentimentFilter} onChange={event => { setSentimentFilter(event.target.value as (typeof sentimentFilters)[number]); resetVisibleRows(); }} aria-label="Sentiment filter">
             {sentimentFilters.map(type => <option key={type} value={type}>{type}</option>)}
@@ -141,7 +132,9 @@ export function MentionFeedCards({ rows }: { rows: MentionFeedRow[] }) {
       </div>
 
       <div className="narrative-intel-feed">
-        {visibleRows.map((row, index) => (
+        {visibleRows.length === 0 ? (
+          <div className="narrative-feed-empty">{emptyMessage}</div>
+        ) : visibleRows.map((row, index) => (
           <article className="narrative-intel-card" key={`${row.url}-${row.timestamp}-${index}`}>
             <div className="narrative-source-logo">
               {logoSrc(row) ? <img src={logoSrc(row)} alt="" /> : logoLabel(row)}
