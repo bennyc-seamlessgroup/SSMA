@@ -11,6 +11,8 @@ export type MentionFeedRow = {
   text: string;
   metrics: Array<{ label: string; value: string }>;
   engagementScore: number;
+  followersScore: number;
+  likesScore: number;
   sortLabel: string;
   url: string;
 };
@@ -44,9 +46,10 @@ function headline(row: MentionFeedRow) {
 function summary(row: MentionFeedRow) {
   const clean = row.text.replace(/\s+/g, ' ').trim();
   if (!clean) return 'Mention imported without enough text for narrative summary.';
-  const withoutHeadline = clean.replace(headline(row), '').trim();
+  const firstSentence = clean.split(/[.!?]/)[0]?.trim() || clean;
+  const withoutHeadline = clean.startsWith(firstSentence) ? clean.slice(firstSentence.length).replace(/^[.!?\s]+/, '').trim() : clean;
   const text = withoutHeadline || clean;
-  return text.length > 148 ? `${text.slice(0, 145)}...` : text;
+  return text.length > 128 ? `${text.slice(0, 125)}...` : text;
 }
 
 function HighlightedText({ text }: { text: string }) {
@@ -89,15 +92,21 @@ export function MentionFeedCards({
 }) {
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
   const [sentimentFilter, setSentimentFilter] = useState<(typeof sentimentFilters)[number]>('All Sentiment');
-  const [sortMode, setSortMode] = useState<'recent' | 'mentioned'>('recent');
+  const [sortMode, setSortMode] = useState<'recent' | 'oldest' | 'followers' | 'likes' | 'engagement'>('recent');
+  const [search, setSearch] = useState('');
   const filteredRows = useMemo(() => {
+    const query = search.trim().toLowerCase();
     return rows
       .filter(row => sentimentFilter === 'All Sentiment' || sentimentLabel(row.sentiment) === sentimentFilter)
+      .filter(row => !query || `${row.text} ${row.author} ${row.platform}`.toLowerCase().includes(query))
       .sort((a, b) => {
-        if (sortMode === 'mentioned') return engagement(b) - engagement(a);
+        if (sortMode === 'oldest') return a.timestampMs - b.timestampMs;
+        if (sortMode === 'followers') return b.followersScore - a.followersScore;
+        if (sortMode === 'likes') return b.likesScore - a.likesScore;
+        if (sortMode === 'engagement') return engagement(b) - engagement(a);
         return b.timestampMs - a.timestampMs;
       });
-  }, [rows, sentimentFilter, sortMode]);
+  }, [rows, sentimentFilter, sortMode, search]);
   const visibleRows = useMemo(
     () => filteredRows.slice(0, visibleCount),
     [filteredRows, visibleCount],
@@ -107,15 +116,6 @@ export function MentionFeedCards({
     setVisibleCount(PAGE_SIZE);
   }
 
-  const platformSortLabel = useMemo(() => {
-    const labels = Array.from(new Set(
-      rows
-        .map(row => row.sortLabel)
-        .filter(Boolean),
-    ));
-    return labels[0] ?? 'Most Engaged';
-  }, [rows]);
-
   return (
     <div className="narrative-feed-shell">
       <div className="narrative-command-filters">
@@ -124,10 +124,19 @@ export function MentionFeedCards({
           <select value={sentimentFilter} onChange={event => { setSentimentFilter(event.target.value as (typeof sentimentFilters)[number]); resetVisibleRows(); }} aria-label="Sentiment filter">
             {sentimentFilters.map(type => <option key={type} value={type}>{type}</option>)}
           </select>
-          <select value={sortMode} onChange={event => { setSortMode(event.target.value as 'recent' | 'mentioned'); resetVisibleRows(); }} aria-label="Sort feed">
-            <option value="recent">Most Recent</option>
-            <option value="mentioned">{platformSortLabel}</option>
+          <select value={sortMode} onChange={event => { setSortMode(event.target.value as 'recent' | 'oldest' | 'followers' | 'likes' | 'engagement'); resetVisibleRows(); }} aria-label="Sort feed">
+            <option value="recent">Newest</option>
+            <option value="oldest">Oldest</option>
+            <option value="followers">Highest Followers</option>
+            <option value="likes">Highest Likes</option>
+            <option value="engagement">Highest Engagement</option>
           </select>
+          <input
+            value={search}
+            onChange={event => { setSearch(event.target.value); resetVisibleRows(); }}
+            placeholder="Search posts..."
+            aria-label="Search social posts"
+          />
         </div>
       </div>
 
@@ -170,7 +179,7 @@ export function MentionFeedCards({
       </div>
 
       <div className="narrative-feed-pagination" aria-label={`${rows[0]?.platform ?? 'Mention'} feed pagination`}>
-        <span>Showing {visibleRows.length} of {filteredRows.length} items</span>
+        <span>Showing {visibleRows.length} of {filteredRows.length} posts</span>
         <button type="button" onClick={() => setVisibleCount(current => current + PAGE_SIZE)} disabled={visibleRows.length >= filteredRows.length}>Load more</button>
       </div>
     </div>

@@ -14,11 +14,11 @@ const platformColors: Record<SentimentPlatformFilter, string> = {
 
 const chart = {
   width: 1100,
-  height: 300,
+  height: 250,
   left: 48,
   right: 22,
   top: 16,
-  bottom: 42,
+  bottom: 38,
 };
 
 function groupCenterX(index: number, total: number) {

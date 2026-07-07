@@ -19,7 +19,7 @@ export function PortalTimeZoneSelect() {
         }}
       >
         {portalTimeZoneOptions.map(option => (
-          <option value={option.value} key={option.value}>{option.label} ({option.value})</option>
+          <option value={option.value} key={option.value}>{option.label}</option>
         ))}
       </select>
     </label>

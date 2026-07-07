@@ -12,6 +12,8 @@ const reportWindows = [
   { type: '7PM', step: 3, time: '7:00 PM', title: 'Post-Market Digest', shortTitle: 'Post-Market', icon: 'moon' },
 ] as const;
 
+const HISTORY_PAGE_SIZE = 10;
+
 type ReportType = ReportArchiveRecord['reportType'];
 
 function dateFromYmd(value: string) {
@@ -80,6 +82,7 @@ export function ReportArchiveCenter({
   const [endDate, setEndDate] = useState(maxDate > todayDate ? maxDate : todayDate);
   const [selectedType, setSelectedType] = useState<ReportType | 'all'>('all');
   const [openMenu, setOpenMenu] = useState<string | null>(null);
+  const [historyPage, setHistoryPage] = useState(1);
 
   useEffect(() => {
     if (!openMenu) return undefined;
@@ -141,6 +144,20 @@ export function ReportArchiveCenter({
       }))
       .sort((a, b) => b.date.localeCompare(a.date));
   }, [filteredReports]);
+
+  useEffect(() => {
+    setHistoryPage(1);
+    setOpenMenu(null);
+  }, [startDate, endDate, selectedType]);
+
+  const historyPageCount = Math.max(1, Math.ceil(historyRows.length / HISTORY_PAGE_SIZE));
+  const safeHistoryPage = Math.min(historyPage, historyPageCount);
+  const paginatedHistoryRows = historyRows.slice(
+    (safeHistoryPage - 1) * HISTORY_PAGE_SIZE,
+    safeHistoryPage * HISTORY_PAGE_SIZE,
+  );
+  const historyStart = historyRows.length ? (safeHistoryPage - 1) * HISTORY_PAGE_SIZE + 1 : 0;
+  const historyEnd = Math.min(safeHistoryPage * HISTORY_PAGE_SIZE, historyRows.length);
 
   function downloadAllReports(dateReports: ReportArchiveRecord[]) {
     dateReports.forEach((report, index) => {
@@ -232,7 +249,7 @@ export function ReportArchiveCenter({
             <span>Reports Available</span>
             <span>Actions</span>
           </div>
-          {historyRows.map(row => (
+          {paginatedHistoryRows.map(row => (
             <div className="report-history-table-row" key={row.date}>
               <div>
                 <strong>{formatDisplayDate(row.date, timeZone)}</strong>
@@ -280,6 +297,48 @@ export function ReportArchiveCenter({
         </div>
         {historyRows.length === 0 ? (
           <div className="report-history-empty">No reports match the selected range.</div>
+        ) : null}
+        {historyRows.length > HISTORY_PAGE_SIZE ? (
+          <div className="report-history-pagination">
+            <span>Showing {historyStart}-{historyEnd} of {historyRows.length} days</span>
+            <div>
+              <button
+                type="button"
+                onClick={() => setHistoryPage(page => Math.max(1, page - 1))}
+                disabled={safeHistoryPage <= 1}
+                aria-label="Previous history page"
+              >
+                ‹
+              </button>
+              {Array.from({ length: historyPageCount }, (_, index) => index + 1)
+                .filter(page => (
+                  page === 1
+                  || page === historyPageCount
+                  || Math.abs(page - safeHistoryPage) <= 1
+                ))
+                .map((page, index, pages) => (
+                  <span key={page} className="report-history-page-item">
+                    {index > 0 && page - pages[index - 1] > 1 ? <em>…</em> : null}
+                    <button
+                      type="button"
+                      className={page === safeHistoryPage ? 'active' : ''}
+                      onClick={() => setHistoryPage(page)}
+                      aria-label={`Go to history page ${page}`}
+                    >
+                      {page}
+                    </button>
+                  </span>
+                ))}
+              <button
+                type="button"
+                onClick={() => setHistoryPage(page => Math.min(historyPageCount, page + 1))}
+                disabled={safeHistoryPage >= historyPageCount}
+                aria-label="Next history page"
+              >
+                ›
+              </button>
+            </div>
+          </div>
         ) : null}
       </section>
     </div>

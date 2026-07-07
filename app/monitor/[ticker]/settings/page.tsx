@@ -1,9 +1,11 @@
 import { PortalTimeZoneSelect } from '@/components/PortalTimeZoneSelect';
 
 const languageOptions = [
-  ['English', 'Active'],
-  ['Traditional Chinese', 'Coming soon'],
-  ['Simplified Chinese', 'Coming soon'],
+  ['en', 'English'],
+  ['zh-Hant', 'Traditional Chinese'],
+  ['zh-Hans', 'Simplified Chinese'],
+  ['ja', 'Japanese'],
+  ['ko', 'Korean'],
 ];
 
 export default function SettingsPage() {
@@ -16,17 +18,18 @@ export default function SettingsPage() {
               <span>Display</span>
               <h2>Language</h2>
             </div>
-            <span className="badge blue">English</span>
           </div>
-          <div className="language-switch">
-            {languageOptions.map(([label, status]) => (
-              <button className={status === 'Active' ? 'active' : ''} type="button" key={label}>
-                <strong>{label}</strong>
-                <span>{status}</span>
-              </button>
-            ))}
+          <div className="settings-control-card">
+            <label className="settings-select-control">
+              <span>Portal language</span>
+              <select defaultValue="en">
+                {languageOptions.map(([value, label]) => (
+                  <option value={value} key={value}>{label}</option>
+                ))}
+              </select>
+            </label>
+            <p>Controls navigation, dashboard labels, settings pages, and report interface text.</p>
           </div>
-          <p className="settings-note">Additional portal languages will become available after translation review.</p>
         </section>
 
         <section className="settings-panel" id="date-time-preferences">
@@ -35,10 +38,11 @@ export default function SettingsPage() {
               <span>Display</span>
               <h2>Date &amp; Time</h2>
             </div>
-            <span className="badge blue">Active</span>
           </div>
-          <PortalTimeZoneSelect />
-          <p className="settings-note">Controls timestamps, report dates, update times, and timeline labels in this browser.</p>
+          <div className="settings-control-card">
+            <PortalTimeZoneSelect />
+            <p>Controls timestamps, report dates, update times, report archive dates, and timeline labels in this browser.</p>
+          </div>
         </section>
       </div>
     </div>

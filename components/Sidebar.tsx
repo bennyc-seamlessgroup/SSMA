@@ -17,10 +17,8 @@ const groups = [
       ['Internal Float', 'internal-float-v2'],
       ['Short Interest', 'short-interest'],
       ['Lending Pressure', 'lending-pressure'],
-      ['Squeeze Readiness', 'squeeze-readiness'],
       ['Social Sentiment', 'sentiment'],
       ['SEC Filings', 'event-calendar'],
-      ['Price Scenarios', 'price-scenario'],
       ['Report Archive', 'reports'],
     ],
   },
@@ -32,6 +30,8 @@ const groups = [
       ['Dashboard (Obsolete)', 'dashboard'],
       ['Option / Gamma', 'options'],
       ['Peer Comparison', 'peer-comparison'],
+      ['Squeeze Readiness', 'squeeze-readiness'],
+      ['Price Scenarios', 'price-scenario'],
       ['Market Defense', 'market-defense'],
       ['Premium', 'premium-intelligence'],
     ],
@@ -46,36 +46,16 @@ const groups = [
   },
 ];
 
-const settingsGroups = [
-  {
-    label: 'Account',
-    items: [
-      ['General', 'settings'],
-      ['User Profile', 'user-profile'],
-      ['Role & Permissions', 'role-permissions'],
-    ],
-  },
-  {
-    label: 'Workspace',
-    items: [
-      ['Company Management', 'companies'],
-    ],
-  },
-  {
-    label: 'Reports',
-    items: [
-      ['Delivery Settings', 'email-settings'],
-      ['Notifications', 'notifications'],
-      ['Alert Rules', 'alert-rules'],
-    ],
-  },
-  {
-    label: 'Security',
-    items: [
-      ['Security Policy', 'policy'],
-      ['Connectors', 'api-connectors'],
-    ],
-  },
+const settingsItems = [
+  ['General', 'settings'],
+  ['User Profile', 'user-profile'],
+  ['Role & Permissions', 'role-permissions'],
+  ['Company Management', 'companies'],
+  ['Delivery Settings', 'email-settings'],
+  ['Notifications', 'notifications'],
+  ['Alert Rules', 'alert-rules'],
+  ['Security Policy', 'policy'],
+  ['Connectors', 'api-connectors'],
 ];
 
 const importDataSeenKeyPrefix = 'import-data-seen-version';
@@ -165,7 +145,7 @@ export function Sidebar({
 
   useEffect(() => {
     const slug = pathname.split('/').filter(Boolean)[2] ?? '';
-    const settingsSlugs = new Set(settingsGroups.flatMap(group => group.items.map(([, itemSlug]) => itemSlug)));
+    const settingsSlugs = new Set(settingsItems.map(([, itemSlug]) => itemSlug));
     const developmentSlugs = new Set(groups.filter(group => group.muted).flatMap(group => group.items.map(([, itemSlug]) => itemSlug)));
     if (settingsSlugs.has(slug)) {
       setDesignBPanel('settings');
@@ -274,41 +254,31 @@ export function Sidebar({
 
       <div className="portal-sidebar__scroll">
         <div className="portal-sidebar__group-wrap design-b-settings-wrap">
-          {settingsGroups.map(group => (
-            <div className="portal-sidebar__group-block" key={group.label}>
-              <div className="portal-sidebar__group">
-                <button
-                  type="button"
-                  className="portal-sidebar__group-toggle"
-                  aria-expanded="true"
-                >
-                  <span>{group.label}</span>
-                  <span className="portal-sidebar__chevron" aria-hidden="true">›</span>
-                </button>
-                <div className="portal-sidebar__group-items">
-                  {group.items.map(([label, slug]) => {
-                    const href = `/monitor/${ticker}/${slug}`;
-                    const active = pathname === href;
-                    const pageHasImportUpdate = hasPageImportUpdate(slug);
-                    return (
-                      <Link
-                        key={`${group.label}-${slug}-${label}`}
-                        href={href as any}
-                        className={`portal-menu ${active ? 'active' : ''}`}
-                        onClick={() => {
-                          acknowledgeImportDataUpdate();
-                          acknowledgePageImportUpdate(slug);
-                        }}
-                      >
-                        <span>{label}</span>
-                        {pageHasImportUpdate && <span className="portal-update-dot" aria-label="New import data available" />}
-                      </Link>
-                    );
-                  })}
-                </div>
+          <div className="portal-sidebar__group-block">
+            <div className="portal-sidebar__group">
+              <div className="portal-sidebar__group-items portal-sidebar__settings-flat">
+                {settingsItems.map(([label, slug]) => {
+                  const href = `/monitor/${ticker}/${slug}`;
+                  const active = pathname === href;
+                  const pageHasImportUpdate = hasPageImportUpdate(slug);
+                  return (
+                    <Link
+                      key={`${slug}-${label}`}
+                      href={href as any}
+                      className={`portal-menu ${active ? 'active' : ''}`}
+                      onClick={() => {
+                        acknowledgeImportDataUpdate();
+                        acknowledgePageImportUpdate(slug);
+                      }}
+                    >
+                      <span>{label}</span>
+                      {pageHasImportUpdate && <span className="portal-update-dot" aria-label="New import data available" />}
+                    </Link>
+                  );
+                })}
               </div>
             </div>
-          ))}
+          </div>
         </div>
 
         {groups.map((group, index) => {

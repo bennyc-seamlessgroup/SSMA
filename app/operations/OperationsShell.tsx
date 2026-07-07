@@ -15,7 +15,7 @@ export function OperationsShell({ children }: { children: React.ReactNode }) {
     <div className="ops-shell">
       <aside className="ops-sidebar">
         <Link href="/operations/sec-filings" className="ops-brand">
-          <span>OP</span>
+          <span><img src="/ci_logo01.png" alt="" /></span>
           <div>
             <strong>Operations Portal</strong>
             <small>Manual data input workspace</small>

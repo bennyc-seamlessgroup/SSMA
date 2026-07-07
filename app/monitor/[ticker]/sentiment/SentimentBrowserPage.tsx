@@ -164,12 +164,6 @@ function DeltaText({ current, previous, label }: { current: number; previous: nu
   return <small className={`narrative-delta ${delta >= 0 ? 'up' : 'down'}`}>{deltaLabel(current, previous, label)}</small>;
 }
 
-function InlineDelta({ current, previous }: { current: number; previous: number | null }) {
-  if (previous === null) return <em>No prior data</em>;
-  const delta = current - previous;
-  return <em className={delta >= 0 ? 'up' : 'down'}>{delta >= 0 ? '+' : ''}{delta}</em>;
-}
-
 function mentionTimestampMs(value: unknown) {
   const date = new Date(String(value ?? ''));
   return Number.isNaN(date.getTime()) ? 0 : date.getTime();
@@ -202,36 +196,47 @@ function feedRows(feed: AdanosMention[], platformLabel: string, timeZone: string
   return feed.map((item): MentionFeedRow => {
     const metrics: MentionFeedRow['metrics'] = [];
     let engagementScore = 0;
+    let followersScore = 0;
+    let likesScore = 0;
     let sortLabel = 'Most Engaged';
 
     if (platformLabel === 'X') {
-      metrics.push({ label: 'Followers', value: numeric(item.followers).toLocaleString('en-US') });
-      metrics.push({ label: 'Likes', value: numeric(item.likes).toLocaleString('en-US') });
+      followersScore = numeric(item.followers);
+      likesScore = numeric(item.likes);
+      metrics.push({ label: 'Followers', value: followersScore.toLocaleString('en-US') });
+      metrics.push({ label: 'Likes', value: likesScore.toLocaleString('en-US') });
       metrics.push({ label: 'Retweets', value: numeric(item.retweets).toLocaleString('en-US') });
-      engagementScore = numeric(item.followers);
+      engagementScore = followersScore + likesScore + numeric(item.retweets);
       sortLabel = 'Most Followers';
     } else if (platformLabel === 'Reddit') {
       if (item.subreddit) metrics.push({ label: 'Subreddit', value: String(item.subreddit) });
-      metrics.push({ label: 'Upvotes', value: numeric(item.upvotes).toLocaleString('en-US') });
-      engagementScore = numeric(item.upvotes);
+      likesScore = numeric(item.upvotes);
+      metrics.push({ label: 'Upvotes', value: likesScore.toLocaleString('en-US') });
+      engagementScore = likesScore + numeric(item.comments);
       sortLabel = 'Most Upvotes';
     } else if (platformLabel === 'Stocktwits') {
-      metrics.push({ label: 'Followers', value: numeric(item.followers).toLocaleString('en-US') });
-      metrics.push({ label: 'Likes', value: numeric(item.likes).toLocaleString('en-US') });
+      followersScore = numeric(item.followers);
+      likesScore = numeric(item.likes);
+      metrics.push({ label: 'Followers', value: followersScore.toLocaleString('en-US') });
+      metrics.push({ label: 'Likes', value: likesScore.toLocaleString('en-US') });
       metrics.push({ label: 'Reshares', value: numeric(item.reshares).toLocaleString('en-US') });
-      engagementScore = numeric(item.followers);
+      engagementScore = followersScore + likesScore + numeric(item.reshares);
       sortLabel = 'Most Followers';
     } else if (platformLabel === 'Facebook') {
-      metrics.push({ label: 'Followers', value: numeric(item.followers).toLocaleString('en-US') });
-      metrics.push({ label: 'Likes', value: numeric(item.likes).toLocaleString('en-US') });
+      followersScore = numeric(item.followers);
+      likesScore = numeric(item.likes);
+      metrics.push({ label: 'Followers', value: followersScore.toLocaleString('en-US') });
+      metrics.push({ label: 'Likes', value: likesScore.toLocaleString('en-US') });
       metrics.push({ label: 'Comments', value: numeric(item.comments).toLocaleString('en-US') });
-      engagementScore = numeric(item.followers) || numeric(item.likes) + numeric(item.comments);
+      engagementScore = followersScore + likesScore + numeric(item.comments);
       sortLabel = 'Most Followers';
     } else if (platformLabel === 'Linkedin') {
-      metrics.push({ label: 'Followers', value: numeric(item.followers).toLocaleString('en-US') });
-      metrics.push({ label: 'Likes', value: numeric(item.likes).toLocaleString('en-US') });
+      followersScore = numeric(item.followers);
+      likesScore = numeric(item.likes);
+      metrics.push({ label: 'Followers', value: followersScore.toLocaleString('en-US') });
+      metrics.push({ label: 'Likes', value: likesScore.toLocaleString('en-US') });
       metrics.push({ label: 'Comments', value: numeric(item.comments).toLocaleString('en-US') });
-      engagementScore = numeric(item.followers) || numeric(item.likes) + numeric(item.comments);
+      engagementScore = followersScore + likesScore + numeric(item.comments);
       sortLabel = 'Most Followers';
     }
 
@@ -244,6 +249,8 @@ function feedRows(feed: AdanosMention[], platformLabel: string, timeZone: string
       text: String(item.text ?? ''),
       metrics,
       engagementScore,
+      followersScore,
+      likesScore,
       sortLabel,
       url: String(item.url ?? ''),
     };
@@ -312,39 +319,71 @@ function platformDisplayLabel(platform: SentimentPlatformFilter) {
   return platform === 'Linkedin' ? 'LinkedIn' : platform;
 }
 
-function PlatformSentimentCard({ platforms }: {
+function PlatformIcon({ platform }: { platform: Exclude<SentimentPlatformFilter, 'All'> }) {
+  const logo = platform === 'Reddit'
+    ? '/reddit_logo_128x128.png'
+    : platform === 'X'
+      ? '/x_logo_128x128.png'
+      : platform === 'Stocktwits'
+        ? '/stocktwits_logo_128x128.png'
+        : '';
+  return (
+    <span className={`narrative-platform-icon ${platform.toLowerCase()}`}>
+      {logo ? (
+        <img src={logo} alt="" />
+      ) : platform === 'Facebook' ? (
+        <svg viewBox="0 0 24 24" aria-hidden="true" className="narrative-brand-svg">
+          <path d="M15.2 8.2h-2.1c-.6 0-.9.4-.9 1v1.7h2.8l-.4 2.8h-2.4V21H9.3v-7.3H7v-2.8h2.3V8.8c0-2.4 1.5-3.8 3.7-3.8.9 0 1.8.1 2.2.1v3.1Z" />
+        </svg>
+      ) : (
+        <svg viewBox="0 0 24 24" aria-hidden="true" className="narrative-brand-svg">
+          <path d="M5 9h3.1v10H5V9Zm1.6-4.8A1.8 1.8 0 1 1 6.6 8a1.8 1.8 0 0 1 0-3.6ZM10.4 9h3v1.4h.1c.4-.8 1.5-1.7 3.1-1.7 3.3 0 3.9 2.2 3.9 5V19h-3.1v-4.7c0-1.1 0-2.6-1.6-2.6s-1.8 1.2-1.8 2.5V19h-3.1V9Z" />
+        </svg>
+      )}
+    </span>
+  );
+}
+
+function PlatformSentimentCard({ platforms, totalFeeds }: {
   platforms: Array<{ label: Exclude<SentimentPlatformFilter, 'All'>; score: number; previousScore: number | null; count: number }>;
+  totalFeeds: number;
 }) {
   return (
     <div className="narrative-kpi-card narrative-platform-card">
-      <KpiTitle text="Platform sentiment labels for the selected timeframe. Each platform is calculated from positive, neutral, and negative record counts.">Platform Sentiment</KpiTitle>
+      <KpiTitle text="Platform sentiment and contribution to total social mentions in the selected timeframe.">Platform Breakdown</KpiTitle>
       <div className="narrative-platform-table">
-        {platforms.map(item => (
-          <div className="narrative-platform-row" key={item.label}>
+        {platforms.map(item => {
+          const share = totalFeeds ? Math.round((item.count / totalFeeds) * 100) : 0;
+          return (
+          <div className={`narrative-platform-row ${item.count ? '' : 'is-empty'}`} key={item.label}>
+            <PlatformIcon platform={item.label} />
             <span>{platformDisplayLabel(item.label)}</span>
             {item.count > 0 ? (
               <>
                 <strong className={sentimentToneFromScore(item.score)}>{sentimentLabelFor(item.score)}</strong>
-                <b>{item.score}</b>
-                <small>{item.count.toLocaleString('en-US')} feeds</small>
-                <InlineDelta current={item.score} previous={item.previousScore} />
+                <div className="narrative-platform-contribution" aria-label={`${platformDisplayLabel(item.label)} contribution ${share}%`}>
+                  <i style={{ width: `${share}%` }} />
+                </div>
+                <em>{share}%</em>
               </>
             ) : (
               <>
-                <strong className="empty">N/A</strong>
-                <b>No data</b>
-                <small>0 feeds</small>
-                <em>No prior data</em>
+                <strong className="empty">No data</strong>
+                <div className="narrative-platform-contribution" aria-label={`${platformDisplayLabel(item.label)} contribution 0%`}>
+                  <i style={{ width: '0%' }} />
+                </div>
+                <em>0%</em>
               </>
             )}
           </div>
-        ))}
+        );
+        })}
       </div>
     </div>
   );
 }
 
-const platformFilters: SentimentPlatformFilter[] = ['All', 'X', 'Reddit', 'Facebook', 'Linkedin', 'Stocktwits'];
+const platformFilters: SentimentPlatformFilter[] = ['All', 'X', 'Reddit', 'Stocktwits', 'Facebook', 'Linkedin'];
 
 function DevJsonTables({ datasets, timeZone }: { datasets: Array<{ file: string; payload: SocialMentionsFile }>; timeZone: string }) {
   return (
@@ -502,7 +541,7 @@ export function SentimentBrowserPage({ ticker }: { ticker: string }) {
       <section className="narrative-overview-panel narrative-command-overview">
         <div className="narrative-section-head">
           <div>
-            <h2>{`Social Sentiment Overview (${activeRange.label})`}</h2>
+          <h2>Social Sentiment Overview</h2>
           </div>
         </div>
 
@@ -510,10 +549,20 @@ export function SentimentBrowserPage({ ticker }: { ticker: string }) {
           <div className="narrative-kpi-card primary gauge-card">
             <KpiTitle text="Count-based composite sentiment. Positive records count as 100, neutral as 50, and negative as 0.">Overall Sentiment</KpiTitle>
             <SentimentGauge score={averageScore} />
-            <DeltaText current={averageScore} previous={previousAverageScore} label={activeRange.label} />
-            <small>{windowMentions.length.toLocaleString('en-US')} feeds in selected timeframe</small>
+            <div className="narrative-overall-footer">
+              <DeltaText current={averageScore} previous={previousAverageScore} label={activeRange.label} />
+              <small>{windowMentions.length.toLocaleString('en-US')} feeds in selected timeframe</small>
+            </div>
           </div>
-          <PlatformSentimentCard platforms={platformSentiments} />
+          <PlatformSentimentCard platforms={platformSentiments} totalFeeds={windowMentions.length} />
+          <div className="narrative-kpi-card narrative-feed-summary-panel">
+            <KpiTitle text="Distribution of bullish, neutral, and bearish social records in the selected timeframe.">Sentiment Distribution</KpiTitle>
+            <Donut total={windowMentions.length} segments={[
+              { label: 'Bullish', value: sentimentCounts.positive, color: '#16a34a' },
+              { label: 'Neutral', value: sentimentCounts.neutral, color: '#facc15' },
+              { label: 'Bearish', value: sentimentCounts.negative, color: '#ef4444' },
+            ]} />
+          </div>
         </div>
       </section>
 
@@ -557,19 +606,6 @@ export function SentimentBrowserPage({ ticker }: { ticker: string }) {
             emptyMessage="No social feeds captured for this platform and time window."
           />
         </div>
-      </section>
-
-      <section className="narrative-feed-panel narrative-feed-summary-panel">
-        <div className="narrative-section-head">
-          <div>
-            <h2 className="panel__title">Sentiment Breakdown ({activeRange.label})</h2>
-          </div>
-        </div>
-        <Donut total={windowMentions.length} segments={[
-          { label: 'Bullish', value: sentimentCounts.positive, color: '#16a34a' },
-          { label: 'Neutral', value: sentimentCounts.neutral, color: '#facc15' },
-          { label: 'Bearish', value: sentimentCounts.negative, color: '#ef4444' },
-        ]} />
       </section>
 
       <DevJsonTables timeZone={timeZone} datasets={[
