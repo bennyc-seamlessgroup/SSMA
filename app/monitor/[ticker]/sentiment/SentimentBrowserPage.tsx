@@ -5,6 +5,7 @@ import { InfoTooltip } from '@/components/InfoTooltip';
 import { PortalPageLoading } from '@/components/PortalPageLoading';
 import { usePortalTimeZone } from '@/components/usePortalTimeZone';
 import { usePublicImportFiles } from '@/components/usePublicImportFiles';
+import { authenticatedFetch } from '@/lib/auth-client';
 import { getPublicSocialPrefixes, readPublicSocialMentions } from '@/lib/social-s3-data';
 import { aggregateSentimentByBucket, getSentimentBuckets, type SentimentPlatformFilter, type SentimentTimeframe } from '@/lib/sentiment-buckets';
 import { normalizeTicker, stocktwitsFile } from '@/lib/ticker-data';
@@ -74,14 +75,113 @@ type PublicFeedState = {
   linkedin: AdanosMention[];
 };
 
-async function readPublicNarrativeFeed(prefix: string, platform: 'Reddit' | 'X' | 'Facebook' | 'Linkedin') {
-  const mentions = await readPublicSocialMentions(prefix, platform);
-  return mentions as AdanosMention[];
+type HotkeyMapping = {
+  ticker?: string | null;
+  kwatchHotkey?: string | null;
+  platform?: string | null;
+};
+
+type HotkeyResponse = HotkeyMapping[] | {
+  hotkeys?: HotkeyMapping[];
+  items?: HotkeyMapping[];
+};
+
+type SocialPrefixSet = {
+  reddit: string[];
+  x: string[];
+  facebook: string[];
+  linkedin: string[];
+};
+
+function hotkeyMappingsFromResponse(response: HotkeyResponse) {
+  if (Array.isArray(response)) return response;
+  if (Array.isArray(response.hotkeys)) return response.hotkeys;
+  if (Array.isArray(response.items)) return response.items;
+  return [];
+}
+
+function platformKey(value: unknown): keyof SocialPrefixSet | null {
+  const normalized = String(value ?? '').trim().toLowerCase();
+  if (normalized === 'reddit') return 'reddit';
+  if (normalized === 'x' || normalized === 'twitter') return 'x';
+  if (normalized === 'facebook') return 'facebook';
+  if (normalized === 'linkedin' || normalized === 'linked_in') return 'linkedin';
+  return null;
+}
+
+function inferPlatformKeyFromHotkey(value: unknown): keyof SocialPrefixSet | null {
+  const normalized = String(value ?? '').trim().toLowerCase();
+  if (!normalized || normalized.includes('youtube')) return null;
+  if (normalized.includes('reddit')) return 'reddit';
+  if (normalized.includes('twitter') || normalized.includes('tweet')) return 'x';
+  if (normalized === 'x' || normalized.startsWith('x_') || normalized.startsWith('x-') || normalized.includes('_x_') || normalized.includes('-x-')) return 'x';
+  if (normalized.includes('facebook') || normalized.includes('fb_') || normalized.includes('fb-')) return 'facebook';
+  if (normalized.includes('linkedin') || normalized.includes('linked_in')) return 'linkedin';
+  return null;
+}
+
+function socialPrefixFromHotkey(value: string) {
+  const trimmed = value.trim().replace(/^\/+/, '');
+  if (!trimmed) return '';
+  return trimmed.startsWith('social-data/') ? trimmed : `social-data/${trimmed}`;
+}
+
+function dedupeStrings(values: string[]) {
+  return Array.from(new Set(values.filter(Boolean)));
+}
+
+async function getMappedSocialPrefixes(ticker: string, defaults: ReturnType<typeof getPublicSocialPrefixes>): Promise<SocialPrefixSet> {
+  const prefixes: SocialPrefixSet = {
+    reddit: [defaults.reddit],
+    x: [defaults.x],
+    facebook: [defaults.facebook],
+    linkedin: [defaults.linkedin],
+  };
+
+  try {
+    const response = await authenticatedFetch(`/hotkeys?ticker=${encodeURIComponent(ticker)}`, { cache: 'no-store' }) as HotkeyResponse;
+    hotkeyMappingsFromResponse(response).forEach(mapping => {
+      const key = platformKey(mapping.platform) ?? inferPlatformKeyFromHotkey(mapping.kwatchHotkey);
+      const prefix = socialPrefixFromHotkey(String(mapping.kwatchHotkey ?? ''));
+      if (key && prefix) prefixes[key].push(prefix);
+    });
+  } catch {
+    // Public demo sessions and temporary API issues still use the default social prefixes.
+  }
+
+  return {
+    reddit: dedupeStrings(prefixes.reddit),
+    x: dedupeStrings(prefixes.x),
+    facebook: dedupeStrings(prefixes.facebook),
+    linkedin: dedupeStrings(prefixes.linkedin),
+  };
+}
+
+function mentionDedupeKey(item: AdanosMention) {
+  return String(item.id ?? item.url ?? `${item.timestamp ?? ''}:${item.author ?? ''}:${item.text ?? ''}`);
+}
+
+function uniqueMentions(items: AdanosMention[]) {
+  const seen = new Set<string>();
+  return items.filter(item => {
+    const key = mentionDedupeKey(item);
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+}
+
+async function readPublicNarrativeFeed(prefixes: string[], platform: 'Reddit' | 'X' | 'Facebook' | 'Linkedin') {
+  const settled = await Promise.allSettled(prefixes.map(prefix => readPublicSocialMentions(prefix, platform)));
+  if (settled.some(result => result.status === 'rejected')) {
+    throw new Error(`Unable to read every ${platform} social prefix.`);
+  }
+  return uniqueMentions(settled.flatMap(result => result.status === 'fulfilled' ? result.value as AdanosMention[] : []));
 }
 
 async function readPublicNarrativeFeeds(
   ticker: string,
-  prefixes: ReturnType<typeof getPublicSocialPrefixes>,
+  prefixes: SocialPrefixSet,
 ) {
   const results = await Promise.allSettled([
     readPublicNarrativeFeed(prefixes.reddit, 'Reddit'),
@@ -102,6 +202,9 @@ async function readPublicNarrativeFeeds(
 
   const response = await fetch(`/api/social-data-feed?ticker=${encodeURIComponent(ticker)}`, {
     cache: 'no-store',
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ prefixes }),
   });
   if (!response.ok) {
     throw new Error(`Social data fallback returned ${response.status} ${response.statusText}`);
@@ -417,7 +520,7 @@ function DevJsonTables({ datasets, timeZone }: { datasets: Array<{ file: string;
 
 export function SentimentBrowserPage({ ticker }: { ticker: string }) {
   const normalizedTicker = normalizeTicker(ticker);
-  const publicSocialPrefixes = getPublicSocialPrefixes(normalizedTicker);
+  const defaultSocialPrefixes = getPublicSocialPrefixes(normalizedTicker);
   const stocktwitsPath = stocktwitsFile(normalizedTicker);
   const searchParams = useSearchParams();
   const timeZone = usePortalTimeZone();
@@ -426,13 +529,23 @@ export function SentimentBrowserPage({ ticker }: { ticker: string }) {
   const [selectedBucketId, setSelectedBucketId] = useState<string | null>(null);
   const stocktwitsState = usePublicImportFiles([stocktwitsPath]);
   const [publicFeeds, setPublicFeeds] = useState<PublicFeedState | null>(null);
+  const [publicSocialPrefixes, setPublicSocialPrefixes] = useState<SocialPrefixSet>({
+    reddit: [defaultSocialPrefixes.reddit],
+    x: [defaultSocialPrefixes.x],
+    facebook: [defaultSocialPrefixes.facebook],
+    linkedin: [defaultSocialPrefixes.linkedin],
+  });
 
   useEffect(() => {
     let cancelled = false;
     const load = async () => {
       try {
-        const feeds = await readPublicNarrativeFeeds(normalizedTicker, publicSocialPrefixes);
-        if (!cancelled) setPublicFeeds(feeds);
+        const mappedPrefixes = await getMappedSocialPrefixes(normalizedTicker, defaultSocialPrefixes);
+        const feeds = await readPublicNarrativeFeeds(normalizedTicker, mappedPrefixes);
+        if (!cancelled) {
+          setPublicSocialPrefixes(mappedPrefixes);
+          setPublicFeeds(feeds);
+        }
       } catch {
         if (!cancelled) setPublicFeeds({ reddit: [], x: [], facebook: [], linkedin: [] });
       }
@@ -445,10 +558,10 @@ export function SentimentBrowserPage({ ticker }: { ticker: string }) {
     };
   }, [
     normalizedTicker,
-    publicSocialPrefixes.reddit,
-    publicSocialPrefixes.x,
-    publicSocialPrefixes.facebook,
-    publicSocialPrefixes.linkedin,
+    defaultSocialPrefixes.reddit,
+    defaultSocialPrefixes.x,
+    defaultSocialPrefixes.facebook,
+    defaultSocialPrefixes.linkedin,
   ]);
 
   if (!publicFeeds || (stocktwitsState.loading && !stocktwitsState.data)) {
@@ -461,10 +574,10 @@ export function SentimentBrowserPage({ ticker }: { ticker: string }) {
   const linkedinMentions = publicFeeds.linkedin;
   const stocktwitsJson = (stocktwitsState.data?.[stocktwitsPath] ?? {}) as SocialMentionsFile;
   const stocktwitsMentions = asArray(stocktwitsJson);
-  const redditJson = { platform: 'Reddit', recordCount: redditMentions.length, originalFileName: publicSocialPrefixes.reddit, data: redditMentions };
-  const xJson = { platform: 'X', recordCount: xMentions.length, originalFileName: publicSocialPrefixes.x, data: xMentions };
-  const facebookJson = { platform: 'Facebook', recordCount: facebookMentions.length, originalFileName: publicSocialPrefixes.facebook, data: facebookMentions };
-  const linkedinJson = { platform: 'Linkedin', recordCount: linkedinMentions.length, originalFileName: publicSocialPrefixes.linkedin, data: linkedinMentions };
+  const redditJson = { platform: 'Reddit', recordCount: redditMentions.length, originalFileName: publicSocialPrefixes.reddit.join(', '), data: redditMentions };
+  const xJson = { platform: 'X', recordCount: xMentions.length, originalFileName: publicSocialPrefixes.x.join(', '), data: xMentions };
+  const facebookJson = { platform: 'Facebook', recordCount: facebookMentions.length, originalFileName: publicSocialPrefixes.facebook.join(', '), data: facebookMentions };
+  const linkedinJson = { platform: 'Linkedin', recordCount: linkedinMentions.length, originalFileName: publicSocialPrefixes.linkedin.join(', '), data: linkedinMentions };
 
   const mentions = [...redditMentions, ...xMentions, ...facebookMentions, ...linkedinMentions, ...stocktwitsMentions];
   const validMentionTimes = mentions.map(item => mentionTimestampMs(item.timestamp)).filter(value => value > 0);
@@ -609,10 +722,10 @@ export function SentimentBrowserPage({ ticker }: { ticker: string }) {
       </section>
 
       <DevJsonTables timeZone={timeZone} datasets={[
-        { file: `S3 prefix: ${publicSocialPrefixes.reddit}`, payload: redditJson },
-        { file: `S3 prefix: ${publicSocialPrefixes.x}`, payload: xJson },
-        { file: `S3 prefix: ${publicSocialPrefixes.facebook}`, payload: facebookJson },
-        { file: `S3 prefix: ${publicSocialPrefixes.linkedin}`, payload: linkedinJson },
+        { file: `S3 prefixes: ${publicSocialPrefixes.reddit.join(', ')}`, payload: redditJson },
+        { file: `S3 prefixes: ${publicSocialPrefixes.x.join(', ')}`, payload: xJson },
+        { file: `S3 prefixes: ${publicSocialPrefixes.facebook.join(', ')}`, payload: facebookJson },
+        { file: `S3 prefixes: ${publicSocialPrefixes.linkedin.join(', ')}`, payload: linkedinJson },
         { file: stocktwitsPath, payload: stocktwitsJson },
       ]} />
     </div>
