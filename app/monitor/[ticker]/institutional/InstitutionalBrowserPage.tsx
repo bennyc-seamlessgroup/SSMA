@@ -7,7 +7,7 @@ import { usePublicImportFiles } from '@/components/usePublicImportFiles';
 import { useTickerDataStatus } from '@/components/TickerDataStatusProvider';
 import { formatPortalDateTime } from '@/lib/timezone';
 import type { InstitutionalHolding } from '@/lib/types';
-import { institutionalActivistFile, institutionalOverviewFile, institutionalSecurityFile, normalizeTicker } from '@/lib/ticker-data';
+import { institutionalActivistFile, institutionalOverviewFile, institutionalSecurityFile, managementHoldingsInputFile, normalizeTicker } from '@/lib/ticker-data';
 import { buildDashboard } from '@/lib/mock-data';
 import { InstitutionalTabs } from './InstitutionalTabs';
 import type { ActivistFiling } from './ActivistFilingsTable';
@@ -46,6 +46,23 @@ type ActivistFilingRow = {
 };
 
 type ImportEnvelope<T> = { data?: T };
+
+type ManagementHoldingInputRecord = {
+  id: string;
+  ticker: string;
+  holderName: string;
+  category: string;
+  shares: number | string;
+  action: 'add' | 'deduct';
+  notes?: string;
+  effectiveDate?: string;
+  autoApply?: boolean;
+  status?: 'pending' | 'applied' | 'discarded';
+};
+
+type ManagementHoldingsInputFile = {
+  records?: ManagementHoldingInputRecord[];
+};
 
 function unwrap<T>(value: unknown): T {
   if (value && typeof value === 'object' && !Array.isArray(value) && 'data' in value) {
@@ -87,7 +104,8 @@ export function InstitutionalBrowserPage({ ticker }: { ticker: string }) {
   const overviewFile = institutionalOverviewFile(normalizedTicker);
   const securityFile = institutionalSecurityFile(normalizedTicker);
   const activistFile = institutionalActivistFile(normalizedTicker);
-  const files = [overviewFile, securityFile, activistFile];
+  const managementFile = managementHoldingsInputFile(normalizedTicker);
+  const files = [overviewFile, securityFile, activistFile, managementFile];
   const { data, error, loading } = usePublicImportFiles(files);
   const status = useTickerDataStatus();
   const timeZone = usePortalTimeZone();
@@ -101,6 +119,8 @@ export function InstitutionalBrowserPage({ ticker }: { ticker: string }) {
   const activistRows = unwrap<ActivistFilingRow[]>(data[activistFile]) ?? [];
   const overviewEnvelope = (data[overviewFile] ?? {}) as ImportEnvelope<InstitutionalOverviewData>;
   const overviewData = overviewEnvelope.data ?? unwrap<InstitutionalOverviewData>(data[overviewFile]) ?? {};
+  const managementEnvelope = unwrap<ManagementHoldingsInputFile>(data[managementFile]) ?? {};
+  const managementRecords = Array.isArray(managementEnvelope.records) ? managementEnvelope.records : [];
   const holdings: InstitutionalHolding[] = securityRows.map((row, index) => ({
     id: `import-ownership-${index}`,
     company_id: `company-${normalizedTicker}`,
@@ -148,7 +168,7 @@ export function InstitutionalBrowserPage({ ticker }: { ticker: string }) {
         </span>
       </div>
 
-      <InstitutionalOverview data={overviewData} ticker={normalizedTicker} />
+      <InstitutionalOverview data={overviewData} ticker={normalizedTicker} managementRecords={managementRecords} />
       <section className="panel">
         <InstitutionalTabs holdings={holdings} activistFilings={activistFilings} ticker={normalizedTicker} companyName={company.company_name} />
       </section>

@@ -21,7 +21,7 @@ export default async function InternalFloatV2Page({ params }: Readonly<{ params:
       <section className="internal-float-v2-tips" aria-label="Internal float usage tips">
         <strong><span aria-hidden="true">💡</span> Tips</strong>
         <ul>
-          <li>Start with official shares outstanding and public float.</li>
+          <li>Start with issued share and public float.</li>
           <li>Add management / strategic holdings, tokenized shares, and collateralized shares.</li>
           <li>Use each section&apos;s Edit button to test assumptions and update real tradable float instantly.</li>
         </ul>

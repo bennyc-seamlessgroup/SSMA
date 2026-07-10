@@ -52,6 +52,10 @@ export function internalFloatUserInputFile(ticker: string) {
   return tickerFile('{ticker}_v2_user_inputs.json', ticker);
 }
 
+export function managementHoldingsInputFile(ticker: string) {
+  return tickerFile('ownership/{ticker}_management_holdings_inputs.json', ticker);
+}
+
 export function secFilingsFile(ticker: string) {
   return tickerFile('news_filings/{ticker}_sec_filings.json', ticker);
 }

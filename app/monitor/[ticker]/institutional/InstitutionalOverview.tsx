@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { InfoTooltip } from '@/components/InfoTooltip';
 
-type OwnershipKey = 'institutions' | 'real_tradable_float' | 'internal_float';
+type OwnershipKey = 'institutions' | 'public_float' | 'strategic_entities';
 
 type InstitutionalOverviewData = {
   overview?: {
@@ -54,6 +54,17 @@ type InstitutionalOverviewData = {
     color: string;
     source?: string;
   }>;
+};
+
+type ManagementHoldingInputRecord = {
+  id: string;
+  holderName: string;
+  category: string;
+  shares: number | string;
+  action: 'add' | 'deduct';
+  notes?: string;
+  effectiveDate?: string;
+  status?: 'pending' | 'applied' | 'discarded';
 };
 
 function formatNumber(value: unknown, options?: Intl.NumberFormatOptions) {
@@ -111,48 +122,61 @@ function donutLabels(rows: NonNullable<InstitutionalOverviewData['ownership_stru
   });
 }
 
-export function InstitutionalOverview({ data, ticker }: { data: InstitutionalOverviewData; ticker: string }) {
+export function InstitutionalOverview({
+  data,
+  ticker,
+  managementRecords = [],
+}: {
+  data: InstitutionalOverviewData;
+  ticker: string;
+  managementRecords?: ManagementHoldingInputRecord[];
+}) {
   const [selectedKey, setSelectedKey] = useState<OwnershipKey>('institutions');
   const overview = data.overview ?? {};
   const institutionRows = data.institution_bars ?? [];
-  const rawPublicFloatRows = data.public_float_breakdown ?? [];
-  const managementStrategicShares = rawPublicFloatRows
-    .filter(row => row.key === 'private_strategic' || /private|strategic|management/i.test(row.label))
-    .reduce((sum, row) => sum + numeric(row.shares), 0);
-  const tokenizedShares = rawPublicFloatRows
-    .filter(row => row.key === 'tokenized' || /token/i.test(row.label))
-    .reduce((sum, row) => sum + numeric(row.shares), 0);
-  const collateralizedShares = rawPublicFloatRows
-    .filter(row => row.key === 'collateralized' || /collateral/i.test(row.label))
-    .reduce((sum, row) => sum + numeric(row.shares), 0);
-  const internalFloatShares = managementStrategicShares + tokenizedShares + collateralizedShares;
-  const publicFloatShares = Math.max(0, numeric(overview.shares_outstanding) - numeric(overview.institutional_shares_long) - internalFloatShares);
+  const strategicEntityRows = Array.from(managementRecords
+    .filter(row => row.status !== 'discarded')
+    .reduce((map, row) => {
+      const key = `${row.holderName.trim().toLowerCase()}|${row.category}`;
+      const current = map.get(key) ?? {
+        label: row.holderName || 'Unknown entity',
+        category: row.category || 'Strategic Entity',
+        shares: 0,
+        latestDate: row.effectiveDate ?? '',
+      };
+      const direction = row.action === 'deduct' ? -1 : 1;
+      map.set(key, {
+        ...current,
+        shares: current.shares + direction * numeric(row.shares),
+        latestDate: row.effectiveDate && row.effectiveDate > current.latestDate ? row.effectiveDate : current.latestDate,
+      });
+      return map;
+    }, new Map<string, { label: string; category: string; shares: number; latestDate: string }>())
+    .values())
+    .filter(row => row.shares > 0);
+  const strategicEntityShares = strategicEntityRows.reduce((sum, row) => sum + row.shares, 0);
+  const publicFloatShares = Math.max(0, numeric(overview.shares_outstanding) - numeric(overview.institutional_shares_long) - strategicEntityShares);
   const ownershipRows = [
     { key: 'institutions', label: 'Institutions', shares: numeric(overview.institutional_shares_long), color: '#14916f' },
-    { key: 'internal_float', label: 'Internal Float', shares: internalFloatShares, color: '#747bdc' },
-    { key: 'real_tradable_float', label: 'Real Tradable Float', shares: publicFloatShares, color: '#df9514' },
+    { key: 'strategic_entities', label: 'Strategic Entities', shares: strategicEntityShares, color: '#747bdc' },
+    { key: 'public_float', label: 'Public Float', shares: publicFloatShares, color: '#df9514' },
   ].map(row => ({
     ...row,
     percent: pct(row.shares, numeric(overview.shares_outstanding)),
   }));
-  const internalFloatRows = [
-    { key: 'management_strategic', label: 'Management / Strategic', shares: managementStrategicShares, percent: pct(managementStrategicShares, internalFloatShares), color: '#8d9aaa', source: 'Internal Float V2 user inputs' },
-    { key: 'tokenized', label: 'Tokenized', shares: tokenizedShares, percent: pct(tokenizedShares, internalFloatShares), color: '#747bdc', source: 'Internal Float V2 user inputs' },
-    { key: 'collateralized', label: 'Collateralized', shares: collateralizedShares, percent: pct(collateralizedShares, internalFloatShares), color: '#df9514', source: 'Internal Float V2 user inputs' },
-  ].filter(row => row.shares > 0);
   const ownershipLabelRows = donutLabels(ownershipRows);
   const selectedOwnership = ownershipRows.find(row => row.key === selectedKey);
-  const rightPanelTitle = selectedKey === 'internal_float'
-      ? 'Internal Float Breakdown'
-    : selectedKey === 'real_tradable_float'
-      ? 'Real Tradable Float'
+  const rightPanelTitle = selectedKey === 'strategic_entities'
+      ? 'Strategic Entities'
+    : selectedKey === 'public_float'
+      ? 'Public Float'
       : 'Institution Holdings Breakdown';
 
   return (
     <section className="institutional-overview">
       <div className="institutional-overview__kpis">
         <article>
-          <span className="with-info">Shares Outstanding <InfoTooltip text="Total company shares outstanding used as the base for ownership and float calculations." /></span>
+          <span className="with-info">Issued Share <InfoTooltip text="Total issued shares used as the base for ownership and public float calculations." /></span>
           <strong>{compact(overview.shares_outstanding)}</strong>
         </article>
         <article>
@@ -176,7 +200,7 @@ export function InstitutionalOverview({ data, ticker }: { data: InstitutionalOve
       <div className="institutional-overview__charts">
         <article className="institutional-chart-card">
           <div className="institutional-chart-card__head">
-            <span className="with-info">Ownership Structure <InfoTooltip text="Breakdown of shares outstanding into institutions, estimated real tradable float, and accepted internal float deductions. Reported insider holdings are included only after management accepts them as internal holdings." /></span>
+            <span className="with-info">Ownership Structure <InfoTooltip text="Breakdown of issued shares into institutions, strategic entities, and public float." /></span>
           </div>
           <div className="institutional-donut-layout">
             <div
@@ -229,23 +253,23 @@ export function InstitutionalOverview({ data, ticker }: { data: InstitutionalOve
               }))}
             />
           )}
-          {selectedKey === 'real_tradable_float' && (
-            <RealTradableFloatFormula
+          {selectedKey === 'public_float' && (
+            <PublicFloatFormula
               sharesOutstanding={numeric(overview.shares_outstanding)}
               institutionalShares={numeric(overview.institutional_shares_long)}
-              internalFloatShares={internalFloatShares}
-              realTradableFloat={publicFloatShares}
+              strategicEntityShares={strategicEntityShares}
+              publicFloat={publicFloatShares}
             />
           )}
-          {selectedKey === 'internal_float' && (
+          {selectedKey === 'strategic_entities' && (
             <BreakdownBars
-              rows={internalFloatRows.map(row => ({
+              rows={strategicEntityRows.map(row => ({
                 label: row.label,
                 shares: row.shares,
-                percent: row.percent,
-                color: row.color,
+                percent: pct(row.shares, strategicEntityShares),
+                color: selectedOwnership?.color,
               }))}
-              emptyText="No internal float records available."
+              emptyText="No strategic entity records available."
             />
           )}
         </article>
@@ -273,21 +297,21 @@ function BreakdownBars({ rows, emptyText = 'No active records available.' }: { r
   );
 }
 
-function RealTradableFloatFormula({
+function PublicFloatFormula({
   sharesOutstanding,
   institutionalShares,
-  internalFloatShares,
-  realTradableFloat,
+  strategicEntityShares,
+  publicFloat,
 }: {
   sharesOutstanding: number;
   institutionalShares: number;
-  internalFloatShares: number;
-  realTradableFloat: number;
+  strategicEntityShares: number;
+  publicFloat: number;
 }) {
   const rows = [
-    { label: 'Shares Outstanding', value: sharesOutstanding, operator: '' },
+    { label: 'Issued Share', value: sharesOutstanding, operator: '' },
     { label: 'Institutions', value: institutionalShares, operator: '-' },
-    { label: 'Internal Float', value: internalFloatShares, operator: '-' },
+    { label: 'Strategic Entities', value: strategicEntityShares, operator: '-' },
   ];
 
   return (
@@ -303,9 +327,9 @@ function RealTradableFloatFormula({
       </div>
       <div className="institutional-float-formula__total">
         <span>=</span>
-        <strong>Real Tradable Float</strong>
-        <b>{formatNumber(realTradableFloat)}</b>
-        <small>{formatPercent(pct(realTradableFloat, sharesOutstanding))} of shares outstanding</small>
+        <strong>Public Float</strong>
+        <b>{formatNumber(publicFloat)}</b>
+        <small>{formatPercent(pct(publicFloat, sharesOutstanding))} of issued shares</small>
       </div>
     </div>
   );

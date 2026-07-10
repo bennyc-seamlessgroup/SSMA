@@ -237,6 +237,212 @@ function ExecutiveMetric({ label, value, changePercent }: { label: string; value
   );
 }
 
+type ShortVolumeRow = {
+  date: string;
+  totalShortVolume: number;
+  totalVolume: number;
+  offExchangeNonExempt: number;
+  offExchangeExempt: number;
+  nasdaqBx: number;
+  nasdaqPhlx: number;
+  nyse: number;
+  nyseArca: number;
+  nyseNational: number;
+  nyseAmerican: number;
+  chx: number;
+  totalLongVolume: number;
+};
+
+type ShortVolumeMode = 'volume' | 'totalPercent' | 'exchangePercent';
+
+type FtdRow = {
+  tradeDate: string;
+  settlementDate: string;
+  closingDeadline: string;
+  failsToDeliver: number;
+  ftdChange: number;
+  tradeVolume: number;
+  price: number;
+  notional: number;
+};
+
+const shortVolumeRows: ShortVolumeRow[] = [
+  { date: '2026-07-09', totalShortVolume: 26573, totalVolume: 64597, offExchangeNonExempt: 13414, offExchangeExempt: 0, nasdaqBx: 0, nasdaqPhlx: 0, nyse: 2600, nyseArca: 8559, nyseNational: 0, nyseAmerican: 2000, chx: 0, totalLongVolume: 38024 },
+  { date: '2026-07-08', totalShortVolume: 18809, totalVolume: 46374, offExchangeNonExempt: 15340, offExchangeExempt: 0, nasdaqBx: 100, nasdaqPhlx: 0, nyse: 400, nyseArca: 2594, nyseNational: 100, nyseAmerican: 175, chx: 100, totalLongVolume: 27564 },
+  { date: '2026-07-07', totalShortVolume: 9944, totalVolume: 29269, offExchangeNonExempt: 6954, offExchangeExempt: 0, nasdaqBx: 0, nasdaqPhlx: 0, nyse: 575, nyseArca: 2190, nyseNational: 0, nyseAmerican: 225, chx: 0, totalLongVolume: 19325 },
+  { date: '2026-07-06', totalShortVolume: 7429, totalVolume: 19300, offExchangeNonExempt: 4067, offExchangeExempt: 0, nasdaqBx: 0, nasdaqPhlx: 0, nyse: 150, nyseArca: 3187, nyseNational: 0, nyseAmerican: 25, chx: 0, totalLongVolume: 11871 },
+  { date: '2026-07-02', totalShortVolume: 4254, totalVolume: 8554, offExchangeNonExempt: 3914, offExchangeExempt: 0, nasdaqBx: 0, nasdaqPhlx: 100, nyse: 20, nyseArca: 220, nyseNational: 0, nyseAmerican: 0, chx: 0, totalLongVolume: 4300 },
+  { date: '2026-07-01', totalShortVolume: 3935, totalVolume: 19435, offExchangeNonExempt: 2556, offExchangeExempt: 0, nasdaqBx: 0, nasdaqPhlx: 0, nyse: 65, nyseArca: 1314, nyseNational: 0, nyseAmerican: 0, chx: 0, totalLongVolume: 15500 },
+  { date: '2026-06-30', totalShortVolume: 9612, totalVolume: 35550, offExchangeNonExempt: 7454, offExchangeExempt: 4, nasdaqBx: 1080, nasdaqPhlx: 0, nyse: 45, nyseArca: 617, nyseNational: 304, nyseAmerican: 0, chx: 108, totalLongVolume: 25938 },
+  { date: '2026-06-29', totalShortVolume: 74044, totalVolume: 193582, offExchangeNonExempt: 43425, offExchangeExempt: 6601, nasdaqBx: 400, nasdaqPhlx: 100, nyse: 703, nyseArca: 21978, nyseNational: 437, nyseAmerican: 400, chx: 0, totalLongVolume: 119538 },
+  { date: '2026-06-26', totalShortVolume: 21813, totalVolume: 32534, offExchangeNonExempt: 3942, offExchangeExempt: 0, nasdaqBx: 200, nasdaqPhlx: 0, nyse: 525, nyseArca: 17146, nyseNational: 0, nyseAmerican: 0, chx: 0, totalLongVolume: 10721 },
+  { date: '2026-06-25', totalShortVolume: 12541, totalVolume: 26140, offExchangeNonExempt: 3996, offExchangeExempt: 0, nasdaqBx: 0, nasdaqPhlx: 0, nyse: 150, nyseArca: 8395, nyseNational: 0, nyseAmerican: 0, chx: 0, totalLongVolume: 13599 },
+  { date: '2026-06-24', totalShortVolume: 19959, totalVolume: 43915, offExchangeNonExempt: 14674, offExchangeExempt: 2300, nasdaqBx: 0, nasdaqPhlx: 0, nyse: 374, nyseArca: 2611, nyseNational: 0, nyseAmerican: 0, chx: 0, totalLongVolume: 23955 },
+  { date: '2026-06-23', totalShortVolume: 10902, totalVolume: 24640, offExchangeNonExempt: 8012, offExchangeExempt: 0, nasdaqBx: 100, nasdaqPhlx: 100, nyse: 500, nyseArca: 1389, nyseNational: 0, nyseAmerican: 800, chx: 1, totalLongVolume: 13738 },
+  { date: '2026-06-22', totalShortVolume: 26949, totalVolume: 77578, offExchangeNonExempt: 21007, offExchangeExempt: 0, nasdaqBx: 600, nasdaqPhlx: 0, nyse: 966, nyseArca: 3676, nyseNational: 100, nyseAmerican: 600, chx: 0, totalLongVolume: 50628 },
+  { date: '2026-06-18', totalShortVolume: 26514, totalVolume: 88872, offExchangeNonExempt: 23679, offExchangeExempt: 0, nasdaqBx: 0, nasdaqPhlx: 200, nyse: 177, nyseArca: 2458, nyseNational: 0, nyseAmerican: 0, chx: 0, totalLongVolume: 62359 },
+];
+
+const ftdTableRows: FtdRow[] = [
+  { tradeDate: '2026-06-11', settlementDate: '2026-06-12', closingDeadline: '2026-07-16', failsToDeliver: 648, ftdChange: 503, tradeVolume: 116100, price: 3.08, notional: 1996 },
+  { tradeDate: '2026-06-10', settlementDate: '2026-06-11', closingDeadline: '2026-07-15', failsToDeliver: 145, ftdChange: -7984, tradeVolume: 187300, price: 2.93, notional: 425 },
+  { tradeDate: '2026-06-09', settlementDate: '2026-06-10', closingDeadline: '2026-07-14', failsToDeliver: 8129, ftdChange: 8129, tradeVolume: 177600, price: 2.96, notional: 24062 },
+  { tradeDate: '2026-06-08', settlementDate: '2026-06-09', closingDeadline: '2026-07-13', failsToDeliver: 0, ftdChange: -238, tradeVolume: 266600, price: 2.97, notional: 0 },
+  { tradeDate: '2026-06-05', settlementDate: '2026-06-08', closingDeadline: '2026-07-10', failsToDeliver: 238, ftdChange: 238, tradeVolume: 160900, price: 3.18, notional: 757 },
+  { tradeDate: '2026-06-04', settlementDate: '2026-06-05', closingDeadline: '2026-07-09', failsToDeliver: 0, ftdChange: 0, tradeVolume: 247400, price: 3.51, notional: 0 },
+  { tradeDate: '2026-06-03', settlementDate: '2026-06-04', closingDeadline: '2026-07-08', failsToDeliver: 0, ftdChange: -1827, tradeVolume: 142300, price: 3.11, notional: 0 },
+  { tradeDate: '2026-06-02', settlementDate: '2026-06-03', closingDeadline: '2026-07-07', failsToDeliver: 1827, ftdChange: 1827, tradeVolume: 103900, price: 3.28, notional: 5993 },
+  { tradeDate: '2026-06-01', settlementDate: '2026-06-02', closingDeadline: '2026-07-06', failsToDeliver: 0, ftdChange: 0, tradeVolume: 42300, price: 3.19, notional: 0 },
+  { tradeDate: '2026-05-29', settlementDate: '2026-06-01', closingDeadline: '2026-07-03', failsToDeliver: 0, ftdChange: 0, tradeVolume: 75600, price: 3.14, notional: 0 },
+  { tradeDate: '2026-05-28', settlementDate: '2026-05-29', closingDeadline: '2026-07-02', failsToDeliver: 0, ftdChange: 0, tradeVolume: 75400, price: 3.19, notional: 0 },
+  { tradeDate: '2026-05-27', settlementDate: '2026-05-28', closingDeadline: '2026-07-01', failsToDeliver: 0, ftdChange: 0, tradeVolume: 101000, price: 3.17, notional: 0 },
+  { tradeDate: '2026-05-26', settlementDate: '2026-05-27', closingDeadline: '2026-06-30', failsToDeliver: 0, ftdChange: -892, tradeVolume: 146200, price: 3.27, notional: 0 },
+  { tradeDate: '2026-05-22', settlementDate: '2026-05-26', closingDeadline: '2026-06-26', failsToDeliver: 892, ftdChange: -61, tradeVolume: 72700, price: 3.07, notional: 2738 },
+];
+
+const shortVolumeBaseColumns: Array<{ key: keyof ShortVolumeRow; label: string }> = [
+  { key: 'date', label: 'Date' },
+  { key: 'totalShortVolume', label: 'Total Short Volume' },
+  { key: 'totalVolume', label: 'Total Volume' },
+  { key: 'offExchangeNonExempt', label: 'Off Exchange Non-Exempt' },
+  { key: 'offExchangeExempt', label: 'Off Exchange Exempt' },
+  { key: 'nasdaqBx', label: 'Nasdaq BX' },
+  { key: 'nasdaqPhlx', label: 'Nasdaq PHLX' },
+  { key: 'nyse', label: 'NYSE' },
+  { key: 'nyseArca', label: 'NYSE Arca' },
+  { key: 'nyseNational', label: 'NYSE National' },
+  { key: 'nyseAmerican', label: 'NYSE American' },
+  { key: 'chx', label: 'CHX' },
+  { key: 'totalLongVolume', label: 'Total Long Volume' },
+];
+
+const ftdColumns: Array<{ key: keyof FtdRow; label: string }> = [
+  { key: 'tradeDate', label: 'Trade Date' },
+  { key: 'failsToDeliver', label: 'Fails-to-Deliver' },
+  { key: 'ftdChange', label: 'FTD Change' },
+  { key: 'tradeVolume', label: 'Trade Volume' },
+  { key: 'settlementDate', label: 'Settlement Date' },
+  { key: 'closingDeadline', label: 'Closing Deadline' },
+  { key: 'price', label: 'Price' },
+  { key: 'notional', label: '$ Notional' },
+];
+
+const numericFtdColumnKeys: Array<keyof FtdRow> = ['failsToDeliver', 'ftdChange', 'tradeVolume', 'price', 'notional'];
+
+function formatMarketTableValue(value: unknown, mode?: 'currency' | 'percent') {
+  const parsed = numeric(value);
+  if (parsed === null) return String(value ?? '—');
+  if (mode === 'currency') return `$${parsed.toLocaleString('en-US', { maximumFractionDigits: 2 })}`;
+  if (mode === 'percent') return `${parsed.toLocaleString('en-US', { maximumFractionDigits: 2 })}%`;
+  return parsed.toLocaleString('en-US', { maximumFractionDigits: 0 });
+}
+
+function shortVolumeValue(row: ShortVolumeRow, key: keyof ShortVolumeRow, mode: ShortVolumeMode) {
+  if (key === 'date') return row.date;
+  const value = row[key] as number;
+  if (mode === 'volume') return formatMarketTableValue(value);
+  const denominator = mode === 'totalPercent' ? row.totalVolume : row.totalShortVolume;
+  return denominator ? formatMarketTableValue((value / denominator) * 100, 'percent') : '—';
+}
+
+function PagedShortVolumeTable() {
+  const [page, setPage] = useState(1);
+  const [mode, setMode] = useState<ShortVolumeMode>('volume');
+  const pageSize = 7;
+  const totalPages = Math.max(1, Math.ceil(shortVolumeRows.length / pageSize));
+  const safePage = Math.min(page, totalPages);
+  const pageRows = shortVolumeRows.slice((safePage - 1) * pageSize, safePage * pageSize);
+
+  return (
+    <article className="terminal-card short-market-table-card">
+      <div className="short-market-table-card__head">
+        <div>
+          <h3><InfoTitle text="Daily reported short volume by venue. API integration will replace this placeholder table.">Short Volume</InfoTitle></h3>
+          <p>Daily reported short, long, and venue-level short volume.</p>
+        </div>
+        <select value={mode} onChange={event => setMode(event.target.value as ShortVolumeMode)} aria-label="Short volume display mode">
+          <option value="volume">Short Volume</option>
+          <option value="totalPercent">Short Percent of Total</option>
+          <option value="exchangePercent">Short Percent of Exchange</option>
+        </select>
+      </div>
+      <div className="short-market-table-wrap">
+        <table className="short-market-table">
+          <thead>
+            <tr>{shortVolumeBaseColumns.map(column => <th key={column.key}>{column.label}</th>)}</tr>
+          </thead>
+          <tbody>
+            {pageRows.map(row => (
+              <tr key={row.date}>
+                {shortVolumeBaseColumns.map(column => (
+                  <td key={column.key} className={column.key === 'date' ? '' : 'num'}>{shortVolumeValue(row, column.key, mode)}</td>
+                ))}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      <TablePager page={safePage} totalPages={totalPages} onPage={setPage} />
+    </article>
+  );
+}
+
+function PagedFtdTable() {
+  const [page, setPage] = useState(1);
+  const pageSize = 7;
+  const totalPages = Math.max(1, Math.ceil(ftdTableRows.length / pageSize));
+  const safePage = Math.min(page, totalPages);
+  const pageRows = ftdTableRows.slice((safePage - 1) * pageSize, safePage * pageSize);
+
+  return (
+    <article className="terminal-card short-market-table-card">
+      <div className="short-market-table-card__head">
+        <div>
+          <h3><InfoTitle text="Failures-to-deliver are settlement failures reported with a delay. API integration will replace this placeholder table.">Fails-to-Deliver</InfoTitle></h3>
+          <p>Settlement failures, closing deadlines, price, and notional value.</p>
+        </div>
+      </div>
+      <div className="short-market-table-wrap">
+        <table className="short-market-table">
+          <thead>
+            <tr>{ftdColumns.map(column => <th key={column.key}>{column.label}</th>)}</tr>
+          </thead>
+          <tbody>
+            {pageRows.map(row => (
+              <tr key={row.tradeDate}>
+                {ftdColumns.map(column => {
+                  const value = row[column.key];
+                  const isCurrency = column.key === 'price';
+                  return (
+                    <td key={column.key} className={numericFtdColumnKeys.includes(column.key) ? 'num' : ''}>
+                      {column.key === 'ftdChange' && typeof value === 'number'
+                        ? signed(value, { maximumFractionDigits: 0 })
+                        : isCurrency
+                          ? formatMarketTableValue(value, 'currency')
+                          : formatMarketTableValue(value)}
+                    </td>
+                  );
+                })}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      <TablePager page={safePage} totalPages={totalPages} onPage={setPage} />
+    </article>
+  );
+}
+
+function TablePager({ page, totalPages, onPage }: { page: number; totalPages: number; onPage: (page: number) => void }) {
+  return (
+    <div className="short-market-table-pager">
+      <button type="button" onClick={() => onPage(page - 1)} disabled={page <= 1}>Previous</button>
+      <span>Page {page} / {totalPages}</span>
+      <button type="button" onClick={() => onPage(page + 1)} disabled={page >= totalPages}>Next</button>
+    </div>
+  );
+}
+
 type BriefingMetric = 'shares' | 'floatPercent' | 'daysToCover';
 
 type BriefingTrendRow = {
@@ -697,6 +903,20 @@ export function ShortInterestBrowserPage({ ticker }: { ticker: string }) {
               values={availabilityTrendRows.map(row => optionalNumeric(record(row.availability).shortAvailabilityShares) as number)}
             />
           </div>
+        </div>
+      </section>
+
+      <section className="terminal-section short-market-data-section">
+        <div className="terminal-section__head">
+          <div>
+            <span>Market Data Tables</span>
+            <h2>Short Volume & Fails-to-Deliver</h2>
+            <p className="section-subtitle">Placeholder tables for future API data. Each table shows 7 records per page for readability.</p>
+          </div>
+        </div>
+        <div className="short-market-data-grid">
+          <PagedShortVolumeTable />
+          <PagedFtdTable />
         </div>
       </section>
       <PageDisclaimerNotice noticeKey="shortInterest" disclaimerKey="regulatoryFiling" />

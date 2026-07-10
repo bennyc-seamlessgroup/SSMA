@@ -12,7 +12,7 @@ import {
   demoInternalFloatUserInputs,
 } from '@/lib/internal-float-demo';
 import type { FloatAdjustments, InternalFloatV2UserInput } from '@/lib/internal-float';
-import { institutionalOverviewFile, normalizeTicker } from '@/lib/ticker-data';
+import { institutionalOverviewFile, managementHoldingsInputFile, normalizeTicker } from '@/lib/ticker-data';
 import { InternalFloatV2Client, type InsiderSuggestionSource, type InstitutionalOwnershipOverview } from './InternalFloatV2Client';
 import { isPublicDemoSession } from '@/lib/public-demo';
 
@@ -21,6 +21,10 @@ type OwnershipEnvelope = {
     overview?: InstitutionalOwnershipOverview;
     insider_bars?: InsiderSuggestionSource[];
   };
+};
+
+type ManagementHoldingsEnvelope = {
+  records?: InsiderSuggestionSource[];
 };
 
 const liveSeedAdjustments: FloatAdjustments = {
@@ -45,7 +49,8 @@ const liveSeedAdjustments: FloatAdjustments = {
 
 function LiveInternalFloat({ ticker }: { ticker: string }) {
   const ownershipFile = institutionalOverviewFile(ticker);
-  const { data, error, loading } = usePublicImportFiles([ownershipFile]);
+  const managementFile = managementHoldingsInputFile(ticker);
+  const { data, error, loading } = usePublicImportFiles([ownershipFile, managementFile]);
 
   if (loading && !data) return <PortalPageLoading variant="internalFloat" />;
   if (error || !data) {
@@ -54,6 +59,7 @@ function LiveInternalFloat({ ticker }: { ticker: string }) {
 
   const envelope = (data[ownershipFile] ?? {}) as OwnershipEnvelope;
   const ownershipData = envelope.data ?? {};
+  const managementEnvelope = ((data[managementFile] as { data?: ManagementHoldingsEnvelope })?.data ?? data[managementFile] ?? {}) as ManagementHoldingsEnvelope;
   const emptyInputs: InternalFloatV2UserInput = {
     userId: `workspace:${ticker}`,
     workspaceId: ticker,
@@ -72,7 +78,9 @@ function LiveInternalFloat({ ticker }: { ticker: string }) {
       initialAdjustments={liveSeedAdjustments}
       initialUserInputs={emptyInputs}
       institutionalOverview={ownershipData.overview}
-      insiderSuggestionSources={ownershipData.insider_bars ?? []}
+      insiderSuggestionSources={(managementEnvelope.records ?? [])
+        .filter(row => row.status === 'pending')
+        .map(row => ({ ...row, name: row.name ?? row.holderName ?? 'Unknown holder' }))}
     />
   );
 }

@@ -1,0 +1,162 @@
+#,Data Point,Data Source,Formula
+1,Company Name,E: Backend,
+2,Stock Code,E: Backend,
+3,Trade Volume - history,A: Vendor,
+4,Issued Share (Shares Outstanding),B: User Input,
+5,Institutional Owners,A: Vendor,
+6,Institutional Shares Long,A: Vendor,
+7,Institutional Shares Long - ratio,C: Backend Calculate,institutionalSharesLong / sharesOutstanding * 100
+8,Institutional Value,A: Vendor,
+9,Average Portfolio Allocation,C: Backend Calculate,mean(active owners__allocation) * 100 if allocation is decimal; exclude closed positions and owners__putCall = Call
+10,Ownership Structure,C: Backend Calculate,"Build grouped ownership list from sharesOutstanding, institutionalSharesLong, internalFloat, and realTradableFloat"
+11,Insiders Ownership,B: User Input,
+12,Insiders Ownership History,A: Vendor,
+13,Insiders Ownership Ratio,C: Backend Calculate,insidersOwnership / sharesOutstanding * 100
+14,Institutions Ownership,A: Vendor,
+15,Institutions Ownership Ratio,C: Backend Calculate,institutionsOwnership / sharesOutstanding * 100
+16,Public Float - tranditional,C: Backend Calculate,sharesOutstanding - institutionsOwnership - internalFloat
+17,Public Float - private / strategic,C: Backend Calculate,sum(managementStrategicHoldings.shares)
+18,Public Float - tokenized,B: User Input,
+19,Public Float Ratio,C: Backend Calculate,publicFloat / sharesOutstanding * 100
+20,Security Ownership Records,A: Vendor,
+21,Activist Filings Records,A: Vendor,
+22,Short Score,B: User Input,
+23,Short Score - pts+-,C: Backend Calculate,currentShortScore - priorShortScore
+24,Short Score - change,C: Backend Calculate,(currentShortScore - priorShortScore) / priorShortScore * 100
+25,Short Score Type,C: Backend Calculate,Threshold label from shortScore: Low / Moderate / High / Extreme. Exact thresholds TBD.
+26,Short Interest,A: Vendor,
+27,Short Interest - numbers+-,C: Backend Calculate,currentShortInterest - priorShortInterest
+28,Short Interest - change,C: Backend Calculate,(currentShortInterest - priorShortInterest) / priorShortInterest * 100
+29,Short Interest - Current Interpretation,D: AI Engine / Rule Engine,
+30,Short Interest - Management Watch Items,D: AI Engine / Rule Engine,
+31,Short Interest Trend,C: Backend Calculate,"Map short interest history to chart series: [{date, shortInterestShares}]"
+32,SI % Float,A: Vendor,
+33,SI % Float - numbers+-,C: Backend Calculate,currentSiPercentFloat - priorSiPercentFloat
+34,SI % Float - change,C: Backend Calculate,(currentSiPercentFloat - priorSiPercentFloat) / priorSiPercentFloat * 100
+35,Borrow Fee - ratio,A: Vendor,
+36,Borrow Fee - pts+-,C: Backend Calculate,currentBorrowFeePercent - priorBorrowFeePercent
+37,Borrow Fee - change,C: Backend Calculate,(currentBorrowFeePercent - priorBorrowFeePercent) / priorBorrowFeePercent * 100
+38,Borrow Fee - history,C: Backend Calculate,"Group Chart Exchange borrow-fee rows by date, select latest timestamp per date, output daily fee series"
+39,Borrow Fee Trend,C: Backend Calculate,"Map borrow fee history to chart series: [{date, borrowFeePercent}]"
+40,Borrow Fee: Score Type,C: Backend Calculate,Threshold label from borrowFeePercent: Low / Moderate / High / Extreme. Exact thresholds TBD.
+41,Days to Cover - new,A: Vendor,
+42,Days to Cover - history,E: Backend,
+43,Days to Cover - change,C: Backend Calculate,(currentDaysToCover - priorDaysToCover) / priorDaysToCover * 100; also return currentDaysToCover - priorDaysToCover as day change if needed
+44,Available Shares,B: User Input,
+45,Available Shares,B: User Input,
+46,Available Shares - number+-,C: Backend Calculate,currentShortableShares - priorShortableShares
+47,Available Shares - change,C: Backend Calculate,(currentShortableShares - priorShortableShares) / priorShortableShares * 100
+48,Available Shares (or Shortable Shares) - history,C: Backend Calculate,"Group available/shortable-share rows by date, select latest timestamp per date, output daily shares series"
+49,Available Shares Trend,C: Backend Calculate,"Map shortable shares history to chart series: [{date, shortableShares}]"
+50,Available Shares: Score Type,C: Backend Calculate,?
+51,Utilization - ratio,B: User Input,
+52,Utilization - pts+-,C: Backend Calculate,currentUtilizationPercent - priorUtilizationPercent
+53,Utilization - change,C: Backend Calculate,(currentUtilizationPercent - priorUtilizationPercent) / priorUtilizationPercent * 100
+54,Utilization - history,C: Backend Calculate,shortPosition / (shortPosition + lastAvailableSharesOfDay) * 100 per date
+55,Utilization Trend,C: Backend Calculate,"Map utilization history to chart series: [{date, utilizationPercent}]"
+56,Utilization: Score Type,C: Backend Calculate,Threshold label from utilizationPercent. Exact thresholds TBD.
+57,Lending Pressure Score,C: Backend Calculate,"? Weighted lending pressure score from shortable shares, utilization, borrow fee, and average duration/days to cover. Weighting TBD."
+58,Lending Pressure Score Type,C: Backend Calculate,Threshold label from lendingPressureScore: Low / Moderate / High / Extreme. Exact thresholds TBD.
+59,Lending Pressure - Analyze Impact on Short Squeeze Risk - Positive Contributors,D: AI Engine / Rule Engine,
+60,Lending Pressure - Analyze Impact on Short Squeeze Risk - Negative Contributors,D: AI Engine / Rule Engine,
+61,Lending Pressure - AI Lending Analysis,D: AI Engine / Rule Engine,
+62,Public Float (or Float Reduction or Real Tradable Float),C: Backend Calculate,sharesOutstanding - institutionsOwnership - internalFloat
+63,Public Float (or Float Reduction or Real Tradable Float) - ratio,C: Backend Calculate,realTradableFloat / sharesOutstanding * 100
+64,Float Reduction,C: Backend Calculate,internalFloat / marketFloat * 100. Confirm denominator for marketFloat.
+65,Private Friendly Holders,B: User Input,
+66,Private Friendly Holders - ratio,C: Backend Calculate,privateFriendlyHolders / denominator * 100. Denominator TBD.
+67,Tokenized Shares,B: User Input,
+68,Tokenized Shares - ratio,C: Backend Calculate,tokenizedShares / denominator * 100. Denominator TBD.
+69,Real Tradable Float,C: Backend Calculate,sharesOutstanding - institutionsOwnership - internalFloat
+70,Real Tradable Float - ratio,C: Backend Calculate,realTradableFloat / sharesOutstanding * 100
+71,Founder / Management Group - Holder,B: User Input,
+72,Founder / Management Group - Category,B: User Input,
+73,Founder / Management Group - Shares,B: User Input,
+74,Founder / Management Group - Notes,B: User Input,
+75,Founder / Management Group,C: Backend Calculate,founderManagementShares / denominator * 100. Denominator TBD.
+76,Strategic Long-term Holders - Holder,B: User Input,
+77,Strategic Long-term Holders - Gategory,B: User Input,
+78,Strategic Long-term Holders - Shares,B: User Input,
+79,Strategic Long-term holders - Notes,B: User Input,
+80,Strategic Long-term holders,C: Backend Calculate,strategicLongTermShares / denominator * 100. Denominator TBD.
+81,Tokenized Shares & Providers - Chain,B: User Input,
+82,Tokenized Shares & Providers - Share,B: User Input,
+83,Tokenized Shares & Providers - Tokenization Provider,B: User Input,
+84,Sentiment Score,C: Backend Calculate,"average sentiment score where positive=100, neutral=50, negative=0"
+85,Sentiment Discussion Volume,C: Backend Calculate,Count social records by time bucket for selected timeframe
+86,Sentiment Positive Post,C: Backend Calculate,Filter social records where sentiment is positive/bullish
+87,Sentiment Positive ratio,C: Backend Calculate,positiveCount / totalCount * 100
+88,Sentiment Negative Post,C: Backend Calculate,Filter social records where sentiment is negative/bearish
+89,Sentiment Negative ratio,C: Backend Calculate,negativeCount / totalCount * 100
+90,Sentiment Neutral Post,C: Backend Calculate,Filter social records where sentiment is neutral
+91,Sentiment Neutral ratio,C: Backend Calculate,neutralCount / totalCount * 100
+92,Sentiment Platform Breakdown,C: Backend Calculate,"Group social records by platform; for each platform calculate count, sentiment score, and platformCount / totalCount * 100"
+93,Sentiment Top Platform,C: Backend Calculate,Platform with largest record count in selected period. Tie-breaker TBD.
+94,Sentiment Trend,C: Backend Calculate,Bucket social records by date/timeframe and platform; calculate average sentiment score per bucket
+95,Reddit Feed,A: Vendor,
+96,X Feed,A: Vendor,
+97,Facebook Feed,A: Vendor,
+98,Linkin Feed,A: Vendor,
+99,Stocktwits Feed,B: User Input,
+100,SEC Filings,B: User Input,
+101,Current Stock Price (or Stock Price),A: Vendor,
+102,Base Case,C: Backend Calculate,?
+103,Moderate Squeeze,C: Backend Calculate,?
+104,High Squeeze,C: Backend Calculate,?
+105,Extreme Squeeze,C: Backend Calculate,?
+106,Number of Reports,C: Backend Calculate,Count all available report files/windows in report archive index
+107,Number of Daily Report Windows,C: Backend Calculate,Count available report windows for selected/latest date; max expected windows = 3
+108,Report Latest Date,C: Backend Calculate,Latest date with at least one available report
+109,Report History,C: Backend Calculate,Group report files by date and report window into archive history rows
+110,1. Executive Summary,D: AI Engine / Rule Engine,
+111,2. Company Overview,D: AI Engine / Rule Engine,
+112,3. Share Price Analysis,D: AI Engine / Rule Engine,
+113,4. Short Selling Data & Analysis,D: AI Engine / Rule Engine,
+114,4.1 Core Short Metrics,D: AI Engine / Rule Engine,
+115,4.2 Key Short Sellers: Two Sigma & Citadel,D: AI Engine / Rule Engine,
+116,5. Institutional Ownership Analysis,D: AI Engine / Rule Engine,
+117,5.1 Insider Activity,D: AI Engine / Rule Engine,
+118,6. Financial Performance,D: AI Engine / Rule Engine,
+119,7. Fails-to-Deliver (FTD) Analysis,D: AI Engine / Rule Engine,
+120,8. Valuation & Fair Value Assessment,D: AI Engine / Rule Engine,
+121,8.1 Valuation Methodology,D: AI Engine / Rule Engine,
+122,9. Tokenization Strategy Analysis,D: AI Engine / Rule Engine,
+123,9.1 How Tokenization Neutralizes Short Sellers,D: AI Engine / Rule Engine,
+124,9.2 CURRENC Capital Precedent,D: AI Engine / Rule Engine,
+125,10. Risk Factors,D: AI Engine / Rule Engine,
+126,10.1 Short-Selling Risks,D: AI Engine / Rule Engine,
+127,10.2 Business Risks,D: AI Engine / Rule Engine,
+128,10.3 Mitigating Factors,D: AI Engine / Rule Engine,
+129,11. Conclusion & Recommendations,D: AI Engine / Rule Engine,
+130,SV-Date,A: Vendor,
+131,SV-Total Volume Reported,A: Vendor,
+132,SV-Total Short Volume Reported,A: Vendor,
+133,SV-Total Long Volume Reported,A: Vendor,
+134,SV-Off Exchang Non-Exempt,A: Vendor,
+135,SV-Off Exchange Exempt,A: Vendor,
+136,SV-Nasdaq BX,A: Vendor,
+137,SV-Nasdaq PHLX,A: Vendor,
+138,SV-NYSE,A: Vendor,
+139,SV-NYSE Arca,A: Vendor,
+140,SV-NYSE National,A: Vendor,
+141,SV-NYSE American,A: Vendor,
+142,SV-CHX,A: Vendor,
+143,SV-Cboe EDGX,A: Vendor,
+144,SV-Cboe BZX,A: Vendor,
+145,SV-Cboe EDGA,A: Vendor,
+146,SV-Cboe BYX,A: Vendor,
+147,Settlement Date (T+B),A: Vendor,
+148,Fails-to-Deliver,A: Vendor,
+149,Price,A: Vendor,
+150,Trade Date (T),A: Vendor,
+151,Closing Deadline (T+35C),A: Vendor,
+152,$ Notional,A: Vendor,
+153,FTD Change,A: Vendor,
+154,Initial Margin,B: User Input,
+155,Initial Margin,B: User Input,
+156,Maintenance Margin,B: User Input,
+157,Maintenance Margin,B: User Input,
+158,Average Duration (D),B: User Input,
+159,On Load Share,,
+160,Load Value,,
+161,Lending Pressure Score,,

@@ -1,0 +1,78 @@
+{
+  "source": "operations_management_holdings_input",
+  "schemaVersion": 1,
+  "ticker": "CURR",
+  "updatedAt": "2026-07-10T00:00:00.000Z",
+  "s3Key": "ownership/CURR_management_holdings_inputs.json",
+  "records": [
+    {
+      "id": "seed-regal-planet-2026-07-10",
+      "ticker": "CURR",
+      "holderName": "Regal Planet Ltd",
+      "category": "Strategic Investor",
+      "shares": 59771223,
+      "action": "add",
+      "notes": "Operations seed record for strategic entity display.",
+      "effectiveDate": "2026-07-10",
+      "autoApply": true,
+      "status": "applied",
+      "createdAt": "2026-07-10T00:00:00.000Z",
+      "updatedAt": "2026-07-10T00:00:00.000Z",
+      "updatedBy": "operations"
+    },
+    {
+      "id": "seed-in-fint-2026-07-10",
+      "ticker": "CURR",
+      "holderName": "InFiNT Capital LLC",
+      "category": "Long-Term Holder",
+      "shares": 4480000,
+      "action": "add",
+      "notes": "Operations seed record for strategic entity display.",
+      "effectiveDate": "2026-07-10",
+      "autoApply": true,
+      "status": "applied",
+      "createdAt": "2026-07-10T00:00:00.000Z",
+      "updatedAt": "2026-07-10T00:00:00.000Z",
+      "updatedBy": "operations"
+    }
+  ],
+  "data": {
+    "source": "operations_management_holdings_input",
+    "schemaVersion": 1,
+    "ticker": "CURR",
+    "updatedAt": "2026-07-10T00:00:00.000Z",
+    "s3Key": "ownership/CURR_management_holdings_inputs.json",
+    "records": [
+      {
+        "id": "seed-regal-planet-2026-07-10",
+        "ticker": "CURR",
+        "holderName": "Regal Planet Ltd",
+        "category": "Strategic Investor",
+        "shares": 59771223,
+        "action": "add",
+        "notes": "Operations seed record for strategic entity display.",
+        "effectiveDate": "2026-07-10",
+        "autoApply": true,
+        "status": "applied",
+        "createdAt": "2026-07-10T00:00:00.000Z",
+        "updatedAt": "2026-07-10T00:00:00.000Z",
+        "updatedBy": "operations"
+      },
+      {
+        "id": "seed-in-fint-2026-07-10",
+        "ticker": "CURR",
+        "holderName": "InFiNT Capital LLC",
+        "category": "Long-Term Holder",
+        "shares": 4480000,
+        "action": "add",
+        "notes": "Operations seed record for strategic entity display.",
+        "effectiveDate": "2026-07-10",
+        "autoApply": true,
+        "status": "applied",
+        "createdAt": "2026-07-10T00:00:00.000Z",
+        "updatedAt": "2026-07-10T00:00:00.000Z",
+        "updatedBy": "operations"
+      }
+    ]
+  }
+}

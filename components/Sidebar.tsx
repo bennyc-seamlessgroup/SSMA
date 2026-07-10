@@ -41,6 +41,9 @@ const groups = [
     muted: true,
     items: [
       ['Data Sources', 'import-data'],
+      ['Connectors', 'api-connectors'],
+      ['Notifications', 'notifications'],
+      ['Security Policy', 'policy'],
       ['Billing & Plan', 'billing'],
     ],
   },
@@ -52,10 +55,7 @@ const settingsItems = [
   ['Role & Permissions', 'role-permissions'],
   ['Company Management', 'companies'],
   ['Delivery Settings', 'email-settings'],
-  ['Notifications', 'notifications'],
   ['Alert Rules', 'alert-rules'],
-  ['Security Policy', 'policy'],
-  ['Connectors', 'api-connectors'],
 ];
 
 const importDataSeenKeyPrefix = 'import-data-seen-version';

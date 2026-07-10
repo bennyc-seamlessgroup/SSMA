@@ -29,10 +29,10 @@ const routeLabels: Record<string, { section: string; page: string }> = {
   billing: { section: 'Development', page: 'Billing & Plan' },
   companies: { section: 'Settings', page: 'Company Management' },
   'email-settings': { section: 'Settings', page: 'Delivery Settings' },
-  notifications: { section: 'Settings', page: 'Notifications' },
   'alert-rules': { section: 'Settings', page: 'Alert Rules' },
-  policy: { section: 'Settings', page: 'Security Policy' },
-  'api-connectors': { section: 'Settings', page: 'Connectors' },
+  notifications: { section: 'Development', page: 'Notifications' },
+  policy: { section: 'Development', page: 'Security Policy' },
+  'api-connectors': { section: 'Development', page: 'Connectors' },
   dashboard: { section: 'Development', page: 'Dashboard Obsolete' },
   'import-data': { section: 'Development', page: 'Data Sources' },
 };
