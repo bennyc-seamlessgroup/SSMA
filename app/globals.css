@@ -3401,6 +3401,121 @@ html[data-design-b-theme="dark"] .monitor-portal .report-history-pagination butt
   color: #047857;
 }
 
+.ops-destination-tags,
+.ops-row-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.ops-destination-tags span {
+  display: inline-flex;
+  align-items: center;
+  min-height: 22px;
+  padding: 3px 8px;
+  border-radius: 999px;
+  background: #eef5ff;
+  color: #2457b8;
+  font-size: 10px;
+  font-weight: 800;
+}
+
+.ops-row-actions button {
+  border: 1px solid #c7d7ea;
+  border-radius: 8px;
+  background: #fff;
+  color: #2457b8;
+  min-height: 30px;
+  padding: 0 10px;
+  font-size: 11px;
+  font-weight: 850;
+  cursor: pointer;
+}
+
+.ops-row-actions button.danger {
+  border-color: #fecdd3;
+  color: #be123c;
+}
+
+.ops-row-actions button:hover {
+  background: #f5f9ff;
+}
+
+.ops-row-menu {
+  position: relative;
+}
+
+.ops-row-menu summary {
+  display: inline-grid;
+  width: 30px;
+  height: 30px;
+  place-items: center;
+  border: 1px solid #c7d7ea;
+  border-radius: 8px;
+  background: #fff;
+  color: #52677f;
+  cursor: pointer;
+  list-style: none;
+}
+
+.ops-row-menu summary::-webkit-details-marker {
+  display: none;
+}
+
+.ops-row-menu summary svg {
+  width: 16px;
+  height: 16px;
+  fill: currentColor;
+}
+
+.ops-row-menu[open] summary,
+.ops-row-menu summary:hover {
+  background: #f5f9ff;
+  color: #2457b8;
+}
+
+.ops-row-menu__panel {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 6px);
+  z-index: 20;
+  display: grid;
+  gap: 3px;
+  min-width: 220px;
+  padding: 6px;
+  border: 1px solid #dbe5f0;
+  border-radius: 8px;
+  background: #fff;
+  box-shadow: 0 16px 34px rgba(15, 23, 42, .14);
+}
+
+.ops-row-menu__panel button {
+  justify-content: flex-start;
+  width: 100%;
+  border-color: transparent;
+  background: transparent;
+  color: #263c56;
+  text-align: left;
+}
+
+.ops-row-menu__panel button:hover {
+  background: #f4f8ff;
+  color: #1d4ed8;
+}
+
+.ops-row-menu__panel button.danger {
+  border-color: transparent;
+  color: #be123c;
+}
+
+.ops-row-menu__panel small {
+  padding: 7px 8px;
+  color: #7f91a8;
+  font-size: 11px;
+  font-weight: 800;
+}
+
 .ops-status.bad,
 .ops-form-message.bad {
   color: #be123c;
@@ -3417,6 +3532,32 @@ html[data-design-b-theme="dark"] .monitor-portal .report-history-pagination butt
 
 .ops-form-grid.three {
   grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.ops-management-input-grid {
+  margin-bottom: 14px;
+}
+
+.ops-destination-fieldset {
+  min-width: 0;
+  margin: 0 0 14px;
+  padding: 0;
+  border: 0;
+}
+
+.ops-destination-fieldset legend {
+  margin-bottom: 8px;
+  color: #52677f;
+  font-size: 11px;
+  font-weight: 900;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+}
+
+.ops-destination-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
 }
 
 .ops-check-row {
@@ -3451,6 +3592,80 @@ html[data-design-b-theme="dark"] .monitor-portal .report-history-pagination butt
   color: #64758d;
   font-size: 11px;
   line-height: 1.35;
+}
+
+.ops-record-tabs {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin: 0 0 14px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid #e0e9f4;
+  overflow-x: auto;
+}
+
+.ops-record-tabs button {
+  display: inline-flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 7px;
+  min-height: 34px;
+  border: 1px solid transparent;
+  border-radius: 7px;
+  background: transparent;
+  color: #61748c;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 800;
+  padding: 0 10px;
+  white-space: nowrap;
+}
+
+.ops-record-tabs button small {
+  flex-basis: 100%;
+  color: #8a9ab0;
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: .04em;
+  line-height: 1.1;
+  text-transform: uppercase;
+}
+
+.ops-record-tabs button.is-active small {
+  color: #5575ad;
+}
+
+.ops-record-tabs button:hover {
+  background: #f4f8ff;
+  color: #2457b8;
+}
+
+.ops-record-tabs button.is-active {
+  border-color: #bfdbfe;
+  background: #eff6ff;
+  color: #1d4ed8;
+}
+
+.ops-record-tabs button span {
+  display: inline-grid;
+  min-width: 18px;
+  height: 18px;
+  place-items: center;
+  border-radius: 999px;
+  background: #e7eef8;
+  color: #52677f;
+  font-size: 10px;
+}
+
+.ops-record-tabs button.is-active span {
+  background: #dbeafe;
+  color: #1d4ed8;
+}
+
+.ops-muted-action {
+  color: #7f91a8;
+  font-size: 11px;
+  font-weight: 800;
 }
 
 .ops-form-footer {
@@ -7382,6 +7597,10 @@ html[data-portal-design="b"] .portal-design-b-actions .user-menu__head span {
 
   .ops-form-grid.two,
   .ops-form-grid.three {
+    grid-template-columns: 1fr;
+  }
+
+  .ops-destination-grid {
     grid-template-columns: 1fr;
   }
 

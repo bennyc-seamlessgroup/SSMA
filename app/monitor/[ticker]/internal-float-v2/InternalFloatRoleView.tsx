@@ -79,7 +79,7 @@ function LiveInternalFloat({ ticker }: { ticker: string }) {
       initialUserInputs={emptyInputs}
       institutionalOverview={ownershipData.overview}
       insiderSuggestionSources={(managementEnvelope.records ?? [])
-        .filter(row => row.status === 'pending')
+        .filter(row => row.status === 'pending' && (row.showAsSuggestion || !row.autoApply))
         .map(row => ({ ...row, name: row.name ?? row.holderName ?? 'Unknown holder' }))}
     />
   );

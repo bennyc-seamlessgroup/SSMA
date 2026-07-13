@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
-import { authenticatedFetch, getAuthenticatedProfile } from '@/lib/auth-client';
+import { operationsFetch, operationsProfile } from '@/lib/operations/api-client';
 
 type HotkeyMapping = {
   ticker: string;
@@ -74,7 +74,7 @@ export function HotkeyOperationsClient({ ticker }: { ticker: string }) {
     setState('loading');
     if (!preserveMessage) setMessage('');
     try {
-      const response = await authenticatedFetch(
+      const response = await operationsFetch(
         `/hotkeys?ticker=${encodeURIComponent(normalizedTicker)}`,
         { cache: 'no-store' },
       ) as HotkeyResponse;
@@ -97,7 +97,7 @@ export function HotkeyOperationsClient({ ticker }: { ticker: string }) {
     if (!updates.length) return;
 
     await Promise.all(updates.map(({ mapping, inferredPlatform }) => (
-      authenticatedFetch('/hotkeys', {
+      operationsFetch('/hotkeys', {
         method: 'POST',
         body: JSON.stringify({
           ticker: mapping.ticker || normalizedTicker,
@@ -112,8 +112,8 @@ export function HotkeyOperationsClient({ ticker }: { ticker: string }) {
     let cancelled = false;
 
     Promise.all([
-      getAuthenticatedProfile(),
-      authenticatedFetch(`/hotkeys?ticker=${encodeURIComponent(normalizedTicker)}`, { cache: 'no-store' }) as Promise<HotkeyResponse>,
+      operationsProfile(),
+      operationsFetch(`/hotkeys?ticker=${encodeURIComponent(normalizedTicker)}`, { cache: 'no-store' }) as Promise<HotkeyResponse>,
     ])
       .then(([profile, response]) => {
         if (cancelled) return;
@@ -157,7 +157,7 @@ export function HotkeyOperationsClient({ ticker }: { ticker: string }) {
     setState('saving');
     setMessage('');
     try {
-      await authenticatedFetch('/hotkeys', {
+      await operationsFetch('/hotkeys', {
         method: 'POST',
         body: JSON.stringify({
           ticker: normalizedTicker,
@@ -179,7 +179,7 @@ export function HotkeyOperationsClient({ ticker }: { ticker: string }) {
     setState('deleting');
     setMessage('');
     try {
-      await authenticatedFetch(
+      await operationsFetch(
         `/hotkeys/${encodeURIComponent(mapping.ticker)}/${encodeURIComponent(mapping.kwatchHotkey)}`,
         { method: 'DELETE' },
       );

@@ -33,6 +33,9 @@ export type InsiderSuggestionSource = {
   category?: string;
   notes?: string;
   effectiveDate?: string | null;
+  showInOwnership?: boolean;
+  showAsSuggestion?: boolean;
+  autoApply?: boolean;
   status?: 'pending' | 'applied' | 'discarded';
   latestFileDate?: string | null;
   latestEffectiveDate?: string | null;

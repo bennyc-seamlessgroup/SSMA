@@ -56,6 +56,8 @@ type ManagementHoldingInputRecord = {
   action: 'add' | 'deduct';
   notes?: string;
   effectiveDate?: string;
+  showInOwnership?: boolean;
+  showAsSuggestion?: boolean;
   autoApply?: boolean;
   status?: 'pending' | 'applied' | 'discarded';
 };

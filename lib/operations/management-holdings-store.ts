@@ -21,6 +21,8 @@ export type ManagementHoldingInputRecord = {
   action: ManagementHoldingAction;
   notes: string;
   effectiveDate: string;
+  showInOwnership: boolean;
+  showAsSuggestion: boolean;
   autoApply: boolean;
   status: 'pending' | 'applied' | 'discarded';
   createdAt: string;
@@ -96,6 +98,8 @@ function normalizeRecord(input: Partial<ManagementHoldingInputRecord>, ticker = 
     action,
     notes: text(input.notes),
     effectiveDate,
+    showInOwnership: input.showInOwnership === false ? false : true,
+    showAsSuggestion: Boolean(input.showAsSuggestion),
     autoApply: Boolean(input.autoApply),
     status: input.status === 'applied' || input.status === 'discarded' ? input.status : 'pending',
     createdAt: text(input.createdAt) || new Date().toISOString(),
@@ -184,29 +188,46 @@ function applyRecordToPrivateHoldings(currentRows: InternalFloatV2PrivateHolding
   return nextRows;
 }
 
-async function autoApplyToInternalFloat(record: ManagementHoldingInputRecord) {
-  const workspace = await readInternalFloatWorkspaceEnvelope(record.ticker);
+function reverseRecordFromPrivateHoldings(currentRows: InternalFloatV2PrivateHolding[], record: ManagementHoldingInputRecord) {
+  const matchingIndex = currentRows.findIndex(row => normalizedName(row.holderName) === normalizedName(record.holderName));
+  if (matchingIndex < 0) return currentRows;
+
+  return currentRows.map((row, index) => {
+    if (index !== matchingIndex) return row;
+    const direction = record.action === 'deduct' ? 1 : -1;
+    return {
+      ...row,
+      shares: Math.max(0, numeric(row.shares) + direction * record.shares),
+    };
+  });
+}
+
+async function updateInternalFloatPrivateHoldings(
+  ticker: string,
+  updater: (rows: InternalFloatV2PrivateHolding[]) => InternalFloatV2PrivateHolding[],
+) {
+  const workspace = await readInternalFloatWorkspaceEnvelope(ticker);
   if (!workspace) return;
 
   const users = Array.isArray(workspace.envelope.data?.users) ? workspace.envelope.data.users : [];
   const current = users.length
-    ? selectInternalFloatWorkspaceInput(users, record.ticker)
-    : { ...defaultInternalFloatV2UserInput, userId: internalFloatWorkspaceId(record.ticker), workspaceId: record.ticker, ticker: record.ticker };
+    ? selectInternalFloatWorkspaceInput(users, ticker)
+    : { ...defaultInternalFloatV2UserInput, userId: internalFloatWorkspaceId(ticker), workspaceId: ticker, ticker };
 
   const updated: InternalFloatV2UserInput = {
     ...current,
-    privateHoldings: applyRecordToPrivateHoldings(current.privateHoldings, record),
+    privateHoldings: updater(current.privateHoldings),
   };
-  const workspaceUserId = internalFloatWorkspaceId(record.ticker);
+  const workspaceUserId = internalFloatWorkspaceId(ticker);
   const nextUsers = [
-    ...users.filter(row => row.userId !== workspaceUserId && row.workspaceId !== record.ticker),
+    ...users.filter(row => row.userId !== workspaceUserId && row.workspaceId !== ticker),
     updated,
   ];
   const now = new Date().toISOString();
 
   await writeImportJson(workspace.path, {
     ...workspace.envelope,
-    ticker: record.ticker,
+    ticker,
     importedAt: now,
     asOfDate: now.slice(0, 10),
     recordCount: nextUsers.length,
@@ -215,18 +236,33 @@ async function autoApplyToInternalFloat(record: ManagementHoldingInputRecord) {
   });
 }
 
+async function autoApplyToInternalFloat(record: ManagementHoldingInputRecord) {
+  await updateInternalFloatPrivateHoldings(record.ticker, rows => applyRecordToPrivateHoldings(rows, record));
+}
+
+async function reverseAutoApplyFromInternalFloat(record: ManagementHoldingInputRecord) {
+  await updateInternalFloatPrivateHoldings(record.ticker, rows => reverseRecordFromPrivateHoldings(rows, record));
+}
+
 export async function saveManagementHoldingInput(input: Partial<ManagementHoldingInputRecord>) {
   const ticker = normalizeTicker(input.ticker);
   const current = await readManagementHoldingsInputs(ticker);
   const now = new Date().toISOString();
   let record = normalizeRecord({ ...input, ticker, updatedAt: now }, ticker);
+  const existingIndex = current.records.findIndex(row => row.id === record.id);
+  const existingRecord = existingIndex >= 0 ? current.records[existingIndex] : null;
+
+  if (existingRecord?.autoApply && existingRecord.status === 'applied') {
+    await reverseAutoApplyFromInternalFloat(existingRecord);
+  }
 
   if (record.autoApply) {
     await autoApplyToInternalFloat(record);
     record = { ...record, status: 'applied' };
+  } else if (!record.showAsSuggestion && record.status === 'pending') {
+    record = { ...record, status: 'applied' };
   }
 
-  const existingIndex = current.records.findIndex(row => row.id === record.id);
   const nextRecords = [...current.records];
   nextRecords[existingIndex >= 0 ? existingIndex : nextRecords.length] = {
     ...record,
@@ -245,4 +281,29 @@ export async function saveManagementHoldingInput(input: Partial<ManagementHoldin
   });
 
   return { ...nextFile, savedRecord: record };
+}
+
+export async function deleteManagementHoldingInput(ticker = 'CURR', id: string) {
+  const normalizedTicker = normalizeTicker(ticker);
+  const current = await readManagementHoldingsInputs(normalizedTicker);
+  const record = current.records.find(row => row.id === id);
+  if (!record) return current;
+
+  if (record.autoApply && record.status === 'applied') {
+    await reverseAutoApplyFromInternalFloat(record);
+  }
+
+  const now = new Date().toISOString();
+  const nextFile: ManagementHoldingsInputFile = {
+    ...blankFile(normalizedTicker),
+    updatedAt: now,
+    records: current.records.filter(row => row.id !== id),
+  };
+
+  await writeImportJson(managementHoldingsInputFile(normalizedTicker), {
+    ...nextFile,
+    data: nextFile,
+  });
+
+  return nextFile;
 }

@@ -64,6 +64,7 @@ type ManagementHoldingInputRecord = {
   action: 'add' | 'deduct';
   notes?: string;
   effectiveDate?: string;
+  showInOwnership?: boolean;
   status?: 'pending' | 'applied' | 'discarded';
 };
 
@@ -135,7 +136,7 @@ export function InstitutionalOverview({
   const overview = data.overview ?? {};
   const institutionRows = data.institution_bars ?? [];
   const strategicEntityRows = Array.from(managementRecords
-    .filter(row => row.status !== 'discarded')
+    .filter(row => row.showInOwnership !== false && row.status !== 'discarded')
     .reduce((map, row) => {
       const key = `${row.holderName.trim().toLowerCase()}|${row.category}`;
       const current = map.get(key) ?? {

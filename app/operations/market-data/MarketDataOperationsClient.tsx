@@ -1,12 +1,13 @@
 'use client';
 
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { authenticatedFetch, getAuthenticatedProfile } from '@/lib/auth-client';
+import { operationsFetch, operationsProfile } from '@/lib/operations/api-client';
 import { getOperationsTicker, setOperationsTicker } from '@/lib/operations/ticker-client';
 
 type MarketDataRecord = {
   tradeDate: string;
   ticker: string;
+  issuedShare: string;
   shortAvailabilityPct: string;
   shortAvailabilityShares: string;
   costToBorrowNew: string;
@@ -28,6 +29,7 @@ type MarketDataResponse = {
 const csvHeaders = [
   'tradeDate',
   'ticker',
+  'issuedShare',
   'shortAvailabilityPct',
   'shortAvailabilityShares',
   'costToBorrowNew',
@@ -46,6 +48,7 @@ function emptyRecord(ticker: string): MarketDataRecord {
   return {
     tradeDate: todayYmd(),
     ticker,
+    issuedShare: '',
     shortAvailabilityPct: '',
     shortAvailabilityShares: '',
     costToBorrowNew: '',
@@ -85,7 +88,7 @@ export function MarketDataOperationsClient() {
     setStatus('loading');
     if (!preserveFeedback) setMessage('');
     try {
-      const payload = await authenticatedFetch(`/market-data?ticker=${encodeURIComponent(normalized)}`) as MarketDataResponse;
+      const payload = await operationsFetch(`/market-data?ticker=${encodeURIComponent(normalized)}`) as MarketDataResponse;
       setSelectedTicker(normalized);
       setTickerDraft(normalized);
       setOperationsTicker(normalized);
@@ -102,7 +105,7 @@ export function MarketDataOperationsClient() {
     let cancelled = false;
     const initialize = async () => {
       try {
-        const profile = await getAuthenticatedProfile();
+        const profile = await operationsProfile();
         if (String(profile.role ?? '').trim().toUpperCase() !== 'OPERATOR') {
           if (!cancelled) {
             setStatus('forbidden');
@@ -148,7 +151,7 @@ export function MarketDataOperationsClient() {
     setStatus('saving');
     setMessage('');
     try {
-      const payload = await authenticatedFetch('/market-data', {
+      const payload = await operationsFetch('/market-data', {
         method: 'POST',
         body: JSON.stringify({ ...form, ticker: normalizeTicker(form.ticker) }),
       }) as MarketDataResponse;
@@ -170,7 +173,7 @@ export function MarketDataOperationsClient() {
       const body = new FormData();
       body.append('file', file);
       body.append('ticker', selectedTicker);
-      const payload = await authenticatedFetch(`/market-data/batch?ticker=${encodeURIComponent(selectedTicker)}`, {
+      const payload = await operationsFetch(`/market-data/batch?ticker=${encodeURIComponent(selectedTicker)}`, {
         method: 'POST',
         body,
       }) as MarketDataResponse;
@@ -227,11 +230,12 @@ export function MarketDataOperationsClient() {
               <label>Ticker<input value={form.ticker} maxLength={10} onChange={event => updateField('ticker', event.target.value)} required /></label>
             </div>
             <div className="ops-form-grid three">
+              <label>Issued Share<input inputMode="numeric" value={form.issuedShare} onChange={event => updateField('issuedShare', event.target.value)} required /></label>
               <label>Short Availability %<input inputMode="decimal" value={form.shortAvailabilityPct} onChange={event => updateField('shortAvailabilityPct', event.target.value)} required /></label>
               <label>Shortable Shares<input inputMode="numeric" value={form.shortAvailabilityShares} onChange={event => updateField('shortAvailabilityShares', event.target.value)} required /></label>
-              <label>Cost to Borrow New<input inputMode="decimal" value={form.costToBorrowNew} onChange={event => updateField('costToBorrowNew', event.target.value)} required /></label>
             </div>
             <div className="ops-form-grid three">
+              <label>Cost to Borrow New<input inputMode="decimal" value={form.costToBorrowNew} onChange={event => updateField('costToBorrowNew', event.target.value)} required /></label>
               <label>Days to Cover<input inputMode="decimal" value={form.daysToCover} onChange={event => updateField('daysToCover', event.target.value)} required /></label>
               <label>Short Interest Shares<input inputMode="numeric" value={form.shortInterestShares} onChange={event => updateField('shortInterestShares', event.target.value)} required /></label>
               <label>Short Interest % Free Float<input inputMode="decimal" value={form.shortInterestPcFreeFloat} onChange={event => updateField('shortInterestPcFreeFloat', event.target.value)} required /></label>
@@ -286,12 +290,13 @@ export function MarketDataOperationsClient() {
         </div>
         <div className="ops-table-wrap">
           <table className="ops-table ops-market-table">
-            <thead><tr><th>Trade Date</th><th>Ticker</th><th>Availability</th><th>Shortable Shares</th><th>Borrow Fee</th><th>Days to Cover</th><th>Short Interest</th><th>SI % Float</th><th>Score</th><th>Action</th></tr></thead>
+            <thead><tr><th>Trade Date</th><th>Ticker</th><th>Issued Share</th><th>Availability</th><th>Shortable Shares</th><th>Borrow Fee</th><th>Days to Cover</th><th>Short Interest</th><th>SI % Float</th><th>Score</th><th>Action</th></tr></thead>
             <tbody>
               {sortedRecords.map((record, index) => (
                 <tr key={`${record.tradeDate}-${record.ticker}-${index}`}>
                   <td>{record.tradeDate}</td>
                   <td>{record.ticker}</td>
+                  <td>{displayNumber(record.issuedShare)}</td>
                   <td>{displayNumber(record.shortAvailabilityPct, '%')}</td>
                   <td>{displayNumber(record.shortAvailabilityShares)}</td>
                   <td>{displayNumber(record.costToBorrowNew, '%')}</td>
@@ -302,7 +307,7 @@ export function MarketDataOperationsClient() {
                   <td><button className="ops-secondary-button" type="button" onClick={() => editRecord(record)}>Edit</button></td>
                 </tr>
               ))}
-              {!sortedRecords.length && <tr><td colSpan={10}>{busy ? 'Loading market data...' : 'No market data records found for this ticker.'}</td></tr>}
+              {!sortedRecords.length && <tr><td colSpan={11}>{busy ? 'Loading market data...' : 'No market data records found for this ticker.'}</td></tr>}
             </tbody>
           </table>
         </div>

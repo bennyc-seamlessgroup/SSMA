@@ -1,7 +1,7 @@
 'use client';
 
-import { authenticatedFetch } from '@/lib/auth-client';
 import { buildDashboard } from '@/lib/mock-data';
+import { operationsFetch } from '@/lib/operations/api-client';
 import { getOperationsTicker, setOperationsTicker } from '@/lib/operations/ticker-client';
 import { useEffect, useMemo, useState } from 'react';
 
@@ -134,7 +134,7 @@ export function SecFilingsOperationsClient() {
     const normalizedTicker = ticker.trim().toUpperCase() || 'CURR';
     setStatus('loading');
     try {
-      const payload = await authenticatedFetch(`/sec-filings?ticker=${encodeURIComponent(normalizedTicker)}`, { cache: 'no-store' });
+      const payload = await operationsFetch(`/sec-filings?ticker=${encodeURIComponent(normalizedTicker)}`, { cache: 'no-store' });
       setSelectedTicker(normalizedTicker);
       setOperationsTicker(normalizedTicker);
       setTickerDraft(normalizedTicker);
@@ -184,7 +184,7 @@ export function SecFilingsOperationsClient() {
     setMessage('');
 
     try {
-      const payload = await authenticatedFetch(`/sec-filings?ticker=${encodeURIComponent(selectedTicker)}`, {
+      const payload = await operationsFetch(`/sec-filings?ticker=${encodeURIComponent(selectedTicker)}`, {
         method: 'PUT',
         body: JSON.stringify([{ ...form, ticker: selectedTicker }]),
       });
@@ -220,7 +220,7 @@ export function SecFilingsOperationsClient() {
       const query = record.accessionNumber
         ? `ticker=${encodeURIComponent(selectedTicker)}&accessionNumber=${encodeURIComponent(record.accessionNumber)}`
         : `ticker=${encodeURIComponent(selectedTicker)}&id=${encodeURIComponent(record.id)}`;
-      const payload = await authenticatedFetch(`/sec-filings?${query}`, { method: 'DELETE' });
+      const payload = await operationsFetch(`/sec-filings?${query}`, { method: 'DELETE' });
       setData(normalizeApiEnvelope(payload, selectedTicker));
       setStatus('saved');
       setMessage(`Deleted ${record.formType} · ${key}.`);
