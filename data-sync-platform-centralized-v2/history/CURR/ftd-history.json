@@ -1,0 +1,29 @@
+{
+  "schemaVersion": 1,
+  "ticker": "CURR",
+  "generatedAt": "2026-06-12T23:59:00Z",
+  "records": [
+    {
+      "settlementDate": "2026-06-10",
+      "tradeDate": "2026-06-11",
+      "closingDeadline": "2026-07-15",
+      "shares": 145,
+      "price": 2.93,
+      "value": 424.85,
+      "change": -7984
+    },
+    {
+      "settlementDate": "2026-06-11",
+      "tradeDate": "2026-06-12",
+      "closingDeadline": "2026-07-16",
+      "shares": 648,
+      "price": 3.08,
+      "value": 1995.84,
+      "change": 503
+    }
+  ],
+  "_field_provenance": {},
+  "sourceWatermarks": {
+    "chartExchangeFailureToDeliver": "2026-06-12"
+  }
+}

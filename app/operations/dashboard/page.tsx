@@ -1,18 +1,18 @@
 import { OperationsShell } from '../OperationsShell';
-import { DashboardMarginOperationsClient } from './DashboardMarginOperationsClient';
+import { MarketDataOperationsClient } from '../market-data/MarketDataOperationsClient';
 
 export default function OperationsDashboardPage() {
   return (
     <OperationsShell>
       <div className="ops-page-header">
         <div>
-          <span className="ops-eyebrow">Dashboard</span>
+          <span className="ops-eyebrow">Manual Input V2</span>
           <h1>Dashboard Inputs</h1>
-          <p>Enter daily margin and average duration values for the user portal dashboard cards.</p>
+          <p>Enter daily dashboard values through the centralized manual input API.</p>
         </div>
       </div>
 
-      <DashboardMarginOperationsClient />
+      <MarketDataOperationsClient />
     </OperationsShell>
   );
 }

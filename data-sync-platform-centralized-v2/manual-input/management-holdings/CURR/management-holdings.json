@@ -1,0 +1,53 @@
+{
+  "schemaVersion": 1,
+  "ticker": "CURR",
+  "tradeDate": "2026-06-12",
+  "generatedAt": "2026-06-12T23:59:00Z",
+  "records": [
+    {
+      "id": "ops-strat-001",
+      "holderName": "Huang Yafangzhou",
+      "category": "Strategic Investor",
+      "action": "add",
+      "shares": 3477818,
+      "percentOfShares": 3.1,
+      "fileDate": "2025-07-25",
+      "effectiveDate": "2025-07-25",
+      "form": "13G/A",
+      "showInOwnership": true,
+      "showAsSuggestion": true,
+      "autoApply": false,
+      "status": "pending",
+      "source": "operations-input",
+      "notes": "",
+      "createdBy": "operations",
+      "createdAt": "2026-06-12T23:59:00Z",
+      "updatedBy": "operations",
+      "updatedAt": "2026-06-12T23:59:00Z"
+    },
+    {
+      "id": "ops-strat-002",
+      "holderName": "Wong Nga Man",
+      "category": "Management",
+      "action": "add",
+      "shares": 4501309,
+      "percentOfShares": 4.0,
+      "fileDate": "2025-07-25",
+      "effectiveDate": "2025-07-25",
+      "form": "13G/A",
+      "showInOwnership": true,
+      "showAsSuggestion": true,
+      "autoApply": false,
+      "status": "pending",
+      "source": "operations-input",
+      "notes": "",
+      "createdBy": "operations",
+      "createdAt": "2026-06-12T23:59:00Z",
+      "updatedBy": "operations",
+      "updatedAt": "2026-06-12T23:59:00Z"
+    }
+  ],
+  "_field_provenance": {
+    "records": "Manual Operations Input"
+  }
+}

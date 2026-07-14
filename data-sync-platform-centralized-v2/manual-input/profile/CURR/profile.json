@@ -1,0 +1,15 @@
+{
+  "schemaVersion": 1,
+  "ticker": "CURR",
+  "tradeDate": "2026-06-12",
+  "generatedAt": "2026-06-12T23:59:00Z",
+  "companyName": "CURRENC Group Inc.",
+  "stockCode": "CURR",
+  "_field_provenance": {
+    "schemaVersion": "System Metadata",
+    "ticker": "System Metadata",
+    "generatedAt": "System Metadata",
+    "companyName": "Manual Operations Input",
+    "stockCode": "Manual Operations Input"
+  }
+}

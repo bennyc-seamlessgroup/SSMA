@@ -6,9 +6,9 @@ export default function OperationsMarketDataPage() {
     <OperationsShell>
       <div className="ops-page-header">
         <div>
-          <span className="ops-eyebrow">Future Dashboard Data</span>
+          <span className="ops-eyebrow">Manual Input V2</span>
           <h1>Market Data Intake</h1>
-          <p>Review, enter, or batch-upload normalized daily market records. This workspace is isolated from the current Dashboard input flow.</p>
+          <p>Enter operations-maintained values that feed the centralized market data pipeline.</p>
         </div>
       </div>
 

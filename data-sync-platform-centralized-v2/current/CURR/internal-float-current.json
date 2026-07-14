@@ -1,0 +1,143 @@
+{
+  "schemaVersion": 1,
+  "ticker": "CURR",
+  "generatedAt": "2026-06-12T23:59:00Z",
+  "snapshotDate": "2026-06-12",
+  "sourceWatermarks": {
+    "operationsInternalFloat": "2026-06-12T23:59:00Z",
+    "operationsManagementHoldings": "2026-06-12T23:59:00Z",
+    "fintelSecurityOwnership": "2026-06-12"
+  },
+  "issuedShare": 112280000,
+  "institutionalSharesLong": 1035668,
+  "managementStrategicHoldings": {
+    "shares": 3795837,
+    "records": [
+      {
+        "id": "private-holder-001",
+        "holderName": "Wong Man San",
+        "category": "Strategic Investor",
+        "shares": 3795837,
+        "includeInDeduction": true,
+        "notes": "Major deduction",
+        "createdBy": "user@example.com",
+        "createdAt": "2026-06-12T23:59:00Z",
+        "updatedBy": "user@example.com",
+        "updatedAt": "2026-06-12T23:59:00Z",
+        "deletedAt": null
+      }
+    ]
+  },
+  "tokenizedShares": {
+    "shares": 500000,
+    "records": [
+      {
+        "id": "token-rec-001",
+        "chain": "Ethereum",
+        "provider": "Securitize",
+        "shares": 500000,
+        "createdBy": "user@example.com",
+        "createdAt": "2026-06-12T23:59:00Z",
+        "updatedBy": "user@example.com",
+        "updatedAt": "2026-06-12T23:59:00Z",
+        "deletedAt": null
+      }
+    ]
+  },
+  "collateralizedShares": {
+    "shares": 1000000,
+    "records": [
+      {
+        "id": "col-rec-001",
+        "chain": "Ethereum",
+        "protocol": "Aave V3",
+        "shares": 1000000,
+        "createdBy": "user@example.com",
+        "createdAt": "2026-06-12T23:59:00Z",
+        "updatedBy": "user@example.com",
+        "updatedAt": "2026-06-12T23:59:00Z",
+        "deletedAt": null
+      }
+    ]
+  },
+  "realTradableFloat": {
+    "shares": 105948495,
+    "percentOfIssuedShare": 94.36,
+    "formula": "issuedShare - institutionalSharesLong - managementStrategicHoldings - tokenizedShares - collateralizedShares"
+  },
+  "suggestedChanges": [
+    {
+      "id": "ops-strat-001",
+      "holderName": "Huang Yafangzhou",
+      "category": "Strategic Investor",
+      "action": "add",
+      "shares": 3477818,
+      "percentOfShares": 3.1,
+      "fileDate": "2025-07-25",
+      "effectiveDate": "2025-07-25",
+      "form": "13G/A",
+      "showInOwnership": true,
+      "showAsSuggestion": true,
+      "autoApply": false,
+      "status": "pending",
+      "source": "operations-input",
+      "notes": "",
+      "createdBy": "operations",
+      "createdAt": "2026-06-12T23:59:00Z",
+      "updatedBy": "operations",
+      "updatedAt": "2026-06-12T23:59:00Z",
+      "deletedAt": null
+    },
+    {
+      "id": "ops-strat-002",
+      "holderName": "Wong Nga Man",
+      "category": "Management",
+      "action": "add",
+      "shares": 4501309,
+      "percentOfShares": 4.0,
+      "fileDate": "2025-07-25",
+      "effectiveDate": "2025-07-25",
+      "form": "13G/A",
+      "showInOwnership": true,
+      "showAsSuggestion": true,
+      "autoApply": false,
+      "status": "pending",
+      "source": "operations-input",
+      "notes": "",
+      "createdBy": "operations",
+      "createdAt": "2026-06-12T23:59:00Z",
+      "updatedBy": "operations",
+      "updatedAt": "2026-06-12T23:59:00Z",
+      "deletedAt": null
+    }
+  ],
+  "auditLog": [
+    {
+      "id": "audit-001",
+      "action": "created",
+      "section": "tokenizedShares",
+      "recordId": "token-rec-001",
+      "message": "500,000 shares added to Ethereum / Securitize.",
+      "createdBy": "user@example.com",
+      "createdAt": "2026-06-12T23:59:00Z",
+      "before": null,
+      "after": {
+        "shares": 500000
+      }
+    }
+  ],
+  "updatedAt": "2026-06-12T23:59:00Z",
+  "_field_provenance": {
+    "issuedShare": "Manual Operations Input",
+    "institutionalSharesLong": "Vendor (Derived from Fintel security_ownership_premium)",
+    "managementStrategicHoldings.records": "Manual Customer Input",
+    "managementStrategicHoldings.shares": "Derived/Calculated (Sum of approved management records)",
+    "tokenizedShares.records": "Manual Customer Input",
+    "tokenizedShares.shares": "Derived/Calculated (Sum of tokenized records)",
+    "collateralizedShares.records": "Manual Customer Input",
+    "collateralizedShares.shares": "Derived/Calculated (Sum of collateralized records)",
+    "realTradableFloat.shares": "Derived/Calculated (Formula: issuedShare - institutionalSharesLong - managementStrategicHoldings - tokenizedShares - collateralizedShares)",
+    "realTradableFloat.percentOfIssuedShare": "Derived/Calculated (realTradableFloat.shares / issuedShare * 100)",
+    "suggestedChanges": "Manual Operations Input / Vendor insider findings suggestions"
+  }
+}

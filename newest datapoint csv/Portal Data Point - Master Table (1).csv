@@ -1,0 +1,353 @@
+ID,Group,Data Point,Portal UI,Data Type,Data Source,API Period,Update frequency,Vendor Name,File Name,API / Web link,Logic,Input Field,System Output field,Remarks,
+20260709001,Dashboard,Company Name,Top Bar,string,E: Operation Input,-,Sign off,,,,,,,By contract,
+20260709002,Dashboard,Stock Code,Top Bar,string,E: Operation Input,-,Sign off,,,,,,,By contract,
+20260709003,Ownership,Issued Share,"Ownership - KPI Cards, Ownership - Ownership Structure, Internal Float - Executive Summary",number,E: Operation Input,Contract Start date,Daily - Next day 1100 HKT,,,,,,,Base on SEC record/ChartExchange portal or Chartexchage Tier 2 plan,
+20260709004,Ownership,Institutional Owners - securityName,"Operations - Hotkeys, Ownership - Data Ingest",text,E: Operation Input,Contract Start date,,,,,,,IO_security_name,Defind the hotkey for the Institutional Owners of the securityName (Which company show on ),
+20260709005,Ownership,Institutional Owners ,Ownership - KPI Cards,number,A: Vendor,Contract Start date,Daily - Next day 0800 HKT,Fintel,fintel_security_ownership_premium_{ticker}_{YYYY-MM-DD}.json,"Fintel Security Ownership API
+https://api.fintel.io/data/v/0.0/so/{country}/{symbol}","Collection Rule:
+1. owners.owner.securityName = ""IO_security_name ""
+2. And owners.putCall not equal to ""Call""",owners__securityName,,Count of Institutional Owners ,
+20260709006,Ownership,Institutional Owners - Form,Ownership - Institutions Table,text,A: Vendor,Contract Start date,Daily - Next day 0800 HKT,Fintel,fintel_security_ownership_premium_{ticker}_{YYYY-MM-DD}.json,"Fintel Security Ownership API
+https://api.fintel.io/data/v/0.0/so/{country}/{symbol}","Collection Rule:
+1. owners.owner.securityName = ""IO_security_name ""
+2. And owners.putCall not equal to ""Call""",owners.formType,,,
+20260709007,Ownership,Institutional Owners - Investor,"Ownership - Institutions Table, Ownership - Institution Holdings Breakdown",text,A: Vendor,Contract Start date,Daily - Next day 0800 HKT,Fintel,fintel_security_ownership_premium_{ticker}_{YYYY-MM-DD}.json,"Fintel Security Ownership API
+https://api.fintel.io/data/v/0.0/so/{country}/{symbol}","Collection Rule:
+1. owners.owner.securityName = ""IO_security_name ""
+2. And owners.putCall not equal to ""Call""",owners.name,,,
+20260709008,Ownership,Institutional Owners - File Date,Ownership - Institutions Table,date,A: Vendor,Contract Start date,Daily - Next day 0800 HKT,Fintel,fintel_security_ownership_premium_{ticker}_{YYYY-MM-DD}.json,"Fintel Security Ownership API
+https://api.fintel.io/data/v/0.0/so/{country}/{symbol}","Collection Rule:
+1. owners.owner.securityName = ""IO_security_name ""
+2. And owners.putCall not equal to ""Call""",owners.fileDate,,,
+20260709009,Ownership,Institutional Owners - Effective Day,Ownership - Institutions Table,date,A: Vendor,Contract Start date,Daily - Next day 0800 HKT,Fintel,fintel_security_ownership_premium_{ticker}_{YYYY-MM-DD}.json,"Fintel Security Ownership API
+https://api.fintel.io/data/v/0.0/so/{country}/{symbol}","Collection Rule:
+1. owners.owner.securityName = ""IO_security_name ""
+2. And owners.putCall not equal to ""Call""",owners.effectiveDate,,,
+20260709010,Ownership,Institutional Owners - Shares,"Ownership - Institutions Table, Ownership - Institution Holdings Breakdown",number,A: Vendor,Contract Start date,Daily - Next day 0800 HKT,Fintel,fintel_security_ownership_premium_{ticker}_{YYYY-MM-DD}.json,"Fintel Security Ownership API
+https://api.fintel.io/data/v/0.0/so/{country}/{symbol}","Collection Rule:
+1. owners.owner.securityName = ""IO_security_name ""
+2. And owners.putCall not equal to ""Call""",owners.share,,,
+20260709011,Ownership,Institutional Owners - values,"Ownership - Institutions Table, Ownership - Institution Holdings Breakdown",number,A: Vendor,Contract Start date,Daily - Next day 0800 HKT,Fintel,fintel_security_ownership_premium_{ticker}_{YYYY-MM-DD}.json,"Fintel Security Ownership API
+https://api.fintel.io/data/v/0.0/so/{country}/{symbol}","Collection Rule:
+1. owners.owner.securityName = ""IO_security_name ""
+2. And owners.putCall not equal to ""Call""",owners.value ,,,
+20260709012,Ownership,Institutional Owners - Shares Changed,Ownership - Institutions Table,percentage,A: Vendor,Contract Start date,Daily - Next day 0800 HKT,Fintel,fintel_security_ownership_premium_{ticker}_{YYYY-MM-DD}.json,"Fintel Security Ownership API
+https://api.fintel.io/data/v/0.0/so/{country}/{symbol}","Collection Rule:
+1. owners.owner.securityName = ""IO_security_name ""
+2. And owners.putCall not equal to ""Call""",owners.percentChange,,,
+20260709013,Ownership,Institutional Owners - Value Changed,Ownership - Institutions Table,percentage,A: Vendor,Contract Start date,Daily - Next day 0800 HKT,Fintel,fintel_security_ownership_premium_{ticker}_{YYYY-MM-DD}.json,"Fintel Security Ownership API
+https://api.fintel.io/data/v/0.0/so/{country}/{symbol}","Collection Rule:
+1. owners.owner.securityName = ""IO_security_name ""
+2. And owners.putCall not equal to ""Call""",owners.percentValueChange,,,
+20260709014,Ownership,Total Institutional Shares Long,"Ownership - KPI Cards, Ownership - Institution Holdings Breakdown",number,C: Backend,Contract Start date,Daily - Next day 0800 HKT,,,,Sum of owners.shares,,,,
+20260709015,Ownership,Institutional Holding %,"Ownership - KPI Cards, Ownership - Institution Holdings Breakdown",percentage,C: Backend,Contract Start date,Daily - Next day 0800 HKT,,,,Sum of owners.shares / Issued Share,,,Replace AVG portfolio allocation,
+20260709016,Ownership,Total Institutional Value,"Ownership - KPI Cards, Ownership - Institution Holdings Breakdown",number,C: Backend,Contract Start date,Daily - Next day 0800 HKT,,,,Sum of owners.value,,,,
+20260709017,Ownership,Ownership Structure - total Institutions values,"Ownership - Ownership Structure, Ownership - Institution Holdings Breakdown",number,C: Backend,Contract Start date,Daily - Next day 0800 HKT,,,,Sum of owners.shares,,,,
+20260709018,Ownership,Ownership Structure - total Institutions values %,"Ownership - Ownership Structure, Ownership - Institution Holdings Breakdown",percentage,C: Backend,Contract Start date,Daily - Next day 0800 HKT,,,,Sum of owners.shares/ Shares Outstanding,,,,
+20260709019,Ownership,Ownership Structure - total Strategic Entities,"Ownership - Ownership Structure, Ownership - Internal Float Breakdown, Internal Float - Management Holdings",number,C: Backend,Contract Start date,Daily - Next day 0800 HKT,,,,Sum of OPS input Strategic Entities / Management,,,,
+20260709020,Ownership,Ownership Structure - total Strategic Entities %,"Ownership - Ownership Structure, Ownership - Internal Float Breakdown, Internal Float - Management Holdings",percentage,C: Backend,Contract Start date,Daily - Next day 0800 HKT,,,,total Strategic Entities  / Issued Share,,,,
+20260709021,Ownership,Ownership Structure - Public Float,"Ownership - Ownership Structure, Ownership - Internal Float Breakdown, Internal Float - Executive Summary",number,C: Backend,Contract Start date,Daily - Next day 0800 HKT,,,,Share Issued - total Management - total Strategic - totoal Insider,,,,
+20260709022,Ownership,Ownership Structure - Public Float %,"Ownership - Ownership Structure, Ownership - Internal Float Breakdown, Internal Float - Executive Summary",percentage,C: Backend,Contract Start date,Daily - Next day 0800 HKT,,,,Public Float / Issued Share,,,,
+20260709023,Ownership,"Management / Strategic Holdings - Holder
+(Internal float - Suggested to Add/ Update), Review reported holdings","Internal Float - Management Holdings, Ownership - Internal Float Breakdown, Operations - Internal Float Inputs",text,E: Operation Input,Contract Start date,Daily - Next day 1100 HKT,,,,"Refer SEC S1,3/A,4,20G",,,,
+20260709024,Ownership,"Management / Strategic Holdings - Category
+(Internal float - Suggested to Add/ Update), Review reported holdings","Internal Float - Management Holdings, Ownership - Internal Float Breakdown, Operations - Internal Float Inputs",text,E: Operation Input,Contract Start date,Daily - Next day 1100 HKT,,,,"Refer SEC S1,3/A,4,20G",,,,
+20260709025,Ownership,"Management / Strategic Holdings - Shares
+(Internal float - Suggested to Add/ Update), Review reported holdings","Internal Float - Management Holdings, Ownership - Internal Float Breakdown, Operations - Internal Float Inputs",number,E: Operation Input,Contract Start date,Daily - Next day 1100 HKT,,,,"Refer SEC S1,3/A,4,20G",,,,
+20260709026,Ownership,"Management / Strategic Holdings - % of Shares
+(Internal float - Suggested to Add/ Update), Review reported holdings","Internal Float - Management Holdings, Ownership - Internal Float Breakdown, Operations - Internal Float Inputs",percentage,E: Operation Input,Contract Start date,Daily - Next day 1100 HKT,,,,"Refer SEC S1,3/A,4,20G",,,,
+20260709027,Ownership,"Management / Strategic Holdings - fileDate
+(Internal float - Suggested to Add/ Update), Review reported holdings","Internal Float - Management Holdings, Ownership - Internal Float Breakdown, Operations - Internal Float Inputs",date,E: Operation Input,Contract Start date,Daily - Next day 1100 HKT,,,,"Refer SEC S1,3/A,4,20G",,,,
+20260709028,Ownership,"Management / Strategic Holdings - effectiveDate
+(Internal float - Suggested to Add/ Update), Review reported holdings","Internal Float - Management Holdings, Ownership - Internal Float Breakdown, Operations - Internal Float Inputs",date,E: Operation Input,Contract Start date,Daily - Next day 1100 HKT,,,,"Refer SEC S1,3/A,4,20G",,,,
+20260709029,Ownership,"Management / Strategic Holdings - filings__form
+(Internal float - Suggested to Add/ Update), Review reported holdings","Internal Float - Management Holdings, Ownership - Internal Float Breakdown, Operations - Internal Float Inputs",text,E: Operation Input,Contract Start date,Daily - Next day 1100 HKT,,,,"Refer SEC S1,3/A,4,20G",,,,
+20260709030,Internal Float,Internal Float - Real Tradable Float,"Internal Float - Executive Summary, Ownership - Ownership Structure",number,C: Backend,Contract Start date,Daily - Next day 1100 HKT,,,,Issued Share - institutionsOwnership - AdjustedFloat (Insider/Management/Strategic),,,,
+20260709031,Internal Float,Internal Float - Real Tradable Float - ratio,"Internal Float - Executive Summary, Ownership - Ownership Structure",percentage,C: Backend,Contract Start date,Daily - Next day 1100 HKT,,,,Real Tradable Float / Issued Share *100,,,,
+20260709032,Internal Float,Float Reduction,"Internal Float - Executive Summary, Ownership - Ownership Structure",percentage,C: Backend,Contract Start date,Daily - Next day 1100 HKT,,,,Issued Share - Real Tradable Float * 100,,,internalFloat / marketFloat * 100. Confirm denominator for marketFloat.,
+20260709033,Internal Float,Private Friendly Holders,"Internal Float - Management Holdings, Internal Float - Activity Log, Operations - Internal Float Inputs",number,B: User Input,,,,,,Must > Public Float,,,,
+20260709034,Internal Float,Private Friendly Holders - ratio,"Internal Float - Management Holdings, Internal Float - Activity Log, Operations - Internal Float Inputs",percentage,C: Backend,,,,,,Private Friendly Holders shares / Issued Share * 100,,,,
+20260709035,Internal Float,Total Tokenized Shares,"Internal Float - Tokenized Shares, Internal Float - Activity Log, Operations - Internal Float Inputs",number,B: User Input,,,,,,Must > Public Float,,,,
+20260709036,Internal Float,Total Tokenized Shares - ratio,"Internal Float - Tokenized Shares, Internal Float - Activity Log, Operations - Internal Float Inputs",percentage,C: Backend,,,,,,Total shares / Issued Share *100,,,,
+20260709037,Internal Float,Total Insider Shares,"Internal Float - Suggested Insider Holdings, Internal Float - Management Holdings",number,B: User Input,,,,,,,,,,
+20260709038,Internal Float,Total Insider Shares - ratio,"Internal Float - Suggested Insider Holdings, Internal Float - Management Holdings",percentage,C: Backend,,,,,,Total Insider Shares  / Issued Share *100,,,,
+20260709039,Internal Float,Total Collateralized Shares,"Internal Float - Collateralized Shares, Internal Float - Activity Log, Operations - Internal Float Inputs",number,B: User Input,,,,,,,,,,
+20260709040,Internal Float,Total Collateralized Shares - ratio,"Internal Float - Collateralized Shares, Internal Float - Activity Log, Operations - Internal Float Inputs",percentage,C: Backend,,,,,,Total Collateralized Shares / Issued Share *100,,,,
+20260709041,Internal Float,Internal Float - Holder,"Internal Float - Management Holdings, Internal Float - Activity Log, Operations - Internal Float Inputs",string,B: User Input,,,,,,Management / Strategic / Insiders,,,,
+20260709042,Internal Float,Internal Float - Category,"Internal Float - Management Holdings, Internal Float - Activity Log, Operations - Internal Float Inputs",string,B: User Input,,,,,,,,,,
+20260709043,Internal Float,Internal Float - Shares,"Internal Float - Management Holdings, Internal Float - Activity Log, Operations - Internal Float Inputs",number,B: User Input,,,,,,,,,,
+20260709044,Internal Float,Internal Float - Float Impact,"Internal Float - Management Holdings, Internal Float - Activity Log, Operations - Internal Float Inputs",number,B: User Input,,,,,,,,,,
+20260709045,Internal Float,Internal Float - Notes,"Internal Float - Management Holdings, Internal Float - Activity Log, Operations - Internal Float Inputs",string,B: User Input,,,,,,,,,,
+20260709046,Internal Float,Tokenized Shares & Providers - Chain,"Internal Float - Tokenized Shares, Internal Float - Activity Log, Operations - Internal Float Inputs",text,B: User Input,,,,,,,,,,
+20260709047,Internal Float,Tokenized Shares & Providers - Share,"Internal Float - Tokenized Shares, Internal Float - Activity Log, Operations - Internal Float Inputs",number,B: User Input,,,,,,,,,,
+20260709048,Internal Float,Tokenized Shares & Providers - Tokenization Provider,"Internal Float - Tokenized Shares, Internal Float - Activity Log, Operations - Internal Float Inputs",string,B: User Input,,,,,,,,,,
+20260709049,Internal Float,Tokenized Shares - ratio,"Internal Float - Tokenized Shares, Internal Float - Activity Log, Operations - Internal Float Inputs",percentage,C: Backend,,,,,,Tokenized Shares / Issued Share * 100,,,,
+20260709050,Internal Float,Collateralized Shares - Chain,"Internal Float - Collateralized Shares, Internal Float - Activity Log, Operations - Internal Float Inputs",text,B: User Input,,,,,,,,,,
+20260709051,Internal Float,Collateralized Shares - Share,"Internal Float - Collateralized Shares, Internal Float - Activity Log, Operations - Internal Float Inputs",number,B: User Input,,,,,,,,,,
+20260709052,Internal Float,Collateralized Shares - Protocol,"Internal Float - Collateralized Shares, Internal Float - Activity Log, Operations - Internal Float Inputs",string,B: User Input,,,,,,,,,,
+20260709053,Internal Float,Collateralized Shares - ratio,"Internal Float - Collateralized Shares, Internal Float - Activity Log, Operations - Internal Float Inputs",percentage,C: Backend,,,,,,Collateralized Shares / Issued Share * 100,,,,
+20260709054,Internal Float,Suggest Insiders - Invester,Internal Float - Suggested Insider Holdings,number,A: Vendor,Contract Start date,Daily - Next day 0800 HKT,Fintel,fintel_activist_filings_premium_{ticker}_{YYYY-MM-DD}.json,"Fintel Activist (13D/G) Filings API
+https://api.fintel.io/data/v/0.0/so/{country}/{symbol}/bo",,owners.name,,"owners > ownerObject
+
+",
+20260709055,Internal Float,Suggest Insiders - Form,Internal Float - Suggested Insider Holdings,text,A: Vendor,Contract Start date,Daily - Next day 0800 HKT,,fintel_activist_filings_premium_{ticker}_{YYYY-MM-DD}.json,"Fintel Activist (13D/G) Filings API
+https://api.fintel.io/data/v/0.0/so/{country}/{symbol}/bo",,owners.formType,,owners__formType = Form,
+20260709056,Internal Float,Suggest Insiders - File Date,Internal Float - Suggested Insider Holdings,date,A: Vendor,Contract Start date,Daily - Next day 0800 HKT,,fintel_activist_filings_premium_{ticker}_{YYYY-MM-DD}.json,"Fintel Activist (13D/G) Filings API
+https://api.fintel.io/data/v/0.0/so/{country}/{symbol}/bo",,owners.effectiveDate,,owners__effectiveDate = File Date,
+20260709057,Internal Float,Suggest Insiders - Effective Date,Internal Float - Suggested Insider Holdings,date,A: Vendor,Contract Start date,Daily - Next day 0800 HKT,,fintel_activist_filings_premium_{ticker}_{YYYY-MM-DD}.json,"Fintel Activist (13D/G) Filings API
+https://api.fintel.io/data/v/0.0/so/{country}/{symbol}/bo",,owners.fileDate,,owners__fileDate = Effective Date,
+20260709058,Internal Float,Suggest Insiders - Ownership %,Internal Float - Suggested Insider Holdings,percentage,A: Vendor,Contract Start date,Daily - Next day 0800 HKT,,fintel_activist_filings_premium_{ticker}_{YYYY-MM-DD}.json,"Fintel Activist (13D/G) Filings API
+https://api.fintel.io/data/v/0.0/so/{country}/{symbol}/bo",,owners.ownershipPercent,,owners__ownershipPercent = Ownership %,
+20260709059,Internal Float,Suggest Insiders - Ownershp change,Internal Float - Suggested Insider Holdings,number,A: Vendor,Contract Start date,Daily - Next day 0800 HKT,,fintel_activist_filings_premium_{ticker}_{YYYY-MM-DD}.json,"Fintel Activist (13D/G) Filings API
+https://api.fintel.io/data/v/0.0/so/{country}/{symbol}/bo",,owners.ownershipPercentChange,,owners__ownershipPercentChange = Ownership change,
+20260709060,Internal Float,Suggest Insiders - Shares,Internal Float - Suggested Insider Holdings,number,A: Vendor,Contract Start date,Daily - Next day 0800 HKT,,fintel_activist_filings_premium_{ticker}_{YYYY-MM-DD}.json,"Fintel Activist (13D/G) Filings API
+https://api.fintel.io/data/v/0.0/so/{country}/{symbol}/bo",,owners.shares,,owners__shares = Shares,
+20260709061,Internal Float,Suggest Insiders - Shares Change,Internal Float - Suggested Insider Holdings,number,A: Vendor,Contract Start date,Daily - Next day 0800 HKT,,fintel_activist_filings_premium_{ticker}_{YYYY-MM-DD}.json,"Fintel Activist (13D/G) Filings API
+https://api.fintel.io/data/v/0.0/so/{country}/{symbol}/bo",,owners.sharesChange,,owners__sharesChange = shares change,
+20260709062,Internal Float,Suggest Insiders - Shares % change,Internal Float - Suggested Insider Holdings,percentage,A: Vendor,Contract Start date,Daily - Next day 0800 HKT,,fintel_activist_filings_premium_{ticker}_{YYYY-MM-DD}.json,"Fintel Activist (13D/G) Filings API
+https://api.fintel.io/data/v/0.0/so/{country}/{symbol}/bo",,owners.sharesPercentChange,,owners__sharesPercentChange = Shares Change %,
+20260709063,Short Interest,Short Score,"Short Interest - Score, Dashboard - Alert Center",number,E: Operation Input,Contract Start date,"Daily - 
+Next day 1100 HKT",Fintel,,https://fintel.io/ss/us/curr,Short Squeeze Score,input_short_score,short_score,,*
+20260709064,Short Interest,Short Score - Num change,"Short Interest - Score, Dashboard - Alert Center",number,C: Backend,-,-,TBA,,Internal Calculation,short_score(T) - short_score(T-1) ,"short_score(T), short_score(T-1)",short_score_num_change,currentShortScore - priorShortScore,*
+20260709065,Short Interest,Short Score - % change,"Short Interest - Score, Dashboard - Alert Center",percentage,C: Backend,-,-,TBA,,Internal Calculation,((short_score(T) - short_score(T-1)) / short_score(T-1)) * 100 ,"short_score(T), short_score(T-1)",short_score_percent_change,(currentShortScore - priorShortScore) / priorShortScore * 100,*
+20260709066,Short Interest,Short Score - Risk Factor,"Short Interest - Score, Dashboard - Alert Center",string,C: Backend,-,-,TBA,,Internal Calculation,"IF short_score <= 25 THEN 'Low' ELSE 
+IF short_score <= 50 THEN 'Moderate' ELSE 
+IF short_score <= 75 THEN 'High' ELSE
+IF short_score >75 THEN 'Extreme'",short_score(T),short_score_risk_factor,Threshold label from shortScore: Low / Moderate / High / Extreme. Exact thresholds TBD.,*
+20260709067,Short Interest,Short Interest,"Short Interest - Market Snapshot, Short Interest - Trend Charts, Dashboard - Alert Center",number,A: Vendor,(2018-),"Daily - 
+Next day 1100 HKT",Chart Exchange,chartexchange_short_interest_daily_{ticker}-{YYYY-MM-DD}.json,GET /v1/data/stocks/short-interest-daily/,Direct Mapping,short_position,short_interest,Short Interest =  short_position (number of shares),*
+20260709068,Short Interest,Short Interest - Num change,"Short Interest - Market Snapshot, Short Interest - Trend Charts, Dashboard - Alert Center",number,C: Backend,-,-,TBA,,Internal Calculation,short_interest(T) - short_interest(T-1) ,short_interest(T) - short_interest(T-1),short_interest_num_change,currentShortInterest - priorShortInterest,*
+20260709069,Short Interest,Short Interest - % change,"Short Interest - Market Snapshot, Short Interest - Trend Charts, Dashboard - Alert Center",percentage,C: Backend,-,-,TBA,,Internal Calculation,((short_interest(T) - short_interest(T-1)) / short_interest(T-1)) * 100,short_interest(T) - short_interest(T-1),short_interest_percent_change,(currentShortInterest - priorShortInterest) / priorShortInterest * 100,*
+20260709070,Short Interest,Short Interest - Current Interpretation,Short Interest - AI Analysis,text,D: AI Engine / Rule Engine,,,,,,,,,,
+20260709071,Short Interest,Short Interest - Management Watch Items,Short Interest - AI Analysis,text,D: AI Engine / Rule Engine,,,,,,,,,,
+20260709072,Short Interest,Short Interest % ,"Short Interest - Market Snapshot, Short Interest - Trend Charts, Dashboard - Alert Center",percentage,A: Vendor,(2018-),"Daily - 
+Next day 1100 HKT",Chart Exchange,chartexchange_short_interest_daily_{ticker}-{YYYY-MM-DD}.json,GET /v1/data/stocks/short-interest-daily/,Direct Mapping,short_interest,short_interest_percent,"Remarks
+1) Data from Finra. Finra publishes an updated file every two weeks.
+2) Days to Cover (DTC) is also called Short Ratio. This is the Short Position / Average Daily Trading Volume.",*
+20260709073,Short Interest,Short Interest % - Num change,"Short Interest - Market Snapshot, Short Interest - Trend Charts, Dashboard - Alert Center",number,C: Backend,-,-,TBA,,Internal Calculation,"short_interest_percent(T) - short_interest_percent(T-1) 
+","short_interest_percent(T), short_interest_percent(T-1)",short_interest_percent__num_change,currentSiPercentFloat - priorSiPercentFloat,*
+20260709074,Short Interest,Short Interest % - % change,"Short Interest - Market Snapshot, Short Interest - Trend Charts, Dashboard - Alert Center",percentage,C: Backend,-,-,TBA,,Internal Calculation,"((short_interest_percent(T) - short_interest_percent(T-1)) / short_interest_percent(T-1)) * 100 
+","short_interest_percent(T), short_interest_percent(T-1)",short_score_percent_change,(currentSiPercentFloat - priorSiPercentFloat) / priorSiPercentFloat * 100,*
+20260709075,Borrow Fee,Borrow Fee %,"Dashboard - KPI Cards, Dashboard - Trend Overview, Short Interest - Market Snapshot, Lending Pressure - Market Snapshot, Dashboard - Alert Center",percentage,A: Vendor,(2016-),"Daily - 
+Next day 1100 HKT",Chart Exchange,chartexchange_borrow_fee_ib_{ticker}-{YYYY-MM-DD}.json,GET /v1/data/stocks/borrow-fee/ib/,Daily last record ,fee,borrow_fee_percent,,*
+20260709076,Borrow Fee,Borrow Fee - Num change,"Dashboard - KPI Cards, Dashboard - Trend Overview, Short Interest - Market Snapshot, Lending Pressure - Market Snapshot, Dashboard - Alert Center",number,C: Backend,-,-,TBA,,Internal Calculation,borrow_fee_percent(T) - borrow_fee_percent(T-1) ,"borrow_fee_percent(T), borrow_fee_percent(T-1)",borrow_fee_num_change,,*
+20260709077,Borrow Fee,Borrow Fee - % change,"Dashboard - KPI Cards, Dashboard - Trend Overview, Short Interest - Market Snapshot, Lending Pressure - Market Snapshot, Dashboard - Alert Center",percentage,C: Backend,-,-,TBA,,Internal Calculation,"((borrow_fee_percent(T) - borrow_fee_percent(T-1)) / borrow_fee_percent(T-1)) * 100 
+","borrow_fee_percent(T), borrow_fee_percent(T-1)",borrow_fee_percent_change,,*
+20260709078,Borrow Fee,Borrow Fee - Risk Factor,"Dashboard - KPI Cards, Dashboard - Trend Overview, Short Interest - Market Snapshot, Lending Pressure - Market Snapshot, Dashboard - Alert Center",string,C: Backend,-,-,TBA,,Internal Calculation,"IF borrow_fee_percent < 25.0% THEN 'Low' ELSE 
+IF borrow_fee_percent < 50.0% THEN 'Moderate' ELSE 
+IF borrow_fee_percent <= 75.0% THEN 'High' ELSE 
+IF borrow_fee_percent >75.0% 'Extreme'",borrow_fee_percent(T),borrow_fee_risk_factor,Threshold label from borrowFeePercent: Low / Moderate / High / Extreme. Exact thresholds TBD.,*
+20260709079,Days to Cover,Days to Cover,"Dashboard - KPI Cards, Dashboard - Trend Overview, Short Interest - Market Snapshot",number,A: Vendor,(2018-),"Daily - 
+Next day 1100 HKT",Chart Exchange,chartexchange_short_interest_daily_{ticker}-{YYYY-MM-DD}.json,GET /v1/data/stocks/short-interest-daily/,Direct Mapping,days_to_cover,days_to_cover,"Remarks 
+1) Data from Finra. Finra publishes an updated file every two weeks.
+2) Days to Cover (DTC) is also called Short Ratio. This is the Short Position / Average Daily Trading Volume.",*
+20260709080,Days to Cover,Days to Cover - Num change,"Dashboard - KPI Cards, Dashboard - Trend Overview, Short Interest - Market Snapshot",number,C: Backend,-,-,-,,Internal Calculation,(days_to_cover(T) - days_to_cover(T-1),"days_to_cover(T), days_to_cover(T-1)",days_to_cover_num_change,,*
+20260709081,Days to Cover,Days to Cover - % change,"Dashboard - KPI Cards, Dashboard - Trend Overview, Short Interest - Market Snapshot",percentage,C: Backend,-,-,-,,Internal Calculation,"((days_to_cover(T) - days_to_cover(T-1)) / days_to_cover(T-1)) * 100 
+","days_to_cover(T), days_to_cover(T-1)",days_to_cover_percent_change,,*
+20260709082,Days to Cover,Days to Cover - Risk Factor,"Dashboard - KPI Cards, Dashboard - Trend Overview, Short Interest - Market Snapshot",string,C: Backend,-,-,-,,Internal Calculation,"IF days_to_cover < 1.0 THEN 'Low' ELSE 
+IF days_to_cover < 3.0 THEN 'Moderate' ELSE 
+IF days_to_cover <= 7.0 THEN 'High' ELSE 
+IF days_to_cover > 7.0 THEN 'Extreme'",days_to_cover(T),days_to_cover_risk_factor,,*
+20260709083,Available Shares,Available Shares - Chart Exchange,"Dashboard - KPI Cards, Dashboard - Trend Overview, Short Interest - Trend Charts, Lending Pressure - Market Snapshot, Dashboard - Alert Center",number,A: Vendor,Contract Start date,"Daily - 
+Next day 1100 HKT",Chart Exchange,chartexchange_borrow_fee_ib_{ticker}-{YYYY-MM-DD}.json,GET /v1/data/stocks/borrow-fee/ib/,Daily last record ,Available,available_shares_chart_exchange,,*
+20260709084,Available Shares,Available Shares - IBKR,"Operations - Dashboard Inputs, Dashboard - KPI Cards, Dashboard - Trend Overview, Short Interest - Trend Charts, Lending Pressure - Market Snapshot, Dashboard - Alert Center",number,E: Operation Input,Contract Start date,"Daily - 
+Next day 1100 HKT",IBKR,,UI / Form Entry,Manual User Input for IBKR Pool,input_available_shares_ibkr,available_shares_ibkr,,*
+20260709085,Available Shares,Available Shares - FUTU,"Operations - Dashboard Inputs, Dashboard - KPI Cards, Dashboard - Trend Overview, Short Interest - Trend Charts, Lending Pressure - Market Snapshot, Dashboard - Alert Center",number,E: Operation Input,Contract Start date,"Daily - 
+Next day 1100 HKT",Futu,,UI / Form Entry,Manual User Input for Futu Pool,input_available_shares_futu,available_shares_futu,,*
+20260709086,Available Shares,Available Shares,"Dashboard - KPI Cards, Dashboard - Trend Overview, Short Interest - Trend Charts, Lending Pressure - Market Snapshot, Dashboard - Alert Center",number,C: Backend,-,-,-,,Internal Calculation,"MAX(available_shares_chart_exchange, available_shares_ibkr, available_shares_futu)","available_shares_chart_exchange(T), available_shares_ibkr(T), available_shares_futu(T)",available_shares_max,Portal Display Rule: Display and Save the MAX value across all 3 pools.,*
+20260709087,Available Shares,Available Shares - Num change,"Dashboard - KPI Cards, Dashboard - Trend Overview, Short Interest - Trend Charts, Lending Pressure - Market Snapshot, Dashboard - Alert Center",number,C: Backend,-,-,-,,Internal Calculation,available_shares_max(T) - available_shares_max(T-1),"available_shares_max(T), available_shares_max(T-1)",available_shares_num_change,,*
+20260709088,Available Shares,Available Shares - % change,"Dashboard - KPI Cards, Dashboard - Trend Overview, Short Interest - Trend Charts, Lending Pressure - Market Snapshot, Dashboard - Alert Center",percentage,C: Backend,-,-,-,,Internal Calculation,((available_shares_max(T) - available_shares_max(T-1)) / available_shares_max(T-1)) * 100,"available_shares_max(T), available_shares_max(T-1)",available_shares_percent_change,,*
+20260709089,Available Shares,Available Shares - Risk Factor,"Dashboard - KPI Cards, Dashboard - Trend Overview, Short Interest - Trend Charts, Lending Pressure - Market Snapshot, Dashboard - Alert Center",string,C: Backend,-,-,-,,Internal Calculation,=borrow_fee_risk_factor,borrow_fee_risk_factor,available_shares_risk_factor,Same Borrow fee Risk Factor,*
+20260709090,Utilization,Utilization %,"Operations - Dashboard Inputs, Dashboard - KPI Cards, Dashboard - Trend Overview, Lending Pressure - Market Snapshot, Dashboard - Alert Center",percentage,E: Operation Input,Contract Start date,"Daily - 
+Next day 1100 HKT",-,,UI / Form Entry,Manual User Input for IBKR Utilization,input_utilization_percent,utilization_percent,Daily manual input override. Stored directly to database; system fetches the latest DB value for Portal display.,*
+20260709091,Utilization,Utilization - Num change ,"Dashboard - KPI Cards, Dashboard - Trend Overview, Lending Pressure - Market Snapshot, Dashboard - Alert Center",number,C: Backend,-,-,-,,Internal Calculation,Today Record - Yesterday Record (where Today Record = utilization_percent of current date T\and Yesterday Record = utilization_percent of T-1 from DB),"utilization_percent(T), utilization_percent(T-1)",utilization_num_change,,*
+20260709092,Utilization,Utilization - % change,"Dashboard - KPI Cards, Dashboard - Trend Overview, Lending Pressure - Market Snapshot, Dashboard - Alert Center",percentage,C: Backend,-,-,-,,Internal Calculation,((Today Record - Yesterday Record) / Yesterday Record) * 100,"utilization_percent(T), utilization_percent(T-1)",utilization_percent_change,,*
+20260709093,Utilization,Utilization - Risk Factor,"Dashboard - KPI Cards, Dashboard - Trend Overview, Lending Pressure - Market Snapshot, Dashboard - Alert Center",string,C: Backend,-,-,-,,Internal Calculation,=borrow_fee_risk_factor,borrow_fee_risk_factor,utilization_risk_factor,,*
+20260709094,Lending Pressure,Lending Pressure - Risk Factor,"Lending Pressure - Score, Lending Pressure - Market Snapshot, Dashboard - Alert Center",string,C: Backend,,,,,Internal Calculation,=borrow_fee_risk_factor,borrow_fee_risk_factor,lending_pressure_risk_factor,Same Borrow fee Risk Factor,*
+20260709095,Lending Pressure,Lending Pressure - Analyze Impact on Short Squeeze Risk - Positive Contributors,"Lending Pressure - AI Analysis, Daily Report - PDF Template",text,D: AI Engine / Rule Engine,,,,,,,,,Rule Engine,
+20260709096,Lending Pressure,Lending Pressure - Analyze Impact on Short Squeeze Risk - Negative Contributors,"Lending Pressure - AI Analysis, Daily Report - PDF Template",text,D: AI Engine / Rule Engine,,,,,,,,,Rule Engine,
+20260709097,Lending Pressure,Lending Pressure - AI Lending Analysis,"Lending Pressure - AI Analysis, Daily Report - PDF Template",text,D: AI Engine / Rule Engine,,,,,,,,,AI Engine,
+20260709098,Sentiment,Sentiment Score,"Social Sentiment - Overview, Social Sentiment - Platform Breakdown",number,C: Backend,,,,,,"average sentiment score where positive=100, neutral=50, negative=0",,,,
+20260709099,Sentiment,Sentiment Discussion Volume,"Social Sentiment - Overview, Social Sentiment - Platform Breakdown",list,C: Backend,,,,,,Count social records by time bucket for selected timeframe,,,,
+20260709100,Sentiment,Sentiment Positive Post,"Social Sentiment - Sentiment Distribution, Social Sentiment - Platform Breakdown",list,C: Backend,,,,,,Filter social records where sentiment is positive/bullish,,,,
+20260709101,Sentiment,Sentiment Positive ratio,"Social Sentiment - Sentiment Distribution, Social Sentiment - Platform Breakdown",percentage,C: Backend,,,,,,positiveCount / totalCount * 100,,,,
+20260709102,Sentiment,Sentiment Negative Post,"Social Sentiment - Sentiment Distribution, Social Sentiment - Platform Breakdown",list,C: Backend,,,,,,Filter social records where sentiment is negative/bearish,,,,
+20260709103,Sentiment,Sentiment Negative ratio,"Social Sentiment - Sentiment Distribution, Social Sentiment - Platform Breakdown",percentage,C: Backend,,,,,,negativeCount / totalCount * 100,,,,
+20260709104,Sentiment,Sentiment Neutral Post,"Social Sentiment - Sentiment Distribution, Social Sentiment - Platform Breakdown",list,C: Backend,,,,,,Filter social records where sentiment is neutral,,,,
+20260709105,Sentiment,Sentiment Neutral ratio,"Social Sentiment - Sentiment Distribution, Social Sentiment - Platform Breakdown",percentage,C: Backend,,,,,,neutralCount / totalCount * 100,,,,
+20260709106,Sentiment,Sentiment Platform Breakdown,Social Sentiment - Platform Breakdown,list,C: Backend,,,,,,"Group social records by platform; for each platform calculate count, sentiment score, and platformCount / totalCount * 100",,,,
+20260709107,Sentiment,Sentiment Top Platform,Social Sentiment - Platform Breakdown,string,C: Backend,,,,,,Platform with largest record count in selected period. Tie-breaker TBD.,,,,
+20260709108,Sentiment,Sentiment Trend,Social Sentiment - Timeline,list,C: Backend,,,,,,Bucket social records by date/timeframe and platform; calculate average sentiment score per bucket,,,,
+20260709109,Sentiment,Reddit - platform,"Social Sentiment - Feed, Social Sentiment - Reddit Feed",text,A: Vendor,Contract Start date,High Frequency (1 second to 1 minute),data-sync-platform-website-data/social-data,Reddit_{ticker}.{YYYY-MM-DDTHH_mm_sszZ}.json,API webhook to S3 ,,platform,,,
+20260709110,Sentiment,Reddit - query,"Social Sentiment - Feed, Social Sentiment - Reddit Feed",text,A: Vendor,Contract Start date,High Frequency (1 second to 1 minute),data-sync-platform-website-data/social-data,Reddit_{ticker}.{YYYY-MM-DDTHH_mm_sszZ}.json,API webhook to S3 ,,query,,,
+20260709111,Sentiment,Reddit - datetime,"Social Sentiment - Feed, Social Sentiment - Reddit Feed, Social Sentiment - Timeline",date,A: Vendor,Contract Start date,High Frequency (1 second to 1 minute),data-sync-platform-website-data/social-data,Reddit_{ticker}.{YYYY-MM-DDTHH_mm_sszZ}.json,API webhook to S3 ,,datetime,,,
+20260709112,Sentiment,Reddit - link,"Social Sentiment - Feed, Social Sentiment - Reddit Feed",text,A: Vendor,Contract Start date,High Frequency (1 second to 1 minute),data-sync-platform-website-data/social-data,Reddit_{ticker}.{YYYY-MM-DDTHH_mm_sszZ}.json,API webhook to S3 ,,link,,,
+20260709113,Sentiment,Reddit - author,"Social Sentiment - Feed, Social Sentiment - Reddit Feed",text,A: Vendor,Contract Start date,High Frequency (1 second to 1 minute),data-sync-platform-website-data/social-data,Reddit_{ticker}.{YYYY-MM-DDTHH_mm_sszZ}.json,API webhook to S3 ,,author,,,
+20260709114,Sentiment,Reddit - content,"Social Sentiment - Feed, Social Sentiment - Reddit Feed",text,A: Vendor,Contract Start date,High Frequency (1 second to 1 minute),data-sync-platform-website-data/social-data,Reddit_{ticker}.{YYYY-MM-DDTHH_mm_sszZ}.json,API webhook to S3 ,,content,,,
+20260709115,Sentiment,Reddit - sentiment,"Social Sentiment - Feed, Social Sentiment - Reddit Feed, Social Sentiment - Timeline",string,A: Vendor,Contract Start date,High Frequency (1 second to 1 minute),data-sync-platform-website-data/social-data,Reddit_{ticker}.{YYYY-MM-DDTHH_mm_sszZ}.json,API webhook to S3 ,,sentiment,,,
+20260709116,Sentiment,Twitter - platform,"Social Sentiment - Feed, Social Sentiment - X Feed",text,A: Vendor,Contract Start date,Low Frequency (10 minutes to 1 hour),data-sync-platform-website-data/social-data,Twitter_{ticker}.{YYYY-MM-DDTHH_mm_sszZ}.json,API webhook to S3 ,,platform,,,
+20260709117,Sentiment,Twitter - query,"Social Sentiment - Feed, Social Sentiment - X Feed",text,A: Vendor,Contract Start date,Low Frequency (10 minutes to 1 hour),data-sync-platform-website-data/social-data,Twitter_{ticker}.{YYYY-MM-DDTHH_mm_sszZ}.json,API webhook to S3 ,,query,,,
+20260709118,Sentiment,Twitter - datetime,"Social Sentiment - Feed, Social Sentiment - X Feed, Social Sentiment - Timeline",date,A: Vendor,Contract Start date,Low Frequency (10 minutes to 1 hour),data-sync-platform-website-data/social-data,Twitter_{ticker}.{YYYY-MM-DDTHH_mm_sszZ}.json,API webhook to S3 ,,datetime,,,
+20260709119,Sentiment,Twitter - link,"Social Sentiment - Feed, Social Sentiment - X Feed",text,A: Vendor,Contract Start date,Low Frequency (10 minutes to 1 hour),data-sync-platform-website-data/social-data,Twitter_{ticker}.{YYYY-MM-DDTHH_mm_sszZ}.json,API webhook to S3 ,,link,,,
+20260709120,Sentiment,Twitter - author,"Social Sentiment - Feed, Social Sentiment - X Feed",text,A: Vendor,Contract Start date,Low Frequency (10 minutes to 1 hour),data-sync-platform-website-data/social-data,Twitter_{ticker}.{YYYY-MM-DDTHH_mm_sszZ}.json,API webhook to S3 ,Before : = author,author,,"""author"": ""Lorrain39857171 (Lorraine Duncan): 3 followers""",
+20260709121,Sentiment,Twitter - author followers,"Social Sentiment - Feed, Social Sentiment - X Feed",number,A: Vendor,Contract Start date,Low Frequency (10 minutes to 1 hour),data-sync-platform-website-data/social-data,Twitter_{ticker}.{YYYY-MM-DDTHH_mm_sszZ}.json,API webhook to S3 ,After : = author followers,author,,"""author"": ""Lorrain39857171 (Lorraine Duncan): 3 followers""",
+20260709122,Sentiment,Twitter - content,"Social Sentiment - Feed, Social Sentiment - X Feed",text,A: Vendor,Contract Start date,Low Frequency (10 minutes to 1 hour),data-sync-platform-website-data/social-data,Twitter_{ticker}.{YYYY-MM-DDTHH_mm_sszZ}.json,API webhook to S3 ,,content,,,
+20260709123,Sentiment,Twitter - sentiment,"Social Sentiment - Feed, Social Sentiment - X Feed, Social Sentiment - Timeline",string,A: Vendor,Contract Start date,Low Frequency (10 minutes to 1 hour),data-sync-platform-website-data/social-data,Twitter_{ticker}.{YYYY-MM-DDTHH_mm_sszZ}.json,API webhook to S3 ,,sentiment,,,
+20260709124,Sentiment,Facebook - platform,"Social Sentiment - Feed, Social Sentiment - Facebook Feed",text,A: Vendor,Contract Start date,Low Frequency (10 minutes to 1 hour),data-sync-platform-website-data/social-data,Facebook_{ticker}.{YYYY-MM-DDTHH_mm_sszZ}.json,API webhook to S3 ,,platform,,,
+20260709125,Sentiment,Facebook - query,"Social Sentiment - Feed, Social Sentiment - Facebook Feed",text,A: Vendor,Contract Start date,Low Frequency (10 minutes to 1 hour),data-sync-platform-website-data/social-data,Facebook_{ticker}.{YYYY-MM-DDTHH_mm_sszZ}.json,API webhook to S3 ,,query,,,
+20260709126,Sentiment,Facebook - datetime,"Social Sentiment - Feed, Social Sentiment - Facebook Feed, Social Sentiment - Timeline",date,A: Vendor,Contract Start date,Low Frequency (10 minutes to 1 hour),data-sync-platform-website-data/social-data,Facebook_{ticker}.{YYYY-MM-DDTHH_mm_sszZ}.json,API webhook to S3 ,,datetime,,,
+20260709127,Sentiment,Facebook - link,"Social Sentiment - Feed, Social Sentiment - Facebook Feed",text,A: Vendor,Contract Start date,Low Frequency (10 minutes to 1 hour),data-sync-platform-website-data/social-data,Facebook_{ticker}.{YYYY-MM-DDTHH_mm_sszZ}.json,API webhook to S3 ,,link,,,
+20260709128,Sentiment,Facebook - author,"Social Sentiment - Feed, Social Sentiment - Facebook Feed",text,A: Vendor,Contract Start date,Low Frequency (10 minutes to 1 hour),data-sync-platform-website-data/social-data,Facebook_{ticker}.{YYYY-MM-DDTHH_mm_sszZ}.json,API webhook to S3 ,,author,,,
+20260709129,Sentiment,Facebook - content,"Social Sentiment - Feed, Social Sentiment - Facebook Feed",text,A: Vendor,Contract Start date,Low Frequency (10 minutes to 1 hour),data-sync-platform-website-data/social-data,Facebook_{ticker}.{YYYY-MM-DDTHH_mm_sszZ}.json,API webhook to S3 ,,content,,,
+20260709130,Sentiment,Facebook - sentiment,"Social Sentiment - Feed, Social Sentiment - Facebook Feed, Social Sentiment - Timeline",string,A: Vendor,Contract Start date,Low Frequency (10 minutes to 1 hour),data-sync-platform-website-data/social-data,Facebook_{ticker}.{YYYY-MM-DDTHH_mm_sszZ}.json,API webhook to S3 ,,sentiment,,,
+20260709131,Sentiment,Linkin - platform,"Social Sentiment - Feed, Social Sentiment - LinkedIn Feed",text,A: Vendor,Contract Start date,Medium Frequency (1 minute to 10 minutes),data-sync-platform-website-data/social-data,No file on hand,API webhook to S3 ,,,,,
+20260709132,Sentiment,Linkin - query,"Social Sentiment - Feed, Social Sentiment - LinkedIn Feed",text,A: Vendor,Contract Start date,Medium Frequency (1 minute to 10 minutes),data-sync-platform-website-data/social-data,No file on hand,API webhook to S3 ,,,,,
+20260709133,Sentiment,Linkin - datetime,"Social Sentiment - Feed, Social Sentiment - LinkedIn Feed, Social Sentiment - Timeline",date,A: Vendor,Contract Start date,Medium Frequency (1 minute to 10 minutes),data-sync-platform-website-data/social-data,No file on hand,API webhook to S3 ,,,,,
+20260709134,Sentiment,Linkin - link,"Social Sentiment - Feed, Social Sentiment - LinkedIn Feed",text,A: Vendor,Contract Start date,Medium Frequency (1 minute to 10 minutes),data-sync-platform-website-data/social-data,No file on hand,API webhook to S3 ,,,,,
+20260709135,Sentiment,Linkin - author,"Social Sentiment - Feed, Social Sentiment - LinkedIn Feed",text,A: Vendor,Contract Start date,Medium Frequency (1 minute to 10 minutes),data-sync-platform-website-data/social-data,No file on hand,API webhook to S3 ,,,,,
+20260709136,Sentiment,Linkin - content,"Social Sentiment - Feed, Social Sentiment - LinkedIn Feed",text,A: Vendor,Contract Start date,Medium Frequency (1 minute to 10 minutes),data-sync-platform-website-data/social-data,No file on hand,API webhook to S3 ,,,,,
+20260709137,Sentiment,Linkin - sentiment,"Social Sentiment - Feed, Social Sentiment - LinkedIn Feed, Social Sentiment - Timeline",string,A: Vendor,Contract Start date,Medium Frequency (1 minute to 10 minutes),data-sync-platform-website-data/social-data,No file on hand,API webhook to S3 ,,,,,
+20260709138,Sentiment,Stocktwits - messages__id,"Social Sentiment - Feed, Social Sentiment - Stocktwits Feed, Social Sentiment - Timeline, Operations - Narrative Upload",number,E: Operation Input,Contract Start date,"Daily - 
+Next day 1100 HKT",Stockrtwits,,,,messages__id,,Input by Internal staff (Stocktwits live Json),
+20260709139,Sentiment,Stocktwits - author,,text,E: Operation Input,Contract Start date,"Daily - 
+Next day 1100 HKT",Stockrtwits,,,,messages__user__username,,Input by Internal staff (Stocktwits live Json),
+20260709140,Sentiment,Stocktwits - datetime,,date,E: Operation Input,Contract Start date,"Daily - 
+Next day 1100 HKT",Stockrtwits,,,,messages__created_at,,Input by Internal staff (Stocktwits live Json),
+20260709141,Sentiment,Stocktwits - followers,,number,E: Operation Input,Contract Start date,"Daily - 
+Next day 1100 HKT",Stockrtwits,,,,messages__user__followers,,Input by Internal staff (Stocktwits live Json),
+20260709142,Sentiment,Stocktwits - content,,text,E: Operation Input,Contract Start date,"Daily - 
+Next day 1100 HKT",Stockrtwits,,,,messages__body,,Input by Internal staff (Stocktwits live Json),
+20260709143,Sentiment,Stocktwits - link,,text,E: Operation Input,Contract Start date,"Daily - 
+Next day 1100 HKT",Stockrtwits,,,,message__link,,Input by Internal staff (Stocktwits live Json),
+20260709144,Sentiment,Stocktwits - reshares,,number,E: Operation Input,Contract Start date,"Daily - 
+Next day 1100 HKT",Stockrtwits,,,,messages__reshares__reshared_count,,Input by Internal staff (Stocktwits live Json),
+20260709145,Sentiment,Stocktwits - likes,,number,E: Operation Input,Contract Start date,"Daily - 
+Next day 1100 HKT",Stockrtwits,,,,messages__likes__total,,Input by Internal staff (Stocktwits live Json),
+20260709146,Sentiment,Stocktwits - sentiment,,string,E: Operation Input,Contract Start date,"Daily - 
+Next day 1100 HKT",Stockrtwits,,,,messages__entities__sentiment__basic,,Input by Internal staff (Stocktwits live Json),
+20260709147,SEC Filings,Form type,"SEC Filings - Table, Dashboard - Event Markers, Operations - SEC Filings",text,E: Operation Input,Contract Start date,"Daily - 
+Next day 1100 HKT",SEC,,,,Form type,,Input by Internal staff (Check SEC portal),
+20260709148,SEC Filings,Form description,"SEC Filings - Table, Dashboard - Event Markers, Operations - SEC Filings",text,E: Operation Input,Contract Start date,"Daily - 
+Next day 1100 HKT",SEC,,,,Form description,,Input by Internal staff (Check SEC portal),
+20260709149,SEC Filings,Filing date,"SEC Filings - Table, Dashboard - Event Markers, Operations - SEC Filings",date,E: Operation Input,Contract Start date,"Daily - 
+Next day 1100 HKT",SEC,,,,Filing date,,Input by Internal staff (Check SEC portal),
+20260709150,SEC Filings,Reporting date,"SEC Filings - Table, Dashboard - Event Markers, Operations - SEC Filings",date,E: Operation Input,Contract Start date,"Daily - 
+Next day 1100 HKT",SEC,,,,Reporting date,,Input by Internal staff (Check SEC portal),
+20260709151,SEC Filings,Act,"SEC Filings - Table, Dashboard - Event Markers, Operations - SEC Filings",number,E: Operation Input,Contract Start date,"Daily - 
+Next day 1100 HKT",SEC,,,,Act,,Input by Internal staff (Check SEC portal),
+20260709152,SEC Filings,Film number(s),"SEC Filings - Table, Dashboard - Event Markers, Operations - SEC Filings",number,E: Operation Input,Contract Start date,"Daily - 
+Next day 1100 HKT",SEC,,,,Film number(s),,Input by Internal staff (Check SEC portal),
+20260709153,SEC Filings,File number(s),"SEC Filings - Table, Dashboard - Event Markers, Operations - SEC Filings",number,E: Operation Input,Contract Start date,"Daily - 
+Next day 1100 HKT",SEC,,,,File number(s),,Input by Internal staff (Check SEC portal),
+20260709154,SEC Filings,Accession number,"SEC Filings - Table, Dashboard - Event Markers, Operations - SEC Filings",number,E: Operation Input,Contract Start date,"Daily - 
+Next day 1100 HKT",SEC,,,,Accession number,,Input by Internal staff (Check SEC portal),
+20260709155,SEC Filings,Filings URL,"SEC Filings - Table, Dashboard - Event Markers, Operations - SEC Filings",text,E: Operation Input,Contract Start date,"Daily - 
+Next day 1100 HKT",SEC,,,,Filings URL,,Input by Internal staff (Check SEC portal),
+20260709156,,Number of Reports,Report Archive - Today Timeline,number,C: Backend,,,,,,Count all available report files/windows in report archive index,,,,
+20260709157,,Number of Daily Report Windows,Report Archive - Today Timeline,number,C: Backend,,,,,,Count available report windows for selected/latest date; max expected windows = 3,,,,
+20260709158,,Report Latest Date,Report Archive - Today Timeline,date,C: Backend,,,,,,Latest date with at least one available report,,,,
+20260709159,,Report History,Report Archive - Today Timeline,list,C: Backend,,,,,,Group report files by date and report window into archive history rows,,,,
+20260709160,,1. Executive Summary,Daily Report - PDF Template,report,D: AI Engine / Rule Engine,,,,,,,,,,
+20260709161,,2. Company Overview,Daily Report - PDF Template,report,D: AI Engine / Rule Engine,,,,,,,,,,
+20260709162,,3. Share Price Analysis,Daily Report - PDF Template,report,D: AI Engine / Rule Engine,,,,,,,,,,
+20260709163,,4. Short Selling Data & Analysis,Daily Report - PDF Template,report,D: AI Engine / Rule Engine,,,,,,,,,,
+20260709164,,4.1 Core Short Metrics,Daily Report - PDF Template,report,D: AI Engine / Rule Engine,,,,,,,,,,
+20260709165,,4.2 Key Short Sellers: Two Sigma & Citadel,Daily Report - PDF Template,report,D: AI Engine / Rule Engine,,,,,,,,,,
+20260709166,,5. Institutional Ownership Analysis,Daily Report - PDF Template,report,D: AI Engine / Rule Engine,,,,,,,,,,
+20260709167,,5.1 Insider Activity,Daily Report - PDF Template,report,D: AI Engine / Rule Engine,,,,,,,,,,
+20260709168,,6. Financial Performance,Daily Report - PDF Template,report,D: AI Engine / Rule Engine,,,,,,,,,,
+20260709169,,7. Fails-to-Deliver (FTD) Analysis,Daily Report - PDF Template,report,D: AI Engine / Rule Engine,,,,,,,,,,
+20260709170,,8. Valuation & Fair Value Assessment,Daily Report - PDF Template,report,D: AI Engine / Rule Engine,,,,,,,,,,
+20260709171,,8.1 Valuation Methodology,Daily Report - PDF Template,report,D: AI Engine / Rule Engine,,,,,,,,,,
+20260709172,,9. Tokenization Strategy Analysis,Daily Report - PDF Template,report,D: AI Engine / Rule Engine,,,,,,,,,,
+20260709173,,9.1 How Tokenization Neutralizes Short Sellers,Daily Report - PDF Template,report,D: AI Engine / Rule Engine,,,,,,,,,,
+20260709174,,9.2 CURRENC Capital Precedent,Daily Report - PDF Template,report,D: AI Engine / Rule Engine,,,,,,,,,,
+20260709175,,10. Risk Factors,Daily Report - PDF Template,report,D: AI Engine / Rule Engine,,,,,,,,,,
+20260709176,,10.1 Short-Selling Risks,Daily Report - PDF Template,report,D: AI Engine / Rule Engine,,,,,,,,,,
+20260709177,,10.2 Business Risks,Daily Report - PDF Template,report,D: AI Engine / Rule Engine,,,,,,,,,,
+20260709178,,10.3 Mitigating Factors,Daily Report - PDF Template,report,D: AI Engine / Rule Engine,,,,,,,,,,
+20260709179,,11. Conclusion & Recommendations,Daily Report - PDF Template,report,D: AI Engine / Rule Engine,,,,,,,,,,
+20260709180,Short Volume,Date,"Dashboard - Trend Overview, Short Interest - Short Volume Analysis",date,A: Vendor,(2017-),Daily - Next day 1200 HKT (TBC),Chart Exchange,chartexchange_short_volume_{ticker}-{YYYY-MM-DD}.json,GET /v1/data/stocks/short-volume/,Direct Mapping,date,sv_date,"https://chartexchange.com/api/v1/data/stocks/short-volume/?symbol=US%3ACURR&mode=V&ordering=-date&format=csv&api_key=
+
+Date = date",*
+20260709181,Short Volume,Total Volume Reported,"Dashboard - Trend Overview, Short Interest - Short Volume Analysis",number,A: Vendor,(2017-),Daily - Next day 1200 HKT (TBC),Chart Exchange,chartexchange_short_volume_{ticker}-{YYYY-MM-DD}.json,GET /v1/data/stocks/short-volume/,Direct Mapping,rt,sv_total_volume_reported,"https://chartexchange.com/api/v1/data/stocks/short-volume/?symbol=US%3ACURR&mode=V&ordering=-date&format=csv&api_key=
+
+Total Volume Reported = rt",*
+20260709182,Short Volume,Total Short Volume Reported,"Dashboard - Trend Overview, Short Interest - Short Volume Analysis",number,A: Vendor,(2017-),Daily - Next day 1200 HKT (TBC),Chart Exchange,chartexchange_short_volume_{ticker}-{YYYY-MM-DD}.json,GET /v1/data/stocks/short-volume/,Direct Mapping,st,sv_total_short_volume_reported,"https://chartexchange.com/api/v1/data/stocks/short-volume/?symbol=US%3ACURR&mode=V&ordering=-date&format=csv&api_key=
+
+Total Short Volume Reported = st",*
+20260709183,Short Volume,Total Long Volume Reported,"Dashboard - Trend Overview, Short Interest - Short Volume Analysis",number,A: Vendor,(2017-),Daily - Next day 1200 HKT (TBC),Chart Exchange,chartexchange_short_volume_{ticker}-{YYYY-MM-DD}.json,GET /v1/data/stocks/short-volume/,Direct Mapping,lt,sv_total_long_volume_reported,"https://chartexchange.com/api/v1/data/stocks/short-volume/?symbol=US%3ACURR&mode=V&ordering=-date&format=csv&api_key=
+
+Total Long Volume Reported = lt",*
+20260709184,Short Volume,Off Exchang Non-Exempt,Short Interest - Short Volume Analysis,number,A: Vendor,(2017-),Daily - Next day 1200 HKT (TBC),Chart Exchange,chartexchange_short_volume_{ticker}-{YYYY-MM-DD}.json,GET /v1/data/stocks/short-volume/,Direct Mapping,fs,sv_off_exchang_non_exempt,"https://chartexchange.com/api/v1/data/stocks/short-volume/?symbol=US%3ACURR&mode=V&ordering=-date&format=csv&api_key=
+
+Off Exchang Non-Exempt = fs",*
+20260709185,Short Volume,Off Exchange Exempt,Short Interest - Short Volume Analysis,number,A: Vendor,(2017-),Daily - Next day 1200 HKT (TBC),Chart Exchange,chartexchange_short_volume_{ticker}-{YYYY-MM-DD}.json,GET /v1/data/stocks/short-volume/,Direct Mapping,fse,sv_off_exchange_exempt,"https://chartexchange.com/api/v1/data/stocks/short-volume/?symbol=US%3ACURR&mode=V&ordering=-date&format=csv&api_key=
+
+Off Exchange Exempt = fse",*
+20260709186,Short Volume,Nasdaq BX,Short Interest - Short Volume Analysis,number,A: Vendor,(2017-),Daily - Next day 1200 HKT (TBC),Chart Exchange,chartexchange_short_volume_{ticker}-{YYYY-MM-DD}.json,GET /v1/data/stocks/short-volume/,Direct Mapping,xnas,sv_nasdaq_bx,"https://chartexchange.com/api/v1/data/stocks/short-volume/?symbol=US%3ACURR&mode=V&ordering=-date&format=csv&api_key=
+
+Nasdaq BX = xnas",*
+20260709187,Short Volume,Nasdaq PHLX,Short Interest - Short Volume Analysis,number,A: Vendor,(2017-),Daily - Next day 1200 HKT (TBC),Chart Exchange,chartexchange_short_volume_{ticker}-{YYYY-MM-DD}.json,GET /v1/data/stocks/short-volume/,Direct Mapping,xphl,sv_nasdaq_phlx,"https://chartexchange.com/api/v1/data/stocks/short-volume/?symbol=US%3ACURR&mode=V&ordering=-date&format=csv&api_key=
+
+Nasdaq PHLX = xphl",*
+20260709188,Short Volume,NYSE,Short Interest - Short Volume Analysis,number,A: Vendor,(2017-),Daily - Next day 1200 HKT (TBC),Chart Exchange,chartexchange_short_volume_{ticker}-{YYYY-MM-DD}.json,GET /v1/data/stocks/short-volume/,Direct Mapping,xnys,sv_nyse,"https://chartexchange.com/api/v1/data/stocks/short-volume/?symbol=US%3ACURR&mode=V&ordering=-date&format=csv&api_key=
+
+NYSE = xnys",*
+20260709189,Short Volume,NYSE Arca,Short Interest - Short Volume Analysis,number,A: Vendor,(2017-),Daily - Next day 1200 HKT (TBC),Chart Exchange,chartexchange_short_volume_{ticker}-{YYYY-MM-DD}.json,GET /v1/data/stocks/short-volume/,Direct Mapping,arcx,sv_nyse_arca,"https://chartexchange.com/api/v1/data/stocks/short-volume/?symbol=US%3ACURR&mode=V&ordering=-date&format=csv&api_key=
+
+NYSE Arca = arcx",*
+20260709190,Short Volume,NYSE National,Short Interest - Short Volume Analysis,number,A: Vendor,(2017-),Daily - Next day 1200 HKT (TBC),Chart Exchange,chartexchange_short_volume_{ticker}-{YYYY-MM-DD}.json,GET /v1/data/stocks/short-volume/,Direct Mapping,xcis,sv_nyse_national,"https://chartexchange.com/api/v1/data/stocks/short-volume/?symbol=US%3ACURR&mode=V&ordering=-date&format=csv&api_key=
+
+NYSE National = xcis",*
+20260709191,Short Volume,NYSE American,Short Interest - Short Volume Analysis,number,A: Vendor,(2017-),Daily - Next day 1200 HKT (TBC),Chart Exchange,chartexchange_short_volume_{ticker}-{YYYY-MM-DD}.json,GET /v1/data/stocks/short-volume/,Direct Mapping,xase,sv_nyse_american,"https://chartexchange.com/api/v1/data/stocks/short-volume/?symbol=US%3ACURR&mode=V&ordering=-date&format=csv&api_key=
+
+NYSE American = xase",*
+20260709192,Short Volume,CHX,Short Interest - Short Volume Analysis,number,A: Vendor,(2017-),Daily - Next day 1200 HKT (TBC),Chart Exchange,chartexchange_short_volume_{ticker}-{YYYY-MM-DD}.json,GET /v1/data/stocks/short-volume/,Direct Mapping,xchi,sv_chx,"https://chartexchange.com/api/v1/data/stocks/short-volume/?symbol=US%3ACURR&mode=V&ordering=-date&format=csv&api_key=
+
+CHX = xchi",*
+20260709193,Short Volume,Cboe EDGX,Short Interest - Short Volume Analysis,number,A: Vendor,(2017-),Daily - Next day 1200 HKT (TBC),Chart Exchange,chartexchange_short_volume_{ticker}-{YYYY-MM-DD}.json,GET /v1/data/stocks/short-volume/,Direct Mapping,edgx,sv_cboe_edgx,"https://chartexchange.com/api/v1/data/stocks/short-volume/?symbol=US%3ACURR&mode=V&ordering=-date&format=csv&api_key=
+
+Cboe EDGX = edgx",*
+20260709194,Short Volume,Cboe BZX,Short Interest - Short Volume Analysis,number,A: Vendor,(2017-),Daily - Next day 1200 HKT (TBC),Chart Exchange,chartexchange_short_volume_{ticker}-{YYYY-MM-DD}.json,GET /v1/data/stocks/short-volume/,Direct Mapping,bats,sv_cboe_bzx,"https://chartexchange.com/api/v1/data/stocks/short-volume/?symbol=US%3ACURR&mode=V&ordering=-date&format=csv&api_key=
+
+Cboe BZX = bats",*
+20260709195,Short Volume,Cboe EDGA,Short Interest - Short Volume Analysis,number,A: Vendor,(2017-),Daily - Next day 1200 HKT (TBC),Chart Exchange,chartexchange_short_volume_{ticker}-{YYYY-MM-DD}.json,GET /v1/data/stocks/short-volume/,Direct Mapping,edga,sv_cboe_edga,"https://chartexchange.com/api/v1/data/stocks/short-volume/?symbol=US%3ACURR&mode=V&ordering=-date&format=csv&api_key=
+
+Cboe EDGA = edga",*
+20260709196,Short Volume,Cboe BYX,Short Interest - Short Volume Analysis,number,A: Vendor,(2017-),Daily - Next day 1200 HKT (TBC),Chart Exchange,chartexchange_short_volume_{ticker}-{YYYY-MM-DD}.json,GET /v1/data/stocks/short-volume/,Direct Mapping,baty,sv_cboe_byx,"https://chartexchange.com/api/v1/data/stocks/short-volume/?symbol=US%3ACURR&mode=V&ordering=-date&format=csv&api_key=
+
+Cboe BYX = baty",*
+20260709197,Fails to Deliver,Settlement Date (T+B),Short Interest - Short Volume Analysis,date,A: Vendor, (2004-),Daily - Next day 1200 HKT (TBC),Chart Exchange,chartexchange_failure_to_deliver_{ticker}-{YYYY-MM-DD}.json,GET /v1/data/stocks/failure-to-deliver/,Direct Mapping,date,ftd_settlement_date_(t+b),"https://chartexchange.com/api/v1/data/stocks/failure-to-deliver/?symbol=US%EF%BC%9ACURR&api_key=
+
+Settlement Date (T+B) = date",*
+20260709198,Fails to Deliver,Fails-to-Deliver,Short Interest - Short Volume Analysis,number,A: Vendor, (2004-),Daily - Next day 1200 HKT (TBC),Chart Exchange,chartexchange_failure_to_deliver_{ticker}-{YYYY-MM-DD}.json,GET /v1/data/stocks/failure-to-deliver/,Direct Mapping,fails,ftd_fails_to_deliver,"https://chartexchange.com/api/v1/data/stocks/failure-to-deliver/?symbol=US%EF%BC%9ACURR&api_key=
+
+Fails-to-Deliver = fails",*
+20260709199,Fails to Deliver,Price,Short Interest - FTD Analysis,number,A: Vendor, (2004-),Daily - Next day 1200 HKT (TBC),Chart Exchange,chartexchange_failure_to_deliver_{ticker}-{YYYY-MM-DD}.json,GET /v1/data/stocks/failure-to-deliver/,Direct Mapping,price,ftd_price,"https://chartexchange.com/api/v1/data/stocks/failure-to-deliver/?symbol=US%EF%BC%9ACURR&api_key=
+
+Price = price",*
+20260709200,Fails to Deliver,Trade Date (T),"Dashboard - Alert Center, Short Interest - FTD Analysis",date,A: Vendor, (2004-),Daily - Next day 1200 HKT (TBC),Chart Exchange,chartexchange_failure_to_deliver_{ticker}-{YYYY-MM-DD}.json,GET /v1/data/stocks/failure-to-deliver/,Direct Mapping,t,ftd_trade_date_(t),"https://chartexchange.com/api/v1/data/stocks/failure-to-deliver/?symbol=US%EF%BC%9ACURR&api_key=
+
+Trade Date (T) = t",*
+20260709201,Fails to Deliver,Closing Deadline (T+35C),"Dashboard - Alert Center, Short Interest - FTD Analysis",date,A: Vendor, (2004-),Daily - Next day 1200 HKT (TBC),Chart Exchange,chartexchange_failure_to_deliver_{ticker}-{YYYY-MM-DD}.json,GET /v1/data/stocks/failure-to-deliver/,Direct Mapping,t_35,ftd_closing_deadline_t_35,"https://chartexchange.com/api/v1/data/stocks/failure-to-deliver/?symbol=US%EF%BC%9ACURR&api_key=
+
+Closing Deadline (T+35C) = t_35",*
+20260709202,Fails to Deliver,$ Notional,Short Interest - FTD Analysis,number,A: Vendor, (2004-),Daily - Next day 1200 HKT (TBC),Chart Exchange,chartexchange_failure_to_deliver_{ticker}-{YYYY-MM-DD}.json,GET /v1/data/stocks/failure-to-deliver/,Direct Mapping,noti,ftd_notional,"https://chartexchange.com/api/v1/data/stocks/failure-to-deliver/?symbol=US%EF%BC%9ACURR&api_key=
+
+$ Notional = noti",*
+20260709203,Fails to Deliver,FTD Change,Short Interest - FTD Analysis,number,A: Vendor, (2004-),Daily - Next day 1200 HKT (TBC),Chart Exchange,chartexchange_failure_to_deliver_{ticker}-{YYYY-MM-DD}.json,GET /v1/data/stocks/failure-to-deliver/,Direct Mapping,change,ftd_ftd_change,"https://chartexchange.com/api/v1/data/stocks/failure-to-deliver/?symbol=US%EF%BC%9ACURR&api_key=
+
+FTD Change = change",*
+20260709204,Margin,Initial Margin - IBKR,"Dashboard - Alert Center, Short Interest - FTD Analysis",number,E: Operation Input,Contract Start date,Daily - Next day 1100 HKT,IBKR,,UI / Form Entry,Manual User Input for IBKR Pool (Stored in DB).,input_initial_margin_ibkr,initial_margin_ibkr,Daily manual input for IBKR.,*
+20260709205,Margin,Initial Margin - FUTU,Short Interest - FTD Analysis,number,E: Operation Input,Contract Start date,Daily - Next day 1100 HKT,FUTU,,UI / Form Entry,Manual User Input for FUTU Pool (Stored in DB).,input_initial_margin_futu,initial_margin_futu,Daily manual input for FUTU.,*
+20260709206,Margin,Initial Margin,Operations - Dashboard Inputs,number,C: Backend,-,-,TBA,,Internal Calculation,"MAX(initial_margin_ibkr, initial_margin_futu)",db.historical_records,initial_margin_max,Portal Display Rule: Display and Save the MAX value across all user-entered margin pools.,
+20260709207,Margin,Maintenance Margin - IBKR,Operations - Dashboard Inputs,number,E: Operation Input,Contract Start date,Daily - Next day 1100 HKT,IBKR,,UI / Form Entry,Manual User Input for IBKR Pool (Stored in DB).,input_maintenance_margin_ibkr,maintenance_margin_ibkr,Daily manual input for IBKR.,*
+20260709208,Margin,Maintenance Margin - FUTU,Dashboard - KPI Cards,number,E: Operation Input,Contract Start date,Daily - Next day 1100 HKT,FUTU,,UI / Form Entry,Manual User Input for FUTU Pool (Stored in DB).,input_maintenance_margin_futu,maintenance_margin_futu,Daily manual input for FUTU.,*
+20260709209,Margin,Maintenance Margin,Operations - Dashboard Inputs,number,C: Backend,-,-,TBA,,Internal Calculation,"MAX(maintenance_margin_ibkr, maintenance_margin_futu)",db.historical_records,maintenance_margin_max,Portal Display Rule: Display and Save the MAX value across all user-entered margin pools.,
+20260709210,Margin,Average Duration (D),Operations - Dashboard Inputs,number,E: Operation Input,Contract Start date,Daily - Next day 1100 HKT,IBKR,,UI / Form Entry,Manual User Input for IBKR Pool (Stored in DB).,input_average_duration_ibkr,average_duration_d,Daily manual input for IBKR.,*
+20260709211,Stock price,symbol,Dashboard - KPI Cards,string,A: Vendor,Contract Start date,Daily - Next day 0600 HKT,Chart Exchange,,GET/v1/feed/stocks/quote/,,symbol,,Delayed 30 minutes. Use the Tier 3 plan - Screener API for live data.,
+20260709212,Stock price,name,,string,A: Vendor,Contract Start date,Daily - Next day 0600 HKT,Chart Exchange,,GET/v1/feed/stocks/quote/,,name,,Delayed 30 minutes. Use the Tier 3 plan - Screener API for live data.,
+20260709213,Stock price,daytime,,datetime,A: Vendor,Contract Start date,Daily - Next day 0600 HKT,Chart Exchange,,GET/v1/feed/stocks/quote/,,as_of,,Delayed 30 minutes. Use the Tier 3 plan - Screener API for live data.,
+20260709214,Stock price,price,,number,A: Vendor,Contract Start date,Daily - Next day 0600 HKT,Chart Exchange,,GET/v1/feed/stocks/quote/,,price,,Delayed 30 minutes. Use the Tier 3 plan - Screener API for live data.,
+20260709215,Stock price,exhange,,string,A: Vendor,Contract Start date,Daily - Next day 0600 HKT,Chart Exchange,,GET/v1/feed/stocks/quote/,,exhange,,Delayed 30 minutes. Use the Tier 3 plan - Screener API for live data.,

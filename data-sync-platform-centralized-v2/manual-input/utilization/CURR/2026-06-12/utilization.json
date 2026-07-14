@@ -1,0 +1,14 @@
+{
+  "schemaVersion": 1,
+  "ticker": "CURR",
+  "tradeDate": "2026-06-12",
+  "generatedAt": "2026-06-12T23:59:00Z",
+  "utilizationPercent": 85.5,
+  "createdBy": "operations",
+  "createdAt": "2026-06-12T23:59:00Z",
+  "updatedBy": "operations",
+  "updatedAt": "2026-06-12T23:59:00Z",
+  "_field_provenance": {
+    "utilizationPercent": "Manual Operations Input"
+  }
+}

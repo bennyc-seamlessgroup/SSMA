@@ -1,0 +1,39 @@
+{
+  "schemaVersion": 1,
+  "ticker": "CURR",
+  "generatedAt": "2026-06-12T23:59:00Z",
+  "date": "2026-06-12",
+  "sourceWatermarks": {
+    "chartExchangeBorrowFee": "2026-06-12T23:59:00Z",
+    "chartExchangeShortInterest": "2026-06-12",
+    "fintelSecurityOwnership": "2026-06-12",
+    "fintelActivistFilings": "2026-06-12",
+    "operationsMarketData": "2026-06-12T23:59:00Z",
+    "operationsManagementHoldings": "2026-06-12T23:59:00Z"
+  },
+  "marketSnapshot": {
+    "price": null,
+    "shortInterestShares": 906502,
+    "shortInterestPercent": 8.58,
+    "borrowFeePercent": 29.153,
+    "availableShares": 2500000,
+    "utilizationPercent": 85.5,
+    "daysToCover": 2.84,
+    "shortScore": 78.0
+  },
+  "ownershipSnapshot": {
+    "issuedShare": 112280000,
+    "institutionalOwners": 13,
+    "institutionalShares": 1035668,
+    "strategicShares": 7979127,
+    "publicFloatShares": 103265205
+  },
+  "sentimentSnapshot": null,
+  "riskSummary": {
+    "shortInterestRisk": "High",
+    "borrowFeeRisk": "Moderate",
+    "availableSharesRisk": "Moderate",
+    "utilizationRisk": "Moderate",
+    "lendingPressureRisk": "Moderate"
+  }
+}

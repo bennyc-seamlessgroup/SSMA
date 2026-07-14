@@ -1,0 +1,149 @@
+{
+  "schemaVersion": 1,
+  "ticker": "CURR",
+  "generatedAt": "2026-06-12T23:59:00Z",
+  "snapshotDate": "2026-06-12",
+  "sourceWatermarks": {
+    "fintelSecurityOwnership": "2026-06-12",
+    "fintelActivistFilings": "2026-06-12",
+    "operationsManagementHoldings": "2026-06-12T23:59:00Z"
+  },
+  "issuedShare": 112280000,
+  "institutionalOwners": 13,
+  "institutionalSharesLong": 1035668,
+  "institutionalHoldingPercent": 0.92,
+  "institutionalValue": 2692.454,
+  "strategicEntities": {
+    "shares": 7979127,
+    "percent": 7.11,
+    "records": [
+      {
+        "id": "ops-strat-001",
+        "holderName": "Huang Yafangzhou",
+        "category": "Strategic Investor",
+        "action": "add",
+        "shares": 3477818,
+        "percentOfShares": 3.1,
+        "fileDate": "2025-07-25",
+        "effectiveDate": "2025-07-25",
+        "form": "13G/A",
+        "showInOwnership": true,
+        "showAsSuggestion": true,
+        "autoApply": false,
+        "status": "pending",
+        "source": "operations-input",
+        "notes": "",
+        "createdBy": "operations",
+        "createdAt": "2026-06-12T23:59:00Z",
+        "updatedBy": "operations",
+        "updatedAt": "2026-06-12T23:59:00Z",
+        "deletedAt": null
+      },
+      {
+        "id": "ops-strat-002",
+        "holderName": "Wong Nga Man",
+        "category": "Management",
+        "action": "add",
+        "shares": 4501309,
+        "percentOfShares": 4.0,
+        "fileDate": "2025-07-25",
+        "effectiveDate": "2025-07-25",
+        "form": "13G/A",
+        "showInOwnership": true,
+        "showAsSuggestion": true,
+        "autoApply": false,
+        "status": "pending",
+        "source": "operations-input",
+        "notes": "",
+        "createdBy": "operations",
+        "createdAt": "2026-06-12T23:59:00Z",
+        "updatedBy": "operations",
+        "updatedAt": "2026-06-12T23:59:00Z",
+        "deletedAt": null
+      }
+    ]
+  },
+  "publicFloat": {
+    "shares": 103265205,
+    "percent": 91.97
+  },
+  "institutionBreakdown": [
+    {
+      "holderName": "Morgan Stanley",
+      "shares": 729215,
+      "percentOfInstitutionalShares": 70.41
+    },
+    {
+      "holderName": "Two Sigma Investments, Lp",
+      "shares": 59536,
+      "percentOfInstitutionalShares": 5.75
+    },
+    {
+      "holderName": "Citadel Advisors Llc",
+      "shares": 58345,
+      "percentOfInstitutionalShares": 5.63
+    },
+    {
+      "holderName": "Kestra Advisory Services, LLC",
+      "shares": 57910,
+      "percentOfInstitutionalShares": 5.59
+    },
+    {
+      "holderName": "Geode Capital Management, Llc",
+      "shares": 39561,
+      "percentOfInstitutionalShares": 3.82
+    },
+    {
+      "holderName": "FNCMX - FIDELITY CONCORD STREET TRUST - Fidelity Nasdaq Composite Index Fund",
+      "shares": 39561,
+      "percentOfInstitutionalShares": 3.82
+    },
+    {
+      "holderName": "XTX Topco Ltd",
+      "shares": 37849,
+      "percentOfInstitutionalShares": 3.65
+    },
+    {
+      "holderName": "Quadrature Capital Ltd",
+      "shares": 10497,
+      "percentOfInstitutionalShares": 1.01
+    },
+    {
+      "holderName": "UBS Group AG",
+      "shares": 2178,
+      "percentOfInstitutionalShares": 0.21
+    },
+    {
+      "holderName": "Cwm, Llc",
+      "shares": 822,
+      "percentOfInstitutionalShares": 0.08
+    },
+    {
+      "holderName": "Jpmorgan Chase & Co",
+      "shares": 118,
+      "percentOfInstitutionalShares": 0.01
+    },
+    {
+      "holderName": "SBI Securities Co., Ltd.",
+      "shares": 75,
+      "percentOfInstitutionalShares": 0.01
+    },
+    {
+      "holderName": "Citigroup Inc",
+      "shares": 1,
+      "percentOfInstitutionalShares": 0.0
+    }
+  ],
+  "updatedAt": "2026-06-12T23:59:00Z",
+  "_field_provenance": {
+    "issuedShare": "Manual Operations Input",
+    "institutionalOwners": "Vendor (Derived from Fintel security_ownership_premium; active non-call rows with shares > 0)",
+    "institutionalSharesLong": "Vendor (Derived from Fintel security_ownership_premium; active non-call share sum)",
+    "institutionalHoldingPercent": "Derived/Calculated (institutionalSharesLong / issuedShare * 100)",
+    "institutionalValue": "Vendor (Derived from Fintel security_ownership_premium value)",
+    "strategicEntities.shares": "Derived/Calculated (Sum of operations strategic records)",
+    "strategicEntities.records": "Manual Operations Input",
+    "publicFloat": "Derived/Calculated (issuedShare - strategicEntities.shares - institutionalSharesLong)",
+    "institutionBreakdown": "Vendor (Derived from Fintel owners list)"
+  }
+}

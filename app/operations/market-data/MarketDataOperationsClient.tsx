@@ -1,62 +1,89 @@
 'use client';
 
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { operationsFetch, operationsProfile } from '@/lib/operations/api-client';
 import { getOperationsTicker, setOperationsTicker } from '@/lib/operations/ticker-client';
 
-type MarketDataRecord = {
+type DateSpecificRecord = {
+  tradeDate?: string;
+  createdAt?: string;
+  createdBy?: string;
+  updatedAt?: string;
+  updatedBy?: string;
+};
+
+type UtilizationRecord = DateSpecificRecord & {
+  utilizationPercent?: number;
+};
+
+type AvailabilityRecord = DateSpecificRecord & {
+  availableSharesIbkr?: number;
+  availableSharesFutu?: number;
+};
+
+type MarginRecord = DateSpecificRecord & {
+  initialMarginIbkr?: number;
+  initialMarginFutu?: number;
+  maintenanceMarginIbkr?: number;
+  maintenanceMarginFutu?: number;
+  averageDurationDays?: number;
+  valueFormat?: string;
+  displayFormat?: string;
+};
+
+type ShortScoreRecord = DateSpecificRecord & {
+  shortScore?: number;
+};
+
+type MarketInputRow = {
   tradeDate: string;
-  ticker: string;
+  issuedShare?: number;
+  utilizationPercent?: number;
+  availableSharesIbkr?: number;
+  availableSharesFutu?: number;
+  initialMarginIbkr?: number;
+  initialMarginFutu?: number;
+  maintenanceMarginIbkr?: number;
+  maintenanceMarginFutu?: number;
+  averageDurationDays?: number;
+  shortScore?: number;
+  updatedAt?: string;
+  updatedBy?: string;
+};
+
+type FormState = {
+  tradeDate: string;
   issuedShare: string;
-  shortAvailabilityPct: string;
-  shortAvailabilityShares: string;
-  costToBorrowNew: string;
-  daysToCover: string;
-  shortInterestShares: string;
-  shortInterestPcFreeFloat: string;
-  score: string;
-  tanRequestData: string;
+  utilizationPercent: string;
+  availableSharesIbkr: string;
+  availableSharesFutu: string;
+  initialMarginIbkr: string;
+  initialMarginFutu: string;
+  maintenanceMarginIbkr: string;
+  maintenanceMarginFutu: string;
+  averageDurationDays: string;
+  shortScore: string;
 };
 
-type MarketDataResponse = {
-  records?: MarketDataRecord[];
-  message?: string;
-  record?: MarketDataRecord;
-  totalRows?: number;
-  filesCreated?: string[];
-};
-
-const csvHeaders = [
-  'tradeDate',
-  'ticker',
-  'issuedShare',
-  'shortAvailabilityPct',
-  'shortAvailabilityShares',
-  'costToBorrowNew',
-  'daysToCover',
-  'shortInterestShares',
-  'shortInterestPcFreeFloat',
-  'score',
-  'tanRequestData',
-] as const;
+const dateSpecificCategories = ['utilization', 'manual-availability', 'margins', 'short-score'] as const;
 
 function todayYmd() {
   return new Date().toISOString().slice(0, 10);
 }
 
-function emptyRecord(ticker: string): MarketDataRecord {
+function emptyForm(): FormState {
   return {
     tradeDate: todayYmd(),
-    ticker,
     issuedShare: '',
-    shortAvailabilityPct: '',
-    shortAvailabilityShares: '',
-    costToBorrowNew: '',
-    daysToCover: '',
-    shortInterestShares: '',
-    shortInterestPcFreeFloat: '',
-    score: '',
-    tanRequestData: '',
+    utilizationPercent: '',
+    availableSharesIbkr: '',
+    availableSharesFutu: '',
+    initialMarginIbkr: '',
+    initialMarginFutu: '',
+    maintenanceMarginIbkr: '',
+    maintenanceMarginFutu: '',
+    averageDurationDays: '',
+    shortScore: '',
   };
 }
 
@@ -64,40 +91,168 @@ function normalizeTicker(value: string) {
   return value.trim().toUpperCase().replace(/[^A-Z0-9.-]/g, '').slice(0, 10) || 'CURR';
 }
 
-function displayNumber(value: string, suffix = '') {
-  const numeric = Number(value);
+function numberOrUndefined(value: string) {
+  if (!value.trim()) return undefined;
+  const parsed = Number(value.replace(/[%,$,]/g, ''));
+  return Number.isFinite(parsed) ? parsed : undefined;
+}
+
+function percentInputToRatio(value: string) {
+  const numeric = numberOrUndefined(value);
+  return numeric === undefined ? undefined : numeric / 100;
+}
+
+function ratioToPercent(value: unknown) {
+  const numeric = typeof value === 'number' ? value : Number(value);
+  if (!Number.isFinite(numeric)) return '';
+  return String(numeric * 100);
+}
+
+function formatNumber(value: unknown, digits = 0) {
+  const numeric = typeof value === 'number' ? value : Number(value);
   return Number.isFinite(numeric)
-    ? `${numeric.toLocaleString('en-US', { maximumFractionDigits: 4 })}${suffix}`
-    : value || 'N/A';
+    ? numeric.toLocaleString('en-US', { maximumFractionDigits: digits })
+    : 'N/A';
+}
+
+function formatPercentFromRatio(value: unknown) {
+  const numeric = typeof value === 'number' ? value : Number(value);
+  return Number.isFinite(numeric)
+    ? `${(numeric * 100).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}%`
+    : 'N/A';
+}
+
+function formatPercent(value: unknown) {
+  const numeric = typeof value === 'number' ? value : Number(value);
+  return Number.isFinite(numeric)
+    ? `${numeric.toLocaleString('en-US', { maximumFractionDigits: 2 })}%`
+    : 'N/A';
+}
+
+function formatDays(value: unknown) {
+  const numeric = typeof value === 'number' ? value : Number(value);
+  return Number.isFinite(numeric)
+    ? `${numeric.toLocaleString('en-US', { maximumFractionDigits: 1 })}d`
+    : 'N/A';
+}
+
+function formatDateTime(value?: string) {
+  if (!value) return 'N/A';
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return 'N/A';
+  return new Intl.DateTimeFormat('en-US', {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  }).format(date);
+}
+
+function asArray<T>(value: unknown): T[] {
+  return Array.isArray(value) ? value as T[] : [];
+}
+
+function latestMeta(...records: Array<DateSpecificRecord | undefined>) {
+  return records
+    .filter((record): record is DateSpecificRecord => Boolean(record))
+    .sort((a, b) => String(b.updatedAt ?? b.createdAt ?? '').localeCompare(String(a.updatedAt ?? a.createdAt ?? '')))[0];
+}
+
+function mergeRows(
+  issuedShare: number | undefined,
+  utilization: UtilizationRecord[],
+  availability: AvailabilityRecord[],
+  margins: MarginRecord[],
+  shortScores: ShortScoreRecord[],
+) {
+  const rows = new Map<string, MarketInputRow>();
+
+  function row(date: string) {
+    const existing = rows.get(date);
+    if (existing) return existing;
+    const next: MarketInputRow = { tradeDate: date, issuedShare };
+    rows.set(date, next);
+    return next;
+  }
+
+  utilization.forEach(record => {
+    if (!record.tradeDate) return;
+    const target = row(record.tradeDate);
+    target.utilizationPercent = record.utilizationPercent;
+    const meta = latestMeta(target as DateSpecificRecord, record);
+    target.updatedAt = meta?.updatedAt ?? meta?.createdAt;
+    target.updatedBy = meta?.updatedBy ?? meta?.createdBy;
+  });
+  availability.forEach(record => {
+    if (!record.tradeDate) return;
+    const target = row(record.tradeDate);
+    target.availableSharesIbkr = record.availableSharesIbkr;
+    target.availableSharesFutu = record.availableSharesFutu;
+    const meta = latestMeta(target as DateSpecificRecord, record);
+    target.updatedAt = meta?.updatedAt ?? meta?.createdAt;
+    target.updatedBy = meta?.updatedBy ?? meta?.createdBy;
+  });
+  margins.forEach(record => {
+    if (!record.tradeDate) return;
+    const target = row(record.tradeDate);
+    target.initialMarginIbkr = record.initialMarginIbkr;
+    target.initialMarginFutu = record.initialMarginFutu;
+    target.maintenanceMarginIbkr = record.maintenanceMarginIbkr;
+    target.maintenanceMarginFutu = record.maintenanceMarginFutu;
+    target.averageDurationDays = record.averageDurationDays;
+    const meta = latestMeta(target as DateSpecificRecord, record);
+    target.updatedAt = meta?.updatedAt ?? meta?.createdAt;
+    target.updatedBy = meta?.updatedBy ?? meta?.createdBy;
+  });
+  shortScores.forEach(record => {
+    if (!record.tradeDate) return;
+    const target = row(record.tradeDate);
+    target.shortScore = record.shortScore;
+    const meta = latestMeta(target as DateSpecificRecord, record);
+    target.updatedAt = meta?.updatedAt ?? meta?.createdAt;
+    target.updatedBy = meta?.updatedBy ?? meta?.createdBy;
+  });
+
+  return [...rows.values()].sort((a, b) => b.tradeDate.localeCompare(a.tradeDate));
 }
 
 export function MarketDataOperationsClient() {
-  const initialTicker = 'CURR';
-  const [selectedTicker, setSelectedTicker] = useState(initialTicker);
-  const [tickerDraft, setTickerDraft] = useState(initialTicker);
-  const [form, setForm] = useState<MarketDataRecord>(() => emptyRecord(initialTicker));
-  const [records, setRecords] = useState<MarketDataRecord[]>([]);
-  const [file, setFile] = useState<File | null>(null);
-  const [status, setStatus] = useState<'checking' | 'loading' | 'idle' | 'saving' | 'uploading' | 'success' | 'error' | 'forbidden'>('checking');
+  const [selectedTicker, setSelectedTicker] = useState('CURR');
+  const [tickerDraft, setTickerDraft] = useState('CURR');
+  const [form, setForm] = useState<FormState>(() => emptyForm());
+  const [rows, setRows] = useState<MarketInputRow[]>([]);
+  const [status, setStatus] = useState<'checking' | 'loading' | 'idle' | 'saving' | 'success' | 'error' | 'forbidden'>('checking');
   const [message, setMessage] = useState('');
-  const [batchResult, setBatchResult] = useState<MarketDataResponse | null>(null);
-  const fileInput = useRef<HTMLInputElement>(null);
 
   async function loadRecords(ticker: string, preserveFeedback = false) {
     const normalized = normalizeTicker(ticker);
     setStatus('loading');
     if (!preserveFeedback) setMessage('');
     try {
-      const payload = await operationsFetch(`/market-data?ticker=${encodeURIComponent(normalized)}`) as MarketDataResponse;
+      const [issuedSharePayload, utilizationPayload, availabilityPayload, marginsPayload, shortScorePayload] = await Promise.all([
+        operationsFetch(`/manual-input/issued-share?ticker=${encodeURIComponent(normalized)}`).catch(() => null),
+        operationsFetch(`/manual-input/utilization?ticker=${encodeURIComponent(normalized)}`).catch(() => []),
+        operationsFetch(`/manual-input/manual-availability?ticker=${encodeURIComponent(normalized)}`).catch(() => []),
+        operationsFetch(`/manual-input/margins?ticker=${encodeURIComponent(normalized)}`).catch(() => []),
+        operationsFetch(`/manual-input/short-score?ticker=${encodeURIComponent(normalized)}`).catch(() => []),
+      ]);
+      const issuedShare = numberOrUndefined(String((issuedSharePayload as { issuedShare?: unknown } | null)?.issuedShare ?? ''));
       setSelectedTicker(normalized);
       setTickerDraft(normalized);
       setOperationsTicker(normalized);
-      setForm(emptyRecord(normalized));
-      setRecords(Array.isArray(payload.records) ? payload.records : []);
+      setForm(current => ({ ...emptyForm(), tradeDate: current.tradeDate || todayYmd(), issuedShare: issuedShare === undefined ? '' : String(issuedShare) }));
+      setRows(mergeRows(
+        issuedShare,
+        asArray<UtilizationRecord>(utilizationPayload),
+        asArray<AvailabilityRecord>(availabilityPayload),
+        asArray<MarginRecord>(marginsPayload),
+        asArray<ShortScoreRecord>(shortScorePayload),
+      ));
       setStatus(preserveFeedback ? 'success' : 'idle');
     } catch (error) {
       setStatus('error');
-      setMessage(error instanceof Error ? error.message : 'Unable to load market data.');
+      setMessage(error instanceof Error ? error.message : 'Unable to load Manual Input V2 records.');
     }
   }
 
@@ -106,7 +261,8 @@ export function MarketDataOperationsClient() {
     const initialize = async () => {
       try {
         const profile = await operationsProfile();
-        if (String(profile.role ?? '').trim().toUpperCase() !== 'OPERATOR') {
+        const role = String(profile.role ?? '').trim().toUpperCase();
+        if (!['OPERATOR', 'ADMIN'].includes(role)) {
           if (!cancelled) {
             setStatus('forbidden');
             setMessage('Market Data Intake is available only to operations users.');
@@ -129,76 +285,107 @@ export function MarketDataOperationsClient() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const sortedRecords = useMemo(
-    () => [...records].sort((a, b) => b.tradeDate.localeCompare(a.tradeDate)),
-    [records],
+  const formHasAnyData = useMemo(
+    () => Object.entries(form).some(([key, value]) => key !== 'tradeDate' && Boolean(value.trim())),
+    [form],
   );
-  const formReady = csvHeaders.every(field => field === 'tanRequestData' || Boolean(form[field].trim()));
-  const busy = ['checking', 'loading', 'saving', 'uploading'].includes(status);
+  const busy = ['checking', 'loading', 'saving'].includes(status);
 
-  function updateField(field: keyof MarketDataRecord, value: string) {
-    setForm(current => ({ ...current, [field]: field === 'ticker' ? value.toUpperCase() : value }));
+  function updateField(field: keyof FormState, value: string) {
+    setForm(current => ({ ...current, [field]: value }));
   }
 
-  function editRecord(record: MarketDataRecord) {
-    setForm({ ...record });
+  function editRecord(record: MarketInputRow) {
+    setForm({
+      tradeDate: record.tradeDate,
+      issuedShare: record.issuedShare === undefined ? '' : String(record.issuedShare),
+      utilizationPercent: record.utilizationPercent === undefined ? '' : String(record.utilizationPercent),
+      availableSharesIbkr: record.availableSharesIbkr === undefined ? '' : String(record.availableSharesIbkr),
+      availableSharesFutu: record.availableSharesFutu === undefined ? '' : String(record.availableSharesFutu),
+      initialMarginIbkr: ratioToPercent(record.initialMarginIbkr),
+      initialMarginFutu: ratioToPercent(record.initialMarginFutu),
+      maintenanceMarginIbkr: ratioToPercent(record.maintenanceMarginIbkr),
+      maintenanceMarginFutu: ratioToPercent(record.maintenanceMarginFutu),
+      averageDurationDays: record.averageDurationDays === undefined ? '' : String(record.averageDurationDays),
+      shortScore: record.shortScore === undefined ? '' : String(record.shortScore),
+    });
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
   async function saveRecord(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (!formReady) return;
+    if (!form.tradeDate || !formHasAnyData) return;
     setStatus('saving');
     setMessage('');
+
+    const tickerParam = encodeURIComponent(selectedTicker);
+    const tradeDateParam = encodeURIComponent(form.tradeDate);
+    const requests: Array<Promise<unknown>> = [];
+    const issuedShare = numberOrUndefined(form.issuedShare);
+    const utilizationPercent = numberOrUndefined(form.utilizationPercent);
+    const availableSharesIbkr = numberOrUndefined(form.availableSharesIbkr);
+    const availableSharesFutu = numberOrUndefined(form.availableSharesFutu);
+    const initialMarginIbkr = percentInputToRatio(form.initialMarginIbkr);
+    const initialMarginFutu = percentInputToRatio(form.initialMarginFutu);
+    const maintenanceMarginIbkr = percentInputToRatio(form.maintenanceMarginIbkr);
+    const maintenanceMarginFutu = percentInputToRatio(form.maintenanceMarginFutu);
+    const averageDurationDays = numberOrUndefined(form.averageDurationDays);
+    const shortScore = numberOrUndefined(form.shortScore);
+
+    if (issuedShare !== undefined) {
+      requests.push(operationsFetch(`/manual-input/issued-share?ticker=${tickerParam}`, {
+        method: 'PUT',
+        body: JSON.stringify({ issuedShare }),
+      }));
+    }
+    if (utilizationPercent !== undefined) {
+      requests.push(operationsFetch(`/manual-input/utilization?ticker=${tickerParam}&tradeDate=${tradeDateParam}`, {
+        method: 'PUT',
+        body: JSON.stringify({ utilizationPercent }),
+      }));
+    }
+    if (availableSharesIbkr !== undefined || availableSharesFutu !== undefined) {
+      requests.push(operationsFetch(`/manual-input/manual-availability?ticker=${tickerParam}&tradeDate=${tradeDateParam}`, {
+        method: 'PUT',
+        body: JSON.stringify({ availableSharesIbkr, availableSharesFutu }),
+      }));
+    }
+    if (
+      initialMarginIbkr !== undefined ||
+      initialMarginFutu !== undefined ||
+      maintenanceMarginIbkr !== undefined ||
+      maintenanceMarginFutu !== undefined ||
+      averageDurationDays !== undefined
+    ) {
+      requests.push(operationsFetch(`/manual-input/margins?ticker=${tickerParam}&tradeDate=${tradeDateParam}`, {
+        method: 'PUT',
+        body: JSON.stringify({
+          initialMarginIbkr,
+          initialMarginFutu,
+          maintenanceMarginIbkr,
+          maintenanceMarginFutu,
+          averageDurationDays,
+          valueFormat: 'decimal_ratio',
+          displayFormat: 'percent',
+        }),
+      }));
+    }
+    if (shortScore !== undefined) {
+      requests.push(operationsFetch(`/manual-input/short-score?ticker=${tickerParam}&tradeDate=${tradeDateParam}`, {
+        method: 'PUT',
+        body: JSON.stringify({ shortScore }),
+      }));
+    }
+
     try {
-      const payload = await operationsFetch('/market-data', {
-        method: 'POST',
-        body: JSON.stringify({ ...form, ticker: normalizeTicker(form.ticker) }),
-      }) as MarketDataResponse;
+      await Promise.all(requests);
       setStatus('success');
-      setMessage(payload.message || `Saved ${form.tradeDate} market data.`);
+      setMessage(`Saved Manual Input V2 records for ${form.tradeDate}.`);
       await loadRecords(selectedTicker, true);
     } catch (error) {
       setStatus('error');
-      setMessage(error instanceof Error ? error.message : 'Unable to save market data.');
+      setMessage(error instanceof Error ? error.message : 'Unable to save Manual Input V2 records.');
     }
-  }
-
-  async function uploadBatch() {
-    if (!file) return;
-    setStatus('uploading');
-    setMessage('');
-    setBatchResult(null);
-    try {
-      const body = new FormData();
-      body.append('file', file);
-      body.append('ticker', selectedTicker);
-      const payload = await operationsFetch(`/market-data/batch?ticker=${encodeURIComponent(selectedTicker)}`, {
-        method: 'POST',
-        body,
-      }) as MarketDataResponse;
-      setBatchResult(payload);
-      setStatus('success');
-      setMessage(payload.message || `Uploaded ${payload.totalRows ?? 0} records.`);
-      setFile(null);
-      if (fileInput.current) fileInput.current.value = '';
-      await loadRecords(selectedTicker, true);
-    } catch (error) {
-      setStatus('error');
-      setMessage(error instanceof Error ? error.message : 'Unable to upload market data CSV.');
-    }
-  }
-
-  function acceptFile(candidate?: File) {
-    if (!candidate) return;
-    if (!candidate.name.toLowerCase().endsWith('.csv')) {
-      setStatus('error');
-      setMessage('Select a CSV file using the required market-data headers.');
-      return;
-    }
-    setFile(candidate);
-    setMessage('');
-    setBatchResult(null);
   }
 
   if (status === 'forbidden') {
@@ -210,104 +397,93 @@ export function MarketDataOperationsClient() {
       <div className="ops-ticker-context">
         <label>
           <span>Company ticker</span>
-          <input value={tickerDraft} maxLength={10} onChange={event => setTickerDraft(event.target.value.toUpperCase())} />
+          <input value={tickerDraft} maxLength={10} onChange={event => setTickerDraft(event.target.value.toUpperCase())} suppressHydrationWarning />
         </label>
         <button type="button" onClick={() => loadRecords(tickerDraft)} disabled={busy}>
           {status === 'loading' ? 'Loading...' : 'Load Workspace'}
         </button>
-        <small>Future API target: /market-data?ticker={selectedTicker}</small>
+        <small>Manual Input V2 target: /manual-input/&lbrace;category&rbrace;?ticker={selectedTicker}</small>
       </div>
 
-      <div className="ops-market-data-grid">
-        <section className="ops-panel">
-          <div className="ops-panel-head">
-            <div><span className="ops-eyebrow">Single Record</span><h2>Daily Market Data</h2></div>
-            <span className={`ops-status ${status === 'error' ? 'bad' : status === 'success' ? 'good' : ''}`}>{status}</span>
+      <section className="ops-panel">
+        <div className="ops-panel-head">
+          <div><span className="ops-eyebrow">Manual Input V2</span><h2>Daily Market Inputs</h2></div>
+          <span className={`ops-status ${status === 'error' ? 'bad' : status === 'success' ? 'good' : ''}`}>{status}</span>
+        </div>
+        <form className="ops-sec-form" onSubmit={saveRecord}>
+          <div className="ops-form-grid three">
+            <label>Trade Date<input type="date" value={form.tradeDate} onChange={event => updateField('tradeDate', event.target.value)} required /></label>
+            <label>Issued Share<input inputMode="numeric" value={form.issuedShare} onChange={event => updateField('issuedShare', event.target.value)} /></label>
+            <label>Short Score<input inputMode="decimal" value={form.shortScore} onChange={event => updateField('shortScore', event.target.value)} /></label>
           </div>
-          <form className="ops-sec-form" onSubmit={saveRecord}>
-            <div className="ops-form-grid two">
-              <label>Trade Date<input type="date" value={form.tradeDate} onChange={event => updateField('tradeDate', event.target.value)} required /></label>
-              <label>Ticker<input value={form.ticker} maxLength={10} onChange={event => updateField('ticker', event.target.value)} required /></label>
-            </div>
-            <div className="ops-form-grid three">
-              <label>Issued Share<input inputMode="numeric" value={form.issuedShare} onChange={event => updateField('issuedShare', event.target.value)} required /></label>
-              <label>Short Availability %<input inputMode="decimal" value={form.shortAvailabilityPct} onChange={event => updateField('shortAvailabilityPct', event.target.value)} required /></label>
-              <label>Shortable Shares<input inputMode="numeric" value={form.shortAvailabilityShares} onChange={event => updateField('shortAvailabilityShares', event.target.value)} required /></label>
-            </div>
-            <div className="ops-form-grid three">
-              <label>Cost to Borrow New<input inputMode="decimal" value={form.costToBorrowNew} onChange={event => updateField('costToBorrowNew', event.target.value)} required /></label>
-              <label>Days to Cover<input inputMode="decimal" value={form.daysToCover} onChange={event => updateField('daysToCover', event.target.value)} required /></label>
-              <label>Short Interest Shares<input inputMode="numeric" value={form.shortInterestShares} onChange={event => updateField('shortInterestShares', event.target.value)} required /></label>
-              <label>Short Interest % Free Float<input inputMode="decimal" value={form.shortInterestPcFreeFloat} onChange={event => updateField('shortInterestPcFreeFloat', event.target.value)} required /></label>
-            </div>
-            <div className="ops-form-grid two">
-              <label>Score<input inputMode="decimal" value={form.score} onChange={event => updateField('score', event.target.value)} required /></label>
-              <label>TAN Request Data<input value={form.tanRequestData} onChange={event => updateField('tanRequestData', event.target.value)} /></label>
-            </div>
-            <div className="ops-form-footer">
-              <span>All values are submitted as strings to match the API contract.</span>
-              <button className="ops-primary-button" type="submit" disabled={!formReady || busy}>{status === 'saving' ? 'Saving...' : 'Save Record'}</button>
-            </div>
-          </form>
-        </section>
-
-        <aside className="ops-panel ops-market-batch-panel">
-          <div className="ops-panel-head">
-            <div><span className="ops-eyebrow">Batch Import</span><h2>Upload CSV</h2></div>
+          <div className="ops-form-grid three">
+            <label>Utilization %<input inputMode="decimal" value={form.utilizationPercent} onChange={event => updateField('utilizationPercent', event.target.value)} /></label>
+            <label>IBKR Shortable Shares<input inputMode="numeric" value={form.availableSharesIbkr} onChange={event => updateField('availableSharesIbkr', event.target.value)} /></label>
+            <label>Futu Shortable Shares<input inputMode="numeric" value={form.availableSharesFutu} onChange={event => updateField('availableSharesFutu', event.target.value)} /></label>
           </div>
-          <button
-            type="button"
-            className={`ops-market-dropzone ${file ? 'is-ready' : ''}`}
-            onClick={() => fileInput.current?.click()}
-            onDragOver={event => event.preventDefault()}
-            onDrop={event => {
-              event.preventDefault();
-              acceptFile(event.dataTransfer.files[0]);
-            }}
-          >
-            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 16V4m0 0L7 9m5-5 5 5M5 14v5h14v-5" /></svg>
-            <strong>{file?.name ?? 'Drop market-data CSV here'}</strong>
-            <span>{file ? `${(file.size / 1024).toFixed(1)} KB selected` : 'or click to choose a file'}</span>
-          </button>
-          <input ref={fileInput} hidden type="file" accept=".csv,text/csv" onChange={event => acceptFile(event.target.files?.[0])} />
-          <div className="ops-market-schema">
-            <strong>Required header order</strong>
-            <code>{csvHeaders.join(', ')}</code>
+          <div className="ops-form-grid three">
+            <label>IBKR Initial Margin %<input inputMode="decimal" value={form.initialMarginIbkr} onChange={event => updateField('initialMarginIbkr', event.target.value)} /></label>
+            <label>Futu Initial Margin %<input inputMode="decimal" value={form.initialMarginFutu} onChange={event => updateField('initialMarginFutu', event.target.value)} /></label>
+            <label>Average Duration (Days)<input inputMode="decimal" value={form.averageDurationDays} onChange={event => updateField('averageDurationDays', event.target.value)} /></label>
           </div>
-          <button className="ops-primary-button" type="button" disabled={!file || busy} onClick={uploadBatch}>
-            {status === 'uploading' ? 'Uploading...' : 'Upload Batch'}
-          </button>
-          {batchResult ? <p className="ops-form-message good">{batchResult.totalRows ?? 0} rows processed · {batchResult.filesCreated?.length ?? 0} files created</p> : null}
-        </aside>
-      </div>
-
-      {message ? <p className={`ops-form-message ops-market-message ${status === 'error' ? 'bad' : 'good'}`}>{message}</p> : null}
+          <div className="ops-form-grid two">
+            <label>IBKR Maintenance Margin %<input inputMode="decimal" value={form.maintenanceMarginIbkr} onChange={event => updateField('maintenanceMarginIbkr', event.target.value)} /></label>
+            <label>Futu Maintenance Margin %<input inputMode="decimal" value={form.maintenanceMarginFutu} onChange={event => updateField('maintenanceMarginFutu', event.target.value)} /></label>
+          </div>
+          <div className="ops-form-footer">
+            <span>{formHasAnyData ? 'Only fields with values will be saved to their matching Manual Input V2 category.' : 'Enter one or more values to save.'}</span>
+            <button className="ops-primary-button" type="submit" disabled={!form.tradeDate || !formHasAnyData || busy}>{status === 'saving' ? 'Saving...' : 'Save Inputs'}</button>
+          </div>
+          {message ? <p className={`ops-form-message ${status === 'error' ? 'bad' : 'good'}`}>{message}</p> : null}
+        </form>
+      </section>
 
       <section className="ops-panel ops-wide-panel">
         <div className="ops-panel-head">
-          <div><span className="ops-eyebrow">GET /market-data</span><h2>Existing Records</h2></div>
-          <span className="ops-record-count">{sortedRecords.length.toLocaleString()} records</span>
+          <div>
+            <span className="ops-eyebrow">{dateSpecificCategories.join(' / ')}</span>
+            <h2>Saved Daily Inputs</h2>
+          </div>
+          <span className="ops-record-count">{rows.length.toLocaleString()} dates</span>
         </div>
         <div className="ops-table-wrap">
           <table className="ops-table ops-market-table">
-            <thead><tr><th>Trade Date</th><th>Ticker</th><th>Issued Share</th><th>Availability</th><th>Shortable Shares</th><th>Borrow Fee</th><th>Days to Cover</th><th>Short Interest</th><th>SI % Float</th><th>Score</th><th>Action</th></tr></thead>
+            <thead>
+              <tr>
+                <th>Trade Date</th>
+                <th>Issued Share</th>
+                <th>Utilization</th>
+                <th>IBKR Shares</th>
+                <th>Futu Shares</th>
+                <th>IBKR Initial</th>
+                <th>Futu Initial</th>
+                <th>IBKR Maint.</th>
+                <th>Futu Maint.</th>
+                <th>Avg Duration</th>
+                <th>Score</th>
+                <th>Updated</th>
+                <th>Action</th>
+              </tr>
+            </thead>
             <tbody>
-              {sortedRecords.map((record, index) => (
-                <tr key={`${record.tradeDate}-${record.ticker}-${index}`}>
+              {rows.map(record => (
+                <tr key={record.tradeDate}>
                   <td>{record.tradeDate}</td>
-                  <td>{record.ticker}</td>
-                  <td>{displayNumber(record.issuedShare)}</td>
-                  <td>{displayNumber(record.shortAvailabilityPct, '%')}</td>
-                  <td>{displayNumber(record.shortAvailabilityShares)}</td>
-                  <td>{displayNumber(record.costToBorrowNew, '%')}</td>
-                  <td>{displayNumber(record.daysToCover)}</td>
-                  <td>{displayNumber(record.shortInterestShares)}</td>
-                  <td>{displayNumber(record.shortInterestPcFreeFloat, '%')}</td>
-                  <td>{displayNumber(record.score)}</td>
+                  <td>{formatNumber(record.issuedShare)}</td>
+                  <td>{formatPercent(record.utilizationPercent)}</td>
+                  <td>{formatNumber(record.availableSharesIbkr)}</td>
+                  <td>{formatNumber(record.availableSharesFutu)}</td>
+                  <td>{formatPercentFromRatio(record.initialMarginIbkr)}</td>
+                  <td>{formatPercentFromRatio(record.initialMarginFutu)}</td>
+                  <td>{formatPercentFromRatio(record.maintenanceMarginIbkr)}</td>
+                  <td>{formatPercentFromRatio(record.maintenanceMarginFutu)}</td>
+                  <td>{formatDays(record.averageDurationDays)}</td>
+                  <td>{formatNumber(record.shortScore, 1)}</td>
+                  <td>{formatDateTime(record.updatedAt)}{record.updatedBy ? ` · ${record.updatedBy}` : ''}</td>
                   <td><button className="ops-secondary-button" type="button" onClick={() => editRecord(record)}>Edit</button></td>
                 </tr>
               ))}
-              {!sortedRecords.length && <tr><td colSpan={11}>{busy ? 'Loading market data...' : 'No market data records found for this ticker.'}</td></tr>}
+              {!rows.length && <tr><td colSpan={13}>{busy ? 'Loading Manual Input V2 records...' : 'No Manual Input V2 records found for this ticker.'}</td></tr>}
             </tbody>
           </table>
         </div>

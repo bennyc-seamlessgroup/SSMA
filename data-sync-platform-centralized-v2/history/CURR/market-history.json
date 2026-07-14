@@ -1,0 +1,61 @@
+{
+  "schemaVersion": 1,
+  "ticker": "CURR",
+  "generatedAt": "2026-06-12T23:59:00Z",
+  "records": [
+    {
+      "tradeDate": "2026-06-11",
+      "issuedShare": 112280000,
+      "price": null,
+      "borrowFeePercent": 29.155,
+      "availableSharesChartExchange": 900000,
+      "availableSharesIbkr": 3000000,
+      "availableSharesFutu": 1800000,
+      "availableShares": 3000000,
+      "utilizationPercent": 92.5,
+      "daysToCover": 2.84,
+      "shortInterestShares": 906502,
+      "shortInterestPercent": 8.58,
+      "shortScore": 90.0,
+      "initialMarginIbkr": 0.55,
+      "initialMarginFutu": 0.65,
+      "initialMargin": 0.65,
+      "maintenanceMarginIbkr": 0.43,
+      "maintenanceMarginFutu": 0.48,
+      "maintenanceMargin": 0.48,
+      "averageDurationDays": 15.2,
+      "valueFormat": "decimal_ratio",
+      "displayFormat": "percent"
+    },
+    {
+      "tradeDate": "2026-06-12",
+      "issuedShare": 112280000,
+      "price": null,
+      "borrowFeePercent": 29.153,
+      "availableSharesChartExchange": 850000,
+      "availableSharesIbkr": 2500000,
+      "availableSharesFutu": 1500000,
+      "availableShares": 2500000,
+      "utilizationPercent": 85.5,
+      "daysToCover": 2.84,
+      "shortInterestShares": 906502,
+      "shortInterestPercent": 8.58,
+      "shortScore": 78.0,
+      "initialMarginIbkr": 0.5,
+      "initialMarginFutu": 0.6,
+      "initialMargin": 0.6,
+      "maintenanceMarginIbkr": 0.4,
+      "maintenanceMarginFutu": 0.45,
+      "maintenanceMargin": 0.45,
+      "averageDurationDays": 12.4,
+      "valueFormat": "decimal_ratio",
+      "displayFormat": "percent"
+    }
+  ],
+  "_field_provenance": {},
+  "sourceWatermarks": {
+    "chartExchangeBorrowFee": "2026-06-12T23:59:00Z",
+    "chartExchangeShortInterest": "2026-06-12",
+    "operationsMarketData": "2026-06-12T23:59:00Z"
+  }
+}

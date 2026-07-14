@@ -1,0 +1,31 @@
+{
+  "schemaVersion": 1,
+  "ticker": "CURR",
+  "generatedAt": "2026-06-12T23:59:00Z",
+  "records": [
+    {
+      "id": "sec-001",
+      "ticker": "CURR",
+      "companyName": "CURRENC Group Inc.",
+      "formType": "10-Q",
+      "formDescription": "Quarterly Report",
+      "description": "Quarterly Report",
+      "filingDate": "2025-11-14",
+      "reportingDate": "2025-09-30",
+      "act": "",
+      "filmNumber": "",
+      "fileNumber": "",
+      "accessionNumber": "0001213900-25-001234",
+      "filingsUrl": "https://www.sec.gov/Archives/edgar/data/1234567/000121390025001234/form10q.htm",
+      "notes": "",
+      "createdBy": "operations",
+      "createdAt": "2026-06-12T23:59:00Z",
+      "updatedBy": "operations",
+      "updatedAt": "2026-06-12T23:59:00Z"
+    }
+  ],
+  "_field_provenance": {},
+  "sourceWatermarks": {
+    "operationsSecFilings": "2026-06-12T23:59:00Z"
+  }
+}

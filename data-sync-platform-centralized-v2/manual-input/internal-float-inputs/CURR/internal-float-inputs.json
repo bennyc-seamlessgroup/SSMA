@@ -1,0 +1,75 @@
+{
+  "schemaVersion": 1,
+  "ticker": "CURR",
+  "tradeDate": "2026-06-12",
+  "generatedAt": "2026-06-12T23:59:00Z",
+  "managementStrategicHoldings": {
+    "records": [
+      {
+        "id": "private-holder-001",
+        "holderName": "Wong Man San",
+        "category": "Strategic Investor",
+        "shares": 3795837,
+        "includeInDeduction": true,
+        "notes": "Major deduction",
+        "createdBy": "user@example.com",
+        "createdAt": "2026-06-12T23:59:00Z",
+        "updatedBy": "user@example.com",
+        "updatedAt": "2026-06-12T23:59:00Z",
+        "deletedAt": null
+      }
+    ]
+  },
+  "tokenizedShares": {
+    "records": [
+      {
+        "id": "token-rec-001",
+        "chain": "Ethereum",
+        "provider": "Securitize",
+        "shares": 500000,
+        "createdBy": "user@example.com",
+        "createdAt": "2026-06-12T23:59:00Z",
+        "updatedBy": "user@example.com",
+        "updatedAt": "2026-06-12T23:59:00Z",
+        "deletedAt": null
+      }
+    ]
+  },
+  "collateralizedShares": {
+    "records": [
+      {
+        "id": "col-rec-001",
+        "chain": "Ethereum",
+        "protocol": "Aave V3",
+        "shares": 1000000,
+        "createdBy": "user@example.com",
+        "createdAt": "2026-06-12T23:59:00Z",
+        "updatedBy": "user@example.com",
+        "updatedAt": "2026-06-12T23:59:00Z",
+        "deletedAt": null
+      }
+    ]
+  },
+  "privateFriendlyHolders": {
+    "shares": 50000000,
+    "ratio": 44.53
+  },
+  "auditLog": [
+    {
+      "id": "audit-001",
+      "action": "created",
+      "section": "tokenizedShares",
+      "recordId": "token-rec-001",
+      "message": "500,000 shares added to Ethereum / Securitize.",
+      "createdBy": "user@example.com",
+      "createdAt": "2026-06-12T23:59:00Z",
+      "before": null,
+      "after": {
+        "shares": 500000
+      }
+    }
+  ],
+  "_field_provenance": {
+    "all_fields": "Manual Customer Input"
+  }
+}

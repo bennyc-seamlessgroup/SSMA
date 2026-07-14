@@ -24,6 +24,7 @@ type KpiConfig = {
   changeFormatter: (value: number) => string;
   detail: string;
   explanation: string;
+  chartTone: 'blue' | 'red' | 'green' | 'orange' | 'purple' | 'slate';
 };
 
 export const dashboardV2Periods: PeriodKey[] = ['1D', '5D', '1M', '3M', '1Y', 'YTD'];
@@ -36,6 +37,7 @@ const kpis: KpiConfig[] = [
     changeFormatter: value => signed(value, 2, ' pts'),
     detail: 'Borrow cost trend',
     explanation: 'Current annualized cost to borrow shares. Higher borrow fees can indicate tighter lending supply or stronger short-side demand.',
+    chartTone: 'red',
   },
   {
     key: 'initialMargin',
@@ -44,6 +46,7 @@ const kpis: KpiConfig[] = [
     changeFormatter: value => signed(value, 2, ' pts'),
     detail: 'Opening margin requirement',
     explanation: 'Initial margin is the upfront collateral requirement to open or support a position. Requirements can differ by platform, so this view reflects market broker inputs collected from major platforms.',
+    chartTone: 'blue',
   },
   {
     key: 'maintenanceMargin',
@@ -52,6 +55,7 @@ const kpis: KpiConfig[] = [
     changeFormatter: value => signed(value, 2, ' pts'),
     detail: 'Ongoing margin requirement',
     explanation: 'Maintenance margin is the ongoing collateral level required to keep a position open. Requirements can vary across broker platforms and may change with volatility or risk controls.',
+    chartTone: 'slate',
   },
   {
     key: 'shortableShares',
@@ -60,6 +64,7 @@ const kpis: KpiConfig[] = [
     changeFormatter: value => signed(value, 0, ' shares'),
     detail: 'Shortable share supply',
     explanation: 'Number of shares currently available to borrow for shorting. Lower availability can signal tighter lendable supply.',
+    chartTone: 'orange',
   },
   {
     key: 'utilization',
@@ -68,6 +73,7 @@ const kpis: KpiConfig[] = [
     changeFormatter: value => signed(value, 2, ' pts'),
     detail: 'Lending pool utilization',
     explanation: 'Percentage of lendable inventory currently being used. Higher utilization means more of the borrowable share pool is already committed.',
+    chartTone: 'green',
   },
   {
     key: 'averageDurationDays',
@@ -76,6 +82,7 @@ const kpis: KpiConfig[] = [
     changeFormatter: value => signed(value, 1, 'd'),
     detail: 'Average holding duration',
     explanation: 'Average duration shows the estimated average number of days positions remain open. A longer duration can indicate slower turnover or more persistent positioning.',
+    chartTone: 'purple',
   },
   {
     key: 'daysToCover',
@@ -84,6 +91,7 @@ const kpis: KpiConfig[] = [
     changeFormatter: value => signed(value, 1, 'd'),
     detail: 'Short interest coverage',
     explanation: 'Estimated number of trading days it would take short sellers to cover current short interest based on average trading volume.',
+    chartTone: 'blue',
   },
 ];
 
@@ -161,8 +169,44 @@ function isManualKpiKey(key: KpiConfig['key']): key is ManualKpiKey {
   return key === 'initialMargin' || key === 'maintenanceMargin' || key === 'averageDurationDays';
 }
 
+function sparklinePath(values: number[], width: number, height: number, pad = 5) {
+  if (!values.length) return { line: '', area: '' };
+  const min = Math.min(...values);
+  const max = Math.max(...values);
+  const spread = max - min || Math.max(Math.abs(max), 1) * 0.08;
+  const xStep = values.length > 1 ? (width - pad * 2) / (values.length - 1) : 0;
+  const points = values.map((value, index) => {
+    const x = values.length > 1 ? pad + index * xStep : width / 2;
+    const y = height - pad - ((value - min) / spread) * (height - pad * 2);
+    return [x, y] as const;
+  });
+  const line = points.map(([x, y], index) => `${index === 0 ? 'M' : 'L'} ${x.toFixed(2)} ${y.toFixed(2)}`).join(' ');
+  const area = `${line} L ${points[points.length - 1][0].toFixed(2)} ${height} L ${points[0][0].toFixed(2)} ${height} Z`;
+  return { line, area };
+}
+
+function Sparkline({ values, tone }: { values: number[]; tone: KpiConfig['chartTone'] }) {
+  const compactValues = values.filter(value => Number.isFinite(value)).slice(-36);
+  const { line, area } = sparklinePath(compactValues, 210, 48);
+  const isEmpty = compactValues.length < 2 || !line;
+
+  return (
+    <div className={`dashboard-v2-kpi-spark dashboard-v2-kpi-spark--${tone}`} aria-hidden="true">
+      {isEmpty ? (
+        <span />
+      ) : (
+        <svg viewBox="0 0 210 48" preserveAspectRatio="none" focusable="false">
+          <path className="dashboard-v2-kpi-spark-area" d={area} />
+          <path className="dashboard-v2-kpi-spark-line" d={line} />
+        </svg>
+      )}
+    </div>
+  );
+}
+
 export function DashboardV2Kpis({ data, period, marginRecords }: { data: TrendPoint[]; period: PeriodKey; marginRecords: DashboardMarginRecord[] }) {
   const cleanData = useMemo(() => data.filter(point => point?.date).sort((a, b) => a.date.localeCompare(b.date)), [data]);
+  const cleanMarginRecords = useMemo(() => [...marginRecords].filter(record => record.date).sort((a, b) => a.date.localeCompare(b.date)), [marginRecords]);
   const latestMargin = useMemo(() => latestMarginRecord(marginRecords), [marginRecords]);
   const compareMargin = useMemo(() => comparisonMarginRecord(marginRecords, period), [marginRecords, period]);
   const latest = cleanData[cleanData.length - 1];
@@ -182,18 +226,29 @@ export function DashboardV2Kpis({ data, period, marginRecords }: { data: TrendPo
             currentValue = toNumber(latest?.[item.key]);
             compareValue = toNumber(compare?.[item.key]);
           }
+          let chartValues: number[];
+          if (isManualKpiKey(item.key)) {
+            const key = item.key;
+            chartValues = cleanMarginRecords.map(record => toNumber(record[key])).filter((value): value is number => value !== undefined);
+          } else {
+            const key = item.key;
+            chartValues = cleanData.map(point => toNumber(point[key])).filter((value): value is number => value !== undefined);
+          }
           const change = currentValue !== undefined && compareValue !== undefined ? currentValue - compareValue : null;
           const changePercent = change !== null && compareValue ? (change / compareValue) * 100 : null;
           const tone = change === null ? 'neutral' : change > 0 ? 'up' : change < 0 ? 'down' : 'neutral';
 
           return (
             <article className="dashboard-v2-kpi" key={item.label}>
-              <span className="dashboard-v2-kpi-label">{item.label} <InfoTooltip text={item.explanation} /></span>
-              <strong>{item.valueFormatter(currentValue)}</strong>
-              <div className={`dashboard-v2-kpi-change ${tone}`}>
-                <b>{change === null ? (isManualInput ? '--' : 'No baseline') : item.changeFormatter(change)}</b>
-                <em>{changePercent === null ? '' : `(${signed(changePercent, 2, '%')})`}</em>
+              <div className="dashboard-v2-kpi-top">
+                <span className="dashboard-v2-kpi-label">{item.label} <InfoTooltip text={item.explanation} /></span>
+                <strong>{item.valueFormatter(currentValue)}</strong>
+                <div className={`dashboard-v2-kpi-change ${tone}`}>
+                  <b>{change === null ? (isManualInput ? '--' : 'No baseline') : item.changeFormatter(change)}</b>
+                  <em>{changePercent === null ? '' : `(${signed(changePercent, 2, '%')})`}</em>
+                </div>
               </div>
+              <Sparkline values={chartValues} tone={item.chartTone} />
             </article>
           );
         })}

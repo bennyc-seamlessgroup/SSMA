@@ -1,0 +1,23 @@
+{
+  "schemaVersion": 1,
+  "ticker": "CURR",
+  "generatedAt": "2026-06-12T23:59:00Z",
+  "records": [
+    {
+      "date": "2026-06-12",
+      "reportKey": "reports/CURR/2026-06-12/CURR_report_data.json",
+      "shortScore": 78.0,
+      "pressureScore": 29.153,
+      "sentimentScore": null
+    }
+  ],
+  "_field_provenance": {},
+  "sourceWatermarks": {
+    "chartExchangeBorrowFee": "2026-06-12T23:59:00Z",
+    "chartExchangeShortInterest": "2026-06-12",
+    "fintelSecurityOwnership": "2026-06-12",
+    "fintelActivistFilings": "2026-06-12",
+    "operationsMarketData": "2026-06-12T23:59:00Z",
+    "operationsManagementHoldings": "2026-06-12T23:59:00Z"
+  }
+}

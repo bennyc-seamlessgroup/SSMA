@@ -1,0 +1,25 @@
+{
+  "schemaVersion": 1,
+  "ticker": "CURR",
+  "tradeDate": "2026-06-12",
+  "generatedAt": "2026-06-12T23:59:00Z",
+  "records": [
+    {
+      "id": "hotkey-001",
+      "kwatchHotkey": "Reddit_Currenc_Group",
+      "platform": "Reddit",
+      "createdBy": "operations",
+      "createdAt": "2026-06-12T23:59:00Z"
+    },
+    {
+      "id": "hotkey-002",
+      "kwatchHotkey": "Stocktwits_Currenc_Group",
+      "platform": "Stocktwits",
+      "createdBy": "operations",
+      "createdAt": "2026-06-12T23:59:00Z"
+    }
+  ],
+  "_field_provenance": {
+    "records": "Manual Operations Input"
+  }
+}

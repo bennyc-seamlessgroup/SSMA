@@ -1,0 +1,90 @@
+{
+  "schemaVersion": 1,
+  "ticker": "CURR",
+  "snapshotDate": "2026-06-12",
+  "generatedAt": "2026-06-12T23:59:00Z",
+  "sourceWatermarks": {
+    "chartExchangeBorrowFee": "2026-06-12T23:59:00Z",
+    "chartExchangeShortInterest": "2026-06-12",
+    "operationsMarketData": "2026-06-12T23:59:00Z"
+  },
+  "price": {
+    "value": null,
+    "asOf": "2026-06-12T20:00:00Z",
+    "source": "Chart Exchange"
+  },
+  "shortInterest": {
+    "shares": 906502,
+    "percent": 8.58,
+    "numChange": 0,
+    "percentChange": 0.0,
+    "riskFactor": "High"
+  },
+  "borrowFee": {
+    "percent": 29.153,
+    "numChange": -0.002,
+    "percentChange": -0.01,
+    "riskFactor": "Moderate"
+  },
+  "availableShares": {
+    "chartExchange": 850000,
+    "ibkr": 2500000,
+    "futu": 1500000,
+    "value": 2500000,
+    "numChange": -500000,
+    "percentChange": -16.67,
+    "riskFactor": "Moderate"
+  },
+  "utilization": {
+    "percent": 85.5,
+    "numChange": -7.0,
+    "percentChange": -7.57,
+    "riskFactor": "Moderate"
+  },
+  "daysToCover": {
+    "value": 2.84,
+    "numChange": 0.0,
+    "percentChange": 0.0,
+    "riskFactor": "Moderate"
+  },
+  "margins": {
+    "initialMarginIbkr": 0.5,
+    "initialMarginFutu": 0.6,
+    "initialMargin": 0.6,
+    "maintenanceMarginIbkr": 0.4,
+    "maintenanceMarginFutu": 0.45,
+    "maintenanceMargin": 0.45,
+    "averageDurationDays": 12.4,
+    "valueFormat": "decimal_ratio",
+    "displayFormat": "percent"
+  },
+  "scores": {
+    "shortScore": {
+      "value": 78.0,
+      "numChange": -12.0,
+      "percentChange": -13.33,
+      "riskFactor": "Extreme"
+    },
+    "lendingPressureRiskFactor": "Moderate"
+  },
+  "_field_provenance": {
+    "price": "Vendor (ChartExchange / Fintel)",
+    "shortInterest": "Vendor (ChartExchange short-interest-daily)",
+    "borrowFee": "Vendor (ChartExchange borrow-fee-ib)",
+    "availableShares.chartExchange": "Vendor (ChartExchange borrow-fee-ib)",
+    "availableShares.ibkr": "Manual Operations Input",
+    "availableShares.futu": "Manual Operations Input",
+    "availableShares.value": "Derived/Calculated (MAX of available shares)",
+    "utilization": "Manual Operations Input",
+    "daysToCover": "Vendor (ChartExchange short-interest-daily)",
+    "margins.initialMarginIbkr": "Manual Operations Input",
+    "margins.initialMarginFutu": "Manual Operations Input",
+    "margins.initialMargin": "Derived/Calculated (MAX of initial margins)",
+    "margins.maintenanceMarginIbkr": "Manual Operations Input",
+    "margins.maintenanceMarginFutu": "Manual Operations Input",
+    "margins.maintenanceMargin": "Derived/Calculated (MAX of maintenance margins)",
+    "margins.averageDurationDays": "Manual Operations Input",
+    "scores.shortScore": "Manual Operations Input",
+    "scores.lendingPressureRiskFactor": "Derived/Calculated (inherits borrow fee risk factor)"
+  }
+}

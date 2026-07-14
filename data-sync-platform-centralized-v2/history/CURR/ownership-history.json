@@ -1,0 +1,222 @@
+{
+  "schemaVersion": 1,
+  "ticker": "CURR",
+  "generatedAt": "2026-06-12T23:59:00Z",
+  "records": [
+    {
+      "holderName": "Two Sigma Investments, Lp",
+      "formType": "13F-HR",
+      "fileDate": "2026-05-15",
+      "effectiveDate": "2026-03-31",
+      "sourceType": "Fintel Security Ownership",
+      "shares": 59536,
+      "value": 155984.0,
+      "percentChange": 0.0,
+      "percentValueChange": 46.23
+    },
+    {
+      "holderName": "Geode Capital Management, Llc",
+      "formType": "13F-HR",
+      "fileDate": "2026-05-15",
+      "effectiveDate": "2026-03-31",
+      "sourceType": "Fintel Security Ownership",
+      "shares": 39561,
+      "value": 103649.0,
+      "percentChange": 0.0,
+      "percentValueChange": 47.14
+    },
+    {
+      "holderName": "Quadrature Capital Ltd",
+      "formType": "13F-HR",
+      "fileDate": "2026-05-15",
+      "effectiveDate": "2026-03-31",
+      "sourceType": "Fintel Security Ownership",
+      "shares": 10497,
+      "value": 27502.0,
+      "percentChange": 0.0,
+      "percentValueChange": 0.0
+    },
+    {
+      "holderName": "XTX Topco Ltd",
+      "formType": "13F-HR",
+      "fileDate": "2026-05-15",
+      "effectiveDate": "2026-03-31",
+      "sourceType": "Fintel Security Ownership",
+      "shares": 37849,
+      "value": 99164.0,
+      "percentChange": -10.105928177845335,
+      "percentValueChange": 32.0
+    },
+    {
+      "holderName": "Citadel Advisors Llc",
+      "formType": "13F-HR",
+      "fileDate": "2026-05-15",
+      "effectiveDate": "2026-03-31",
+      "sourceType": "Fintel Security Ownership",
+      "shares": 58345,
+      "value": 152864.0,
+      "percentChange": 0.0,
+      "percentValueChange": 0.0
+    },
+    {
+      "holderName": "Morgan Stanley",
+      "formType": "13F-HR",
+      "fileDate": "2026-05-15",
+      "effectiveDate": "2026-03-31",
+      "sourceType": "Fintel Security Ownership",
+      "shares": 729215,
+      "value": 1910543.0,
+      "percentChange": 0.0,
+      "percentValueChange": 46.36
+    },
+    {
+      "holderName": "Virtu Financial LLC",
+      "formType": "13F-HR",
+      "fileDate": "2026-05-14",
+      "effectiveDate": "2026-03-31",
+      "sourceType": "Fintel Security Ownership",
+      "shares": 0,
+      "value": 0.0,
+      "percentChange": -100.0,
+      "percentValueChange": 0.0
+    },
+    {
+      "holderName": "Cwm, Llc",
+      "formType": "13F-HR",
+      "fileDate": "2026-05-14",
+      "effectiveDate": "2026-03-31",
+      "sourceType": "Fintel Security Ownership",
+      "shares": 822,
+      "value": 2154.0,
+      "percentChange": 0.0,
+      "percentValueChange": 0.0
+    },
+    {
+      "holderName": "Jpmorgan Chase & Co",
+      "formType": "13F-HR/A",
+      "fileDate": "2026-05-13",
+      "effectiveDate": "2026-03-31",
+      "sourceType": "Fintel Security Ownership",
+      "shares": 118,
+      "value": 282.0,
+      "percentChange": 0.0,
+      "percentValueChange": 0.0
+    },
+    {
+      "holderName": "Citigroup Inc",
+      "formType": "13F-HR",
+      "fileDate": "2026-05-11",
+      "effectiveDate": "2026-03-31",
+      "sourceType": "Fintel Security Ownership",
+      "shares": 1,
+      "value": 3.0,
+      "percentChange": 0.0,
+      "percentValueChange": 0.0
+    },
+    {
+      "holderName": "UBS Group AG",
+      "formType": "13F-HR",
+      "fileDate": "2026-05-05",
+      "effectiveDate": "2026-03-31",
+      "sourceType": "Fintel Security Ownership",
+      "shares": 2178,
+      "value": 5706.0,
+      "percentChange": -79.40425531914893,
+      "percentValueChange": -72.22
+    },
+    {
+      "holderName": "Kestra Advisory Services, LLC",
+      "formType": "13F-HR",
+      "fileDate": "2026-04-30",
+      "effectiveDate": "2026-03-31",
+      "sourceType": "Fintel Security Ownership",
+      "shares": 57910,
+      "value": 151724.0,
+      "percentChange": 0.0,
+      "percentValueChange": 0.0
+    },
+    {
+      "holderName": "SBI Securities Co., Ltd.",
+      "formType": "13F-HR",
+      "fileDate": "2026-04-28",
+      "effectiveDate": "2026-03-31",
+      "sourceType": "Fintel Security Ownership",
+      "shares": 75,
+      "value": 197.0,
+      "percentChange": 0.0,
+      "percentValueChange": 0.0
+    },
+    {
+      "holderName": "FNCMX - FIDELITY CONCORD STREET TRUST - Fidelity Nasdaq Composite Index Fund",
+      "formType": "NPORT-P",
+      "fileDate": "2026-04-24",
+      "effectiveDate": "2026-02-28",
+      "sourceType": "Fintel Security Ownership",
+      "shares": 39561,
+      "value": 82682.0,
+      "percentChange": 0.0,
+      "percentValueChange": -21.15
+    },
+    {
+      "holderName": "Tower Research Capital LLC (TRC)",
+      "formType": "13F-HR",
+      "fileDate": "2026-02-17",
+      "effectiveDate": "2025-12-31",
+      "sourceType": "Fintel Security Ownership",
+      "shares": 0,
+      "value": 0.0,
+      "percentChange": -100.0,
+      "percentValueChange": 0.0
+    },
+    {
+      "holderName": "Antara Capital LP",
+      "formType": "13F-HR",
+      "fileDate": "2026-02-17",
+      "effectiveDate": "2025-12-31",
+      "sourceType": "Fintel Security Ownership",
+      "shares": 0,
+      "value": 0.0,
+      "percentChange": -100.0,
+      "percentValueChange": -100.0
+    },
+    {
+      "holderName": "Wong Man San",
+      "formType": "SCHEDULE 13G",
+      "fileDate": "2025-10-07",
+      "effectiveDate": "2025-10-07",
+      "sourceType": "Fintel Activist Filings",
+      "shares": 3795837,
+      "value": null,
+      "percentChange": null,
+      "percentValueChange": null
+    },
+    {
+      "holderName": "Wong Nga Man",
+      "formType": "SCHEDULE 13G/A",
+      "fileDate": "2025-07-25",
+      "effectiveDate": "2025-07-25",
+      "sourceType": "Fintel Activist Filings",
+      "shares": 4501309,
+      "value": null,
+      "percentChange": null,
+      "percentValueChange": null
+    },
+    {
+      "holderName": "Huang Yafangzhou",
+      "formType": "SCHEDULE 13G/A",
+      "fileDate": "2025-07-25",
+      "effectiveDate": "2025-07-25",
+      "sourceType": "Fintel Activist Filings",
+      "shares": 3477818,
+      "value": null,
+      "percentChange": null,
+      "percentValueChange": null
+    }
+  ],
+  "_field_provenance": {},
+  "sourceWatermarks": {
+    "fintelSecurityOwnership": "2026-06-12",
+    "fintelActivistFilings": "2026-06-12",
+    "operationsManagementHoldings": "2026-06-12T23:59:00Z"
+  }
+}

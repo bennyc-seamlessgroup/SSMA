@@ -1,0 +1,47 @@
+{
+  "symbol": "CURR",
+  "exchange": "NasdaqGM",
+  "country": "US",
+  "name": "CURRENC Group Inc.",
+  "url": "https://fintel.io/so/us/curr",
+  "owners": [
+    {
+      "name": "Wong Man San",
+      "slug": "wong-man-san-5239",
+      "url": "https://fintel.io/i/wong-man-san-5239",
+      "formType": "SCHEDULE 13G",
+      "effectiveDate": "2025-10-07",
+      "fileDate": "2025-10-07",
+      "ownershipPercent": 5.0,
+      "ownershipPercentChange": -7.136644900577387,
+      "shares": 3795837,
+      "sharesChange": -291714,
+      "sharesPercentChange": -7.136644900577387
+    },
+    {
+      "name": "Wong Nga Man",
+      "slug": "wong-nga-man-5804",
+      "url": "https://fintel.io/i/wong-nga-man-5804",
+      "formType": "SCHEDULE 13G/A",
+      "effectiveDate": "2025-07-25",
+      "fileDate": "2025-07-25",
+      "ownershipPercent": 0.1,
+      "shares": 4501309,
+      "sharesChange": 4501309,
+      "sharesPercentChange": null
+    },
+    {
+      "name": "Huang Yafangzhou",
+      "slug": "huang-yafangzhou-5634",
+      "url": "https://fintel.io/i/huang-yafangzhou-5634",
+      "formType": "SCHEDULE 13G/A",
+      "effectiveDate": "2025-07-25",
+      "fileDate": "2025-07-25",
+      "ownershipPercent": 0.0,
+      "ownershipPercentChange": 0.0,
+      "shares": 3477818,
+      "sharesChange": 0,
+      "sharesPercentChange": 0.0
+    }
+  ]
+}

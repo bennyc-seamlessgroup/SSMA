@@ -1,0 +1,20 @@
+{
+  "schemaVersion": 1,
+  "ticker": "CURR",
+  "tradeDate": "2026-06-11",
+  "generatedAt": "2026-06-11T23:59:00Z",
+  "initialMarginIbkr": 0.55,
+  "initialMarginFutu": 0.65,
+  "maintenanceMarginIbkr": 0.43,
+  "maintenanceMarginFutu": 0.48,
+  "averageDurationDays": 15.2,
+  "valueFormat": "decimal_ratio",
+  "displayFormat": "percent",
+  "createdBy": "operations",
+  "createdAt": "2026-06-11T23:59:00Z",
+  "updatedBy": "operations",
+  "updatedAt": "2026-06-11T23:59:00Z",
+  "_field_provenance": {
+    "all_fields": "Manual Operations Input"
+  }
+}
