@@ -1,20 +1,3 @@
-import { ImportDataPreviewPage } from '@/components/ImportDataPreviewPage';
-import { PageDisclaimerNotice } from '@/components/PageDisclaimerNotice';
-
 export default function OptionsPage() {
-  return (
-    <ImportDataPreviewPage
-      title="Options / Gamma"
-      description="Options summary, put/call ratios, open interest, gamma exposure, and expiration wall records from import_data."
-      files={[
-        'options/options_summary.json',
-        'options/put_call_ratio.json',
-        'options/open_interest.json',
-        'options/gamma_exposure.json',
-        'options/expiration_wall.json',
-      ]}
-    >
-      <PageDisclaimerNotice noticeKey="options" disclaimerKey="optionsGamma" />
-    </ImportDataPreviewPage>
-  );
+  return <div className="page"><section className="panel"><h2>Option / Gamma</h2><p>This development module is awaiting an API data source. Legacy JSON data has been removed.</p></section></div>;
 }

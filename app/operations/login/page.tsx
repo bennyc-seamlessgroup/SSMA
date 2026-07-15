@@ -19,7 +19,7 @@ export default function OperationsLoginPage() {
             Password
             <input defaultValue="prototype" type="password" />
           </label>
-          <Link className="ops-primary-button" href="/operations/sec-filings">Enter Operations Portal</Link>
+          <Link className="ops-primary-button" href="/operations/market-data">Enter Operations Portal</Link>
         </form>
       </section>
     </main>

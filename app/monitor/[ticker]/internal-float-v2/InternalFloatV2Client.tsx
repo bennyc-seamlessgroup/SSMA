@@ -2,10 +2,10 @@
 
 import { InfoTooltip } from '@/components/InfoTooltip';
 import { PortalPageLoading } from '@/components/PortalPageLoading';
-import { getCurrentUser, getStoredTokens } from '@/lib/auth-client';
+import { authenticatedFetch, getCurrentUser } from '@/lib/auth-client';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
-import type { FloatAdjustments, InternalFloatV2UserInput, ManualHolding } from '@/lib/internal-float';
+import type { FloatAdjustments, InternalFloatV2UserInput, ManualHolding } from '@/lib/internal-float-types';
 import {
   buildInternalFloatActivity,
   type InternalFloatActivityItem,
@@ -65,8 +65,6 @@ const colors = ['#2453a6', '#0f8a6a', '#d89018', '#6f7bd9', '#8896a8', '#c2415b'
 const privateCategories = ['Founder', 'CEO', 'Management', 'Insider', 'Strategic Investor', 'Family Office', 'Long-Term Holder', 'Transfer Agent', 'Other'];
 const tokenizationProviderOptions = ['Securitize', 'xStocks', 'Ondo', 'bStocks'];
 const protocolOptions = ['Aave', 'Euler', 'Kamino', 'Morpho'];
-const insiderDismissalStorageKeyPrefix = 'internal-float-v2-dismissed-insiders';
-
 const userInputSections: Record<Exclude<EditPanel, null>, 'privateHoldings' | 'tokenChains' | 'collateralChains'> = {
   private: 'privateHoldings',
   tokenized: 'tokenChains',
@@ -154,9 +152,9 @@ function describeDiff(diff: { added: number; deleted: number; updated: number })
 
 function seedOwnership(holdings: ManualHolding[], adjustments: FloatAdjustments, institutionalOverview?: InstitutionalOwnershipOverview): OwnershipData {
   const institutionTypes = new Set(['Major Shareholder', 'Strategic Investor', 'Friendly Holder', 'Friendly Long-Term Holder']);
-  const sharesOutstanding = numeric(institutionalOverview?.shares_outstanding) || numeric(adjustments.officialSharesOutstanding) || 58030000;
-  const publicFloat = numeric(institutionalOverview?.public_float_shares) || numeric(adjustments.officialFreeFloat) || 32664808;
-  const institutionShares = numeric(institutionalOverview?.institutional_shares_long) || holdings.filter(row => institutionTypes.has(row.holderType)).reduce((sum, row) => sum + numeric(row.numberOfShares), 0) || 10000000;
+  const sharesOutstanding = numeric(institutionalOverview?.shares_outstanding) || numeric(adjustments.officialSharesOutstanding);
+  const publicFloat = numeric(institutionalOverview?.public_float_shares) || numeric(adjustments.officialFreeFloat);
+  const institutionShares = numeric(institutionalOverview?.institutional_shares_long) || holdings.filter(row => institutionTypes.has(row.holderType)).reduce((sum, row) => sum + numeric(row.numberOfShares), 0);
   return { sharesOutstanding, institutionShares, publicFloat };
 }
 
@@ -185,10 +183,7 @@ function seedPrivateHoldings(holdings: ManualHolding[]): PrivateHolding[] {
     notes: row.notes || '',
   })).filter(row => row.shares > 0);
 
-  return rows.length ? rows : [
-    { id: 'founder', holderName: 'Founder / management group', category: 'Founder', shares: 5000000, includeInDeduction: true, notes: 'Internal management assumption.' },
-    { id: 'strategic', holderName: 'Strategic long-term holders', category: 'Strategic Investor', shares: 3000000, includeInDeduction: true, notes: 'Management / strategic holder estimate.' },
-  ];
+  return rows;
 }
 
 function Donut({ title, center, segments, bare = false }: { title: string; center: string; segments: Segment[]; bare?: boolean }) {
@@ -332,121 +327,41 @@ export function InternalFloatV2Client({
   const [savedPrivateHoldings, setSavedPrivateHoldings] = useState<PrivateHolding[]>(() => initialUserInputs.privateHoldings);
   const [savedTokenChains, setSavedTokenChains] = useState<TokenChain[]>(() => initialUserInputs.tokenChains);
   const [savedCollateralChains, setSavedCollateralChains] = useState<CollateralChain[]>(() => initialUserInputs.collateralChains);
-  const [apiStatus, setApiStatus] = useState<'idle' | 'loading' | 'saving' | 'saved' | 'error'>(demoMode ? 'idle' : 'loading');
+  const [apiStatus, setApiStatus] = useState<'idle' | 'loading' | 'saving' | 'saved' | 'error'>('idle');
   const [apiMessage, setApiMessage] = useState('');
   const [activityLog, setActivityLog] = useState<InternalFloatActivityItem[]>(() => initialUserInputs.activityLog ?? []);
   const [expandedPrivateNotes, setExpandedPrivateNotes] = useState<string[]>([]);
   const [tokenizationReminder, setTokenizationReminder] = useState<TokenizationReminder | null>(null);
-  const [dismissedInsiderSuggestions, setDismissedInsiderSuggestions] = useState<string[]>([]);
-  const [insiderDismissalsLoaded, setInsiderDismissalsLoaded] = useState(false);
+  const [resolvedSuggestionIds, setResolvedSuggestionIds] = useState<string[]>([]);
   const [suggestionActionId, setSuggestionActionId] = useState<string | null>(null);
   const [activeSuggestion, setActiveSuggestion] = useState<InsiderSuggestionSource | null>(null);
 
   async function workspaceInputsRequest(
-    method: 'GET' | 'PUT',
     section?: 'privateHoldings' | 'tokenChains' | 'collateralChains',
     rows?: unknown[],
   ) {
-    const idToken = getStoredTokens()?.idToken;
-    if (!idToken) throw new Error('Your session is not available. Please sign in again.');
-    const response = await fetch(`/api/internal-float-workspace/${encodeURIComponent(ticker)}`, {
-      method,
-      cache: 'no-store',
-      headers: {
-        Authorization: idToken,
-        ...(method === 'PUT' ? { 'Content-Type': 'application/json' } : {}),
-      },
-      ...(method === 'PUT' ? { body: JSON.stringify({ section, rows }) } : {}),
-    });
-    const text = await response.text();
-    let payload: (InternalFloatV2UserInput & { message?: string }) | null = null;
-    if (text) {
-      try {
-        payload = JSON.parse(text) as InternalFloatV2UserInput & { message?: string };
-      } catch {
-        throw new Error('The shared Internal Float service returned an invalid response.');
-      }
-    }
-    if (!response.ok || !payload) {
-      throw new Error(payload?.message || 'Unable to access shared Internal Float inputs.');
-    }
-    return payload;
-  }
-
-  useEffect(() => {
-    if (demoMode) {
-      setApiStatus('idle');
-      setApiMessage('');
-      return undefined;
-    }
-    let cancelled = false;
-
-    async function loadUserInputs() {
-      setApiStatus('loading');
-      try {
-        const data = await workspaceInputsRequest('GET');
-        if (cancelled) return;
-        if (data.ticker && data.ticker.toUpperCase() !== ticker.toUpperCase()) {
-          throw new Error(`User inputs returned for ${data.ticker} instead of ${ticker}.`);
-        }
-        if (Array.isArray(data.privateHoldings)) {
-          setPrivateHoldings(data.privateHoldings);
-          setSavedPrivateHoldings(data.privateHoldings);
-        }
-        if (Array.isArray(data.custodyRows)) setCustodyRows(data.custodyRows);
-        if (Array.isArray(data.tokenChains)) {
-          setTokenChains(data.tokenChains);
-          setSavedTokenChains(data.tokenChains);
-        }
-        if (Array.isArray(data.collateralChains)) {
-          setCollateralChains(data.collateralChains);
-          setSavedCollateralChains(data.collateralChains);
-        }
-        setActivityLog(Array.isArray(data.activityLog) ? data.activityLog : []);
-        setApiStatus('idle');
-        setApiMessage('');
-      } catch (error) {
-        if (cancelled) return;
-        setApiStatus('error');
-        setApiMessage(error instanceof Error ? error.message : 'Unable to load user inputs from API.');
-      }
-    }
-
-    loadUserInputs();
-
-    return () => {
-      cancelled = true;
+    const endpoint = `/manual-input/internal-float-inputs?ticker=${encodeURIComponent(ticker)}`;
+    const raw = await authenticatedFetch(endpoint, {
+      method: 'PUT',
+      body: JSON.stringify({
+        managementStrategicHoldings: { records: section === 'privateHoldings' ? rows : privateHoldings },
+        tokenizedShares: { records: section === 'tokenChains' ? rows : tokenChains },
+        collateralizedShares: { records: section === 'collateralChains' ? rows : collateralChains },
+      }),
+    }) as Record<string, unknown>;
+    const management = raw.managementStrategicHoldings as { records?: PrivateHolding[] } | undefined;
+    const tokenized = raw.tokenizedShares as { records?: TokenChain[] } | undefined;
+    const collateralized = raw.collateralizedShares as { records?: CollateralChain[] } | undefined;
+    return {
+      userId: `workspace:${ticker}`,
+      workspaceId: ticker,
+      ticker,
+      privateHoldings: management?.records ?? [],
+      custodyRows: [],
+      tokenChains: tokenized?.records ?? [],
+      collateralChains: collateralized?.records ?? [],
+      activityLog: Array.isArray(raw.auditLog) ? raw.auditLog as InternalFloatActivityItem[] : [],
     };
-    // The request helper is intentionally scoped to the active ticker.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [demoMode, ticker]);
-
-  useEffect(() => {
-    if (demoMode) {
-      setDismissedInsiderSuggestions([]);
-      setInsiderDismissalsLoaded(true);
-      return;
-    }
-    const userId = getCurrentUser()?.sub ?? 'current-user';
-    const storageKey = `${insiderDismissalStorageKeyPrefix}:${userId}:${ticker.toUpperCase()}`;
-    try {
-      const stored = localStorage.getItem(storageKey);
-      const parsed = stored ? JSON.parse(stored) : [];
-      setDismissedInsiderSuggestions(Array.isArray(parsed) ? parsed.filter(value => typeof value === 'string') : []);
-    } catch {
-      setDismissedInsiderSuggestions([]);
-    } finally {
-      setInsiderDismissalsLoaded(true);
-    }
-  }, [demoMode, ticker]);
-
-  function persistDismissedInsiderSuggestions(next: string[]) {
-    setDismissedInsiderSuggestions(next);
-    if (!demoMode) {
-      const userId = getCurrentUser()?.sub ?? 'current-user';
-      const storageKey = `${insiderDismissalStorageKeyPrefix}:${userId}:${ticker.toUpperCase()}`;
-      localStorage.setItem(storageKey, JSON.stringify(next));
-    }
   }
 
   const privateShares = privateHoldings.filter(row => row.includeInDeduction).reduce((sum, row) => sum + numeric(row.shares), 0);
@@ -479,15 +394,13 @@ export function InternalFloatV2Client({
     return map;
   }, new Map<string, number>())).map(([protocol, shares]) => ({ id: protocol, protocol, shares }));
 
-  const availableInsiderSuggestions = insiderDismissalsLoaded
-    ? insiderSuggestionSources.filter(row => {
+  const availableInsiderSuggestions = insiderSuggestionSources.filter(row => {
       const holderName = row.holderName ?? row.name;
       if (!holderName?.trim() || numeric(row.shares) <= 0) return false;
       if (row.status && row.status !== 'pending') return false;
-      if (dismissedInsiderSuggestions.includes(sourceSuggestionId(row))) return false;
+      if (resolvedSuggestionIds.includes(sourceSuggestionId(row))) return false;
       return true;
-    })
-    : [];
+    });
 
   function patchPrivate(id: string, patch: Partial<PrivateHolding>) {
     setPrivateHoldings(current => current.map(row => row.id === id ? { ...row, ...patch } : row));
@@ -508,10 +421,9 @@ export function InternalFloatV2Client({
 
   async function updateManagementSuggestionStatus(row: InsiderSuggestionSource, status: 'applied' | 'discarded') {
     if (demoMode || !row.id) return;
-    await fetch('/api/operations/management-holdings', {
+    await authenticatedFetch(`/manual-input/management-holdings?ticker=${encodeURIComponent(ticker)}&id=${encodeURIComponent(row.id)}`, {
       method: 'PUT',
       cache: 'no-store',
-      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         ...row,
         ticker,
@@ -529,9 +441,9 @@ export function InternalFloatV2Client({
   async function dismissInsiderSuggestion(row: InsiderSuggestionSource) {
     const suggestionId = sourceSuggestionId(row);
     setSuggestionActionId(suggestionId);
-    persistDismissedInsiderSuggestions(Array.from(new Set([...dismissedInsiderSuggestions, suggestionId])));
     try {
       await updateManagementSuggestionStatus(row, 'discarded');
+      setResolvedSuggestionIds(current => Array.from(new Set([...current, suggestionId])));
     } finally {
       setSuggestionActionId(null);
     }
@@ -582,7 +494,7 @@ export function InternalFloatV2Client({
     if (demoMode) {
       setPrivateHoldings(nextRows);
       setSavedPrivateHoldings(nextRows);
-      persistDismissedInsiderSuggestions(Array.from(new Set([...dismissedInsiderSuggestions, suggestionId])));
+      setResolvedSuggestionIds(current => Array.from(new Set([...current, suggestionId])));
       setApiStatus('saved');
       setApiMessage(`${holderName} was updated for this demo session. Changes will reset when the page reloads.`);
       setActivityLog(current => [
@@ -594,7 +506,7 @@ export function InternalFloatV2Client({
       return;
     }
     try {
-      const updated = await workspaceInputsRequest('PUT', 'privateHoldings', nextRows);
+      const updated = await workspaceInputsRequest('privateHoldings', nextRows);
 
       if (!Array.isArray(updated.privateHoldings) || !rowsMatch(updated.privateHoldings, nextRows)) {
         throw new Error('The suggested holding was not confirmed by the server. Please try again.');
@@ -604,7 +516,7 @@ export function InternalFloatV2Client({
       setSavedPrivateHoldings(updated.privateHoldings);
       setActivityLog(updated.activityLog ?? []);
       await updateManagementSuggestionStatus(row, 'applied');
-      persistDismissedInsiderSuggestions(Array.from(new Set([...dismissedInsiderSuggestions, suggestionId])));
+      setResolvedSuggestionIds(current => Array.from(new Set([...current, suggestionId])));
       setApiStatus('saved');
       setApiMessage(`${holderName} was updated in Management / Strategic Holdings.`);
       setActiveSuggestion(null);
@@ -781,7 +693,7 @@ export function InternalFloatV2Client({
     }
 
     try {
-      const updated = await workspaceInputsRequest('PUT', userInputSections[editPanel], payload);
+      const updated = await workspaceInputsRequest(userInputSections[editPanel], payload);
 
       const confirmedRows = savedPanel === 'private'
         ? updated.privateHoldings
@@ -1130,7 +1042,7 @@ export function InternalFloatV2Client({
     );
   }
 
-  if (apiStatus === 'loading' || !insiderDismissalsLoaded) {
+  if (apiStatus === 'loading') {
     return <PortalPageLoading variant="internalFloat" />;
   }
 

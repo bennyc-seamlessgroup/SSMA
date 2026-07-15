@@ -5,7 +5,6 @@ import { usePathname } from 'next/navigation';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { getAuthenticatedProfile } from '@/lib/auth-client';
 import { companyAccessFromProfile } from '@/lib/ticker-access';
-import { buildDashboard } from '@/lib/mock-data';
 
 type CompanyOption = {
   ticker: string;
@@ -31,7 +30,7 @@ export function CompanySwitcher({ ticker, companyName }: { ticker: string; compa
         setCompanies(companyAccessFromProfile(profile).map(entry => ({
           ticker: entry.ticker,
           role: entry.role,
-          name: entry.name || buildDashboard(entry.ticker).company.company_name,
+          name: entry.name || entry.ticker,
         })));
       })
       .catch(() => {

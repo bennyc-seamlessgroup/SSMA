@@ -1,7 +1,7 @@
 'use client';
 
 import { InfoTooltip } from '@/components/InfoTooltip';
-import type { DashboardMarginRecord } from '@/lib/operations/dashboard-margin-store';
+import type { DashboardMarginRecord, DashboardUtilizationRecord } from '@/lib/operations/data-types';
 import { useMemo } from 'react';
 
 export type PeriodKey = '1D' | '5D' | '1M' | '3M' | '1Y' | 'YTD';
@@ -14,7 +14,7 @@ type TrendPoint = {
   utilization: number | null;
 };
 
-type ManualKpiKey = 'initialMargin' | 'maintenanceMargin' | 'averageDurationDays';
+type ManualKpiKey = 'initialMargin' | 'maintenanceMargin' | 'averageDurationDays' | 'utilization';
 type TrendKpiKey = Exclude<keyof TrendPoint, 'date'>;
 
 type KpiConfig = {
@@ -130,16 +130,25 @@ function targetDate(latest: Date, period: PeriodKey) {
   return target;
 }
 
-function comparisonPoint(data: TrendPoint[], period: PeriodKey) {
-  const latest = data[data.length - 1];
+function recordsWithMetric<T extends { date: string }, K extends keyof T>(records: T[], key: K) {
+  return records.filter(record => toNumber(record[key]) !== undefined);
+}
+
+function latestMetricRecord<T extends { date: string }, K extends keyof T>(records: T[], key: K) {
+  return recordsWithMetric(records, key).at(-1) ?? null;
+}
+
+function comparisonMetricRecord<T extends { date: string }, K extends keyof T>(records: T[], key: K, period: PeriodKey) {
+  const populated = recordsWithMetric(records, key);
+  const latest = populated[populated.length - 1];
   if (!latest) return null;
   const target = targetDate(parseDate(latest.date), period);
 
   if (period === 'YTD') {
-    return data.find(point => parseDate(point.date) >= target) ?? data[0] ?? null;
+    return populated.find(record => parseDate(record.date) >= target && record.date !== latest.date) ?? null;
   }
 
-  return [...data].reverse().find(point => parseDate(point.date) <= target) ?? data[0] ?? null;
+  return [...populated].reverse().find(record => record.date !== latest.date && parseDate(record.date) <= target) ?? null;
 }
 
 function toNumber(value: unknown) {
@@ -148,25 +157,8 @@ function toNumber(value: unknown) {
   return Number.isFinite(parsed) ? parsed : undefined;
 }
 
-function latestMarginRecord(records: DashboardMarginRecord[]) {
-  return [...records].sort((a, b) => b.date.localeCompare(a.date))[0] ?? null;
-}
-
-function comparisonMarginRecord(records: DashboardMarginRecord[], period: PeriodKey) {
-  const sorted = [...records].filter(record => record.date).sort((a, b) => a.date.localeCompare(b.date));
-  const latest = sorted[sorted.length - 1];
-  if (!latest) return null;
-  const target = targetDate(parseDate(latest.date), period);
-
-  if (period === 'YTD') {
-    return sorted.find(record => parseDate(record.date) >= target && record.date !== latest.date) ?? null;
-  }
-
-  return [...sorted].reverse().find(record => record.date !== latest.date && parseDate(record.date) <= target) ?? null;
-}
-
 function isManualKpiKey(key: KpiConfig['key']): key is ManualKpiKey {
-  return key === 'initialMargin' || key === 'maintenanceMargin' || key === 'averageDurationDays';
+  return key === 'initialMargin' || key === 'maintenanceMargin' || key === 'averageDurationDays' || key === 'utilization';
 }
 
 function sparklinePath(values: number[], width: number, height: number, pad = 5) {
@@ -204,13 +196,20 @@ function Sparkline({ values, tone }: { values: number[]; tone: KpiConfig['chartT
   );
 }
 
-export function DashboardV2Kpis({ data, period, marginRecords }: { data: TrendPoint[]; period: PeriodKey; marginRecords: DashboardMarginRecord[] }) {
+export function DashboardV2Kpis({
+  data,
+  period,
+  utilizationRecords,
+  marginRecords,
+}: {
+  data: TrendPoint[];
+  period: PeriodKey;
+  utilizationRecords: DashboardUtilizationRecord[];
+  marginRecords: DashboardMarginRecord[];
+}) {
   const cleanData = useMemo(() => data.filter(point => point?.date).sort((a, b) => a.date.localeCompare(b.date)), [data]);
+  const cleanUtilizationRecords = useMemo(() => [...utilizationRecords].filter(record => record.date).sort((a, b) => a.date.localeCompare(b.date)), [utilizationRecords]);
   const cleanMarginRecords = useMemo(() => [...marginRecords].filter(record => record.date).sort((a, b) => a.date.localeCompare(b.date)), [marginRecords]);
-  const latestMargin = useMemo(() => latestMarginRecord(marginRecords), [marginRecords]);
-  const compareMargin = useMemo(() => comparisonMarginRecord(marginRecords, period), [marginRecords, period]);
-  const latest = cleanData[cleanData.length - 1];
-  const compare = comparisonPoint(cleanData, period);
 
   return (
     <section className="dashboard-v2-kpi-block" aria-label="Borrow market KPIs">
@@ -219,15 +218,26 @@ export function DashboardV2Kpis({ data, period, marginRecords }: { data: TrendPo
           const isManualInput = isManualKpiKey(item.key);
           let currentValue: number | undefined;
           let compareValue: number | undefined;
-          if (isManualKpiKey(item.key)) {
+          if (item.key === 'utilization') {
+            const latestUtilization = latestMetricRecord(cleanUtilizationRecords, 'utilization');
+            const compareUtilization = comparisonMetricRecord(cleanUtilizationRecords, 'utilization', period);
+            currentValue = toNumber(latestUtilization?.utilization);
+            compareValue = toNumber(compareUtilization?.utilization);
+          } else if (isManualKpiKey(item.key)) {
+            const latestMargin = latestMetricRecord(cleanMarginRecords, item.key);
+            const compareMargin = comparisonMetricRecord(cleanMarginRecords, item.key, period);
             currentValue = toNumber(latestMargin?.[item.key]);
             compareValue = toNumber(compareMargin?.[item.key]);
           } else {
+            const latest = latestMetricRecord(cleanData, item.key);
+            const compare = comparisonMetricRecord(cleanData, item.key, period);
             currentValue = toNumber(latest?.[item.key]);
             compareValue = toNumber(compare?.[item.key]);
           }
           let chartValues: number[];
-          if (isManualKpiKey(item.key)) {
+          if (item.key === 'utilization') {
+            chartValues = cleanUtilizationRecords.map(record => toNumber(record.utilization)).filter((value): value is number => value !== undefined);
+          } else if (isManualKpiKey(item.key)) {
             const key = item.key;
             chartValues = cleanMarginRecords.map(record => toNumber(record[key])).filter((value): value is number => value !== undefined);
           } else {

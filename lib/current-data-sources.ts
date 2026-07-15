@@ -1,6 +1,5 @@
 import { getImportDataRuntimeConfig, getImportFileStatus } from '@/lib/import-data';
 import { getPageDataSources } from '@/lib/page-data-sources';
-import { listReportArchive } from '@/lib/report-archive';
 import { getPublicSocialPrefixes, publicSocialPrefixVersion } from '@/lib/social-s3-data';
 import { normalizeTicker, stocktwitsFile } from '@/lib/ticker-data';
 
@@ -26,41 +25,32 @@ const currentPageLabels: Record<string, string> = {
   reports: 'Report Archive',
 };
 
-function connectorOwner(path: string) {
-  if (/margin_inputs/i.test(path)) return 'Operations Portal';
-  if (/v2_user_inputs/i.test(path)) return 'Authenticated User Input API';
-  if (/news_filings/i.test(path)) return 'SEC Filings API';
-  if (/report_data\/ai_analysis/i.test(path)) return 'AI Analysis Pipeline';
-  if (/dashboard_v2_events/i.test(path)) return 'Event Consolidation Pipeline';
-  return 'Data Sync Pipeline';
-}
-
 export async function getCurrentDataSourceRows(rawTicker: string): Promise<CurrentDataSourceRow[]> {
   const ticker = normalizeTicker(rawTicker);
   const runtime = getImportDataRuntimeConfig();
   const sources = getPageDataSources(ticker);
   const rows: CurrentDataSourceRow[] = [];
+  const apiRows = [
+    ['Dashboard', '/market-data/current + /market-data/history'],
+    ['Ownership', '/market-data/current?category=ownership-current + /market-data/history?category=ownership-history'],
+    ['Internal Float', '/market-data/current?category=internal-float-current + /manual-input/internal-float-inputs'],
+    ['Short Interest', '/market-data/current?category=market-current + /market-data/history'],
+    ['Lending Pressure', '/market-data/current?category=market-current + /market-data/history?category=market-history'],
+    ['SEC Filings', '/manual-input/sec-filings'],
+  ];
+  rows.push(...apiRows.map(([page, endpoint]) => ({
+    page,
+    connection: 'Authenticated REST API',
+    jsonSource: endpoint,
+    owner: 'Centralized Data API',
+    lastUpdated: null,
+    status: 'Ready' as const,
+    recordCount: null,
+  })));
 
   for (const [slug, pageLabel] of Object.entries(currentPageLabels)) {
     const source = sources[slug];
     if (!source) continue;
-
-    if (source.type === 'import-files') {
-      const statuses = await Promise.all(source.files.map(file => getImportFileStatus(file).catch(() => null)));
-      source.files.forEach((file, index) => {
-        const status = statuses[index];
-        rows.push({
-          page: pageLabel,
-          connection: runtime.source === 's3' ? 'Amazon S3 JSON' : 'Local JSON',
-          jsonSource: file,
-          owner: connectorOwner(file),
-          lastUpdated: status?.updatedAt ?? null,
-          status: status ? (status.exists ? 'Ready' : 'Missing') : 'Unavailable',
-          recordCount: null,
-        });
-      });
-      continue;
-    }
 
     if (source.type === 'social-data') {
       const prefixes = getPublicSocialPrefixes(ticker);
@@ -101,16 +91,6 @@ export async function getCurrentDataSourceRows(rawTicker: string): Promise<Curre
       continue;
     }
 
-    const reports = await listReportArchive(ticker).catch(() => null);
-    rows.push({
-      page: pageLabel,
-      connection: 'Public S3 Prefix',
-      jsonSource: `report_data/*/${ticker}_report_data.json`,
-      owner: 'Report Generation Pipeline',
-      lastUpdated: reports?.[0]?.generatedAt ?? null,
-      status: reports ? 'Ready' : 'Unavailable',
-      recordCount: reports?.length ?? null,
-    });
   }
 
   return rows;

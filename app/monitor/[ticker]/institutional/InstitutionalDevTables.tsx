@@ -17,33 +17,25 @@ type InstitutionalDevTablesProps = {
 };
 
 const securityColumns = [
-  'name',
+  'holderName',
   'formType',
-  'formTypeShort',
   'fileDate',
   'effectiveDate',
-  'ownershipPercent',
-  'ownershipPercentChange',
   'shares',
-  'sharesChange',
-  'sharesPercentChange',
+  'percentChange',
   'value',
-  'valueChange',
-  'valuePercentChange',
-  'url',
+  'percentValueChange',
+  'sourceType',
 ];
 
 const activistColumns = [
-  'name',
+  'holderName',
   'formType',
   'fileDate',
   'effectiveDate',
-  'ownershipPercent',
-  'ownershipPercentChange',
   'shares',
-  'sharesChange',
-  'sharesPercentChange',
-  'url',
+  'percentChange',
+  'sourceType',
 ];
 
 function formatValue(value: unknown) {
@@ -91,7 +83,7 @@ export function InstitutionalDevTables({
       id: 'overview',
       title: 'Overview',
       file: overviewFile,
-      sourcePlatform: 'Backend Derived',
+      sourcePlatform: 'Centralized Data API',
       recordCount: overview ? 1 : 0,
       status: 'ready',
     },
@@ -99,7 +91,7 @@ export function InstitutionalDevTables({
       id: 'ownership-structure',
       title: 'Ownership Structure',
       file: overviewFile,
-      sourcePlatform: 'Backend Derived',
+      sourcePlatform: 'Centralized Data API',
       recordCount: ownershipStructure.length,
       status: 'ready',
     },
@@ -107,7 +99,7 @@ export function InstitutionalDevTables({
       id: 'insider-bars',
       title: 'Insider Bars',
       file: overviewFile,
-      sourcePlatform: 'Backend Derived',
+      sourcePlatform: 'Centralized Data API',
       recordCount: insiderBars.length,
       status: 'ready',
     },
@@ -115,7 +107,7 @@ export function InstitutionalDevTables({
       id: 'institution-bars',
       title: 'Institution Bars',
       file: overviewFile,
-      sourcePlatform: 'Backend Derived',
+      sourcePlatform: 'Centralized Data API',
       recordCount: institutionBars.length,
       status: 'ready',
     },
@@ -123,7 +115,7 @@ export function InstitutionalDevTables({
       id: 'public-float-breakdown',
       title: 'Public Float',
       file: overviewFile,
-      sourcePlatform: 'Backend Derived',
+      sourcePlatform: 'Centralized Data API',
       recordCount: publicFloatBreakdown.length,
       status: 'ready',
     },
@@ -131,7 +123,7 @@ export function InstitutionalDevTables({
       id: 'security-ownership',
       title: 'Security Ownership History',
       file: securityFile,
-      sourcePlatform: 'Fintel Premium',
+      sourcePlatform: 'Centralized Data API',
       recordCount: securityRows.length,
       status: 'ready',
     },
@@ -139,7 +131,7 @@ export function InstitutionalDevTables({
       id: 'activist-filings',
       title: 'Activist Filings',
       file: activistFile,
-      sourcePlatform: 'Fintel Premium',
+      sourcePlatform: 'Centralized Data API',
       recordCount: activistRows.length,
       status: 'ready',
     },
@@ -150,8 +142,8 @@ export function InstitutionalDevTables({
       <div className="terminal-section__head">
         <div>
           <span>Development Data</span>
-          <h2>Institutional Ownership Import Tables</h2>
-          <p className="section-subtitle">Backend-derived chart fields plus raw historical ownership and activist filing records used by this page.</p>
+          <h2>Institutional Ownership API Tables</h2>
+          <p className="section-subtitle">Current and historical records returned by the centralized APIs. No local or S3 JSON fallback is used.</p>
           <span className="import-file-tag">{overviewFile}</span>
           <span className="import-file-tag">{securityFile}</span>
           <span className="import-file-tag">{activistFile}</span>

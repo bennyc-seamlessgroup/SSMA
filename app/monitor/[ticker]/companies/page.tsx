@@ -5,7 +5,6 @@ import { useEffect, useMemo, useState } from 'react';
 import { useParams } from 'next/navigation';
 import { authenticatedFetch, getAuthenticatedProfile } from '@/lib/auth-client';
 import { companyAccessFromProfile } from '@/lib/ticker-access';
-import { buildDashboard } from '@/lib/mock-data';
 
 type TickerStatus = {
   ticker: string;
@@ -42,11 +41,10 @@ export default function CompaniesPage() {
   }, [ticker]);
 
   const accountCompanies = useMemo(() => access.map(entry => {
-    const company = buildDashboard(entry.ticker).company;
     return {
-      ticker: company.ticker,
-      name: entry.name || company.company_name,
-      exchange: company.exchange,
+      ticker: entry.ticker,
+      name: entry.name || entry.ticker,
+      exchange: '',
       role: entry.role,
       status: tickerStatuses[entry.ticker]?.status ?? 'UNKNOWN',
       effectiveDate: tickerStatuses[entry.ticker]?.effectiveDate ?? null,

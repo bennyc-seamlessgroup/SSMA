@@ -2,8 +2,7 @@ import Link from 'next/link';
 import { OperationsUserPortalLink } from '@/components/OperationsUserPortalLink';
 
 const navItems = [
-  ['Dashboard', '/operations/dashboard'],
-  ['Market Data (New)', '/operations/market-data'],
+  ['Market Data', '/operations/market-data'],
   ['SEC Filing Entry', '/operations/sec-filings'],
   ['Notification Hotkeys', '/operations/hotkeys'],
   ['Narrative Social Upload', '/operations/narrative-social'],
@@ -14,7 +13,7 @@ export function OperationsShell({ children }: { children: React.ReactNode }) {
   return (
     <div className="ops-shell">
       <aside className="ops-sidebar">
-        <Link href="/operations/sec-filings" className="ops-brand">
+        <Link href="/operations/market-data" className="ops-brand">
           <span><img src="/ci_logo01.png" alt="" /></span>
           <div>
             <strong>Operations Portal</strong>

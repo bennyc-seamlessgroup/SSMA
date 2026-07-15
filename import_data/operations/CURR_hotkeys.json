@@ -1,0 +1,22 @@
+{
+  "source": "operations_hotkeys_input",
+  "schemaVersion": 1,
+  "ticker": "CURR",
+  "updatedAt": "2026-06-12T23:59:00Z",
+  "hotkeys": [
+    {
+      "ticker": "CURR",
+      "kwatchHotkey": "Reddit_Currenc_Group",
+      "platform": "Reddit",
+      "createUser": "operations",
+      "createDatetime": "2026-06-12T23:59:00Z"
+    },
+    {
+      "ticker": "CURR",
+      "kwatchHotkey": "Stocktwits_Currenc_Group",
+      "platform": "Stocktwits",
+      "createUser": "operations",
+      "createDatetime": "2026-06-12T23:59:00Z"
+    }
+  ]
+}

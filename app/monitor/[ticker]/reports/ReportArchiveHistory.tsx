@@ -115,7 +115,7 @@ export function ReportArchiveHistory({
                     >
                       <span>
                         <strong>{report.title}</strong>
-                        <small>{formatDate(report.generatedAt)} · {report.reportTime} · source JSON</small>
+                        <small>{formatDate(report.generatedAt)} · {report.reportTime}</small>
                       </span>
                       <div className="report-history-row__actions">
                         <a href={`/api/reports/render/${ticker}/${report.reportDate}`} target="_blank" rel="noreferrer">View PDF</a>

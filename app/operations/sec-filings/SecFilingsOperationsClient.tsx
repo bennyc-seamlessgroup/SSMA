@@ -1,7 +1,6 @@
 'use client';
 
-import { buildDashboard } from '@/lib/mock-data';
-import { operationsFetch } from '@/lib/operations/api-client';
+import { authenticatedFetch } from '@/lib/auth-client';
 import { getOperationsTicker, setOperationsTicker } from '@/lib/operations/ticker-client';
 import { useEffect, useMemo, useState } from 'react';
 
@@ -35,7 +34,6 @@ type SecFilingLogEntry = {
 
 type SecFilingsResponse = {
   storage?: 'api' | 's3' | 'local';
-  s3Key?: string;
   updatedAt: string;
   records: SecFilingRecord[];
   log: SecFilingLogEntry[];
@@ -77,6 +75,20 @@ function formatDateTime(value: string) {
 function normalizeApiEnvelope(payload: unknown, ticker: string): SecFilingsResponse {
   const envelope = payload as Partial<SecFilingsResponse> & {
     data?: Array<{
+      id?: string;
+      ticker?: string;
+      companyName?: string;
+      formDescription?: string;
+      filingDate?: string;
+      reportingDate?: string;
+      act?: string;
+      filmNumber?: string;
+      fileNumber?: string;
+      accessionNumber?: string;
+      filingsUrl?: string;
+      notes?: string;
+      createdAt?: string;
+      createdBy?: string;
       title?: string;
       formType?: string;
       url?: string;
@@ -87,31 +99,43 @@ function normalizeApiEnvelope(payload: unknown, ticker: string): SecFilingsRespo
     }>;
   };
 
+  const arrayPayload = Array.isArray(payload) ? payload as Array<Partial<SecFilingRecord>> : null;
   const legacyRows = Array.isArray(envelope.data) ? envelope.data : [];
   const records = Array.isArray(envelope.records)
     ? envelope.records
-    : legacyRows.map((row, index) => ({
-      id: `${row.formType ?? 'filing'}-${row.publishDate ?? index}-${index}`,
-      ticker,
-      companyName: buildDashboard(ticker).company.company_name,
-      formType: row.formType ?? '',
-      formDescription: row.title ?? row.excerpt ?? '',
-      filingDate: row.publishDate ?? '',
-      reportingDate: '',
-      act: '',
-      filmNumber: '',
-      fileNumber: '',
-      accessionNumber: '',
-      filingsUrl: row.url ?? '',
-      notes: row.excerpt ?? '',
-      createdAt: row.publishAt ?? '',
-      createdBy: row.sourcePlatform ?? 'import-data',
-    }));
+    : (arrayPayload ?? legacyRows).length
+      ? (arrayPayload ?? legacyRows).map((rawRow, index) => {
+        const row = rawRow as Partial<SecFilingRecord> & {
+          title?: string;
+          excerpt?: string;
+          publishDate?: string;
+          publishAt?: string;
+          sourcePlatform?: string;
+          url?: string;
+        };
+        return {
+        id: String(row.id ?? row.accessionNumber ?? `filing-${index}`),
+        ticker,
+        companyName: row.companyName ?? ticker,
+        formType: row.formType ?? '',
+        formDescription: row.formDescription ?? row.title ?? row.excerpt ?? '',
+        filingDate: row.filingDate ?? row.publishDate ?? '',
+        reportingDate: row.reportingDate ?? '',
+        act: row.act ?? '',
+        filmNumber: row.filmNumber ?? '',
+        fileNumber: row.fileNumber ?? '',
+        accessionNumber: row.accessionNumber ?? '',
+        filingsUrl: row.filingsUrl ?? row.url ?? '',
+        notes: row.notes ?? row.excerpt ?? '',
+        createdAt: row.createdAt ?? row.publishAt ?? '',
+        createdBy: row.createdBy ?? row.sourcePlatform ?? '',
+        } as SecFilingRecord;
+      })
+      : [];
 
   return {
     storage: 'api',
-    s3Key: envelope.s3Key ?? `news_filings/${ticker}_sec_filings.json`,
-    updatedAt: envelope.updatedAt ?? new Date().toISOString(),
+    updatedAt: envelope.updatedAt ?? String((payload as { generatedAt?: unknown } | null)?.generatedAt ?? new Date().toISOString()),
     records,
     log: Array.isArray(envelope.log) ? envelope.log : [],
   };
@@ -134,14 +158,14 @@ export function SecFilingsOperationsClient() {
     const normalizedTicker = ticker.trim().toUpperCase() || 'CURR';
     setStatus('loading');
     try {
-      const payload = await operationsFetch(`/sec-filings?ticker=${encodeURIComponent(normalizedTicker)}`, { cache: 'no-store' });
+      const payload = await authenticatedFetch(`/manual-input/sec-filings?ticker=${encodeURIComponent(normalizedTicker)}`, { cache: 'no-store' });
       setSelectedTicker(normalizedTicker);
       setOperationsTicker(normalizedTicker);
       setTickerDraft(normalizedTicker);
       setForm({
         ...initialForm,
         ticker: normalizedTicker,
-        companyName: buildDashboard(normalizedTicker).company.company_name,
+        companyName: normalizedTicker,
       });
       setData(normalizeApiEnvelope(payload, normalizedTicker));
       setStatus('idle');
@@ -184,14 +208,13 @@ export function SecFilingsOperationsClient() {
     setMessage('');
 
     try {
-      const payload = await operationsFetch(`/sec-filings?ticker=${encodeURIComponent(selectedTicker)}`, {
-        method: 'PUT',
-        body: JSON.stringify([{ ...form, ticker: selectedTicker }]),
+      await authenticatedFetch(`/manual-input/sec-filings?ticker=${encodeURIComponent(selectedTicker)}`, {
+        method: 'POST',
+        body: JSON.stringify({ ...form, ticker: selectedTicker }),
       });
-      const nextData = normalizeApiEnvelope(payload, selectedTicker);
-      setData(nextData);
+      await loadRecords(selectedTicker);
       setStatus('saved');
-      setMessage(`Record saved to ${selectedTicker}_sec_filings.json through the backend API.`);
+      setMessage('Record saved through the backend API.');
       setForm(current => ({
         ...initialForm,
         ticker: selectedTicker,
@@ -217,11 +240,9 @@ export function SecFilingsOperationsClient() {
     setMessage('');
 
     try {
-      const query = record.accessionNumber
-        ? `ticker=${encodeURIComponent(selectedTicker)}&accessionNumber=${encodeURIComponent(record.accessionNumber)}`
-        : `ticker=${encodeURIComponent(selectedTicker)}&id=${encodeURIComponent(record.id)}`;
-      const payload = await operationsFetch(`/sec-filings?${query}`, { method: 'DELETE' });
-      setData(normalizeApiEnvelope(payload, selectedTicker));
+      const query = `ticker=${encodeURIComponent(selectedTicker)}&id=${encodeURIComponent(record.id || record.accessionNumber)}`;
+      await authenticatedFetch(`/manual-input/sec-filings?${query}`, { method: 'DELETE' });
+      await loadRecords(selectedTicker);
       setStatus('saved');
       setMessage(`Deleted ${record.formType} · ${key}.`);
     } catch (error) {
@@ -283,7 +304,7 @@ export function SecFilingsOperationsClient() {
         <button type="button" onClick={() => loadRecords(tickerDraft)} disabled={status === 'loading' || status === 'saving'}>
           {status === 'loading' ? 'Loading...' : 'Load Workspace'}
         </button>
-        <small>Target: news_filings/{selectedTicker}_sec_filings.json</small>
+        <small>API target: /manual-input/sec-filings?ticker={selectedTicker}</small>
       </div>
       <div className="ops-sec-grid">
       <section className="ops-panel ops-sec-form-panel">
@@ -342,13 +363,13 @@ export function SecFilingsOperationsClient() {
         <section className="ops-panel">
           <div className="ops-panel-head">
             <div>
-              <span className="ops-eyebrow">Storage</span>
-              <h2>JSON Target</h2>
+              <span className="ops-eyebrow">API Source</span>
+              <h2>Backend Endpoint</h2>
             </div>
           </div>
           <div className="ops-storage-box">
-            <span>{data?.storage ?? 'loading'}</span>
-            <strong>{data?.s3Key ?? `news_filings/${selectedTicker}_sec_filings.json`}</strong>
+            <span>{data?.storage ?? 'api'}</span>
+              <strong>/manual-input/sec-filings?ticker={selectedTicker}</strong>
             <small>{data?.updatedAt ? `Updated ${formatDateTime(data.updatedAt)}` : 'Waiting for first save'}</small>
           </div>
         </section>

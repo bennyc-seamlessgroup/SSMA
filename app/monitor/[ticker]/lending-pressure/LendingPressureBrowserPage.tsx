@@ -1,29 +1,44 @@
 'use client';
 
-import { ImportDataPreviewPage } from '@/components/ImportDataPreviewPage';
+import { ImportDataTable } from '@/components/ImportDataTable';
 import { InfoTooltip } from '@/components/InfoTooltip';
 import { PortalPageLoading } from '@/components/PortalPageLoading';
 import { PageDisclaimerNotice } from '@/components/PageDisclaimerNotice';
-import { usePublicImportFiles } from '@/components/usePublicImportFiles';
-import type { LendingWatchItemSeverity } from '@/lib/lending-pressure/watchItemRules';
-import type { DashboardMarginFile, DashboardMarginRecord } from '@/lib/operations/dashboard-margin-store';
-import { aiAnalysisFile, dashboardMarginFile, lendingPressureFile, normalizeTicker } from '@/lib/ticker-data';
-import type { ReactNode } from 'react';
+import { authenticatedFetch } from '@/lib/auth-client';
+import { normalizeTicker } from '@/lib/ticker-data';
+import { useEffect, useMemo, useState, type ReactNode } from 'react';
 
 type Row = Record<string, unknown>;
-type ImportEnvelope<T> = {
-  importedAt?: string;
-  sourcePlatform?: string;
-  data?: T;
+type ApiDebugRow = {
+  endpoint: string;
+  source: string;
+  status: string;
+  recordCount: string;
+  generatedAt: string;
+  payload: string;
 };
 
-type AiAnalysis = {
-  created_at_utc?: string;
-  lending_pressure_analysis?: string;
+type MarketHistoryRecord = Row & {
+  tradeDate?: string;
+  borrowFeePercent?: number;
+  availableShares?: number;
+  availableSharesIbkr?: number;
+  availableSharesFutu?: number;
+  utilizationPercent?: number;
+  averageDurationDays?: number;
+};
+
+type DashboardMarginRecord = {
+  date: string;
+  averageDurationDays?: number;
 };
 
 function rows(value: unknown): Row[] {
   return Array.isArray(value) ? value.filter(item => item && typeof item === 'object') as Row[] : [];
+}
+
+function asArray<T>(value: unknown): T[] {
+  return Array.isArray(value) ? value as T[] : [];
 }
 
 function record(value: unknown): Row {
@@ -42,6 +57,123 @@ function numeric(value: unknown) {
 function optionalNumeric(value: unknown) {
   if (value === null || value === undefined || value === '') return null;
   return numeric(value);
+}
+
+function getPath(input: unknown, path: string[]) {
+  let cursor = input;
+  for (const key of path) {
+    if (!cursor || typeof cursor !== 'object' || Array.isArray(cursor)) return undefined;
+    cursor = (cursor as Row)[key];
+  }
+  return cursor;
+}
+
+function firstNumeric(...values: unknown[]) {
+  for (const value of values) {
+    const parsed = optionalNumeric(value);
+    if (parsed !== null) return parsed;
+  }
+  return null;
+}
+
+function payloadRecordCount(value: unknown) {
+  if (Array.isArray(value)) return value.length;
+  if (value && typeof value === 'object' && Array.isArray((value as { records?: unknown }).records)) return (value as { records: unknown[] }).records.length;
+  if (value && typeof value === 'object' && Array.isArray((value as { data?: { records?: unknown } }).data?.records)) return (value as { data: { records: unknown[] } }).data.records.length;
+  if (value === null || value === undefined) return 0;
+  return 1;
+}
+
+function payloadGeneratedAt(value: unknown) {
+  if (value && typeof value === 'object' && !Array.isArray(value)) {
+    const row = value as Row;
+    return String(row.generatedAt ?? row.updatedAt ?? row.createdAt ?? '');
+  }
+  if (Array.isArray(value)) {
+    return value
+      .filter(item => item && typeof item === 'object')
+      .map(item => String((item as Row).generatedAt ?? (item as Row).updatedAt ?? (item as Row).createdAt ?? ''))
+      .filter(Boolean)
+      .sort()
+      .at(-1) ?? '';
+  }
+  return '';
+}
+
+function payloadPreview(value: unknown) {
+  if (value === null || value === undefined) return 'No data';
+  try {
+    return JSON.stringify(value).slice(0, 240);
+  } catch {
+    return String(value).slice(0, 240);
+  }
+}
+
+function historyRecords(payload: unknown): MarketHistoryRecord[] {
+  if (Array.isArray(payload)) return payload as MarketHistoryRecord[];
+  if (payload && typeof payload === 'object' && Array.isArray((payload as { records?: unknown }).records)) return (payload as { records: MarketHistoryRecord[] }).records;
+  if (payload && typeof payload === 'object' && Array.isArray((payload as { data?: { records?: unknown } }).data?.records)) return (payload as { data: { records: MarketHistoryRecord[] } }).data.records;
+  return [];
+}
+
+function buildLendingPayload(currentPayload: unknown, historyPayload: unknown) {
+  const history = historyRecords(historyPayload);
+  const sortedHistory = [...history].sort((a, b) => String(a.tradeDate ?? '').localeCompare(String(b.tradeDate ?? '')));
+  const latestHistory = sortedHistory.at(-1) ?? {};
+  const currentBorrowFee = firstNumeric(
+    getPath(currentPayload, ['borrowFee', 'percent']),
+    getPath(currentPayload, ['borrowFee', 'borrowFeePercent']),
+    getPath(currentPayload, ['borrowFee', 'current']),
+    getPath(currentPayload, ['marketCurrent', 'borrowFeePercent']),
+    (currentPayload as Row | null)?.borrowFeePercent,
+    latestHistory.borrowFeePercent,
+  );
+  const currentAvailableShares = firstNumeric(
+    getPath(currentPayload, ['availableShares', 'value']),
+    getPath(currentPayload, ['availableShares', 'availableShares']),
+    getPath(currentPayload, ['availableShares', 'shortableShares']),
+    getPath(currentPayload, ['shortableShares', 'current']),
+    (currentPayload as Row | null)?.availableShares,
+    latestHistory.availableShares,
+    latestHistory.availableSharesIbkr,
+    latestHistory.availableSharesFutu,
+  );
+  const currentUtilization = firstNumeric(
+    getPath(currentPayload, ['utilization', 'percent']),
+    getPath(currentPayload, ['utilization', 'utilizationPercent']),
+    getPath(currentPayload, ['utilization', 'current']),
+    (currentPayload as Row | null)?.utilizationPercent,
+    latestHistory.utilizationPercent,
+  );
+
+  return {
+    lendingData: {
+      current: {
+        costToBorrowAll: currentBorrowFee,
+        shortAvailabilityShares: currentAvailableShares,
+        shortAvailabilityPct: currentUtilization,
+      },
+      daily: sortedHistory.map(row => ({
+        date: row.tradeDate,
+        availability: {
+          shortAvailabilityShares: firstNumeric(row.availableShares, row.availableSharesIbkr, row.availableSharesFutu),
+          shortAvailabilityPct: row.utilizationPercent,
+        },
+        borrowFeeAll: {
+          costToBorrowAll: row.borrowFeePercent,
+        },
+      })),
+      derived: {
+        lendingPressurePage: {
+          summary: record(getPath(currentPayload, ['lendingPressure']) ?? getPath(currentPayload, ['scores', 'lendingPressure']) ?? {}),
+          cards: {},
+        },
+      },
+    },
+    marginRecords: sortedHistory
+      .filter(row => row.tradeDate)
+      .map(row => ({ date: String(row.tradeDate), averageDurationDays: optionalNumeric(row.averageDurationDays) ?? undefined })),
+  };
 }
 
 function percentageChange(current: number | null, previous: number | null) {
@@ -197,36 +329,80 @@ function lendingScoreSummary(score: number, level: string) {
   return `${level} lending pressure. Current borrow-market conditions remain relatively contained.`;
 }
 
-type LendingSignal = {
-  label: string;
-  status: string;
-  severity: LendingWatchItemSeverity;
-  trend?: 'up' | 'down';
-};
-
 export function LendingPressureBrowserPage({ ticker }: { ticker: string }) {
   const normalizedTicker = normalizeTicker(ticker);
-  const dataFile = lendingPressureFile(normalizedTicker);
-  const analysisFile = aiAnalysisFile(normalizedTicker);
-  const marginFile = dashboardMarginFile(normalizedTicker);
-  const contentFile = 'content/page_content.json';
-  const { data, error, loading } = usePublicImportFiles([dataFile, analysisFile, marginFile, contentFile]);
+  const [currentPayload, setCurrentPayload] = useState<unknown>(null);
+  const [historyPayload, setHistoryPayload] = useState<unknown>(null);
+  const [apiRows, setApiRows] = useState<ApiDebugRow[]>([]);
+  const [status, setStatus] = useState<'loading' | 'idle' | 'error'>('loading');
+  const [error, setError] = useState('');
 
-  if (loading && !data) return <PortalPageLoading variant="lendingPressure" />;
-  if (error || !data) {
+  useEffect(() => {
+    let cancelled = false;
+    const currentEndpoint = `/market-data/current?ticker=${encodeURIComponent(normalizedTicker)}&category=market-current`;
+    const historyEndpoint = `/market-data/history?ticker=${encodeURIComponent(normalizedTicker)}&category=market-history`;
+    async function loadEndpoint(endpoint: string) {
+      try {
+        const payload = await authenticatedFetch(endpoint);
+        return {
+          payload,
+          debug: {
+            endpoint,
+            source: 'API Gateway',
+            status: 'ok',
+            recordCount: String(payloadRecordCount(payload)),
+            generatedAt: payloadGeneratedAt(payload) || 'N/A',
+            payload: payloadPreview(payload),
+          },
+        };
+      } catch (nextError) {
+        return {
+          payload: null,
+          debug: {
+            endpoint,
+            source: 'API Gateway',
+            status: nextError instanceof Error ? `error: ${nextError.message}` : 'error',
+            recordCount: '0',
+            generatedAt: 'N/A',
+            payload: 'No API payload returned.',
+          },
+        };
+      }
+    }
+
+    Promise.all([loadEndpoint(currentEndpoint), loadEndpoint(historyEndpoint)])
+      .then(([currentResult, historyResult]) => {
+        if (cancelled) return;
+        setCurrentPayload(currentResult.payload);
+        setHistoryPayload(historyResult.payload);
+        setApiRows([currentResult.debug, historyResult.debug]);
+        if (!currentResult.payload && !historyResult.payload) {
+          setStatus('error');
+          setError('Unable to load lending pressure API data.');
+          return;
+        }
+        setStatus('idle');
+      })
+      .catch(nextError => {
+        if (cancelled) return;
+        setStatus('error');
+        setError(nextError instanceof Error ? nextError.message : 'Unable to load lending pressure API data.');
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [normalizedTicker]);
+
+  if (status === 'loading') return <PortalPageLoading variant="lendingPressure" />;
+  if (status === 'error' && !currentPayload && !historyPayload) {
     return <div className="page"><section className="panel"><h2>Lending pressure data unavailable</h2><p>{error}</p></section></div>;
   }
 
-  const lendingEnvelope = (data[dataFile] ?? {}) as ImportEnvelope<Row>;
-  const contentEnvelope = (data[contentFile] ?? {}) as ImportEnvelope<Record<string, Row>>;
-  const pageContent = record((contentEnvelope.data ?? {}).lendingPressure);
-  const aiAnalysis = (data[analysisFile] ?? null) as AiAnalysis | null;
-  const marginPayload = (data[marginFile] ?? {}) as Partial<DashboardMarginFile>;
-  const marginRecords = (Array.isArray(marginPayload.records) ? marginPayload.records : []) as DashboardMarginRecord[];
+  const { lendingData, marginRecords } = buildLendingPayload(currentPayload, historyPayload);
   const sortedMarginRecords = [...marginRecords].filter(row => row.date).sort((a, b) => b.date.localeCompare(a.date));
   const latestMarginRecord = sortedMarginRecords[0];
   const previousMarginRecord = sortedMarginRecords[1];
-  const lendingData = record(lendingEnvelope.data);
   const current = record(lendingData.current);
   const dailyRows = rows(lendingData.daily);
   const sortedDailyRows = [...dailyRows].sort((a, b) => String(b.date ?? '').localeCompare(String(a.date ?? '')));
@@ -268,50 +444,8 @@ export function LendingPressureBrowserPage({ ticker }: { ticker: string }) {
   const averageDurationDays = optionalNumeric(latestMarginRecord?.averageDurationDays);
   const previousAverageDurationDays = optionalNumeric(previousMarginRecord?.averageDurationDays);
   const averageDurationChangePercent = percentageChange(averageDurationDays, previousAverageDurationDays);
-  const protocolLockupPercent = optionalNumeric(current.protocolLockupPercent);
-  const protocolLockupChangePercent = optionalNumeric(current.protocolLockupChangePercent);
-  const lockedCollateralShares = optionalNumeric(current.lockedCollateralShares);
-  const lockedCollateralChangePercent = optionalNumeric(current.lockedCollateralChangePercent);
-  const aiSummary = text(
-    aiAnalysis?.lending_pressure_analysis,
-    text(lendingData.aiLendingAnalysis, text(pageContent.aiLendingAnalysis, lendingScoreSummary(displayPressureScore, displayLevel))),
-  ).trim();
+  const aiSummary = 'AI analysis is not available from the current API.';
   const scoreProgress = Math.min(100, Math.max(0, displayPressureScore));
-  const signals: LendingSignal[] = [
-    {
-      label: 'Utilization Pressure',
-      status: utilizationPct >= 95 ? 'Extreme' : utilizationPct >= 85 ? 'High' : utilizationPct >= 60 ? 'Moderate' : 'Low',
-      severity: utilizationPct >= 95 ? 'critical' : utilizationPct >= 85 ? 'high' : utilizationPct >= 60 ? 'medium' : 'low',
-      trend: (utilizationChangePercent ?? 0) > 0 ? 'up' : (utilizationChangePercent ?? 0) < 0 ? 'down' : undefined,
-    },
-    {
-      label: 'Borrow Fee Pressure',
-      status: borrowFee >= 75 ? 'Extreme' : borrowFee >= 30 ? 'Elevated' : 'Normal',
-      severity: borrowFee >= 75 ? 'critical' : borrowFee >= 30 ? 'high' : 'low',
-      trend: (borrowFeeChangePercent ?? 0) > 0 ? 'up' : (borrowFeeChangePercent ?? 0) < 0 ? 'down' : undefined,
-    },
-    {
-      label: 'Availability Stress',
-      status: sharesAvailable <= 100_000 ? 'Constrained' : (sharesAvailableChangePercent ?? 0) <= -30 ? 'Tightening' : 'Available',
-      severity: sharesAvailable <= 100_000 ? 'high' : (sharesAvailableChangePercent ?? 0) <= -30 ? 'medium' : 'low',
-      trend: (sharesAvailableChangePercent ?? 0) > 0 ? 'up' : (sharesAvailableChangePercent ?? 0) < 0 ? 'down' : undefined,
-    },
-    {
-      label: 'Average Duration Risk',
-      status: averageDurationDays === null ? 'No data' : averageDurationDays >= 30 ? 'Long' : 'Normal',
-      severity: averageDurationDays === null ? 'info' : averageDurationDays >= 30 ? 'medium' : 'low',
-    },
-    {
-      label: 'Protocol Lock-up Risk',
-      status: protocolLockupPercent === null ? 'No data' : protocolLockupPercent >= 20 ? 'Elevated' : 'Low',
-      severity: protocolLockupPercent === null ? 'info' : protocolLockupPercent >= 20 ? 'medium' : 'low',
-    },
-    {
-      label: 'Short Squeeze Support',
-      status: utilizationPct >= 85 && borrowFee >= 30 ? 'Partial signal' : 'Low',
-      severity: utilizationPct >= 85 && borrowFee >= 30 ? 'medium' : 'low',
-    },
-  ];
   const scoreRanges = [
     { range: '0-30', level: 'Low', description: 'Borrow-market pressure is relatively contained.', active: displayPressureScore <= 30 },
     { range: '31-60', level: 'Moderate', description: 'Conditions warrant monitoring but are not uniformly stressed.', active: displayPressureScore >= 31 && displayPressureScore <= 60 },
@@ -320,21 +454,24 @@ export function LendingPressureBrowserPage({ ticker }: { ticker: string }) {
   ];
 
   return (
-    <ImportDataPreviewPage
-      title="Lending Pressure Intelligence"
-      description={text(pageContent.pageDescription, 'Detailed borrow availability, utilization, and borrow fee data used to evaluate short seller pressure.')}
-      files={[dataFile, analysisFile, marginFile]}
-    >
+    <div className="page">
+      <div className="page__header">
+        <div>
+          <h1 className="page__title">Lending Pressure Intelligence</h1>
+          <p className="page__desc">Detailed borrow availability, utilization, and borrow fee data used to evaluate short seller pressure.</p>
+        </div>
+      </div>
+      <section className="panel">
       <section className="terminal-section lending-page-overview">
         <div className="terminal-section__head">
           <div>
             <span>Overview</span>
             <h2><InfoTitle text="Borrow-pressure view focused on whether short sellers can still find shares to borrow and whether borrowing is becoming difficult or expensive.">Lending Pressure Overview</InfoTitle></h2>
-            <p className="section-subtitle">{text(pageContent.overviewSubtitle, 'Executive view of share availability, borrowing conditions, inventory utilization, and lending pressure.')}</p>
+            <p className="section-subtitle">Executive view of share availability, borrowing conditions, inventory utilization, and lending pressure.</p>
           </div>
           <div className="terminal-section-actions">
-            {sourceChip(lendingEnvelope.sourcePlatform ?? 'Ortex')}
-            {sourceChip('Internal Lending Model')}
+            {sourceChip('Market Data API')}
+            {sourceChip('Manual Input V2 API')}
           </div>
         </div>
 
@@ -377,16 +514,6 @@ export function LendingPressureBrowserPage({ ticker }: { ticker: string }) {
 
         </div>
 
-        <div className="short-signal-strip lending-signal-strip" aria-label="Current lending-pressure signals">
-          {signals.map(signal => (
-            <div className={`short-signal-pill ${signal.severity}`} key={signal.label}>
-              <i aria-hidden="true" />
-              <span>{signal.label}</span>
-              <strong>{signal.status}{signal.trend === 'up' ? ' ↑' : signal.trend === 'down' ? ' ↓' : ''}</strong>
-            </div>
-          ))}
-        </div>
-
         <article className="terminal-card short-executive-card short-management-guide lending-management-guide short-ai-analysis-card">
           <span>AI Analysis</span>
           <AiSummary value={aiSummary || 'Data unavailable'} />
@@ -410,6 +537,17 @@ export function LendingPressureBrowserPage({ ticker }: { ticker: string }) {
         </div>
       </section>
       <PageDisclaimerNotice noticeKey="lendingPressure" disclaimerKey="securitiesLending" />
-    </ImportDataPreviewPage>
+      <section className="terminal-section import-data-dev-panel">
+        <div className="terminal-section__head">
+          <div>
+            <span>Development Data</span>
+            <h2>Lending Pressure API Table</h2>
+            <p className="section-subtitle">This page reads lending pressure inputs from Market Data APIs only. No consolidated lending-pressure JSON fallback is used.</p>
+          </div>
+        </div>
+        <ImportDataTable columns={['endpoint', 'source', 'status', 'recordCount', 'generatedAt', 'payload']} rows={apiRows} pageSize={10} />
+      </section>
+      </section>
+    </div>
   );
 }

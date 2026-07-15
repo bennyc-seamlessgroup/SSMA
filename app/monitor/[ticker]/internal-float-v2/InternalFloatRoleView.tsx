@@ -2,8 +2,8 @@
 
 import { useEffect, useState } from 'react';
 import { PortalPageLoading } from '@/components/PortalPageLoading';
-import { usePublicImportFiles } from '@/components/usePublicImportFiles';
-import { getAuthenticatedProfile } from '@/lib/auth-client';
+import { ImportDataTable } from '@/components/ImportDataTable';
+import { authenticatedFetch, getAuthenticatedProfile } from '@/lib/auth-client';
 import {
   demoInsiderSuggestions,
   demoInstitutionalOverview,
@@ -11,20 +11,33 @@ import {
   demoInternalFloatHoldings,
   demoInternalFloatUserInputs,
 } from '@/lib/internal-float-demo';
-import type { FloatAdjustments, InternalFloatV2UserInput } from '@/lib/internal-float';
-import { institutionalOverviewFile, managementHoldingsInputFile, normalizeTicker } from '@/lib/ticker-data';
+import type { FloatAdjustments, InternalFloatV2UserInput } from '@/lib/internal-float-types';
+import { normalizeTicker } from '@/lib/ticker-data';
 import { InternalFloatV2Client, type InsiderSuggestionSource, type InstitutionalOwnershipOverview } from './InternalFloatV2Client';
 import { isPublicDemoSession } from '@/lib/public-demo';
 
-type OwnershipEnvelope = {
-  data?: {
-    overview?: InstitutionalOwnershipOverview;
-    insider_bars?: InsiderSuggestionSource[];
-  };
+type OwnershipCurrent = {
+  issuedShare?: number;
+  institutionalSharesLong?: number;
+  publicFloat?: { shares?: number };
 };
 
-type ManagementHoldingsEnvelope = {
-  records?: InsiderSuggestionSource[];
+type InternalFloatCurrent = {
+  issuedShare?: number;
+  institutionalSharesLong?: number;
+  realTradableFloat?: { shares?: number; percentOfIssuedShare?: number };
+  managementStrategicHoldings?: { shares?: number; records?: Array<Record<string, unknown>> };
+  tokenizedShares?: { shares?: number; records?: Array<Record<string, unknown>> };
+  collateralizedShares?: { shares?: number; records?: Array<Record<string, unknown>> };
+  suggestedChanges?: InsiderSuggestionSource[];
+  auditLog?: InternalFloatV2UserInput['activityLog'];
+};
+
+type InternalFloatInputs = {
+  managementStrategicHoldings?: { records?: Array<Record<string, unknown>> };
+  tokenizedShares?: { records?: Array<Record<string, unknown>> };
+  collateralizedShares?: { records?: Array<Record<string, unknown>> };
+  auditLog?: InternalFloatV2UserInput['activityLog'];
 };
 
 const liveSeedAdjustments: FloatAdjustments = {
@@ -48,40 +61,84 @@ const liveSeedAdjustments: FloatAdjustments = {
 };
 
 function LiveInternalFloat({ ticker }: { ticker: string }) {
-  const ownershipFile = institutionalOverviewFile(ticker);
-  const managementFile = managementHoldingsInputFile(ticker);
-  const { data, error, loading } = usePublicImportFiles([ownershipFile, managementFile]);
+  const [payloads, setPayloads] = useState<{ ownership: OwnershipCurrent; current: InternalFloatCurrent; inputs: InternalFloatInputs } | null>(null);
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(true);
 
-  if (loading && !data) return <PortalPageLoading variant="internalFloat" />;
-  if (error || !data) {
+  useEffect(() => {
+    let cancelled = false;
+    setLoading(true);
+    Promise.all([
+      authenticatedFetch(`/market-data/current?ticker=${encodeURIComponent(ticker)}&category=ownership-current`) as Promise<OwnershipCurrent>,
+      authenticatedFetch(`/market-data/current?ticker=${encodeURIComponent(ticker)}&category=internal-float-current`) as Promise<InternalFloatCurrent>,
+      authenticatedFetch(`/manual-input/internal-float-inputs?ticker=${encodeURIComponent(ticker)}`) as Promise<InternalFloatInputs>,
+    ]).then(([ownership, current, inputs]) => {
+      if (!cancelled) setPayloads({ ownership, current, inputs });
+    }).catch(cause => {
+      if (!cancelled) setError(cause instanceof Error ? cause.message : 'Unable to load Internal Float API data.');
+    }).finally(() => {
+      if (!cancelled) setLoading(false);
+    });
+    return () => { cancelled = true; };
+  }, [ticker]);
+
+  if (loading) return <PortalPageLoading variant="internalFloat" />;
+  if (error || !payloads) {
     return <section className="panel"><h2>Internal Float data unavailable</h2><p>{error ?? 'Unable to load ownership data.'}</p></section>;
   }
 
-  const envelope = (data[ownershipFile] ?? {}) as OwnershipEnvelope;
-  const ownershipData = envelope.data ?? {};
-  const managementEnvelope = ((data[managementFile] as { data?: ManagementHoldingsEnvelope })?.data ?? data[managementFile] ?? {}) as ManagementHoldingsEnvelope;
-  const emptyInputs: InternalFloatV2UserInput = {
+  const privateRecords = payloads.inputs.managementStrategicHoldings?.records ?? [];
+  const tokenRecords = payloads.inputs.tokenizedShares?.records ?? [];
+  const collateralRecords = payloads.inputs.collateralizedShares?.records ?? [];
+  const apiInputs: InternalFloatV2UserInput = {
     userId: `workspace:${ticker}`,
     workspaceId: ticker,
     ticker,
-    privateHoldings: [],
+    privateHoldings: privateRecords.map((row, index) => ({
+      id: String(row.id ?? `holding-${index}`),
+      holderName: String(row.holderName ?? ''),
+      category: String(row.category ?? 'Other'),
+      shares: Number(row.shares ?? 0),
+      includeInDeduction: row.includeInDeduction !== false,
+      notes: String(row.notes ?? ''),
+    })),
     custodyRows: [],
-    tokenChains: [],
-    collateralChains: [],
+    tokenChains: tokenRecords.map((row, index) => ({ id: String(row.id ?? `token-${index}`), chain: String(row.chain ?? ''), shares: Number(row.shares ?? 0), provider: String(row.provider ?? '') })),
+    collateralChains: collateralRecords.map((row, index) => ({ id: String(row.id ?? `collateral-${index}`), chain: String(row.chain ?? ''), shares: Number(row.shares ?? 0), protocol: String(row.protocol ?? '') })),
+    activityLog: payloads.inputs.auditLog ?? payloads.current.auditLog ?? [],
+  };
+  const institutionalOverview: InstitutionalOwnershipOverview = {
+    shares_outstanding: payloads.current.issuedShare ?? payloads.ownership.issuedShare,
+    institutional_shares_long: payloads.current.institutionalSharesLong ?? payloads.ownership.institutionalSharesLong,
+    public_float_shares: payloads.ownership.publicFloat?.shares,
   };
 
   return (
-    <InternalFloatV2Client
-      key={`live-${ticker}`}
-      ticker={ticker}
-      initialHoldings={[]}
-      initialAdjustments={liveSeedAdjustments}
-      initialUserInputs={emptyInputs}
-      institutionalOverview={ownershipData.overview}
-      insiderSuggestionSources={(managementEnvelope.records ?? [])
-        .filter(row => row.status === 'pending' && (row.showAsSuggestion || !row.autoApply))
-        .map(row => ({ ...row, name: row.name ?? row.holderName ?? 'Unknown holder' }))}
-    />
+    <>
+      <InternalFloatV2Client
+        key={`live-${ticker}`}
+        ticker={ticker}
+        initialHoldings={[]}
+        initialAdjustments={liveSeedAdjustments}
+        initialUserInputs={apiInputs}
+        institutionalOverview={institutionalOverview}
+        insiderSuggestionSources={(payloads.current.suggestedChanges ?? [])
+          .filter(row => !row.status || row.status === 'pending')
+          .map(row => ({ ...row, name: row.name ?? row.holderName ?? 'Unknown holder' }))}
+      />
+      <section className="terminal-section import-data-dev-panel">
+        <div className="terminal-section__head"><div><span>Development Data</span><h2>Internal Float API Data</h2><p className="section-subtitle">Live API payloads only. No local or S3 JSON fallback is used.</p></div></div>
+        <ImportDataTable
+          columns={['endpoint', 'records', 'payload']}
+          rows={[
+            { endpoint: 'GET /market-data/current?category=ownership-current', records: '1', payload: JSON.stringify(payloads.ownership) },
+            { endpoint: 'GET /market-data/current?category=internal-float-current', records: '1', payload: JSON.stringify(payloads.current) },
+            { endpoint: 'GET /manual-input/internal-float-inputs', records: String(privateRecords.length + tokenRecords.length + collateralRecords.length), payload: JSON.stringify(payloads.inputs) },
+          ]}
+          pageSize={10}
+        />
+      </section>
+    </>
   );
 }
 

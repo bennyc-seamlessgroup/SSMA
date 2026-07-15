@@ -2,32 +2,6 @@ import fs from 'fs';
 import path from 'path';
 import crypto from 'crypto';
 
-export type ImportEnvelope<T = unknown> = {
-  ticker?: string;
-  asOfDate?: string;
-  importedAt?: string;
-  source?: string;
-  sourcePlatform?: string;
-  recordType?: string;
-  category?: string;
-  recordCount?: number;
-  status?: string;
-  notes?: string | null;
-  originalFiles?: string[];
-  data: T;
-};
-
-export type ImportLogEntry = {
-  sourceFile: string;
-  destinationFile: string;
-  detectedDataType: string;
-  importTime: string;
-  status: string;
-  notes: string;
-};
-
-export type PageContentMap = Record<string, Record<string, unknown>>;
-
 const importDataRoot = path.join(process.cwd(), 'import_data');
 const importDataCacheSeconds = Math.max(5, Number(process.env.IMPORT_DATA_CACHE_SECONDS ?? 10));
 const importDataCacheMs = importDataCacheSeconds * 1000;
@@ -135,6 +109,11 @@ function getErrorMessage(error: unknown) {
     return `${error.message}${cause}`;
   }
   return String(error);
+}
+
+function numeric(value: unknown) {
+  const parsed = typeof value === 'number' ? value : Number(value);
+  return Number.isFinite(parsed) ? parsed : null;
 }
 
 async function signedS3Fetch(method: 'GET' | 'HEAD' | 'PUT', key: string, params = new URLSearchParams(), body?: string) {
@@ -416,10 +395,6 @@ export async function getImportFileVersionParts(relativePath: string) {
   };
 }
 
-export async function readImportFile<T = unknown>(relativePath: string) {
-  return readJsonFile<ImportEnvelope<T>>(relativePath);
-}
-
 export async function readImportJson<T = unknown>(relativePath: string) {
   return readJsonFile<T>(relativePath);
 }
@@ -444,144 +419,4 @@ export async function writeImportJson(relativePath: string, value: unknown) {
   fs.mkdirSync(path.dirname(fullPath), { recursive: true });
   fs.writeFileSync(temporaryPath, content, 'utf8');
   fs.renameSync(temporaryPath, fullPath);
-}
-
-export async function readPageContent<T extends Record<string, unknown> = Record<string, unknown>>(pageKey: string): Promise<T> {
-  try {
-    const envelope = await readImportFile<PageContentMap>('content/page_content.json');
-    const pageContent = envelope.data[pageKey];
-    return (pageContent && typeof pageContent === 'object' && !Array.isArray(pageContent) ? pageContent : {}) as T;
-  } catch {
-    return {} as T;
-  }
-}
-
-export async function readImportLog() {
-  return readJsonFile<{ importedAt: string; recordCount: number; data: ImportLogEntry[] }>('metadata/import_log.json');
-}
-
-function asRows(value: unknown): Record<string, unknown>[] {
-  return Array.isArray(value) ? value.filter(item => item && typeof item === 'object') as Record<string, unknown>[] : [];
-}
-
-function asRecord(value: unknown): Record<string, unknown> {
-  return value && typeof value === 'object' && !Array.isArray(value) ? value as Record<string, unknown> : {};
-}
-
-function latestByDate(rows: Record<string, unknown>[], dateKey = 'date') {
-  return [...rows].sort((a, b) => String(b[dateKey] ?? '').localeCompare(String(a[dateKey] ?? '')))[0] ?? {};
-}
-
-function numeric(value: unknown) {
-  const parsed = typeof value === 'number' ? value : Number(String(value ?? '').replace(/,/g, ''));
-  return Number.isFinite(parsed) ? parsed : null;
-}
-
-function formatNumber(value: unknown, options?: Intl.NumberFormatOptions) {
-  const parsed = numeric(value);
-  return parsed === null ? 'N/A' : parsed.toLocaleString('en-US', options);
-}
-
-function formatPercent(value: unknown, options?: Intl.NumberFormatOptions) {
-  const parsed = numeric(value);
-  return parsed === null ? 'N/A' : `${parsed.toLocaleString('en-US', options)}%`;
-}
-
-export async function buildImportDashboard() {
-  const [
-    profileEnvelope,
-    capitalStructureEnvelope,
-    ownershipChangesEnvelope,
-    topHoldersEnvelope,
-    insiderNetEnvelope,
-    shortInterestEnvelope,
-    borrowFeeEnvelope,
-    sharesAvailableEnvelope,
-    shortScoreEnvelope,
-    putCallEnvelope,
-    gammaExposureEnvelope,
-    expirationsEnvelope,
-    filingsEnvelope,
-    alertsEnvelope,
-    stockScoreEnvelope,
-  ] = await Promise.all([
-    readImportFile<Record<string, unknown>>('company/profile.json'),
-    readImportFile<Record<string, unknown>>('company/capital_structure.json'),
-    readImportFile('ownership/ownership_changes.json'),
-    readImportFile('ownership/top_holders.json'),
-    readImportFile('insider/net_insider_activity.json'),
-    readImportFile('short/short_interest.json'),
-    readImportFile('short/borrow_fee.json'),
-    readImportFile('short/shares_available.json'),
-    readImportFile('short/short_score.json'),
-    readImportFile('options/put_call_ratio.json'),
-    readImportFile('options/gamma_exposure.json'),
-    readImportFile('options/expiration_wall.json'),
-    readImportFile('news_filings/CURR_sec_filings.json'),
-    readImportFile('alerts/alerts.json'),
-    readImportFile('price/technical_summary.json'),
-  ]);
-
-  const profile = profileEnvelope.data;
-  const capitalStructure = capitalStructureEnvelope.data;
-  const ownershipChanges = asRows(ownershipChangesEnvelope.data);
-  const topHolders = asRows(topHoldersEnvelope.data);
-  const insiderNet = asRecord(insiderNetEnvelope.data);
-  const shortInterest = asRecord(shortInterestEnvelope.data);
-  const borrowFee = asRecord(borrowFeeEnvelope.data);
-  const sharesAvailable = asRows(sharesAvailableEnvelope.data);
-  const shortScore = asRows(shortScoreEnvelope.data);
-  const putCall = asRecord(putCallEnvelope.data);
-  const gammaExposure = asRows(gammaExposureEnvelope.data);
-  const expirations = asRows(expirationsEnvelope.data);
-  const filings = asRows(filingsEnvelope.data);
-  const alerts = asRows(alertsEnvelope.data);
-  const stockScore = asRecord(stockScoreEnvelope.data);
-
-  const shortCurrent = asRecord(shortInterest.current);
-  const borrowCurrent = asRecord(borrowFee.current);
-  const availableCurrent = latestByDate(sharesAvailable);
-  const latestShortScore = latestByDate(shortScore);
-  const latestStockScore = asRecord(stockScore.latestScore);
-  const pcrOiRows = asRows(putCall.openInterestRatio);
-  const pcrVolumeRows = asRows(putCall.volumeRatio);
-  const latestPcr = latestByDate(pcrOiRows.length ? pcrOiRows : pcrVolumeRows);
-
-  const increasedOwners = ownershipChanges.filter(row => (numeric(row.sharesChange) ?? 0) > 0);
-  const decreasedOwners = ownershipChanges.filter(row => (numeric(row.sharesChange) ?? 0) < 0);
-  const healthScore = Math.round(numeric(latestStockScore.total) ?? 64);
-  const marketSentimentScore = Math.round(numeric(latestStockScore.momentum) ?? 68);
-  const squeezeRisk = Math.round(numeric(latestShortScore.score) ?? numeric(latestShortScore.shortScore) ?? 62);
-
-  return {
-    company: {
-      ticker: String(profile.ticker ?? 'CURR'),
-      companyName: String(profile.companyName ?? 'CURRENC Group Inc.'),
-      exchange: String(profile.exchange ?? 'NasdaqGM'),
-      marketCap: formatNumber(capitalStructure.marketCap),
-      freeFloat: formatNumber(capitalStructure.freeFloat),
-      sharesOutstanding: formatNumber(capitalStructure.sharesOutstanding),
-    },
-    scores: {
-      healthScore,
-      marketSentimentScore,
-      ownershipTrend: increasedOwners.length >= decreasedOwners.length ? 'Accumulation' : 'Distribution',
-      shortSqueezeRisk: squeezeRisk,
-    },
-    metrics: {
-      borrowFee: formatPercent(borrowCurrent.costToBorrowAll ?? borrowCurrent.costToBorrowNew, { maximumFractionDigits: 2 }),
-      sharesAvailable: formatNumber(availableCurrent.shortAvailabilityShares),
-      shortInterestPercentFloat: formatPercent(shortCurrent.shortInterestPcFreeFloat, { maximumFractionDigits: 2 }),
-      daysToCover: formatNumber(shortInterest.daysToCover ?? null, { maximumFractionDigits: 2 }),
-      putCallRatio: formatNumber(latestPcr.putCallRatio ?? latestPcr.putCallOIRatio ?? latestPcr.putCallVolumeRatio, { maximumFractionDigits: 2 }),
-      gammaExposure: gammaExposure.length ? `${gammaExposure.length} records` : 'Pending connector',
-    },
-    summaries: {
-      insiderActivity: `${formatNumber(insiderNet.buyCount)} buys / ${formatNumber(insiderNet.sellCount)} sells`,
-      institutionalOwnership: `${topHolders.length} top holders, ${increasedOwners.length} increased positions`,
-      latestNewsFilings: filings.slice(0, 4),
-      upcomingCatalysts: expirations.slice(0, 4),
-      latestAlerts: alerts.slice(0, 5),
-    },
-  };
 }

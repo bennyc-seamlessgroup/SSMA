@@ -17,6 +17,7 @@ type OperationsHotkeysFile = {
   ticker: string;
   updatedAt: string;
   hotkeys: OperationsHotkeyMapping[];
+  records?: OperationsHotkeyMapping[];
 };
 
 function filePath(ticker: string) {
@@ -54,7 +55,9 @@ function normalizeFile(input: Partial<OperationsHotkeysFile>, ticker: string): O
     source: 'operations_hotkeys_input',
     schemaVersion: 1,
     ticker,
-    hotkeys: Array.isArray(input.hotkeys) ? input.hotkeys.map(row => normalizeMapping(row, ticker)).filter(row => row.kwatchHotkey) : [],
+    hotkeys: (Array.isArray(input.hotkeys) ? input.hotkeys : Array.isArray(input.records) ? input.records : [])
+      .map(row => normalizeMapping(row, ticker))
+      .filter(row => row.kwatchHotkey),
   };
 }
 

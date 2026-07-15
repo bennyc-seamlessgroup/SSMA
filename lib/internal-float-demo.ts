@@ -1,4 +1,4 @@
-import type { FloatAdjustments, InternalFloatV2UserInput, ManualHolding } from '@/lib/internal-float';
+import type { FloatAdjustments, InternalFloatV2UserInput, ManualHolding } from '@/lib/internal-float-types';
 import type { InsiderSuggestionSource, InstitutionalOwnershipOverview } from '@/app/monitor/[ticker]/internal-float-v2/InternalFloatV2Client';
 
 export const demoInternalFloatHoldings: ManualHolding[] = [];

@@ -1,5 +1,5 @@
 import { SettingsBackLink } from '@/components/SettingsBackLink';
-import { buildDashboard } from '@/lib/mock-data';
+import { normalizeTicker } from '@/lib/ticker-data';
 
 const policies = [
   ['Session timeout', '8 hours', 'Future tenant-level configurable setting'],
@@ -11,16 +11,16 @@ const policies = [
 
 export default async function PolicyPage({ params }: Readonly<{ params: Promise<{ ticker: string }> }>) {
   const { ticker } = await params;
-  const company = buildDashboard(ticker).company;
+  const normalizedTicker = normalizeTicker(ticker);
 
   return (
     <div className="page settings-page">
       <div className="page__header">
         <div>
           <h1 className="page__title">Security Policy</h1>
-          <p className="page__desc">Governance and security policy settings for the {company.ticker} intelligence workspace.</p>
+          <p className="page__desc">Governance and security policy settings for the {normalizedTicker} intelligence workspace.</p>
         </div>
-        <SettingsBackLink ticker={company.ticker} />
+        <SettingsBackLink ticker={normalizedTicker} />
       </div>
 
       <section className="settings-panel">

@@ -232,8 +232,8 @@ export function DashboardV2Chart({
         feeRate: numericOrNull(point.feeRate),
         tradeVolume: numericOrNull(point.tradeVolume),
         shortableShares: numericOrNull(point.shortableShares),
-        daysToCover: numericOrNull(point.daysToCover) ?? 0,
-        utilization: numericOrNull(point.utilization) ?? 0,
+        daysToCover: numericOrNull(point.daysToCover),
+        utilization: numericOrNull(point.utilization),
       }))
       .sort((a, b) => a.date.localeCompare(b.date));
     return fillMissingPrice(clean);
@@ -450,7 +450,7 @@ export function DashboardV2Chart({
       {!data.length || !enabledKeys.length ? (
         <div className="dashboard-v2-empty-chart">
           <strong>No chart data available</strong>
-          <span>The consolidated JSON does not include chartable values for the selected metrics.</span>
+          <span>The market data API does not include chartable values for the selected metrics.</span>
         </div>
       ) : (
       <div className="dashboard-v2-chart-shell">

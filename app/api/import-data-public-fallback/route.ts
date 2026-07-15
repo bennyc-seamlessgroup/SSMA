@@ -7,6 +7,7 @@ function validImportPath(value: string) {
   return value.length > 0
     && value.length <= 240
     && !value.includes('..')
+    && value.startsWith('social/')
     && /^[a-zA-Z0-9_./%+-]+\.json$/.test(value);
 }
 

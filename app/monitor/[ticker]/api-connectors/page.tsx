@@ -12,7 +12,7 @@ export default async function ApiConnectorsPage({ params }: Readonly<{ params: P
     <div className="page">
       <div className="compact-page-header">
         <span>Connectors</span>
-        <p>Active data pipelines and their current ticker-aware JSON outputs.</p>
+        <p>Active API pipelines and retained social/report data connections.</p>
       </div>
 
       <section className="panel">

@@ -2,10 +2,9 @@
 
 import type { FormEvent } from 'react';
 import { useEffect, useMemo, useState } from 'react';
-import type { InternalFloatV2PrivateHolding } from '@/lib/internal-float';
-import type { ManagementHoldingAction, ManagementHoldingInputRecord } from '@/lib/operations/management-holdings-store';
-import { readPublicImportJson } from '@/lib/public-import-data';
-import { managementHoldingsInputFile } from '@/lib/ticker-data';
+import type { InternalFloatV2PrivateHolding } from '@/lib/internal-float-types';
+import type { ManagementHoldingAction, ManagementHoldingInputRecord } from '@/lib/operations/data-types';
+import { authenticatedFetch } from '@/lib/auth-client';
 
 type ApiPayload = {
   ok: boolean;
@@ -52,10 +51,39 @@ function formatDate(value: string) {
 }
 
 function extractManagementRecords(input: unknown) {
+  if (Array.isArray(input)) return input as ManagementHoldingInputRecord[];
   const envelope = input as ManagementHoldingsEnvelope;
   if (Array.isArray(envelope?.data?.records)) return envelope.data.records;
   if (Array.isArray(envelope?.records)) return envelope.records;
   return [];
+}
+
+function normalizeApiRecord(input: Partial<ManagementHoldingInputRecord>, ticker: string): ManagementHoldingInputRecord {
+  const now = new Date().toISOString();
+  const audit = input as Partial<ManagementHoldingInputRecord> & { createdBy?: string };
+  return {
+    id: String(input.id ?? ''),
+    ticker,
+    holderName: String(input.holderName ?? 'Unnamed holder'),
+    category: String(input.category ?? 'Strategic Investor'),
+    shares: numeric(input.shares),
+    action: input.action === 'deduct' ? 'deduct' : 'add',
+    notes: String(input.notes ?? ''),
+    effectiveDate: String(input.effectiveDate ?? today()),
+    showInOwnership: input.showInOwnership === false ? false : true,
+    showAsSuggestion: Boolean(input.showAsSuggestion),
+    autoApply: Boolean(input.autoApply),
+    status: input.status === 'applied' || input.status === 'discarded' ? input.status : 'pending',
+    createdAt: String(input.createdAt ?? now),
+    updatedAt: String(input.updatedAt ?? now),
+    updatedBy: String(input.updatedBy ?? audit.createdBy ?? 'operations'),
+  };
+}
+
+function normalizeApiRecords(input: unknown, ticker: string) {
+  return extractManagementRecords(input)
+    .map(row => normalizeApiRecord(row, ticker))
+    .filter(row => row.id || row.holderName);
 }
 
 function targetFlags(target: CopyTarget) {
@@ -93,19 +121,9 @@ export function ManagementHoldingsOperationsClient() {
     setStatus('loading');
     setMessage('');
     try {
-      const response = await fetch(`/api/operations/management-holdings?ticker=${encodeURIComponent(nextTicker)}`, { cache: 'no-store' });
-      const payload = await response.json() as ApiPayload;
-      if (!response.ok || !payload.ok) throw new Error(payload.error || 'Unable to load records.');
-      const apiRecords = Array.isArray(payload.data?.records) ? payload.data.records : [];
-      setRecords(apiRecords);
-      setWorkspacePrivateHoldings(Array.isArray(payload.data?.workspacePrivateHoldings) ? payload.data.workspacePrivateHoldings : []);
-      try {
-        const publicData = await readPublicImportJson<unknown>(managementHoldingsInputFile(nextTicker));
-        const publicRecords = extractManagementRecords(publicData);
-        if (publicRecords.length >= apiRecords.length) setRecords(publicRecords);
-      } catch {
-        // Operations can still work from the server API when public S3 is unavailable.
-      }
+      const payload = await authenticatedFetch(`/manual-input/management-holdings?ticker=${encodeURIComponent(nextTicker)}`, { cache: 'no-store' });
+      setRecords(normalizeApiRecords(payload, nextTicker));
+      setWorkspacePrivateHoldings([]);
       setStatus('idle');
     } catch (error) {
       setStatus('error');
@@ -165,14 +183,10 @@ export function ManagementHoldingsOperationsClient() {
     setStatus('saving');
     setMessage('');
     try {
-      const response = await fetch(`/api/operations/management-holdings?ticker=${encodeURIComponent(activeTicker)}&id=${encodeURIComponent(record.id)}`, {
+      await authenticatedFetch(`/manual-input/management-holdings?ticker=${encodeURIComponent(activeTicker)}&id=${encodeURIComponent(record.id)}`, {
         method: 'DELETE',
-        cache: 'no-store',
       });
-      const payload = await response.json() as ApiPayload;
-      if (!response.ok || !payload.ok) throw new Error(payload.error || 'Unable to delete record.');
-      setRecords(Array.isArray(payload.data?.records) ? payload.data.records : []);
-      setWorkspacePrivateHoldings(Array.isArray(payload.data?.workspacePrivateHoldings) ? payload.data.workspacePrivateHoldings : workspacePrivateHoldings);
+      await loadRecords(activeTicker);
       if (editingId === record.id) resetForm();
       setStatus('saved');
       setMessage('Record deleted.');
@@ -187,10 +201,8 @@ export function ManagementHoldingsOperationsClient() {
     setStatus('saving');
     setMessage('');
     try {
-      const response = await fetch('/api/operations/management-holdings', {
-        method: 'PUT',
-        cache: 'no-store',
-        headers: { 'Content-Type': 'application/json' },
+      await authenticatedFetch(`/manual-input/management-holdings?ticker=${encodeURIComponent(activeTicker)}`, {
+        method: 'POST',
         body: JSON.stringify({
           ticker: activeTicker,
           holderName: record.holderName,
@@ -203,10 +215,7 @@ export function ManagementHoldingsOperationsClient() {
           updatedBy: 'operations',
         }),
       });
-      const payload = await response.json() as ApiPayload;
-      if (!response.ok || !payload.ok) throw new Error(payload.error || 'Unable to copy record.');
-      setRecords(Array.isArray(payload.data?.records) ? payload.data.records : []);
-      setWorkspacePrivateHoldings(Array.isArray(payload.data?.workspacePrivateHoldings) ? payload.data.workspacePrivateHoldings : workspacePrivateHoldings);
+      await loadRecords(activeTicker);
       setStatus('saved');
       setMessage(`Record copied to ${target === 'ownership' ? 'Ownership / Strategic Entities' : target === 'suggestions' ? 'Internal Float / Suggested Changes' : 'Internal Float / Management / Strategic Holdings'}.`);
     } catch (error) {
@@ -236,12 +245,9 @@ export function ManagementHoldingsOperationsClient() {
     setStatus('saving');
     setMessage('');
     try {
-      const response = await fetch('/api/operations/management-holdings', {
-        method: 'PUT',
-        cache: 'no-store',
-        headers: { 'Content-Type': 'application/json' },
+      await authenticatedFetch(`/manual-input/management-holdings?ticker=${encodeURIComponent(activeTicker)}${editingId ? `&id=${encodeURIComponent(editingId)}` : ''}`, {
+        method: editingId ? 'PUT' : 'POST',
         body: JSON.stringify({
-          id: editingId ?? undefined,
           ticker: activeTicker,
           holderName,
           category,
@@ -255,10 +261,7 @@ export function ManagementHoldingsOperationsClient() {
           updatedBy: 'operations',
         }),
       });
-      const payload = await response.json() as ApiPayload;
-      if (!response.ok || !payload.ok) throw new Error(payload.error || 'Unable to save record.');
-      setRecords(Array.isArray(payload.data?.records) ? payload.data.records : []);
-      setWorkspacePrivateHoldings(Array.isArray(payload.data?.workspacePrivateHoldings) ? payload.data.workspacePrivateHoldings : workspacePrivateHoldings);
+      await loadRecords(activeTicker);
       resetForm();
       setStatus('saved');
       setMessage(autoApply ? 'Record saved and applied directly to Internal Float.' : 'Record saved.');

@@ -293,7 +293,7 @@ export function Sidebar({
               {showDevelopmentDivider && (
                 <div className="design-b-dev-controls">
                   <DevModeToggle />
-                  <Link className="portal-backend-link dev-only" href="/operations/sec-filings">Backend Portal</Link>
+                  <Link className="portal-backend-link dev-only" href="/operations/market-data">Backend Portal</Link>
                   <div className="portal-sidebar__dev-divider dev-only">Development use only</div>
                 </div>
               )}

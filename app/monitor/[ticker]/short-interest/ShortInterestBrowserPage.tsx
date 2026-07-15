@@ -1,23 +1,15 @@
 'use client';
 
-import { ImportDataPreviewPage } from '@/components/ImportDataPreviewPage';
+import { ImportDataTable } from '@/components/ImportDataTable';
 import { InfoTooltip } from '@/components/InfoTooltip';
 import { PortalPageLoading } from '@/components/PortalPageLoading';
 import { PageDisclaimerNotice } from '@/components/PageDisclaimerNotice';
-import { usePublicImportFiles } from '@/components/usePublicImportFiles';
-import type { WatchItemSeverity } from '@/lib/short-interest/watchItemRules';
-import { aiAnalysisFile, normalizeTicker, shortInterestFile } from '@/lib/ticker-data';
-import { useState, type ReactNode } from 'react';
+import { authenticatedFetch } from '@/lib/auth-client';
+import { normalizeTicker } from '@/lib/ticker-data';
+import { useEffect, useMemo, useState, type ReactNode } from 'react';
 
 type Row = Record<string, unknown>;
-type ImportEnvelope<T> = {
-  sourcePlatform?: string;
-  data?: T;
-};
-
-type AiAnalysis = {
-  short_interest_current_interpretation?: string;
-};
+type ApiFile = { generatedAt?: string; records?: Row[] } & Row;
 
 function rows(value: unknown): Row[] {
   return Array.isArray(value) ? value.filter(item => item && typeof item === 'object') as Row[] : [];
@@ -27,13 +19,40 @@ function record(value: unknown): Row {
   return value && typeof value === 'object' && !Array.isArray(value) ? value as Row : {};
 }
 
+function apiCategory(payload: ApiFile, category: string): ApiFile {
+  const directCategory = record(payload[category]);
+  if (Object.keys(directCategory).length) return directCategory as ApiFile;
+
+  const data = record(payload.data);
+  const dataCategory = record(data[category]);
+  if (Object.keys(dataCategory).length) return dataCategory as ApiFile;
+  if (Object.keys(data).length) return data as ApiFile;
+
+  return payload;
+}
+
+function apiRecords(payload: ApiFile, category: string): Row[] {
+  const normalized = apiCategory(payload, category);
+  return rows(normalized.records ?? normalized.data);
+}
+
+function firstDefined(...values: unknown[]) {
+  return values.find(value => value !== undefined && value !== null && value !== '');
+}
+
 function text(value: unknown, fallback: string) {
   return typeof value === 'string' && value.trim() ? value : fallback;
 }
 
 function numeric(value: unknown) {
+  if (value === null || value === undefined || value === '') return null;
   const parsed = typeof value === 'number' ? value : Number(String(value ?? '').replace(/[$,%]/g, '').replace(/,/g, ''));
   return Number.isFinite(parsed) ? parsed : null;
+}
+
+function firstNumericMetric(...values: unknown[]) {
+  const parsed = values.map(numeric).filter((value): value is number => value !== null);
+  return parsed.find(value => value !== 0) ?? parsed[0];
 }
 
 function optionalNumeric(value: unknown) {
@@ -266,40 +285,6 @@ type FtdRow = {
   notional: number;
 };
 
-const shortVolumeRows: ShortVolumeRow[] = [
-  { date: '2026-07-09', totalShortVolume: 26573, totalVolume: 64597, offExchangeNonExempt: 13414, offExchangeExempt: 0, nasdaqBx: 0, nasdaqPhlx: 0, nyse: 2600, nyseArca: 8559, nyseNational: 0, nyseAmerican: 2000, chx: 0, totalLongVolume: 38024 },
-  { date: '2026-07-08', totalShortVolume: 18809, totalVolume: 46374, offExchangeNonExempt: 15340, offExchangeExempt: 0, nasdaqBx: 100, nasdaqPhlx: 0, nyse: 400, nyseArca: 2594, nyseNational: 100, nyseAmerican: 175, chx: 100, totalLongVolume: 27564 },
-  { date: '2026-07-07', totalShortVolume: 9944, totalVolume: 29269, offExchangeNonExempt: 6954, offExchangeExempt: 0, nasdaqBx: 0, nasdaqPhlx: 0, nyse: 575, nyseArca: 2190, nyseNational: 0, nyseAmerican: 225, chx: 0, totalLongVolume: 19325 },
-  { date: '2026-07-06', totalShortVolume: 7429, totalVolume: 19300, offExchangeNonExempt: 4067, offExchangeExempt: 0, nasdaqBx: 0, nasdaqPhlx: 0, nyse: 150, nyseArca: 3187, nyseNational: 0, nyseAmerican: 25, chx: 0, totalLongVolume: 11871 },
-  { date: '2026-07-02', totalShortVolume: 4254, totalVolume: 8554, offExchangeNonExempt: 3914, offExchangeExempt: 0, nasdaqBx: 0, nasdaqPhlx: 100, nyse: 20, nyseArca: 220, nyseNational: 0, nyseAmerican: 0, chx: 0, totalLongVolume: 4300 },
-  { date: '2026-07-01', totalShortVolume: 3935, totalVolume: 19435, offExchangeNonExempt: 2556, offExchangeExempt: 0, nasdaqBx: 0, nasdaqPhlx: 0, nyse: 65, nyseArca: 1314, nyseNational: 0, nyseAmerican: 0, chx: 0, totalLongVolume: 15500 },
-  { date: '2026-06-30', totalShortVolume: 9612, totalVolume: 35550, offExchangeNonExempt: 7454, offExchangeExempt: 4, nasdaqBx: 1080, nasdaqPhlx: 0, nyse: 45, nyseArca: 617, nyseNational: 304, nyseAmerican: 0, chx: 108, totalLongVolume: 25938 },
-  { date: '2026-06-29', totalShortVolume: 74044, totalVolume: 193582, offExchangeNonExempt: 43425, offExchangeExempt: 6601, nasdaqBx: 400, nasdaqPhlx: 100, nyse: 703, nyseArca: 21978, nyseNational: 437, nyseAmerican: 400, chx: 0, totalLongVolume: 119538 },
-  { date: '2026-06-26', totalShortVolume: 21813, totalVolume: 32534, offExchangeNonExempt: 3942, offExchangeExempt: 0, nasdaqBx: 200, nasdaqPhlx: 0, nyse: 525, nyseArca: 17146, nyseNational: 0, nyseAmerican: 0, chx: 0, totalLongVolume: 10721 },
-  { date: '2026-06-25', totalShortVolume: 12541, totalVolume: 26140, offExchangeNonExempt: 3996, offExchangeExempt: 0, nasdaqBx: 0, nasdaqPhlx: 0, nyse: 150, nyseArca: 8395, nyseNational: 0, nyseAmerican: 0, chx: 0, totalLongVolume: 13599 },
-  { date: '2026-06-24', totalShortVolume: 19959, totalVolume: 43915, offExchangeNonExempt: 14674, offExchangeExempt: 2300, nasdaqBx: 0, nasdaqPhlx: 0, nyse: 374, nyseArca: 2611, nyseNational: 0, nyseAmerican: 0, chx: 0, totalLongVolume: 23955 },
-  { date: '2026-06-23', totalShortVolume: 10902, totalVolume: 24640, offExchangeNonExempt: 8012, offExchangeExempt: 0, nasdaqBx: 100, nasdaqPhlx: 100, nyse: 500, nyseArca: 1389, nyseNational: 0, nyseAmerican: 800, chx: 1, totalLongVolume: 13738 },
-  { date: '2026-06-22', totalShortVolume: 26949, totalVolume: 77578, offExchangeNonExempt: 21007, offExchangeExempt: 0, nasdaqBx: 600, nasdaqPhlx: 0, nyse: 966, nyseArca: 3676, nyseNational: 100, nyseAmerican: 600, chx: 0, totalLongVolume: 50628 },
-  { date: '2026-06-18', totalShortVolume: 26514, totalVolume: 88872, offExchangeNonExempt: 23679, offExchangeExempt: 0, nasdaqBx: 0, nasdaqPhlx: 200, nyse: 177, nyseArca: 2458, nyseNational: 0, nyseAmerican: 0, chx: 0, totalLongVolume: 62359 },
-];
-
-const ftdTableRows: FtdRow[] = [
-  { tradeDate: '2026-06-11', settlementDate: '2026-06-12', closingDeadline: '2026-07-16', failsToDeliver: 648, ftdChange: 503, tradeVolume: 116100, price: 3.08, notional: 1996 },
-  { tradeDate: '2026-06-10', settlementDate: '2026-06-11', closingDeadline: '2026-07-15', failsToDeliver: 145, ftdChange: -7984, tradeVolume: 187300, price: 2.93, notional: 425 },
-  { tradeDate: '2026-06-09', settlementDate: '2026-06-10', closingDeadline: '2026-07-14', failsToDeliver: 8129, ftdChange: 8129, tradeVolume: 177600, price: 2.96, notional: 24062 },
-  { tradeDate: '2026-06-08', settlementDate: '2026-06-09', closingDeadline: '2026-07-13', failsToDeliver: 0, ftdChange: -238, tradeVolume: 266600, price: 2.97, notional: 0 },
-  { tradeDate: '2026-06-05', settlementDate: '2026-06-08', closingDeadline: '2026-07-10', failsToDeliver: 238, ftdChange: 238, tradeVolume: 160900, price: 3.18, notional: 757 },
-  { tradeDate: '2026-06-04', settlementDate: '2026-06-05', closingDeadline: '2026-07-09', failsToDeliver: 0, ftdChange: 0, tradeVolume: 247400, price: 3.51, notional: 0 },
-  { tradeDate: '2026-06-03', settlementDate: '2026-06-04', closingDeadline: '2026-07-08', failsToDeliver: 0, ftdChange: -1827, tradeVolume: 142300, price: 3.11, notional: 0 },
-  { tradeDate: '2026-06-02', settlementDate: '2026-06-03', closingDeadline: '2026-07-07', failsToDeliver: 1827, ftdChange: 1827, tradeVolume: 103900, price: 3.28, notional: 5993 },
-  { tradeDate: '2026-06-01', settlementDate: '2026-06-02', closingDeadline: '2026-07-06', failsToDeliver: 0, ftdChange: 0, tradeVolume: 42300, price: 3.19, notional: 0 },
-  { tradeDate: '2026-05-29', settlementDate: '2026-06-01', closingDeadline: '2026-07-03', failsToDeliver: 0, ftdChange: 0, tradeVolume: 75600, price: 3.14, notional: 0 },
-  { tradeDate: '2026-05-28', settlementDate: '2026-05-29', closingDeadline: '2026-07-02', failsToDeliver: 0, ftdChange: 0, tradeVolume: 75400, price: 3.19, notional: 0 },
-  { tradeDate: '2026-05-27', settlementDate: '2026-05-28', closingDeadline: '2026-07-01', failsToDeliver: 0, ftdChange: 0, tradeVolume: 101000, price: 3.17, notional: 0 },
-  { tradeDate: '2026-05-26', settlementDate: '2026-05-27', closingDeadline: '2026-06-30', failsToDeliver: 0, ftdChange: -892, tradeVolume: 146200, price: 3.27, notional: 0 },
-  { tradeDate: '2026-05-22', settlementDate: '2026-05-26', closingDeadline: '2026-06-26', failsToDeliver: 892, ftdChange: -61, tradeVolume: 72700, price: 3.07, notional: 2738 },
-];
-
 const shortVolumeBaseColumns: Array<{ key: keyof ShortVolumeRow; label: string }> = [
   { key: 'date', label: 'Date' },
   { key: 'totalShortVolume', label: 'Total Short Volume' },
@@ -345,13 +330,13 @@ function shortVolumeValue(row: ShortVolumeRow, key: keyof ShortVolumeRow, mode: 
   return denominator ? formatMarketTableValue((value / denominator) * 100, 'percent') : '—';
 }
 
-function PagedShortVolumeTable() {
+function PagedShortVolumeTable({ rows: apiRows }: { rows: ShortVolumeRow[] }) {
   const [page, setPage] = useState(1);
   const [mode, setMode] = useState<ShortVolumeMode>('volume');
   const pageSize = 7;
-  const totalPages = Math.max(1, Math.ceil(shortVolumeRows.length / pageSize));
+  const totalPages = Math.max(1, Math.ceil(apiRows.length / pageSize));
   const safePage = Math.min(page, totalPages);
-  const pageRows = shortVolumeRows.slice((safePage - 1) * pageSize, safePage * pageSize);
+  const pageRows = apiRows.slice((safePage - 1) * pageSize, safePage * pageSize);
 
   return (
     <article className="terminal-card short-market-table-card">
@@ -372,6 +357,7 @@ function PagedShortVolumeTable() {
             <tr>{shortVolumeBaseColumns.map(column => <th key={column.key}>{column.label}</th>)}</tr>
           </thead>
           <tbody>
+            {!pageRows.length && <tr><td colSpan={shortVolumeBaseColumns.length}>No short-volume API records available.</td></tr>}
             {pageRows.map(row => (
               <tr key={row.date}>
                 {shortVolumeBaseColumns.map(column => (
@@ -387,12 +373,12 @@ function PagedShortVolumeTable() {
   );
 }
 
-function PagedFtdTable() {
+function PagedFtdTable({ rows: apiRows }: { rows: FtdRow[] }) {
   const [page, setPage] = useState(1);
   const pageSize = 7;
-  const totalPages = Math.max(1, Math.ceil(ftdTableRows.length / pageSize));
+  const totalPages = Math.max(1, Math.ceil(apiRows.length / pageSize));
   const safePage = Math.min(page, totalPages);
-  const pageRows = ftdTableRows.slice((safePage - 1) * pageSize, safePage * pageSize);
+  const pageRows = apiRows.slice((safePage - 1) * pageSize, safePage * pageSize);
 
   return (
     <article className="terminal-card short-market-table-card">
@@ -408,6 +394,7 @@ function PagedFtdTable() {
             <tr>{ftdColumns.map(column => <th key={column.key}>{column.label}</th>)}</tr>
           </thead>
           <tbody>
+            {!pageRows.length && <tr><td colSpan={ftdColumns.length}>No FTD API records available.</td></tr>}
             {pageRows.map(row => (
               <tr key={row.tradeDate}>
                 {ftdColumns.map(column => {
@@ -642,13 +629,6 @@ function ShortInterestCombinedChart({ data }: { data: BriefingTrendRow[] }) {
   );
 }
 
-function shortScoreExplanation(score: number, level: string) {
-  if (score >= 80) return `${level} pressure means short-side risk is elevated. Borrow cost, short exposure, availability, or coverage conditions may be signaling a stronger squeeze-risk setup.`;
-  if (score >= 65) return `${level} pressure means the score is above the normal range. Management should monitor whether borrow cost, short exposure, or share availability continues to tighten.`;
-  if (score >= 40) return `${level} pressure means short-side conditions are present but not yet severe. The setup warrants monitoring, especially if multiple inputs move higher together.`;
-  return `${level} pressure means current short-side conditions are relatively contained. The score does not indicate meaningful pressure unless the underlying inputs begin to worsen.`;
-}
-
 function shortScoreSummary(score: number, level: string) {
   if (score >= 80) return `${level} short-side pressure. Escalate monitoring of borrow cost, utilization, and inventory.`;
   if (score >= 65) return `${level} short-side pressure. Watch borrow cost, utilization, and available inventory.`;
@@ -656,33 +636,178 @@ function shortScoreSummary(score: number, level: string) {
   return `${level} pressure. Current short-market conditions remain relatively contained.`;
 }
 
-type ShortSignal = {
-  label: string;
-  status: string;
-  severity: WatchItemSeverity;
-};
+function marketCurrentToLegacy(payload: ApiFile): Row {
+  const current = apiCategory(payload, 'market-current');
+  const flatCurrent = latest(rows(current.records), 'tradeDate');
+  const shortInterest = record(current.shortInterest);
+  const borrowFee = record(current.borrowFee);
+  const availableShares = record(current.availableShares);
+  const utilization = record(current.utilization);
+  const daysToCover = record(current.daysToCover);
+  const shortScore = record(record(current.scores).shortScore);
+  return {
+    shortInterestShares: firstNumericMetric(
+      current.shortInterestShares,
+      current.shortinterestshares,
+      current.short_interest_shares,
+      flatCurrent.shortInterestShares,
+      flatCurrent.shortinterestshares,
+      shortInterest.shares,
+      shortInterest.shortInterestShares,
+      shortInterest.shortinterestshares,
+    ),
+    shortInterestPcFreeFloat: firstNumericMetric(
+      current.shortInterestPcFreeFloat,
+      current.shortInterestPercent,
+      current.shortinterestpcfreefloat,
+      current.short_interest_percent,
+      flatCurrent.shortInterestPcFreeFloat,
+      flatCurrent.shortInterestPercent,
+      shortInterest.percent,
+      shortInterest.shortInterestPcFreeFloat,
+      shortInterest.shortInterestPercent,
+    ),
+    costToBorrowAll: firstNumericMetric(
+      current.borrowFeePercent,
+      current.costToBorrowAll,
+      flatCurrent.borrowFeePercent,
+      flatCurrent.costToBorrowAll,
+      borrowFee.percent,
+      borrowFee.borrowFeePercent,
+      borrowFee.costToBorrowAll,
+    ),
+    shortAvailabilityShares: firstNumericMetric(
+      current.shortAvailabilityShares,
+      current.availableSharesValue,
+      flatCurrent.shortAvailabilityShares,
+      flatCurrent.availableShares,
+      availableShares.value,
+      availableShares.shortAvailabilityShares,
+      availableShares.availableShares,
+    ),
+    shortAvailabilityPct: firstNumericMetric(
+      current.utilizationPercent,
+      current.shortAvailabilityPct,
+      flatCurrent.utilizationPercent,
+      flatCurrent.shortAvailabilityPct,
+      utilization.percent,
+      utilization.utilizationPercent,
+      utilization.shortAvailabilityPct,
+    ),
+    daysToCoverQuantity: firstNumericMetric(
+      current.daysToCoverValue,
+      typeof current.daysToCover === 'object' ? undefined : current.daysToCover,
+      flatCurrent.daysToCover,
+      daysToCover.value,
+      daysToCover.daysToCover,
+      daysToCover.daysToCoverValue,
+    ),
+    shortScore: firstNumericMetric(
+      typeof current.shortScore === 'object' ? undefined : current.shortScore,
+      flatCurrent.shortScore,
+      shortScore.value,
+      shortScore.score,
+    ),
+  };
+}
+
+function marketHistoryToLegacy(row: Row): Row {
+  const shortInterest = record(row.shortInterest);
+  const borrowFee = record(row.borrowFee);
+  const availableShares = record(row.availableShares);
+  const utilization = record(row.utilization);
+  const daysToCover = record(row.daysToCover);
+  const shortScore = record(record(row.scores).shortScore);
+  return {
+    date: firstDefined(row.tradeDate, row.date, row.snapshotDate),
+    shortInterest: {
+      shortInterestShares: firstNumericMetric(row.shortInterestShares, row.shortinterestshares, shortInterest.shares, shortInterest.shortInterestShares),
+      shortInterestPcFreeFloat: firstNumericMetric(row.shortInterestPercent, row.shortInterestPcFreeFloat, shortInterest.percent, shortInterest.shortInterestPercent),
+    },
+    daysToCover: {
+      daysToCover: firstNumericMetric(
+        row.daysToCoverValue,
+        daysToCover.value,
+        typeof row.daysToCover === 'object' ? undefined : row.daysToCover,
+      ),
+    },
+    borrowFeeAll: { costToBorrowAll: firstNumericMetric(row.borrowFeePercent, row.costToBorrowAll, borrowFee.percent) },
+    availability: {
+      shortAvailabilityShares: firstNumericMetric(
+        row.shortAvailabilityShares,
+        availableShares.value,
+        typeof row.availableShares === 'object' ? undefined : row.availableShares,
+      ),
+      shortAvailabilityPct: firstNumericMetric(row.utilizationPercent, row.shortAvailabilityPct, utilization.percent),
+    },
+    shortScore: { score: firstNumericMetric(row.shortScore, shortScore.value) },
+    closingPrices: { price: firstNumericMetric(row.price, record(row.closingPrices).price) },
+  };
+}
+
+function apiShortVolumeRows(payload: ApiFile): ShortVolumeRow[] {
+  return apiRecords(payload, 'short-volume-history').map(row => ({
+    date: String(row.date ?? ''),
+    totalShortVolume: numeric(row.totalShortVolumeReported) ?? 0,
+    totalVolume: numeric(row.totalVolumeReported) ?? 0,
+    offExchangeNonExempt: numeric(row.offExchangeNonExempt) ?? 0,
+    offExchangeExempt: numeric(row.offExchangeExempt) ?? 0,
+    nasdaqBx: numeric(row.nasdaqBx) ?? 0,
+    nasdaqPhlx: numeric(row.nasdaqPhlx) ?? 0,
+    nyse: numeric(row.nyse) ?? 0,
+    nyseArca: numeric(row.nyseArca) ?? 0,
+    nyseNational: numeric(row.nyseNational) ?? 0,
+    nyseAmerican: numeric(row.nyseAmerican) ?? 0,
+    chx: numeric(row.chx) ?? 0,
+    totalLongVolume: numeric(row.totalLongVolumeReported) ?? 0,
+  })).filter(row => row.date);
+}
+
+function apiFtdRows(payload: ApiFile): FtdRow[] {
+  return apiRecords(payload, 'ftd-history').map(row => ({
+    tradeDate: String(row.tradeDate ?? ''),
+    settlementDate: String(row.settlementDate ?? ''),
+    closingDeadline: String(row.closingDeadline ?? ''),
+    failsToDeliver: numeric(row.shares) ?? 0,
+    ftdChange: numeric(row.change) ?? 0,
+    tradeVolume: numeric(row.tradeVolume) ?? 0,
+    price: numeric(row.price) ?? 0,
+    notional: numeric(row.value) ?? 0,
+  })).filter(row => row.tradeDate || row.settlementDate);
+}
 
 export function ShortInterestBrowserPage({ ticker }: { ticker: string }) {
   const normalizedTicker = normalizeTicker(ticker);
-  const dataFile = shortInterestFile(normalizedTicker);
-  const analysisFile = aiAnalysisFile(normalizedTicker);
-  const contentFile = 'content/page_content.json';
-  const { data, error, loading } = usePublicImportFiles([dataFile, analysisFile, contentFile]);
+  const [apiData, setApiData] = useState<{ current: ApiFile; history: ApiFile; shortVolume: ApiFile; ftd: ApiFile } | null>(null);
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(true);
 
-  if (loading && !data) return <PortalPageLoading variant="shortInterest" />;
-  if (error || !data) {
+  useEffect(() => {
+    let cancelled = false;
+    setLoading(true);
+    setError('');
+    Promise.all([
+      authenticatedFetch(`/market-data/current?ticker=${encodeURIComponent(normalizedTicker)}&category=market-current`) as Promise<ApiFile>,
+      authenticatedFetch(`/market-data/history?ticker=${encodeURIComponent(normalizedTicker)}&category=market-history`) as Promise<ApiFile>,
+      authenticatedFetch(`/market-data/history?ticker=${encodeURIComponent(normalizedTicker)}&category=short-volume-history`) as Promise<ApiFile>,
+      authenticatedFetch(`/market-data/history?ticker=${encodeURIComponent(normalizedTicker)}&category=ftd-history`) as Promise<ApiFile>,
+    ]).then(([current, history, shortVolume, ftd]) => {
+      if (!cancelled) setApiData({ current, history, shortVolume, ftd });
+    }).catch(cause => {
+      if (!cancelled) setError(cause instanceof Error ? cause.message : 'Unable to load short-interest API data.');
+    }).finally(() => {
+      if (!cancelled) setLoading(false);
+    });
+    return () => { cancelled = true; };
+  }, [normalizedTicker]);
+
+  if (loading) return <PortalPageLoading variant="shortInterest" />;
+  if (error || !apiData) {
     return <div className="page"><section className="panel"><h2>Short interest data unavailable</h2><p>{error}</p></section></div>;
   }
 
-  const ortexEnvelope = (data[dataFile] ?? {}) as ImportEnvelope<Row>;
-  const contentEnvelope = (data[contentFile] ?? {}) as ImportEnvelope<Record<string, Row>>;
-  const contentMap = contentEnvelope.data ?? {};
-  const pageContent = record(contentMap.shortInterest);
-  const aiAnalysis = (data[analysisFile] ?? null) as AiAnalysis | null;
-
-  const ortexData = record(ortexEnvelope.data);
-  const shortCurrent = record(ortexData.current);
-  const dailyRows = rows(ortexData.daily);
+  const shortCurrent = marketCurrentToLegacy(apiData.current);
+  const dailyRows = apiRecords(apiData.history, 'market-history').map(marketHistoryToLegacy);
   const shortInterestTrendRows = dailyRows
     .sort((a, b) => String(a.date ?? '').localeCompare(String(b.date ?? '')))
     .slice(-7);
@@ -721,7 +846,7 @@ export function ShortInterestBrowserPage({ ticker }: { ticker: string }) {
   const shortScoreDelta = delta(Math.round(numeric(latestShortScore.score) ?? 0) || null, numeric(previousShortScore.score), { maximumFractionDigits: 1 });
   const sharesAvailableDelta = delta(numeric(latestAvailability.shortAvailabilityShares), numeric(previousAvailability.shortAvailabilityShares), { maximumFractionDigits: 0 });
   const utilizationDelta = delta(numeric(latestAvailability.shortAvailabilityPct), numeric(previousAvailability.shortAvailabilityPct), { maximumFractionDigits: 2 });
-  const shortCards = record(record(record(ortexData.derived).shortInterestPage).cards) as Record<string, Row> | undefined;
+  const shortCards = {} as Record<string, Row>;
   const shortInterestCard = record(shortCards?.shortInterest);
   const siPercentCard = record(shortCards?.shortInterestPercentFloat);
   const daysToCoverCard = record(shortCards?.daysToCover);
@@ -730,78 +855,29 @@ export function ShortInterestBrowserPage({ ticker }: { ticker: string }) {
   const utilizationCard = record(shortCards?.utilization);
   const shortScoreCard = record(shortCards?.shortScore);
   const shortScoreLevelCard = record(shortCards?.shortScoreLevel);
-  const currentInterpretation = record(ortexData.currentInterpretation);
-  const ftdRows = rows(ortexData.ftd);
-  const latestFtd = latest(ftdRows);
-  const previousFtd = [...ftdRows].sort((a, b) => String(b.date ?? '').localeCompare(String(a.date ?? '')))[1] ?? {};
-  const ftdShares = optionalNumeric(shortCurrent.ftdShares ?? latestFtd.ftdShares);
-  const ftdChangePercent = optionalNumeric(shortCurrent.ftdChangePercent)
-    ?? percentageChange(ftdShares, numeric(previousFtd.ftdShares));
   const shortInterestChangePercent = numeric(shortInterestCard.changePercent) ?? shortInterestDelta?.percent;
   const borrowFeeChangePercent = numeric(borrowFeeCard.changePercent) ?? borrowFeeDelta?.percent;
   const sharesAvailableChangePercent = numeric(sharesAvailableCard.changePercent) ?? sharesAvailableDelta?.percent;
-  const aiSummary = text(
-    aiAnalysis?.short_interest_current_interpretation,
-    text(currentInterpretation.body, shortScoreExplanation(shortScore, shortScoreLevel)),
-  ).trim();
+  const aiSummary = 'AI analysis is not available from the current API.';
   const scoreRanges = [
     { range: '0-39', level: 'Low', description: 'Short-side pressure is relatively contained.', active: shortScore < 40 },
     { range: '40-64', level: 'Moderate', description: 'Pressure is developing and should be monitored.', active: shortScore >= 40 && shortScore < 65 },
     { range: '65-79', level: 'High', description: 'Elevated conditions may increase squeeze risk.', active: shortScore >= 65 && shortScore < 80 },
     { range: '80-100', level: 'Extreme', description: 'Severe short-side pressure warrants close review.', active: shortScore >= 80 },
   ];
-  const signals: ShortSignal[] = [
-    {
-      label: 'Short Interest Trend',
-      status: (shortInterestChangePercent ?? 0) >= 20 ? 'Rising rapidly' : (shortInterestChangePercent ?? 0) > 0 ? 'Rising' : (shortInterestChangePercent ?? 0) < 0 ? 'Falling' : 'Stable',
-      severity: (shortInterestChangePercent ?? 0) >= 20 ? 'high' : (shortInterestChangePercent ?? 0) > 0 ? 'medium' : 'low',
-    },
-    {
-      label: 'Borrow Fee Pressure',
-      status: (borrowFee ?? 0) >= 50 ? 'Extreme' : (borrowFee ?? 0) >= 30 ? 'Elevated' : 'Normal',
-      severity: (borrowFee ?? 0) >= 50 ? 'high' : (borrowFee ?? 0) >= 30 ? 'medium' : 'low',
-    },
-    {
-      label: 'Utilization Pressure',
-      status: (utilization ?? 0) >= 85 ? 'High' : (utilization ?? 0) >= 60 ? 'Moderate' : 'Low',
-      severity: (utilization ?? 0) >= 85 ? 'high' : (utilization ?? 0) >= 60 ? 'medium' : 'low',
-    },
-    {
-      label: 'Availability Stress',
-      status: (sharesAvailable ?? Infinity) <= 100_000 ? 'Constrained' : (sharesAvailableChangePercent ?? 0) <= -30 ? 'Tightening' : 'Available',
-      severity: (sharesAvailable ?? Infinity) <= 100_000 ? 'high' : (sharesAvailableChangePercent ?? 0) <= -30 ? 'medium' : 'low',
-    },
-    {
-      label: 'Days to Cover Risk',
-      status: (daysToCover ?? 0) >= 5 ? 'High' : (daysToCover ?? 0) >= 3 ? 'Moderate' : 'Low',
-      severity: (daysToCover ?? 0) >= 5 ? 'high' : (daysToCover ?? 0) >= 3 ? 'medium' : 'low',
-    },
-    {
-      label: 'FTD Pressure',
-      status: ftdShares === null ? 'No data' : (ftdShares >= 500_000 || (ftdChangePercent ?? 0) >= 50) ? 'Building' : 'Normal',
-      severity: ftdShares === null ? 'info' : (ftdShares >= 500_000 || (ftdChangePercent ?? 0) >= 50) ? 'medium' : 'low',
-    },
-  ];
   const scoreProgress = Math.min(100, Math.max(0, shortScore));
 
   return (
-    <ImportDataPreviewPage
-      title="Short Interest Intelligence"
-      description="Executive short-interest briefing built from the latest available market data."
-      files={[
-        dataFile,
-        analysisFile,
-      ]}
-    >
+    <div className="page short-interest-page">
       <section className="terminal-section short-interest-overview">
         <div className="terminal-section__head">
           <div>
             <span>Overview</span>
             <h2>Short Interest Overview</h2>
-            <p className="section-subtitle">{text(pageContent.overviewSubtitle, 'Executive view of short exposure, borrow pressure, available inventory, and squeeze-risk inputs.')}</p>
+            <p className="section-subtitle">Executive view of short exposure, borrow pressure, available inventory, and squeeze-risk inputs.</p>
           </div>
           <div className="terminal-section-actions">
-            {sourceChip(ortexEnvelope.sourcePlatform ?? 'Market data')}
+            {sourceChip('Market Data API')}
           </div>
         </div>
 
@@ -849,16 +925,6 @@ export function ShortInterestBrowserPage({ ticker }: { ticker: string }) {
 
         </div>
 
-        <div className="short-signal-strip" aria-label="Current short-interest signals">
-          {signals.map(signal => (
-            <div className={`short-signal-pill ${signal.severity}`} key={signal.label}>
-              <i aria-hidden="true" />
-              <span>{signal.label}</span>
-              <strong>{signal.status}</strong>
-            </div>
-          ))}
-        </div>
-
         <article className="terminal-card short-executive-card short-management-guide short-ai-analysis-card">
           <span>AI Analysis</span>
           <AiSummary value={aiSummary || 'Data unavailable'} />
@@ -874,7 +940,7 @@ export function ShortInterestBrowserPage({ ticker }: { ticker: string }) {
             <p className="section-subtitle">Trend charts for short exposure, borrow cost, and borrow availability.</p>
           </div>
           <div className="terminal-section-actions">
-            {sourceChip(ortexEnvelope.sourcePlatform ?? 'Market data')}
+            {sourceChip('Market Data API')}
           </div>
         </div>
         <div className="short-interest-trend-grid">
@@ -915,11 +981,24 @@ export function ShortInterestBrowserPage({ ticker }: { ticker: string }) {
           </div>
         </div>
         <div className="short-market-data-grid">
-          <PagedShortVolumeTable />
-          <PagedFtdTable />
+          <PagedShortVolumeTable rows={apiShortVolumeRows(apiData.shortVolume)} />
+          <PagedFtdTable rows={apiFtdRows(apiData.ftd)} />
         </div>
       </section>
       <PageDisclaimerNotice noticeKey="shortInterest" disclaimerKey="regulatoryFiling" />
-    </ImportDataPreviewPage>
+      <section className="terminal-section import-data-dev-panel">
+        <div className="terminal-section__head"><div><span>Development Data</span><h2>Short Interest API Data</h2><p className="section-subtitle">Live API payloads only. No local or S3 JSON fallback is used.</p></div></div>
+        <ImportDataTable
+          columns={['endpoint', 'generatedAt', 'records', 'payload']}
+          rows={[
+            { endpoint: 'GET /market-data/current?category=market-current', generatedAt: String(apiData.current.generatedAt ?? 'N/A'), records: '1', payload: JSON.stringify(apiData.current) },
+            { endpoint: 'GET /market-data/history?category=market-history', generatedAt: String(apiData.history.generatedAt ?? 'N/A'), records: String(rows(apiData.history.records).length), payload: JSON.stringify(apiData.history) },
+            { endpoint: 'GET /market-data/history?category=short-volume-history', generatedAt: String(apiData.shortVolume.generatedAt ?? 'N/A'), records: String(rows(apiData.shortVolume.records).length), payload: JSON.stringify(apiData.shortVolume) },
+            { endpoint: 'GET /market-data/history?category=ftd-history', generatedAt: String(apiData.ftd.generatedAt ?? 'N/A'), records: String(rows(apiData.ftd.records).length), payload: JSON.stringify(apiData.ftd) },
+          ]}
+          pageSize={10}
+        />
+      </section>
+    </div>
   );
 }

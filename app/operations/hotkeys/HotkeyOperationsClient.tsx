@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
-import { operationsFetch, operationsProfile } from '@/lib/operations/api-client';
+import { operationsProfile } from '@/lib/operations/api-client';
 
 type HotkeyMapping = {
   ticker: string;
@@ -61,6 +61,30 @@ function formatCreatedAt(value: string) {
   }).format(date);
 }
 
+async function jsonHotkeysFetch(path: string, options: RequestInit = {}) {
+  let localPath = `/api/operations${path}`;
+  if (path.startsWith('/hotkeys/')) {
+    const [, , ticker = '', hotkey = ''] = path.split('/');
+    const params = new URLSearchParams({
+      ticker: decodeURIComponent(ticker),
+      kwatchHotkey: decodeURIComponent(hotkey),
+    });
+    localPath = `/api/operations/hotkeys?${params.toString()}`;
+  }
+  const response = await fetch(localPath, {
+    ...options,
+    cache: options.cache ?? 'no-store',
+    headers: options.body instanceof FormData
+      ? options.headers
+      : { 'Content-Type': 'application/json', ...(options.headers ?? {}) },
+  });
+  const payload = await response.json().catch(() => ({})) as { ok?: boolean; data?: unknown; error?: string };
+  if (!response.ok || payload.ok === false) {
+    throw new Error(payload.error || 'Unable to load notification hotkeys.');
+  }
+  return payload.data ?? payload;
+}
+
 export function HotkeyOperationsClient({ ticker }: { ticker: string }) {
   const normalizedTicker = ticker.trim().toUpperCase();
   const [mappings, setMappings] = useState<HotkeyMapping[]>([]);
@@ -74,7 +98,7 @@ export function HotkeyOperationsClient({ ticker }: { ticker: string }) {
     setState('loading');
     if (!preserveMessage) setMessage('');
     try {
-      const response = await operationsFetch(
+      const response = await jsonHotkeysFetch(
         `/hotkeys?ticker=${encodeURIComponent(normalizedTicker)}`,
         { cache: 'no-store' },
       ) as HotkeyResponse;
@@ -97,7 +121,7 @@ export function HotkeyOperationsClient({ ticker }: { ticker: string }) {
     if (!updates.length) return;
 
     await Promise.all(updates.map(({ mapping, inferredPlatform }) => (
-      operationsFetch('/hotkeys', {
+      jsonHotkeysFetch('/hotkeys', {
         method: 'POST',
         body: JSON.stringify({
           ticker: mapping.ticker || normalizedTicker,
@@ -113,7 +137,7 @@ export function HotkeyOperationsClient({ ticker }: { ticker: string }) {
 
     Promise.all([
       operationsProfile(),
-      operationsFetch(`/hotkeys?ticker=${encodeURIComponent(normalizedTicker)}`, { cache: 'no-store' }) as Promise<HotkeyResponse>,
+      jsonHotkeysFetch(`/hotkeys?ticker=${encodeURIComponent(normalizedTicker)}`, { cache: 'no-store' }) as Promise<HotkeyResponse>,
     ])
       .then(([profile, response]) => {
         if (cancelled) return;
@@ -157,7 +181,7 @@ export function HotkeyOperationsClient({ ticker }: { ticker: string }) {
     setState('saving');
     setMessage('');
     try {
-      await operationsFetch('/hotkeys', {
+      await jsonHotkeysFetch('/hotkeys', {
         method: 'POST',
         body: JSON.stringify({
           ticker: normalizedTicker,
@@ -179,7 +203,7 @@ export function HotkeyOperationsClient({ ticker }: { ticker: string }) {
     setState('deleting');
     setMessage('');
     try {
-      await operationsFetch(
+      await jsonHotkeysFetch(
         `/hotkeys/${encodeURIComponent(mapping.ticker)}/${encodeURIComponent(mapping.kwatchHotkey)}`,
         { method: 'DELETE' },
       );

@@ -138,16 +138,31 @@ async function getMappedSocialPrefixes(ticker: string, defaults: ReturnType<type
     linkedin: [defaults.linkedin],
   };
 
+  let mappings: HotkeyMapping[] = [];
   try {
     const response = await authenticatedFetch(`/hotkeys?ticker=${encodeURIComponent(ticker)}`, { cache: 'no-store' }) as HotkeyResponse;
-    hotkeyMappingsFromResponse(response).forEach(mapping => {
+    mappings = hotkeyMappingsFromResponse(response);
+  } catch {
+    // Public demo sessions and temporary API issues still use the JSON-backed operations hotkeys.
+  }
+
+  if (!mappings.length) {
+    try {
+      const response = await fetch(`/api/operations/hotkeys?ticker=${encodeURIComponent(ticker)}`, { cache: 'no-store' });
+      const payload = await response.json() as { ok?: boolean; data?: HotkeyResponse };
+      if (response.ok && payload.ok !== false && payload.data) {
+        mappings = hotkeyMappingsFromResponse(payload.data);
+      }
+    } catch {
+      // Keep defaults when neither backend nor JSON-backed hotkeys are available.
+    }
+  }
+
+  mappings.forEach(mapping => {
       const key = platformKey(mapping.platform) ?? inferPlatformKeyFromHotkey(mapping.kwatchHotkey);
       const prefix = socialPrefixFromHotkey(String(mapping.kwatchHotkey ?? ''));
       if (key && prefix) prefixes[key].push(prefix);
-    });
-  } catch {
-    // Public demo sessions and temporary API issues still use the default social prefixes.
-  }
+  });
 
   return {
     reddit: dedupeStrings(prefixes.reddit),

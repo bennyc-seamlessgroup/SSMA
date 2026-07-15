@@ -1,7 +1,9 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
-import { operationsFetch, operationsProfile } from '@/lib/operations/api-client';
+import { ImportDataTable } from '@/components/ImportDataTable';
+import { authenticatedFetch } from '@/lib/auth-client';
+import { operationsProfile } from '@/lib/operations/api-client';
 import { getOperationsTicker, setOperationsTicker } from '@/lib/operations/ticker-client';
 
 type DateSpecificRecord = {
@@ -63,6 +65,15 @@ type FormState = {
   maintenanceMarginFutu: string;
   averageDurationDays: string;
   shortScore: string;
+};
+
+type ApiDebugRow = {
+  endpoint: string;
+  source: string;
+  status: string;
+  recordCount: string;
+  generatedAt: string;
+  payload: string;
 };
 
 const dateSpecificCategories = ['utilization', 'manual-availability', 'margins', 'short-score'] as const;
@@ -153,6 +164,59 @@ function asArray<T>(value: unknown): T[] {
   return Array.isArray(value) ? value as T[] : [];
 }
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return Boolean(value) && typeof value === 'object' && !Array.isArray(value);
+}
+
+function payloadRecordCount(value: unknown) {
+  if (Array.isArray(value)) return value.length;
+  if (isRecord(value) && Array.isArray(value.records)) return value.records.length;
+  if (value === null || value === undefined) return 0;
+  return 1;
+}
+
+function payloadGeneratedAt(value: unknown) {
+  if (isRecord(value)) {
+    return String(value.generatedAt ?? value.updatedAt ?? value.createdAt ?? '');
+  }
+  if (Array.isArray(value)) {
+    const latest = value
+      .filter(isRecord)
+      .map(row => String(row.generatedAt ?? row.updatedAt ?? row.createdAt ?? ''))
+      .filter(Boolean)
+      .sort()
+      .at(-1);
+    return latest ?? '';
+  }
+  return '';
+}
+
+function payloadPreview(value: unknown) {
+  if (value === null || value === undefined) return 'No data';
+  try {
+    return JSON.stringify(value).slice(0, 240);
+  } catch {
+    return String(value).slice(0, 240);
+  }
+}
+
+function withoutUndefined<T extends Record<string, unknown>>(input: T) {
+  return Object.fromEntries(Object.entries(input).filter(([, value]) => value !== undefined)) as Partial<T>;
+}
+
+async function saveManualInput(endpoint: string, payload: Record<string, unknown>) {
+  const body = JSON.stringify(withoutUndefined(payload));
+  try {
+    return await authenticatedFetch(endpoint, { method: 'PUT', body });
+  } catch (error) {
+    try {
+      return await authenticatedFetch(endpoint, { method: 'POST', body });
+    } catch {
+      throw error;
+    }
+  }
+}
+
 function latestMeta(...records: Array<DateSpecificRecord | undefined>) {
   return records
     .filter((record): record is DateSpecificRecord => Boolean(record))
@@ -222,32 +286,71 @@ export function MarketDataOperationsClient() {
   const [tickerDraft, setTickerDraft] = useState('CURR');
   const [form, setForm] = useState<FormState>(() => emptyForm());
   const [rows, setRows] = useState<MarketInputRow[]>([]);
+  const [apiDebugRows, setApiDebugRows] = useState<ApiDebugRow[]>([]);
   const [status, setStatus] = useState<'checking' | 'loading' | 'idle' | 'saving' | 'success' | 'error' | 'forbidden'>('checking');
   const [message, setMessage] = useState('');
+  const [deletingDate, setDeletingDate] = useState('');
+
+  async function loadApi(endpoint: string) {
+    try {
+      const payload = await authenticatedFetch(endpoint);
+      return {
+        payload,
+        debug: {
+          endpoint,
+          source: 'API Gateway',
+          status: 'ok',
+          recordCount: String(payloadRecordCount(payload)),
+          generatedAt: payloadGeneratedAt(payload) || 'N/A',
+          payload: payloadPreview(payload),
+        },
+      };
+    } catch (error) {
+      return {
+        payload: null,
+        debug: {
+          endpoint,
+          source: 'API Gateway',
+          status: error instanceof Error ? `error: ${error.message}` : 'error',
+          recordCount: '0',
+          generatedAt: 'N/A',
+          payload: 'No API payload returned.',
+        },
+      };
+    }
+  }
 
   async function loadRecords(ticker: string, preserveFeedback = false) {
     const normalized = normalizeTicker(ticker);
     setStatus('loading');
     if (!preserveFeedback) setMessage('');
     try {
-      const [issuedSharePayload, utilizationPayload, availabilityPayload, marginsPayload, shortScorePayload] = await Promise.all([
-        operationsFetch(`/manual-input/issued-share?ticker=${encodeURIComponent(normalized)}`).catch(() => null),
-        operationsFetch(`/manual-input/utilization?ticker=${encodeURIComponent(normalized)}`).catch(() => []),
-        operationsFetch(`/manual-input/manual-availability?ticker=${encodeURIComponent(normalized)}`).catch(() => []),
-        operationsFetch(`/manual-input/margins?ticker=${encodeURIComponent(normalized)}`).catch(() => []),
-        operationsFetch(`/manual-input/short-score?ticker=${encodeURIComponent(normalized)}`).catch(() => []),
+      const endpoints = [
+        `/manual-input/issued-share?ticker=${encodeURIComponent(normalized)}`,
+        `/manual-input/utilization?ticker=${encodeURIComponent(normalized)}`,
+        `/manual-input/manual-availability?ticker=${encodeURIComponent(normalized)}`,
+        `/manual-input/margins?ticker=${encodeURIComponent(normalized)}`,
+        `/manual-input/short-score?ticker=${encodeURIComponent(normalized)}`,
+      ];
+      const [issuedShareResult, utilizationResult, availabilityResult, marginsResult, shortScoreResult] = await Promise.all([
+        loadApi(endpoints[0]),
+        loadApi(endpoints[1]),
+        loadApi(endpoints[2]),
+        loadApi(endpoints[3]),
+        loadApi(endpoints[4]),
       ]);
-      const issuedShare = numberOrUndefined(String((issuedSharePayload as { issuedShare?: unknown } | null)?.issuedShare ?? ''));
+      setApiDebugRows([issuedShareResult, utilizationResult, availabilityResult, marginsResult, shortScoreResult].map(result => result.debug));
+      const issuedShare = numberOrUndefined(String((issuedShareResult.payload as { issuedShare?: unknown } | null)?.issuedShare ?? ''));
       setSelectedTicker(normalized);
       setTickerDraft(normalized);
       setOperationsTicker(normalized);
       setForm(current => ({ ...emptyForm(), tradeDate: current.tradeDate || todayYmd(), issuedShare: issuedShare === undefined ? '' : String(issuedShare) }));
       setRows(mergeRows(
         issuedShare,
-        asArray<UtilizationRecord>(utilizationPayload),
-        asArray<AvailabilityRecord>(availabilityPayload),
-        asArray<MarginRecord>(marginsPayload),
-        asArray<ShortScoreRecord>(shortScorePayload),
+        asArray<UtilizationRecord>(utilizationResult.payload),
+        asArray<AvailabilityRecord>(availabilityResult.payload),
+        asArray<MarginRecord>(marginsResult.payload),
+        asArray<ShortScoreRecord>(shortScoreResult.payload),
       ));
       setStatus(preserveFeedback ? 'success' : 'idle');
     } catch (error) {
@@ -333,22 +436,13 @@ export function MarketDataOperationsClient() {
     const shortScore = numberOrUndefined(form.shortScore);
 
     if (issuedShare !== undefined) {
-      requests.push(operationsFetch(`/manual-input/issued-share?ticker=${tickerParam}`, {
-        method: 'PUT',
-        body: JSON.stringify({ issuedShare }),
-      }));
+      requests.push(saveManualInput(`/manual-input/issued-share?ticker=${tickerParam}`, { issuedShare }));
     }
     if (utilizationPercent !== undefined) {
-      requests.push(operationsFetch(`/manual-input/utilization?ticker=${tickerParam}&tradeDate=${tradeDateParam}`, {
-        method: 'PUT',
-        body: JSON.stringify({ utilizationPercent }),
-      }));
+      requests.push(saveManualInput(`/manual-input/utilization?ticker=${tickerParam}&tradeDate=${tradeDateParam}`, { utilizationPercent }));
     }
     if (availableSharesIbkr !== undefined || availableSharesFutu !== undefined) {
-      requests.push(operationsFetch(`/manual-input/manual-availability?ticker=${tickerParam}&tradeDate=${tradeDateParam}`, {
-        method: 'PUT',
-        body: JSON.stringify({ availableSharesIbkr, availableSharesFutu }),
-      }));
+      requests.push(saveManualInput(`/manual-input/manual-availability?ticker=${tickerParam}&tradeDate=${tradeDateParam}`, { availableSharesIbkr, availableSharesFutu }));
     }
     if (
       initialMarginIbkr !== undefined ||
@@ -357,24 +451,18 @@ export function MarketDataOperationsClient() {
       maintenanceMarginFutu !== undefined ||
       averageDurationDays !== undefined
     ) {
-      requests.push(operationsFetch(`/manual-input/margins?ticker=${tickerParam}&tradeDate=${tradeDateParam}`, {
-        method: 'PUT',
-        body: JSON.stringify({
-          initialMarginIbkr,
-          initialMarginFutu,
-          maintenanceMarginIbkr,
-          maintenanceMarginFutu,
-          averageDurationDays,
-          valueFormat: 'decimal_ratio',
-          displayFormat: 'percent',
-        }),
+      requests.push(saveManualInput(`/manual-input/margins?ticker=${tickerParam}&tradeDate=${tradeDateParam}`, {
+        initialMarginIbkr,
+        initialMarginFutu,
+        maintenanceMarginIbkr,
+        maintenanceMarginFutu,
+        averageDurationDays,
+        valueFormat: 'decimal_ratio',
+        displayFormat: 'percent',
       }));
     }
     if (shortScore !== undefined) {
-      requests.push(operationsFetch(`/manual-input/short-score?ticker=${tickerParam}&tradeDate=${tradeDateParam}`, {
-        method: 'PUT',
-        body: JSON.stringify({ shortScore }),
-      }));
+      requests.push(saveManualInput(`/manual-input/short-score?ticker=${tickerParam}&tradeDate=${tradeDateParam}`, { shortScore }));
     }
 
     try {
@@ -385,6 +473,33 @@ export function MarketDataOperationsClient() {
     } catch (error) {
       setStatus('error');
       setMessage(error instanceof Error ? error.message : 'Unable to save Manual Input V2 records.');
+    }
+  }
+
+  async function deleteRecord(record: MarketInputRow) {
+    if (!record.tradeDate) return;
+    setDeletingDate(record.tradeDate);
+    setStatus('saving');
+    setMessage('');
+
+    const tickerParam = encodeURIComponent(selectedTicker);
+    const tradeDateParam = encodeURIComponent(record.tradeDate);
+
+    try {
+      await Promise.all([
+        authenticatedFetch(`/manual-input/utilization?ticker=${tickerParam}&tradeDate=${tradeDateParam}`, { method: 'DELETE' }),
+        authenticatedFetch(`/manual-input/manual-availability?ticker=${tickerParam}&tradeDate=${tradeDateParam}`, { method: 'DELETE' }),
+        authenticatedFetch(`/manual-input/margins?ticker=${tickerParam}&tradeDate=${tradeDateParam}`, { method: 'DELETE' }),
+        authenticatedFetch(`/manual-input/short-score?ticker=${tickerParam}&tradeDate=${tradeDateParam}`, { method: 'DELETE' }),
+      ]);
+      setStatus('success');
+      setMessage(`Deleted daily Manual Input V2 records for ${record.tradeDate}. Issued Share was not deleted because it is a ticker-level value.`);
+      await loadRecords(selectedTicker, true);
+    } catch (error) {
+      setStatus('error');
+      setMessage(error instanceof Error ? error.message : 'Unable to delete Manual Input V2 records.');
+    } finally {
+      setDeletingDate('');
     }
   }
 
@@ -480,13 +595,40 @@ export function MarketDataOperationsClient() {
                   <td>{formatDays(record.averageDurationDays)}</td>
                   <td>{formatNumber(record.shortScore, 1)}</td>
                   <td>{formatDateTime(record.updatedAt)}{record.updatedBy ? ` · ${record.updatedBy}` : ''}</td>
-                  <td><button className="ops-secondary-button" type="button" onClick={() => editRecord(record)}>Edit</button></td>
+                  <td>
+                    <div className="ops-row-actions">
+                      <button className="ops-secondary-button" type="button" onClick={() => editRecord(record)}>Edit</button>
+                      <button
+                        className="ops-danger-button"
+                        type="button"
+                        disabled={deletingDate === record.tradeDate || busy}
+                        onClick={() => deleteRecord(record)}
+                      >
+                        {deletingDate === record.tradeDate ? 'Deleting...' : 'Delete'}
+                      </button>
+                    </div>
+                  </td>
                 </tr>
               ))}
               {!rows.length && <tr><td colSpan={13}>{busy ? 'Loading Manual Input V2 records...' : 'No Manual Input V2 records found for this ticker.'}</td></tr>}
             </tbody>
           </table>
         </div>
+      </section>
+
+      <section className="terminal-section import-data-dev-panel">
+        <div className="terminal-section__head">
+          <div>
+            <span>Development Data</span>
+            <h2>Manual Input V2 API Responses</h2>
+            <p className="section-subtitle">This table shows the exact API endpoints used by this operations page. No local JSON fallback is used here.</p>
+          </div>
+        </div>
+        <ImportDataTable
+          columns={['endpoint', 'source', 'status', 'recordCount', 'generatedAt', 'payload']}
+          rows={apiDebugRows}
+          pageSize={10}
+        />
       </section>
     </div>
   );

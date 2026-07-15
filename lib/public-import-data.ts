@@ -157,16 +157,11 @@ async function socialStatus(ticker: string, signal?: AbortSignal): Promise<Publi
 }
 
 async function pageStatus(
-  source: PageDataSource,
+  _source: PageDataSource,
   ticker: string,
   signal?: AbortSignal,
 ): Promise<PublicPageDataStatus> {
-  if (source.type === 'import-files') return importFilesStatus(source.files, signal);
-  if (source.type === 'social-data') return socialStatus(ticker, signal);
-  return listPrefixStatus(`report_data/`, signal).catch(() => ({
-    version: stableVersion('reports:unavailable'),
-    updatedAt: null,
-  }));
+  return socialStatus(ticker, signal);
 }
 
 export async function getPublicTickerDataStatus(

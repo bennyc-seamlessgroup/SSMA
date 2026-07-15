@@ -3,12 +3,11 @@
 import { PortalPageLoading } from '@/components/PortalPageLoading';
 import { PageDisclaimerNotice } from '@/components/PageDisclaimerNotice';
 import { usePortalTimeZone } from '@/components/usePortalTimeZone';
-import { usePublicImportFiles } from '@/components/usePublicImportFiles';
-import { useTickerDataStatus } from '@/components/TickerDataStatusProvider';
+import { authenticatedFetch } from '@/lib/auth-client';
 import { formatPortalDateTime } from '@/lib/timezone';
 import type { InstitutionalHolding } from '@/lib/types';
-import { institutionalActivistFile, institutionalOverviewFile, institutionalSecurityFile, managementHoldingsInputFile, normalizeTicker } from '@/lib/ticker-data';
-import { buildDashboard } from '@/lib/mock-data';
+import { normalizeTicker } from '@/lib/ticker-data';
+import { useEffect, useState } from 'react';
 import { InstitutionalTabs } from './InstitutionalTabs';
 import type { ActivistFiling } from './ActivistFilingsTable';
 import { InstitutionalDevTables } from './InstitutionalDevTables';
@@ -16,6 +15,7 @@ import { InstitutionalOverview, type InstitutionalOverviewData } from './Institu
 
 type SecurityOwnershipRow = {
   name?: string | null;
+  holderName?: string | null;
   formType?: string | null;
   formTypeShort?: string | null;
   effectiveDate?: string | null;
@@ -25,15 +25,18 @@ type SecurityOwnershipRow = {
   shares?: number | string | null;
   sharesChange?: number | string | null;
   sharesPercentChange?: number | string | null;
+  percentChange?: number | string | null;
   value?: number | string | null;
   valueChange?: number | string | null;
   valuePercentChange?: number | string | null;
+  percentValueChange?: number | string | null;
   costBasis?: number | string | null;
   url?: string | null;
 };
 
 type ActivistFilingRow = {
   name?: string | null;
+  holderName?: string | null;
   formType?: string | null;
   effectiveDate?: string | null;
   fileDate?: string | null;
@@ -42,10 +45,9 @@ type ActivistFilingRow = {
   shares?: number | string | null;
   sharesChange?: number | string | null;
   sharesPercentChange?: number | string | null;
+  percentChange?: number | string | null;
   url?: string | null;
 };
-
-type ImportEnvelope<T> = { data?: T };
 
 type ManagementHoldingInputRecord = {
   id: string;
@@ -62,16 +64,21 @@ type ManagementHoldingInputRecord = {
   status?: 'pending' | 'applied' | 'discarded';
 };
 
-type ManagementHoldingsInputFile = {
-  records?: ManagementHoldingInputRecord[];
+type OwnershipCurrent = {
+  generatedAt?: string;
+  updatedAt?: string;
+  issuedShare?: number;
+  institutionalOwners?: number;
+  institutionalSharesLong?: number;
+  institutionalHoldingPercent?: number;
+  institutionalValue?: number;
+  averagePortfolioAllocationPercent?: number;
+  strategicEntities?: { shares?: number; percent?: number; records?: ManagementHoldingInputRecord[] };
+  publicFloat?: { shares?: number; percent?: number };
+  institutionBreakdown?: Array<Record<string, unknown>>;
 };
 
-function unwrap<T>(value: unknown): T {
-  if (value && typeof value === 'object' && !Array.isArray(value) && 'data' in value) {
-    return (value as ImportEnvelope<T>).data as T;
-  }
-  return value as T;
-}
+type OwnershipHistory = { generatedAt?: string; records?: Array<Record<string, unknown>> };
 
 function formatNumber(value: unknown, options?: Intl.NumberFormatOptions) {
   const numeric = typeof value === 'number' ? value : Number(String(value ?? '').replace(/,/g, ''));
@@ -93,40 +100,74 @@ function changeType(value: unknown): InstitutionalHolding['change_type'] {
   return 'unchanged';
 }
 
-function ownershipChangeType(row: Pick<SecurityOwnershipRow, 'sharesChange' | 'sharesPercentChange'>): InstitutionalHolding['change_type'] {
+function ownershipChangeType(row: SecurityOwnershipRow): InstitutionalHolding['change_type'] {
   const sharesChange = typeof row.sharesChange === 'number' ? row.sharesChange : Number(String(row.sharesChange ?? '').replace(/,/g, ''));
-  const pctChange = typeof row.sharesPercentChange === 'number' ? row.sharesPercentChange : Number(String(row.sharesPercentChange ?? '').replace(/,/g, ''));
+  const rawPctChange = row.percentChange ?? row.sharesPercentChange;
+  const pctChange = typeof rawPctChange === 'number' ? rawPctChange : Number(String(rawPctChange ?? '').replace(/,/g, ''));
   if (Number.isFinite(pctChange) && pctChange <= -100) return 'exited';
   return changeType(Number.isFinite(sharesChange) ? sharesChange : row.sharesChange);
 }
 
 export function InstitutionalBrowserPage({ ticker }: { ticker: string }) {
   const normalizedTicker = normalizeTicker(ticker);
-  const company = buildDashboard(normalizedTicker).company;
-  const overviewFile = institutionalOverviewFile(normalizedTicker);
-  const securityFile = institutionalSecurityFile(normalizedTicker);
-  const activistFile = institutionalActivistFile(normalizedTicker);
-  const managementFile = managementHoldingsInputFile(normalizedTicker);
-  const files = [overviewFile, securityFile, activistFile, managementFile];
-  const { data, error, loading } = usePublicImportFiles(files);
-  const status = useTickerDataStatus();
+  const [current, setCurrent] = useState<OwnershipCurrent | null>(null);
+  const [history, setHistory] = useState<OwnershipHistory | null>(null);
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(true);
   const timeZone = usePortalTimeZone();
 
-  if (loading && !data) return <PortalPageLoading variant="ownership" />;
-  if (error || !data) {
+  useEffect(() => {
+    let cancelled = false;
+    setLoading(true);
+    setError('');
+    Promise.all([
+      authenticatedFetch(`/market-data/current?ticker=${encodeURIComponent(normalizedTicker)}&category=ownership-current`) as Promise<OwnershipCurrent>,
+      authenticatedFetch(`/market-data/history?ticker=${encodeURIComponent(normalizedTicker)}&category=ownership-history`) as Promise<OwnershipHistory>,
+    ]).then(([nextCurrent, nextHistory]) => {
+      if (cancelled) return;
+      setCurrent(nextCurrent);
+      setHistory(nextHistory);
+    }).catch(cause => {
+      if (!cancelled) setError(cause instanceof Error ? cause.message : 'Unable to load ownership data.');
+    }).finally(() => {
+      if (!cancelled) setLoading(false);
+    });
+    return () => { cancelled = true; };
+  }, [normalizedTicker]);
+
+  if (loading) return <PortalPageLoading variant="ownership" />;
+  if (error || !current || !history) {
     return <div className="page"><section className="panel"><h2>Ownership data unavailable</h2><p>{error}</p></section></div>;
   }
 
-  const securityRows = unwrap<SecurityOwnershipRow[]>(data[securityFile]) ?? [];
-  const activistRows = unwrap<ActivistFilingRow[]>(data[activistFile]) ?? [];
-  const overviewEnvelope = (data[overviewFile] ?? {}) as ImportEnvelope<InstitutionalOverviewData>;
-  const overviewData = overviewEnvelope.data ?? unwrap<InstitutionalOverviewData>(data[overviewFile]) ?? {};
-  const managementEnvelope = unwrap<ManagementHoldingsInputFile>(data[managementFile]) ?? {};
-  const managementRecords = Array.isArray(managementEnvelope.records) ? managementEnvelope.records : [];
+  const allHistoryRows = Array.isArray(history.records) ? history.records : [];
+  const securityRows = allHistoryRows.filter(row => !String(row.sourceType ?? '').toLowerCase().includes('activist')) as SecurityOwnershipRow[];
+  const activistRows = allHistoryRows.filter(row => String(row.sourceType ?? '').toLowerCase().includes('activist')) as ActivistFilingRow[];
+  const managementRecords = Array.isArray(current.strategicEntities?.records) ? current.strategicEntities.records : [];
+  const institutionBars = (current.institutionBreakdown ?? []).map(row => ({
+    name: String(row.holderName ?? row.name ?? 'Unknown holder'),
+    shares: Number(row.shares ?? 0),
+    value: Number(row.value ?? 0),
+    ownershipPercentOfInstitutional: Number(row.percentOfInstitutionalShares ?? row.ownershipPercentOfInstitutional ?? 0),
+    ownershipPercentOfSharesOutstanding: Number(row.percentOfIssuedShare ?? row.ownershipPercentOfSharesOutstanding ?? 0),
+  }));
+  const overviewData: InstitutionalOverviewData = {
+    overview: {
+      shares_outstanding: current.issuedShare,
+      institutional_owners: current.institutionalOwners,
+      institutional_shares_long: current.institutionalSharesLong,
+      institutional_ownership_percent: current.institutionalHoldingPercent,
+      institutional_value_thousands_usd: current.institutionalValue,
+      average_portfolio_allocation_percent: current.averagePortfolioAllocationPercent,
+      public_float_shares: current.publicFloat?.shares,
+      public_float_percent: current.publicFloat?.percent,
+    },
+    institution_bars: institutionBars,
+  };
   const holdings: InstitutionalHolding[] = securityRows.map((row, index) => ({
     id: `import-ownership-${index}`,
     company_id: `company-${normalizedTicker}`,
-    fund_name: row.name ?? 'Unknown holder',
+    fund_name: row.holderName ?? row.name ?? 'Unknown holder',
     shares: formatNumber(row.shares),
     market_value: formatNumber(row.value),
     change_type: ownershipChangeType(row),
@@ -134,19 +175,19 @@ export function InstitutionalBrowserPage({ ticker }: { ticker: string }) {
     source: row.formTypeShort ?? row.formType ?? 'Imported filing',
     ownership_percent: formatPercent(row.ownershipPercent),
     shares_change: formatNumber(row.sharesChange),
-    shares_change_percent: formatPercent(row.sharesPercentChange),
+    shares_change_percent: formatPercent(row.percentChange ?? row.sharesPercentChange),
     value_change: formatNumber(row.valueChange),
-    value_change_percent: formatPercent(row.valuePercentChange),
+    value_change_percent: formatPercent(row.percentValueChange ?? row.valuePercentChange),
     form_type: row.formType ?? undefined,
     effective_date: row.effectiveDate ?? undefined,
     owner_url: row.url ?? undefined,
     cost_basis: formatNumber(row.costBasis),
     source_type: 'fintel',
-    source_label: securityFile,
+    source_label: 'GET /market-data/history?category=ownership-history',
   }));
   const activistFilings: ActivistFiling[] = activistRows.map((row, index) => ({
     id: `activist-filing-${index}`,
-    name: row.name ?? 'Unknown holder',
+    name: row.holderName ?? row.name ?? 'Unknown holder',
     formType: row.formType ?? 'N/A',
     fileDate: row.fileDate ?? 'N/A',
     effectiveDate: row.effectiveDate ?? 'N/A',
@@ -154,10 +195,10 @@ export function InstitutionalBrowserPage({ ticker }: { ticker: string }) {
     ownershipPercentChange: formatPercent(row.ownershipPercentChange),
     shares: formatNumber(row.shares),
     sharesChange: formatNumber(row.sharesChange),
-    sharesPercentChange: formatPercent(row.sharesPercentChange),
+    sharesPercentChange: formatPercent(row.percentChange ?? row.sharesPercentChange),
     url: row.url ?? undefined,
   }));
-  const updatedAt = status?.pages.institutional?.updatedAt;
+  const updatedAt = current.updatedAt ?? current.generatedAt ?? history.generatedAt;
 
   return (
     <div className="page institutional-page">
@@ -166,23 +207,23 @@ export function InstitutionalBrowserPage({ ticker }: { ticker: string }) {
         <p>Normalized ownership records</p>
         <span className="page-header-import-status" aria-label="Latest import data update">
           <span>Latest import data update</span>
-          <strong>{updatedAt ? formatPortalDateTime(updatedAt, timeZone) : 'Checking public data'}</strong>
+          <strong>{updatedAt ? formatPortalDateTime(updatedAt, timeZone) : 'No API update available'}</strong>
         </span>
       </div>
 
       <InstitutionalOverview data={overviewData} ticker={normalizedTicker} managementRecords={managementRecords} />
       <section className="panel">
-        <InstitutionalTabs holdings={holdings} activistFilings={activistFilings} ticker={normalizedTicker} companyName={company.company_name} />
+        <InstitutionalTabs holdings={holdings} activistFilings={activistFilings} ticker={normalizedTicker} companyName={normalizedTicker} />
       </section>
       <PageDisclaimerNotice noticeKey="ownership" disclaimerKey="regulatoryFiling" />
       <InstitutionalDevTables
-        overviewFile={overviewFile}
-        securityFile={securityFile}
-        activistFile={activistFile}
+        overviewFile="GET /market-data/current?category=ownership-current"
+        securityFile="GET /market-data/history?category=ownership-history"
+        activistFile="GET /market-data/history?category=ownership-history"
         overview={(overviewData.overview ?? null) as Record<string, unknown> | null}
         ownershipStructure={(overviewData.ownership_structure ?? []) as Array<Record<string, unknown>>}
         insiderBars={(overviewData.insider_bars ?? []) as Array<Record<string, unknown>>}
-        institutionBars={(overviewData.institution_bars ?? []) as Array<Record<string, unknown>>}
+        institutionBars={institutionBars as Array<Record<string, unknown>>}
         publicFloatBreakdown={(overviewData.public_float_breakdown ?? []) as Array<Record<string, unknown>>}
         securityRows={securityRows as Array<Record<string, unknown>>}
         activistRows={activistRows as Array<Record<string, unknown>>}
