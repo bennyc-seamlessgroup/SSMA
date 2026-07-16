@@ -18,7 +18,7 @@ export function LoginRedirectClient() {
       hasStartedRef.current = true;
 
       try {
-        await startLogin({ redirectTo: searchParams.get('next') || '/monitor/CURR/dashboard-v2' });
+        await startLogin({ redirectTo: searchParams.get('next') || '/monitor/CURR/dashboard' });
       } catch (err) {
         hasStartedRef.current = false;
         if (!cancelled) setError(err instanceof Error ? err.message : 'Unable to start secure sign in.');

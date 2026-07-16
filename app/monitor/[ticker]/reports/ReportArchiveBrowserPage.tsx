@@ -13,12 +13,6 @@ export function ReportArchiveBrowserPage({ ticker }: { ticker: string }) {
 
   return (
     <div className="page report-archive-page">
-      <div className="page__header dashboard-command-header">
-        <div>
-          <h1 className="page__title">Report Archive</h1>
-          <p className="page__desc">Access and download all daily reports.</p>
-        </div>
-      </div>
       <section className="report-history-empty">
         Report Archive is awaiting a centralized report API. Legacy S3 JSON loading has been removed.
       </section>

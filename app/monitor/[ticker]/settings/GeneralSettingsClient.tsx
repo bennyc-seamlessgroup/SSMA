@@ -13,9 +13,9 @@ const languageOptions = [
 ] as const;
 
 const landingPageOptions = [
-  ['dashboard-v2', 'Dashboard'],
+  ['dashboard', 'Dashboard'],
   ['institutional', 'Ownership'],
-  ['internal-float-v2', 'Internal Float'],
+  ['internal-float', 'Internal Float'],
   ['short-interest', 'Short Interest'],
   ['lending-pressure', 'Lending Pressure'],
   ['sentiment', 'Social Sentiment'],
@@ -63,7 +63,7 @@ type GeneralSettings = {
 
 const defaultSettings: GeneralSettings = {
   language: 'en',
-  landingPage: 'dashboard-v2',
+  landingPage: 'dashboard',
   theme: 'light',
   numberFormat: 'compact',
   dateFormat: 'medium',
@@ -76,7 +76,11 @@ function readSettings(): GeneralSettings {
   try {
     const raw = window.localStorage.getItem(storageKey);
     if (!raw) return defaultSettings;
-    return { ...defaultSettings, ...JSON.parse(raw) } as GeneralSettings;
+    const settings = { ...defaultSettings, ...JSON.parse(raw) } as GeneralSettings;
+    if (!landingPageOptions.some(([value]) => value === settings.landingPage)) {
+      settings.landingPage = defaultSettings.landingPage;
+    }
+    return settings;
   } catch {
     return defaultSettings;
   }

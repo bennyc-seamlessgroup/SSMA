@@ -27,7 +27,7 @@ type KpiConfig = {
   chartTone: 'blue' | 'red' | 'green' | 'orange' | 'purple' | 'slate';
 };
 
-export const dashboardV2Periods: PeriodKey[] = ['1D', '5D', '1M', '3M', '1Y', 'YTD'];
+export const dashboardPeriods: PeriodKey[] = ['1D', '5D', '1M', '3M', '1Y', 'YTD'];
 
 const kpis: KpiConfig[] = [
   {
@@ -179,31 +179,33 @@ function sparklinePath(values: number[], width: number, height: number, pad = 5)
 
 function Sparkline({ values, tone }: { values: number[]; tone: KpiConfig['chartTone'] }) {
   const compactValues = values.filter(value => Number.isFinite(value)).slice(-36);
-  const { line, area } = sparklinePath(compactValues, 210, 48);
+  const { line, area } = sparklinePath(compactValues, 320, 40, 4);
   const isEmpty = compactValues.length < 2 || !line;
 
   return (
-    <div className={`dashboard-v2-kpi-spark dashboard-v2-kpi-spark--${tone}`} aria-hidden="true">
+    <div className={`dashboard-kpi-spark dashboard-kpi-spark--${tone}`} aria-hidden="true">
       {isEmpty ? (
         <span />
       ) : (
-        <svg viewBox="0 0 210 48" preserveAspectRatio="none" focusable="false">
-          <path className="dashboard-v2-kpi-spark-area" d={area} />
-          <path className="dashboard-v2-kpi-spark-line" d={line} />
+        <svg viewBox="0 0 320 40" preserveAspectRatio="none" focusable="false">
+          <path className="dashboard-kpi-spark-area" d={area} />
+          <path className="dashboard-kpi-spark-line" d={line} />
         </svg>
       )}
     </div>
   );
 }
 
-export function DashboardV2Kpis({
+export function DashboardKpis({
   data,
   period,
+  onPeriodChange,
   utilizationRecords,
   marginRecords,
 }: {
   data: TrendPoint[];
   period: PeriodKey;
+  onPeriodChange: (period: PeriodKey) => void;
   utilizationRecords: DashboardUtilizationRecord[];
   marginRecords: DashboardMarginRecord[];
 }) {
@@ -212,8 +214,23 @@ export function DashboardV2Kpis({
   const cleanMarginRecords = useMemo(() => [...marginRecords].filter(record => record.date).sort((a, b) => a.date.localeCompare(b.date)), [marginRecords]);
 
   return (
-    <section className="dashboard-v2-kpi-block" aria-label="Borrow market KPIs">
-      <div className="dashboard-v2-kpis">
+    <section className="dashboard-kpi-block" aria-label="Borrow market KPIs">
+      <div className="dashboard-kpi-toolbar">
+        <h2>Market Overview</h2>
+        <div className="dashboard-period-control" aria-label="Overview comparison period">
+          {dashboardPeriods.map(item => (
+            <button
+              type="button"
+              key={item}
+              className={period === item ? 'active' : ''}
+              onClick={() => onPeriodChange(item)}
+            >
+              {item}
+            </button>
+          ))}
+        </div>
+      </div>
+      <div className="dashboard-kpis">
         {kpis.map(item => {
           const isManualInput = isManualKpiKey(item.key);
           let currentValue: number | undefined;
@@ -249,11 +266,11 @@ export function DashboardV2Kpis({
           const tone = change === null ? 'neutral' : change > 0 ? 'up' : change < 0 ? 'down' : 'neutral';
 
           return (
-            <article className="dashboard-v2-kpi" key={item.label}>
-              <div className="dashboard-v2-kpi-top">
-                <span className="dashboard-v2-kpi-label">{item.label} <InfoTooltip text={item.explanation} /></span>
+            <article className="dashboard-kpi" key={item.label}>
+              <div className="dashboard-kpi-top">
+                <span className="dashboard-kpi-label">{item.label} <InfoTooltip text={item.explanation} /></span>
                 <strong>{item.valueFormatter(currentValue)}</strong>
-                <div className={`dashboard-v2-kpi-change ${tone}`}>
+                <div className={`dashboard-kpi-change ${tone}`}>
                   <b>{change === null ? (isManualInput ? '--' : 'No baseline') : item.changeFormatter(change)}</b>
                   <em>{changePercent === null ? '' : `(${signed(changePercent, 2, '%')})`}</em>
                 </div>

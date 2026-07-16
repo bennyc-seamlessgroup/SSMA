@@ -30,6 +30,7 @@ export function DevModeToggle() {
       <button
         type="button"
         className={`dev-mode-toggle ${enabled ? 'is-on' : ''}`}
+        aria-label="Toggle development mode"
         aria-pressed={enabled}
         onClick={toggle}
       >

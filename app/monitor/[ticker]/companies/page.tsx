@@ -118,7 +118,7 @@ export default function CompaniesPage() {
                 <strong>{formatEffectiveDate(company.effectiveDate)}</strong>
               </div>
               <span className={`status-pill ${company.status === 'ACTIVE' ? 'success' : 'muted'}`}>{company.status}</span>
-              <Link className="company-access-open" href={`/monitor/${company.ticker}/dashboard-v2`} aria-label={`Open ${company.name}`}>
+              <Link className="company-access-open" href={`/monitor/${company.ticker}/dashboard`} aria-label={`Open ${company.name}`}>
                 <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6" /></svg>
               </Link>
             </article>

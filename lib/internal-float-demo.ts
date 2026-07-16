@@ -1,5 +1,5 @@
-import type { FloatAdjustments, InternalFloatV2UserInput, ManualHolding } from '@/lib/internal-float-types';
-import type { InsiderSuggestionSource, InstitutionalOwnershipOverview } from '@/app/monitor/[ticker]/internal-float-v2/InternalFloatV2Client';
+import type { FloatAdjustments, InternalFloatUserInput, ManualHolding } from '@/lib/internal-float-types';
+import type { InsiderSuggestionSource, InstitutionalOwnershipOverview } from '@/app/monitor/[ticker]/internal-float/InternalFloatClient';
 
 export const demoInternalFloatHoldings: ManualHolding[] = [];
 
@@ -23,7 +23,7 @@ export const demoInternalFloatAdjustments: FloatAdjustments = {
   internalAdjustedSqueezeScore: 74,
 };
 
-export const demoInternalFloatUserInputs: InternalFloatV2UserInput = {
+export const demoInternalFloatUserInputs: InternalFloatUserInput = {
   userId: 'demo-session',
   workspaceId: 'CURR',
   ticker: 'CURR',

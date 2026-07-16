@@ -30,7 +30,7 @@ export function CompanySwitcher({ ticker, companyName }: { ticker: string; compa
         setCompanies(companyAccessFromProfile(profile).map(entry => ({
           ticker: entry.ticker,
           role: entry.role,
-          name: entry.name || entry.ticker,
+          name: entry.name,
         })));
       })
       .catch(() => {
@@ -64,9 +64,10 @@ export function CompanySwitcher({ ticker, companyName }: { ticker: string; compa
     name: companyName,
     role: 'Viewer',
   };
+  const currentDisplayName = current.name.trim() || 'Company name unavailable';
   const routeSuffix = useMemo(() => {
     const match = pathname.match(/^\/monitor\/[^/]+(\/.*)?$/i);
-    return match?.[1] || '/dashboard-v2';
+    return match?.[1] || '/dashboard';
   }, [pathname]);
 
   return (
@@ -79,7 +80,7 @@ export function CompanySwitcher({ ticker, companyName }: { ticker: string; compa
         onClick={() => setIsOpen(open => !open)}
       >
         <strong>{current.ticker}</strong>
-        <span>{current.name}</span>
+        <span>{currentDisplayName}</span>
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m8 10 4 4 4-4" /></svg>
       </button>
 
@@ -99,7 +100,7 @@ export function CompanySwitcher({ ticker, companyName }: { ticker: string; compa
             >
               <span className="company-switcher__ticker">{company.ticker}</span>
               <span>
-                <strong>{company.name}</strong>
+                <strong>{company.name.trim() || 'Company name unavailable'}</strong>
                 <small>{company.role}</small>
               </span>
               {company.ticker === ticker && (

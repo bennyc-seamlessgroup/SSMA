@@ -455,12 +455,6 @@ export function LendingPressureBrowserPage({ ticker }: { ticker: string }) {
 
   return (
     <div className="page">
-      <div className="page__header">
-        <div>
-          <h1 className="page__title">Lending Pressure Intelligence</h1>
-          <p className="page__desc">Detailed borrow availability, utilization, and borrow fee data used to evaluate short seller pressure.</p>
-        </div>
-      </div>
       <section className="panel">
       <section className="terminal-section lending-page-overview">
         <div className="terminal-section__head">

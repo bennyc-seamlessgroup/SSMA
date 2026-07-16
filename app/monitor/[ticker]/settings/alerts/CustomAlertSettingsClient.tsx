@@ -74,7 +74,7 @@ export function CustomAlertSettingsClient({ ticker }: { ticker: string }) {
 
   function cancel() {
     setThresholds(savedThresholds.map(rule => ({ ...rule })));
-    router.push(`/monitor/${ticker}/dashboard-v2`);
+    router.push(`/monitor/${ticker}/dashboard`);
   }
 
   return (
@@ -84,7 +84,7 @@ export function CustomAlertSettingsClient({ ticker }: { ticker: string }) {
           <p>Define your own risk limits. Alerts will appear on the dashboard when live values cross your configured thresholds.</p>
         </div>
         <div>
-          <Link className="custom-alert-back" href={`/monitor/${ticker}/dashboard-v2`}>
+          <Link className="custom-alert-back" href={`/monitor/${ticker}/dashboard`}>
             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m15 18-6-6 6-6" /></svg>
             Back to Dashboard
           </Link>

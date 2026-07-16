@@ -1,5 +1,3 @@
-import { SettingsBackLink } from '@/components/SettingsBackLink';
-
 const plans = [
   ['Basic', 'Contact us', 'One stock code · daily reports · core short pressure indicators · basic archive'],
   ['Professional', 'Contact us', 'Up to 10 stock codes · institutional tracking · squeeze pressure analysis · board exports'],
@@ -7,19 +5,10 @@ const plans = [
 ];
 
 export default async function BillingPage({ params }: Readonly<{ params: Promise<{ ticker: string }> }>) {
-  const { ticker } = await params;
-  const normalizedTicker = ticker?.toUpperCase() ?? 'CURR';
+  await params;
 
   return (
     <div className="page">
-      <div className="page__header">
-        <div>
-          <h1 className="page__title">Billing & Plan</h1>
-          <p className="page__desc">Review demo subscription coverage, seats, invoice routing, and archive retention for the account.</p>
-        </div>
-        <SettingsBackLink ticker={normalizedTicker} />
-      </div>
-
       <section className="portal-stat-grid">
         <div className="portal-stat"><span>Current plan</span><strong>Professional</strong><small>multi-company account</small></div>
         <div className="portal-stat"><span>Seats</span><strong>6</strong><small>active demo users</small></div>

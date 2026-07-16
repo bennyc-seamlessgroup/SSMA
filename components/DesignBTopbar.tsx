@@ -13,12 +13,12 @@ const storageKey = 'monitor-design-b-sidebar-collapsed';
 const themeStorageKey = 'monitor-design-b-theme';
 
 const routeLabels: Record<string, { section: string; page: string }> = {
-  'dashboard-v2': { section: 'Workspace', page: 'Dashboard' },
+  'dashboard': { section: 'Workspace', page: 'Dashboard' },
   institutional: { section: 'Workspace', page: 'Ownership' },
   'short-interest': { section: 'Workspace', page: 'Short Interest' },
   'lending-pressure': { section: 'Workspace', page: 'Lending Pressure' },
   'squeeze-readiness': { section: 'Development', page: 'Squeeze Readiness' },
-  'internal-float-v2': { section: 'Workspace', page: 'Internal Float' },
+  'internal-float': { section: 'Workspace', page: 'Internal Float' },
   sentiment: { section: 'Workspace', page: 'Social Sentiment' },
   'event-calendar': { section: 'Workspace', page: 'SEC Filings' },
   'price-scenario': { section: 'Development', page: 'Price Scenarios' },
@@ -33,7 +33,6 @@ const routeLabels: Record<string, { section: string; page: string }> = {
   notifications: { section: 'Development', page: 'Notifications' },
   policy: { section: 'Development', page: 'Security Policy' },
   'api-connectors': { section: 'Development', page: 'Connectors' },
-  dashboard: { section: 'Development', page: 'Dashboard Obsolete' },
   'import-data': { section: 'Development', page: 'Data Sources' },
 };
 
@@ -73,7 +72,7 @@ export function DesignBTopbar({
   }, []);
 
   const current = useMemo(() => {
-    if (pathname.endsWith('/internal-float-v2/dtc-upload')) {
+    if (pathname.endsWith('/internal-float/dtc-upload')) {
       return { section: 'Internal Float', page: 'DTC Report Upload' };
     }
     if (pathname.endsWith('/settings/alerts')) {
@@ -106,18 +105,20 @@ export function DesignBTopbar({
         <button
           type="button"
           className="portal-design-b-collapse"
-          aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-          aria-pressed={collapsed}
+          aria-label={collapsed ? 'Keep sidebar expanded' : 'Use compact hover sidebar'}
+          aria-pressed={!collapsed}
+          title={collapsed ? 'Keep sidebar expanded' : 'Use compact hover sidebar'}
           onClick={toggleCollapsed}
         >
           <svg viewBox="0 0 24 24" aria-hidden="true">
-            <path d={collapsed ? 'm9 6 6 6-6 6M4 6l6 6-6 6' : 'm15 6-6 6 6 6M20 6l-6 6 6 6'} />
+            <rect x="5" y="10" width="14" height="10" rx="2" />
+            <path d={collapsed ? 'M9 10V7a4 4 0 0 1 7.5-2' : 'M8 10V7a4 4 0 0 1 8 0v3'} />
+            <path d="M12 14v2" />
           </svg>
         </button>
 
-        <CompanySwitcher ticker={ticker} companyName={companyName} />
-
         <div className="portal-design-b-actions" aria-label="Design B quick actions">
+          <CompanySwitcher ticker={ticker} companyName={companyName} />
           <button
             type="button"
             className={theme === 'dark' ? 'is-active' : ''}

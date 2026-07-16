@@ -1,11 +1,16 @@
 'use client';
 
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { OperationsDevelopmentData } from '@/components/OperationsDevelopmentData';
 import { getOperationsTicker, setOperationsTicker } from '@/lib/operations/ticker-client';
 
 type PlatformKey = 'x' | 'reddit' | 'stocktwits';
 
 type SocialMentionFile = {
+  source?: string;
+  schemaVersion?: number;
+  ticker?: string;
+  platform?: string;
   updatedAt: string;
   recordCount: number;
   originalFileName: string;
@@ -60,13 +65,17 @@ export function NarrativeSocialUploadClient() {
   const [tickerDraft, setTickerDraft] = useState('CURR');
   const [files, setFiles] = useState<Partial<Record<PlatformKey, File>>>({});
   const [data, setData] = useState<Partial<UploadState>>({});
+  const [developmentData, setDevelopmentData] = useState<Partial<UploadState>>();
   const [status, setStatus] = useState<'idle' | 'loading' | 'uploading' | 'done' | 'error'>('loading');
   const [message, setMessage] = useState('');
+  const [developmentTicker, setDevelopmentTicker] = useState('CURR');
   const inputRefs = useRef<Record<PlatformKey, HTMLInputElement | null>>({ x: null, reddit: null, stocktwits: null });
 
   async function load(ticker = selectedTicker) {
     const normalizedTicker = ticker.trim().toUpperCase() || 'CURR';
     setStatus('loading');
+    setDevelopmentTicker(normalizedTicker);
+    setDevelopmentData(undefined);
     try {
       const response = await fetch(`/api/operations/narrative-social?ticker=${encodeURIComponent(normalizedTicker)}`, { cache: 'no-store' });
       const payload = await response.json();
@@ -75,6 +84,7 @@ export function NarrativeSocialUploadClient() {
       setOperationsTicker(normalizedTicker);
       setTickerDraft(normalizedTicker);
       setData(payload.data);
+      setDevelopmentData(payload.data);
       setFiles({});
       setStatus('idle');
       setMessage('');
@@ -127,6 +137,7 @@ export function NarrativeSocialUploadClient() {
 
     setStatus('uploading');
     setMessage('');
+    setDevelopmentData(undefined);
 
     try {
       const response = await fetch('/api/operations/narrative-social', {
@@ -136,6 +147,7 @@ export function NarrativeSocialUploadClient() {
       const payload = await response.json();
       if (!response.ok || !payload.ok) throw new Error(payload.error || 'Upload failed.');
       setData(payload.data);
+      setDevelopmentData(payload.data);
       setFiles({});
       setStatus('done');
       setMessage(`Updated ${Object.keys(payload.updated ?? {}).length} narrative JSON file(s).`);
@@ -180,7 +192,7 @@ export function NarrativeSocialUploadClient() {
       <div className="ops-upload-grid">
         {cards.map(platform => {
           const selectedFile = files[platform.key];
-          const current = data[platform.key];
+          const current = developmentData?.[platform.key];
           const previewRows = current?.data?.slice(0, 3) ?? [];
           const disabled = !platform.uploadable;
 
@@ -246,6 +258,32 @@ export function NarrativeSocialUploadClient() {
           );
         })}
       </div>
+
+      <OperationsDevelopmentData
+        title="Narrative Social Data Responses"
+        description="Current per-platform payloads returned by the operations route, plus any pending browser file selection."
+        rows={cards.map(platform => {
+          const current = data[platform.key];
+          const pendingFile = files[platform.key];
+          return {
+            endpoint: `${status === 'uploading' || status === 'done' || (status === 'error' && readyCount > 0) ? 'POST' : 'GET'} /api/operations/narrative-social?ticker=${developmentTicker}`,
+            source: current?.source || 'Operations API route',
+            state: status === 'error' && message ? `error: ${message}` : pendingFile ? `${status} · file selected` : status,
+            recordCount: current?.recordCount,
+            updatedAt: current?.updatedAt,
+            payload: current === undefined && !pendingFile ? undefined : {
+              platform: platform.label,
+              response: current,
+              pendingFile: pendingFile ? {
+                name: pendingFile.name,
+                size: pendingFile.size,
+                type: pendingFile.type,
+                lastModified: pendingFile.lastModified,
+              } : null,
+            },
+          };
+        })}
+      />
     </div>
   );
 }

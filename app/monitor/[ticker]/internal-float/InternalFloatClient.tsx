@@ -5,7 +5,7 @@ import { PortalPageLoading } from '@/components/PortalPageLoading';
 import { authenticatedFetch, getCurrentUser } from '@/lib/auth-client';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
-import type { FloatAdjustments, InternalFloatV2UserInput, ManualHolding } from '@/lib/internal-float-types';
+import type { FloatAdjustments, InternalFloatUserInput, ManualHolding } from '@/lib/internal-float-types';
 import {
   buildInternalFloatActivity,
   type InternalFloatActivityItem,
@@ -210,9 +210,9 @@ function Donut({ title, center, segments, bare = false }: { title: string; cente
   }).join(', ');
 
   return (
-    <div className={bare ? 'float-v2-story-card float-v2-embedded-panel' : 'terminal-card float-v2-story-card'}>
+    <div className={bare ? 'internal-float-story-card internal-float-embedded-panel' : 'terminal-card internal-float-story-card'}>
       <h3>{title}</h3>
-      <div className="float-v2-donut-story">
+      <div className="internal-float-donut-story">
         <div className="float-donut" style={{ background: `conic-gradient(${gradient})` }}>
           {segmentLabels.map((row, index) => row.percent >= 3 && (
             <span
@@ -225,7 +225,7 @@ function Donut({ title, center, segments, bare = false }: { title: string; cente
           ))}
           <div><strong>{center}</strong><span>Total</span></div>
         </div>
-        <div className="float-v2-value-legend">
+        <div className="internal-float-value-legend">
           {segments.map((row, index) => (
             <div key={`${row.label}-${index}`}>
               <span><i style={{ background: row.color }} />{row.label}</span>
@@ -242,15 +242,15 @@ function RankedBars({ rows, total, showExtra = false }: { rows: Array<{ key?: st
   const sorted = [...rows].sort((a, b) => b.value - a.value);
   const max = Math.max(...sorted.map(row => row.value), 1);
   return (
-    <div className={`float-v2-ranked-bars ${showExtra ? 'has-extra' : ''}`}>
+    <div className={`internal-float-ranked-bars ${showExtra ? 'has-extra' : ''}`}>
       {sorted.map((row, index) => (
         <div key={row.key ?? `${row.label}-${index}`}>
           <span>{row.label}</span>
-          <div className="float-v2-ranked-meter">
+          <div className="internal-float-ranked-meter">
             <div><i style={{ width: `${Math.max(4, (row.value / max) * 100)}%`, background: colors[index % colors.length] }} /></div>
             <small>{formatPct(pct(row.value, total))}</small>
           </div>
-          <strong className="float-v2-ranked-value">
+          <strong className="internal-float-ranked-value">
             <b>{formatNumber(row.value)}</b>
           </strong>
           {showExtra && row.extra && <em>{row.extra}</em>}
@@ -284,7 +284,7 @@ function Waterfall({
     { label: 'Real Tradable Float', value: realTradableFloat, className: 'end' },
   ];
   return (
-    <div className="terminal-card float-v2-waterfall">
+    <div className="terminal-card internal-float-waterfall">
       {rows.map(row => (
         <div key={row.label} className={row.className}>
           <span className={row.label === 'Real Tradable Float' ? 'with-info' : ''}>
@@ -301,7 +301,7 @@ function Waterfall({
   );
 }
 
-export function InternalFloatV2Client({
+export function InternalFloatClient({
   ticker,
   initialHoldings,
   initialAdjustments,
@@ -313,7 +313,7 @@ export function InternalFloatV2Client({
   ticker: string;
   initialHoldings: ManualHolding[];
   initialAdjustments: FloatAdjustments;
-  initialUserInputs: InternalFloatV2UserInput;
+  initialUserInputs: InternalFloatUserInput;
   institutionalOverview?: InstitutionalOwnershipOverview;
   insiderSuggestionSources?: InsiderSuggestionSource[];
   demoMode?: boolean;
@@ -735,11 +735,11 @@ export function InternalFloatV2Client({
 
   function renderActivityLog() {
     return (
-      <aside className="terminal-card float-v2-activity-card" aria-label="Internal float activity log">
-        <div className="float-v2-activity-list">
+      <aside className="terminal-card internal-float-activity-card" aria-label="Internal float activity log">
+        <div className="internal-float-activity-list">
           {activityLog.length ? (
             activityLog.map(item => (
-              <article key={item.id} className={`float-v2-activity-item ${item.action.toLowerCase()}`}>
+              <article key={item.id} className={`internal-float-activity-item ${item.action.toLowerCase()}`}>
                 <i aria-hidden="true" />
                 <div>
                   <div>
@@ -748,12 +748,12 @@ export function InternalFloatV2Client({
                   </div>
                   <p>{item.section}</p>
                   <small>{item.detail}</small>
-                  <small className="float-v2-activity-actor">By {item.actor || 'Unknown user'}</small>
+                  <small className="internal-float-activity-actor">By {item.actor || 'Unknown user'}</small>
                 </div>
               </article>
             ))
           ) : (
-            <div className="float-v2-activity-empty">
+            <div className="internal-float-activity-empty">
               <strong>No saved changes yet</strong>
               <p>Saved record changes will appear here after you update an input section.</p>
             </div>
@@ -774,29 +774,29 @@ export function InternalFloatV2Client({
 
     return (
       <div className="modal-backdrop" role="presentation" onMouseDown={discardEditPanel}>
-        <div className="modal-card float-v2-edit-modal" role="dialog" aria-modal="true" aria-labelledby="float-v2-edit-title" onMouseDown={event => event.stopPropagation()}>
+        <div className="modal-card internal-float-edit-modal" role="dialog" aria-modal="true" aria-labelledby="internal-float-edit-title" onMouseDown={event => event.stopPropagation()}>
           <div className="modal-card__head">
             <div>
-              <h2 id="float-v2-edit-title">{titleMap[editPanel]}</h2>
+              <h2 id="internal-float-edit-title">{titleMap[editPanel]}</h2>
               <p className="section-subtitle">Manual inputs are used until these values can be auto-detected from production data sources.</p>
             </div>
             <button className="icon-button" type="button" aria-label="Close edit modal and discard unsaved changes" onClick={discardEditPanel}>x</button>
           </div>
-          {apiMessage && <p className={`float-v2-api-message ${apiStatus === 'error' ? 'error' : 'success'}`}>{apiMessage}</p>}
+          {apiMessage && <p className={`internal-float-api-message ${apiStatus === 'error' ? 'error' : 'success'}`}>{apiMessage}</p>}
 
           {editPanel === 'private' && (
-            <div className="float-v2-holder-editor">
-              <div className="float-v2-modal-impact-summary" aria-label="Management strategic holdings impact summary">
+            <div className="internal-float-holder-editor">
+              <div className="internal-float-modal-impact-summary" aria-label="Management strategic holdings impact summary">
                 <div><span>Official Float</span><strong>{compact(floatBeforeInternalAdjustments)}</strong></div>
                 <div><span>Deducted Holdings</span><strong>{compact(privateShares)}</strong></div>
                 <div><span>Estimated Tradable Float</span><strong>{compact(realTradableFloat)}</strong></div>
               </div>
-              <div className="float-v2-holder-toolbar">
+              <div className="internal-float-holder-toolbar">
                 <button className="button secondary" type="button" onClick={addPrivateHolding}>+ Add Holder</button>
               </div>
-              <div className="float-v2-holder-grid-shell">
-                <div className="float-v2-holder-grid" role="table" aria-label="Editable management and strategic holders">
-                  <div className="float-v2-holder-grid__header" role="row">
+              <div className="internal-float-holder-grid-shell">
+                <div className="internal-float-holder-grid" role="table" aria-label="Editable management and strategic holders">
+                  <div className="internal-float-holder-grid__header" role="row">
                     <span>Holder</span>
                     <span>Category</span>
                     <span>Shares</span>
@@ -805,7 +805,7 @@ export function InternalFloatV2Client({
                     <span>Action</span>
                   </div>
                   {privateHoldings.length === 0 ? (
-                    <div className="float-v2-holder-empty">
+                    <div className="internal-float-holder-empty">
                       <strong>No strategic holders added yet.</strong>
                       <button className="button secondary" type="button" onClick={addPrivateHolding}>+ Add Holder</button>
                     </div>
@@ -813,8 +813,8 @@ export function InternalFloatV2Client({
                     const error = privateRowError(row);
                     const notesOpen = expandedPrivateNotes.includes(row.id);
                     return (
-                      <div className="float-v2-holder-row-group" key={row.id}>
-                        <div className={`float-v2-holder-row ${error ? 'invalid' : ''}`} role="row">
+                      <div className="internal-float-holder-row-group" key={row.id}>
+                        <div className={`internal-float-holder-row ${error ? 'invalid' : ''}`} role="row">
                           <label aria-label="Holder">
                             <input className="input" value={row.holderName} placeholder="Holder name" onChange={event => patchPrivate(row.id, { holderName: event.target.value })} />
                           </label>
@@ -833,7 +833,7 @@ export function InternalFloatV2Client({
                             />
                           </label>
                           <button
-                            className={`float-v2-impact-toggle ${row.includeInDeduction ? 'on' : 'off'}`}
+                            className={`internal-float-impact-toggle ${row.includeInDeduction ? 'on' : 'off'}`}
                             type="button"
                             aria-pressed={row.includeInDeduction}
                             onClick={() => patchPrivate(row.id, { includeInDeduction: !row.includeInDeduction })}
@@ -841,18 +841,18 @@ export function InternalFloatV2Client({
                             <i aria-hidden="true" />
                             {row.includeInDeduction ? 'Deduct' : 'Ignore'}
                           </button>
-                          <button className={`float-v2-note-toggle ${notesOpen || row.notes ? 'has-note' : ''}`} type="button" onClick={() => togglePrivateNotes(row.id)}>
+                          <button className={`internal-float-note-toggle ${notesOpen || row.notes ? 'has-note' : ''}`} type="button" onClick={() => togglePrivateNotes(row.id)}>
                             {notesOpen ? 'Hide Note' : row.notes ? 'View Note' : 'Note'}
                           </button>
-                          <button className="float-v2-trash-button" type="button" aria-label={`Delete ${row.holderName || 'holder'}`} onClick={() => deletePrivateHolding(row)}>
+                          <button className="internal-float-trash-button" type="button" aria-label={`Delete ${row.holderName || 'holder'}`} onClick={() => deletePrivateHolding(row)}>
                             <svg viewBox="0 0 24 24" aria-hidden="true">
                               <path d="M9 3h6l1 2h4v2H4V5h4l1-2Zm1 7h2v8h-2v-8Zm4 0h2v8h-2v-8ZM7 8h10l-.8 12H7.8L7 8Z" />
                             </svg>
                           </button>
                         </div>
-                        {error && <p className="float-v2-holder-error">{error}</p>}
+                        {error && <p className="internal-float-holder-error">{error}</p>}
                         {notesOpen && (
-                          <label className="float-v2-holder-notes">
+                          <label className="internal-float-holder-notes">
                             <span>Notes</span>
                             <input className="input" value={row.notes} placeholder="Add internal context for this holder..." onChange={event => patchPrivate(row.id, { notes: event.target.value })} />
                           </label>
@@ -866,18 +866,18 @@ export function InternalFloatV2Client({
           )}
 
           {editPanel === 'tokenized' && (
-            <div className="float-v2-holder-editor">
-              <div className="float-v2-modal-impact-summary" aria-label="Tokenized shares impact summary">
+            <div className="internal-float-holder-editor">
+              <div className="internal-float-modal-impact-summary" aria-label="Tokenized shares impact summary">
                 <div><span>Issued Share</span><strong>{compact(ownership.sharesOutstanding)}</strong></div>
                 <div><span>Tokenized Shares</span><strong>{compact(tokenizedShares)}</strong></div>
                 <div><span>Outstanding Impact</span><strong>{formatPct(pct(tokenizedShares, ownership.sharesOutstanding))}</strong></div>
               </div>
-              <div className="float-v2-holder-toolbar">
+              <div className="internal-float-holder-toolbar">
                 <button className="button secondary" type="button" onClick={addTokenChain}>+ Add Chain</button>
               </div>
-              <div className="float-v2-holder-grid-shell">
-                <div className="float-v2-holder-grid compact" role="table" aria-label="Editable tokenized share rows">
-                  <div className="float-v2-holder-grid__header" role="row">
+              <div className="internal-float-holder-grid-shell">
+                <div className="internal-float-holder-grid compact" role="table" aria-label="Editable tokenized share rows">
+                  <div className="internal-float-holder-grid__header" role="row">
                     <span>Chain</span>
                     <span>Shares</span>
                     <span>Provider</span>
@@ -885,18 +885,18 @@ export function InternalFloatV2Client({
                     <span>Action</span>
                   </div>
                   {tokenChains.length === 0 ? (
-                    <div className="float-v2-holder-empty">
+                    <div className="internal-float-holder-empty">
                       <strong>No tokenized share rows added yet.</strong>
                       <button className="button secondary" type="button" onClick={addTokenChain}>+ Add Chain</button>
                     </div>
                   ) : tokenChains.map(row => {
                     const error = tokenRowError(row);
                     return (
-                      <div className="float-v2-holder-row-group" key={row.id}>
-                        <div className={`float-v2-holder-row compact ${error ? 'invalid' : ''}`} role="row">
+                      <div className="internal-float-holder-row-group" key={row.id}>
+                        <div className={`internal-float-holder-row compact ${error ? 'invalid' : ''}`} role="row">
                           <label aria-label="Chain"><input className="input" value={row.chain} placeholder="Chain" onChange={event => patchTokenChain(row.id, { chain: event.target.value })} /></label>
                           <label aria-label="Shares"><input className="input numeric-input" inputMode="numeric" value={shareInputValue(row.shares)} placeholder="Enter shares" onChange={event => patchTokenChain(row.id, { shares: numeric(event.target.value) })} /></label>
-                          <label className="float-v2-provider-field" aria-label="Provider">
+                          <label className="internal-float-provider-field" aria-label="Provider">
                             <select
                               className="select"
                               value={tokenizationProviderOptions.includes(row.provider) ? row.provider : 'Others'}
@@ -914,12 +914,12 @@ export function InternalFloatV2Client({
                               />
                             )}
                           </label>
-                          <span className="float-v2-grid-impact">{formatPct(pct(row.shares, ownership.sharesOutstanding))}</span>
-                          <button className="float-v2-trash-button" type="button" aria-label={`Delete ${row.chain || 'chain'}`} onClick={() => deleteTokenChain(row)}>
+                          <span className="internal-float-grid-impact">{formatPct(pct(row.shares, ownership.sharesOutstanding))}</span>
+                          <button className="internal-float-trash-button" type="button" aria-label={`Delete ${row.chain || 'chain'}`} onClick={() => deleteTokenChain(row)}>
                             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 3h6l1 2h4v2H4V5h4l1-2Zm1 7h2v8h-2v-8Zm4 0h2v8h-2v-8ZM7 8h10l-.8 12H7.8L7 8Z" /></svg>
                           </button>
                         </div>
-                        {error && <p className="float-v2-holder-error">{error}</p>}
+                        {error && <p className="internal-float-holder-error">{error}</p>}
                       </div>
                     );
                   })}
@@ -929,18 +929,18 @@ export function InternalFloatV2Client({
           )}
 
           {editPanel === 'collateral' && (
-            <div className="float-v2-holder-editor">
-              <div className="float-v2-modal-impact-summary" aria-label="Collateralized shares impact summary">
+            <div className="internal-float-holder-editor">
+              <div className="internal-float-modal-impact-summary" aria-label="Collateralized shares impact summary">
                 <div><span>Tokenized Shares</span><strong>{compact(tokenizedShares)}</strong></div>
                 <div><span>Collateralized Shares</span><strong>{compact(collateralizedShares)}</strong></div>
                 <div><span>Tokenized Impact</span><strong>{formatPct(pct(collateralizedShares, tokenizedShares))}</strong></div>
               </div>
-              <div className="float-v2-holder-toolbar">
+              <div className="internal-float-holder-toolbar">
                 <button className="button secondary" type="button" onClick={addCollateralChain}>+ Add Protocol</button>
               </div>
-              <div className="float-v2-holder-grid-shell">
-                <div className="float-v2-holder-grid compact" role="table" aria-label="Editable collateralized share rows">
-                  <div className="float-v2-holder-grid__header" role="row">
+              <div className="internal-float-holder-grid-shell">
+                <div className="internal-float-holder-grid compact" role="table" aria-label="Editable collateralized share rows">
+                  <div className="internal-float-holder-grid__header" role="row">
                     <span>Chain</span>
                     <span>Shares</span>
                     <span>Protocol</span>
@@ -948,24 +948,24 @@ export function InternalFloatV2Client({
                     <span>Action</span>
                   </div>
                   {collateralChains.length === 0 ? (
-                    <div className="float-v2-holder-empty">
+                    <div className="internal-float-holder-empty">
                       <strong>No collateralized share rows added yet.</strong>
                       <button className="button secondary" type="button" onClick={addCollateralChain}>+ Add Protocol</button>
                     </div>
                   ) : collateralChains.map(row => {
                     const error = collateralRowError(row);
                     return (
-                      <div className="float-v2-holder-row-group" key={row.id}>
-                        <div className={`float-v2-holder-row compact ${error ? 'invalid' : ''}`} role="row">
+                      <div className="internal-float-holder-row-group" key={row.id}>
+                        <div className={`internal-float-holder-row compact ${error ? 'invalid' : ''}`} role="row">
                           <label aria-label="Chain"><input className="input" value={row.chain} placeholder="Chain" onChange={event => patchCollateralChain(row.id, { chain: event.target.value })} /></label>
                           <label aria-label="Shares"><input className="input numeric-input" inputMode="numeric" value={shareInputValue(row.shares)} placeholder="Enter shares" onChange={event => patchCollateralChain(row.id, { shares: numeric(event.target.value) })} /></label>
                           <label aria-label="Protocol"><select className="select" value={row.protocol} onChange={event => patchCollateralChain(row.id, { protocol: event.target.value })}>{protocolOptions.map(protocol => <option key={protocol}>{protocol}</option>)}</select></label>
-                          <span className="float-v2-grid-impact">{formatPct(pct(row.shares, tokenizedShares))}</span>
-                          <button className="float-v2-trash-button" type="button" aria-label={`Delete ${row.chain || 'chain'}`} onClick={() => deleteCollateralChain(row)}>
+                          <span className="internal-float-grid-impact">{formatPct(pct(row.shares, tokenizedShares))}</span>
+                          <button className="internal-float-trash-button" type="button" aria-label={`Delete ${row.chain || 'chain'}`} onClick={() => deleteCollateralChain(row)}>
                             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 3h6l1 2h4v2H4V5h4l1-2Zm1 7h2v8h-2v-8Zm4 0h2v8h-2v-8ZM7 8h10l-.8 12H7.8L7 8Z" /></svg>
                           </button>
                         </div>
-                        {error && <p className="float-v2-holder-error">{error}</p>}
+                        {error && <p className="internal-float-holder-error">{error}</p>}
                       </div>
                     );
                   })}
@@ -994,22 +994,22 @@ export function InternalFloatV2Client({
 
     return (
       <div className="modal-backdrop" role="presentation" onMouseDown={() => !saving && setActiveSuggestion(null)}>
-        <div className="modal-card float-v2-suggestion-modal" role="dialog" aria-modal="true" aria-labelledby="float-v2-suggestion-title" onMouseDown={event => event.stopPropagation()}>
+        <div className="modal-card internal-float-suggestion-modal" role="dialog" aria-modal="true" aria-labelledby="internal-float-suggestion-title" onMouseDown={event => event.stopPropagation()}>
           <div className="modal-card__head">
             <div>
-              <h2 id="float-v2-suggestion-title">{action === 'deduct' ? 'Deduct from holding' : 'Add to holding'}</h2>
+              <h2 id="internal-float-suggestion-title">{action === 'deduct' ? 'Deduct from holding' : 'Add to holding'}</h2>
               <p className="section-subtitle">
                 Select the existing record to update. Use Add New Record when this entity is not already in the list.
               </p>
             </div>
             <button className="icon-button" type="button" aria-label="Close suggestion modal" onClick={() => setActiveSuggestion(null)} disabled={saving}>x</button>
           </div>
-          <div className="float-v2-suggestion-summary">
+          <div className="internal-float-suggestion-summary">
             <strong>{holderName}</strong>
             <span>{action === 'deduct' ? '-' : '+'}{formatNumber(activeSuggestion.shares)} shares</span>
             <small>{[activeSuggestion.category, activeSuggestion.effectiveDate ?? activeSuggestion.latestEffectiveDate ?? activeSuggestion.latestFileDate].filter(Boolean).join(' · ')}</small>
           </div>
-          <div className="float-v2-suggestion-targets" role="radiogroup" aria-label="Select holding target">
+          <div className="internal-float-suggestion-targets" role="radiogroup" aria-label="Select holding target">
             {privateHoldings.map(row => (
               <button
                 key={row.id}
@@ -1050,7 +1050,7 @@ export function InternalFloatV2Client({
     <>
       {renderSuggestionModal()}
       {demoMode ? (
-        <div className="float-v2-demo-banner" role="note">
+        <div className="internal-float-demo-banner" role="note">
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3 2.8 19h18.4L12 3Z" /><path d="M12 9v4M12 17h.01" /></svg>
           <div>
             <strong>Interactive demonstration</strong>
@@ -1065,13 +1065,13 @@ export function InternalFloatV2Client({
             <p className="section-subtitle">Key float figures and the current reduction from internal share assumptions.</p>
           </div>
         </div>
-        {apiStatus === 'error' && apiMessage && !editPanel && <p className="float-v2-api-message error">{apiMessage}</p>}
-        {apiStatus === 'saved' && apiMessage && !editPanel && <p className="float-v2-api-message success">{apiMessage}</p>}
+        {apiStatus === 'error' && apiMessage && !editPanel && <p className="internal-float-api-message error">{apiMessage}</p>}
+        {apiStatus === 'saved' && apiMessage && !editPanel && <p className="internal-float-api-message success">{apiMessage}</p>}
 
-        <div className="float-v2-kpis">
-          <div className="terminal-card terminal-stat float-v2-formula-stat">
+        <div className="internal-float-kpis">
+          <div className="terminal-card terminal-stat internal-float-formula-stat">
             <span className="with-info">Issued Share → Real Tradable Float <InfoTooltip text="Real tradable float is calculated as issued shares minus institutions and accepted internal float assumptions, including management / strategic, tokenized, and collateralized shares." /></span>
-            <div className="float-v2-compact-formula">
+            <div className="internal-float-compact-formula">
               <strong>{compact(ownership.sharesOutstanding)}</strong>
               <em>→</em>
               <strong>{compact(realTradableFloat)}</strong>
@@ -1084,7 +1084,7 @@ export function InternalFloatV2Client({
 
       <section className="terminal-section">
         <div className="terminal-section__head"><div><h2>Ownership & Internal Float Breakdown</h2><p className="section-subtitle">Visual breakdown of issued shares, real tradable float, and internal float assumptions.</p></div></div>
-        <div className="float-v2-two-col">
+        <div className="internal-float-two-col">
           <Donut title="Ownership Structure" center={compact(ownership.sharesOutstanding)} segments={ownershipSegments} />
           <Donut title="Internal Float" center={compact(internalFloatShares)} segments={internalFloatSegments} />
         </div>
@@ -1110,13 +1110,13 @@ export function InternalFloatV2Client({
           <button className="button secondary" type="button" onClick={() => openEditPanel('private')}>Edit</button>
         </div>
         {availableInsiderSuggestions.length > 0 && (
-          <div className="float-v2-insider-suggestions" aria-label="Suggested management and strategic holdings">
-            <div className="float-v2-insider-suggestions__intro">
+          <div className="internal-float-insider-suggestions" aria-label="Suggested management and strategic holdings">
+            <div className="internal-float-insider-suggestions__intro">
               <span>Suggested changes</span>
               <strong>Review management holdings inputs</strong>
               <p>Operations entered these changes for company review. Apply them to the correct Management / Strategic record or discard the suggestion.</p>
             </div>
-            <div className="float-v2-insider-suggestions__list">
+            <div className="internal-float-insider-suggestions__list">
               {availableInsiderSuggestions.map(row => {
                 const suggestionId = sourceSuggestionId(row);
                 const saving = suggestionActionId === suggestionId;
@@ -1131,7 +1131,7 @@ export function InternalFloatV2Client({
                         <small>{[row.category, row.formType, row.effectiveDate ?? row.latestEffectiveDate ?? row.latestFileDate].filter(Boolean).join(' · ')}</small>
                       )}
                     </div>
-                    <div className="float-v2-insider-suggestion-actions">
+                    <div className="internal-float-insider-suggestion-actions">
                       <button className="button primary" type="button" disabled={suggestionActionId !== null} onClick={() => openSuggestionReview(row)}>
                         {saving ? 'Saving...' : action === 'deduct' ? 'Deduct from list' : 'Add to list'}
                       </button>
@@ -1151,14 +1151,14 @@ export function InternalFloatV2Client({
       <section className="terminal-section">
         <div className="terminal-section__head">
           <div><h2>Tokenized Shares & Providers</h2><p className="section-subtitle">Manual tokenized share assumptions grouped by blockchain and provider.</p></div>
-          <div className="float-v2-section-actions">
+          <div className="internal-float-section-actions">
             <button className="button secondary" type="button" onClick={() => openEditPanel('tokenized')}>Edit</button>
           </div>
         </div>
-        <div className="terminal-card float-v2-combined-card">
-          <div className="float-v2-combined-grid">
+        <div className="terminal-card internal-float-combined-card">
+          <div className="internal-float-combined-grid">
             <Donut bare title="Tokenized Chain Allocation" center={compact(tokenizedShares)} segments={tokenSegments} />
-            <div className="float-v2-embedded-panel">
+            <div className="internal-float-embedded-panel">
               <h3>Tokenization Providers</h3>
               <RankedBars rows={providerRows.map(row => ({ key: row.id, label: row.provider, value: row.shares }))} total={tokenizedShares} />
             </div>
@@ -1169,14 +1169,14 @@ export function InternalFloatV2Client({
       <section className="terminal-section">
         <div className="terminal-section__head">
           <div><h2>Collateralized Shares & DeFi Exposure</h2><p className="section-subtitle">Shares pledged into DeFi lending protocols as collateral.</p></div>
-          <div className="float-v2-section-actions">
+          <div className="internal-float-section-actions">
             <button className="button secondary" type="button" onClick={() => openEditPanel('collateral')}>Edit</button>
           </div>
         </div>
-        <div className="terminal-card float-v2-combined-card">
-          <div className="float-v2-combined-grid">
+        <div className="terminal-card internal-float-combined-card">
+          <div className="internal-float-combined-grid">
             <Donut bare title="Collateralized Shares by Chain" center={compact(collateralizedShares)} segments={collateralSegments} />
-            <div className="float-v2-embedded-panel">
+            <div className="internal-float-embedded-panel">
               <h3>DeFi Protocol Exposure</h3>
               <RankedBars
                 rows={protocolRows.map(row => ({
@@ -1194,17 +1194,17 @@ export function InternalFloatV2Client({
       <section className="terminal-section">
         <div className="terminal-section__head">
           <div>
-            <div className="float-v2-sample-heading">
+            <div className="internal-float-sample-heading">
               <h2>Traditional Custody Breakdown</h2>
               <span>Sample only</span>
             </div>
             <p className="section-subtitle">Example of the broker and custodian breakdown available after we process your DTC Position Report.</p>
           </div>
-          <Link className="button primary" href={`/monitor/${ticker}/internal-float-v2/dtc-upload`}>
+          <Link className="button primary" href={`/monitor/${ticker}/internal-float/dtc-upload`}>
             Upload DTC Report
           </Link>
         </div>
-        <div className="float-v2-custody-service">
+        <div className="internal-float-custody-service">
           <div>
             <strong>Managed DTC report processing</strong>
             <p>Upload your report and our operations team will normalize the positions for this workspace.</p>
@@ -1214,13 +1214,13 @@ export function InternalFloatV2Client({
             <span>per report</span>
           </div>
         </div>
-        <div className="terminal-card float-v2-custody-sample">
-          <span className="float-v2-sample-watermark" aria-hidden="true">Sample</span>
+        <div className="terminal-card internal-float-custody-sample">
+          <span className="internal-float-sample-watermark" aria-hidden="true">Sample</span>
           <RankedBars rows={custodyRows.map(row => ({ key: row.id, label: row.name, value: row.shares }))} total={floatBeforeInternalAdjustments} />
         </div>
       </section>
 
-      <section className="terminal-section float-v2-activity-section">
+      <section className="terminal-section internal-float-activity-section">
         <div className="terminal-section__head">
           <div>
             <h2>Activity Log</h2>
@@ -1232,11 +1232,11 @@ export function InternalFloatV2Client({
       {renderEditModal()}
       {tokenizationReminder && (
         <div className="modal-backdrop" role="presentation" onMouseDown={() => setTokenizationReminder(null)}>
-          <div className="modal-card float-v2-reminder-modal" role="alertdialog" aria-modal="true" aria-labelledby="tokenization-reminder-title" onMouseDown={event => event.stopPropagation()}>
-            <div className="float-v2-reminder-icon" aria-hidden="true">
+          <div className="modal-card internal-float-reminder-modal" role="alertdialog" aria-modal="true" aria-labelledby="tokenization-reminder-title" onMouseDown={event => event.stopPropagation()}>
+            <div className="internal-float-reminder-icon" aria-hidden="true">
               <svg viewBox="0 0 24 24"><path d="M12 3a7 7 0 0 0-4.3 12.5c.8.6 1.3 1.4 1.3 2.3V19h6v-1.2c0-.9.5-1.7 1.3-2.3A7 7 0 0 0 12 3Zm-3 18h6" /></svg>
             </div>
-            <div className="float-v2-reminder-content">
+            <div className="internal-float-reminder-content">
               <span>Tokenized shares saved</span>
               <h2 id="tokenization-reminder-title">Review Related Holdings</h2>
               <strong>{tokenizationReminder.summary}</strong>

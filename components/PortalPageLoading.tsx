@@ -106,7 +106,7 @@ function GenericLoading() {
 function DashboardLoading() {
   return (
     <>
-      <Kpis />
+      <Kpis count={7} />
       <section className="portal-loading-panel portal-loading-panel--wide">
         <PanelHead />
         <div className="portal-loading-toolbar"><span /><span /><span /><span /><span /></div>
@@ -198,20 +198,17 @@ function InternalFloatLoading() {
 function SentimentLoading() {
   return (
     <>
-      <Kpis count={5} />
+      <div className="portal-loading-sentiment-overview" aria-hidden="true">
+        <section className="portal-loading-panel"><PanelHead /><Donut /></section>
+        <section className="portal-loading-panel"><PanelHead /><List rows={5} compact /></section>
+        <section className="portal-loading-panel"><PanelHead /><Donut /></section>
+      </div>
       <div className="portal-loading-sentiment-grid" aria-hidden="true">
         <section className="portal-loading-panel portal-loading-panel--wide">
           <PanelHead />
-          <div className="portal-loading-toolbar"><span /><span /><span /></div>
-          <List rows={7} />
-        </section>
-        <section className="portal-loading-panel">
-          <PanelHead />
+          <div className="portal-loading-toolbar"><span /><span /><span /><span /><span /></div>
           <Chart compact />
-        </section>
-        <section className="portal-loading-panel">
-          <PanelHead />
-          <List rows={5} compact />
+          <List rows={7} />
         </section>
       </div>
     </>

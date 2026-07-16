@@ -14,9 +14,9 @@ export type CurrentDataSourceRow = {
 };
 
 const currentPageLabels: Record<string, string> = {
-  'dashboard-v2': 'Dashboard',
+  'dashboard': 'Dashboard',
   institutional: 'Ownership',
-  'internal-float-v2': 'Internal Float',
+  'internal-float': 'Internal Float',
   'short-interest': 'Short Interest',
   'lending-pressure': 'Lending Pressure',
   'squeeze-readiness': 'Squeeze Readiness',

@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
-import { ImportDataTable } from '@/components/ImportDataTable';
+import { OperationsDevelopmentData, type OperationsDevelopmentDatum } from '@/components/OperationsDevelopmentData';
 import { authenticatedFetch } from '@/lib/auth-client';
 import { operationsProfile } from '@/lib/operations/api-client';
 import { getOperationsTicker, setOperationsTicker } from '@/lib/operations/ticker-client';
@@ -65,15 +65,6 @@ type FormState = {
   maintenanceMarginFutu: string;
   averageDurationDays: string;
   shortScore: string;
-};
-
-type ApiDebugRow = {
-  endpoint: string;
-  source: string;
-  status: string;
-  recordCount: string;
-  generatedAt: string;
-  payload: string;
 };
 
 const dateSpecificCategories = ['utilization', 'manual-availability', 'margins', 'short-score'] as const;
@@ -191,15 +182,6 @@ function payloadGeneratedAt(value: unknown) {
   return '';
 }
 
-function payloadPreview(value: unknown) {
-  if (value === null || value === undefined) return 'No data';
-  try {
-    return JSON.stringify(value).slice(0, 240);
-  } catch {
-    return String(value).slice(0, 240);
-  }
-}
-
 function withoutUndefined<T extends Record<string, unknown>>(input: T) {
   return Object.fromEntries(Object.entries(input).filter(([, value]) => value !== undefined)) as Partial<T>;
 }
@@ -286,7 +268,7 @@ export function MarketDataOperationsClient() {
   const [tickerDraft, setTickerDraft] = useState('CURR');
   const [form, setForm] = useState<FormState>(() => emptyForm());
   const [rows, setRows] = useState<MarketInputRow[]>([]);
-  const [apiDebugRows, setApiDebugRows] = useState<ApiDebugRow[]>([]);
+  const [apiDebugRows, setApiDebugRows] = useState<OperationsDevelopmentDatum[]>([]);
   const [status, setStatus] = useState<'checking' | 'loading' | 'idle' | 'saving' | 'success' | 'error' | 'forbidden'>('checking');
   const [message, setMessage] = useState('');
   const [deletingDate, setDeletingDate] = useState('');
@@ -297,24 +279,22 @@ export function MarketDataOperationsClient() {
       return {
         payload,
         debug: {
-          endpoint,
+          endpoint: `GET ${endpoint}`,
           source: 'API Gateway',
-          status: 'ok',
-          recordCount: String(payloadRecordCount(payload)),
-          generatedAt: payloadGeneratedAt(payload) || 'N/A',
-          payload: payloadPreview(payload),
+          state: 'ok',
+          recordCount: payloadRecordCount(payload),
+          updatedAt: payloadGeneratedAt(payload),
+          payload,
         },
       };
     } catch (error) {
       return {
         payload: null,
         debug: {
-          endpoint,
+          endpoint: `GET ${endpoint}`,
           source: 'API Gateway',
-          status: error instanceof Error ? `error: ${error.message}` : 'error',
-          recordCount: '0',
-          generatedAt: 'N/A',
-          payload: 'No API payload returned.',
+          state: error instanceof Error ? `error: ${error.message}` : 'error',
+          payload: null,
         },
       };
     }
@@ -392,6 +372,13 @@ export function MarketDataOperationsClient() {
     () => Object.entries(form).some(([key, value]) => key !== 'tradeDate' && Boolean(value.trim())),
     [form],
   );
+  const previewCategories = useMemo(() => [
+    numberOrUndefined(form.issuedShare) !== undefined ? 'Issued Share' : '',
+    numberOrUndefined(form.utilizationPercent) !== undefined ? 'Utilization' : '',
+    numberOrUndefined(form.availableSharesIbkr) !== undefined || numberOrUndefined(form.availableSharesFutu) !== undefined ? 'Availability' : '',
+    numberOrUndefined(form.initialMarginIbkr) !== undefined || numberOrUndefined(form.initialMarginFutu) !== undefined || numberOrUndefined(form.maintenanceMarginIbkr) !== undefined || numberOrUndefined(form.maintenanceMarginFutu) !== undefined || numberOrUndefined(form.averageDurationDays) !== undefined ? 'Margins' : '',
+    numberOrUndefined(form.shortScore) !== undefined ? 'Short Score' : '',
+  ].filter(Boolean), [form]);
   const busy = ['checking', 'loading', 'saving'].includes(status);
 
   function updateField(field: keyof FormState, value: string) {
@@ -520,6 +507,7 @@ export function MarketDataOperationsClient() {
         <small>Manual Input V2 target: /manual-input/&lbrace;category&rbrace;?ticker={selectedTicker}</small>
       </div>
 
+      <div className="ops-market-data-grid">
       <section className="ops-panel">
         <div className="ops-panel-head">
           <div><span className="ops-eyebrow">Manual Input V2</span><h2>Daily Market Inputs</h2></div>
@@ -552,6 +540,27 @@ export function MarketDataOperationsClient() {
           {message ? <p className={`ops-form-message ${status === 'error' ? 'bad' : 'good'}`}>{message}</p> : null}
         </form>
       </section>
+
+      <aside className="ops-side-stack">
+        <section className="ops-panel">
+          <div className="ops-panel-head">
+            <div><span className="ops-eyebrow">Preview</span><h2>Input Output</h2></div>
+          </div>
+          <dl className="ops-preview-list">
+            <div><dt>Ticker</dt><dd>{selectedTicker}</dd></div>
+            <div><dt>Trade date</dt><dd>{form.tradeDate || 'N/A'}</dd></div>
+            <div><dt>Categories</dt><dd>{previewCategories.join(' / ') || 'No values entered'}</dd></div>
+            <div><dt>Issued share</dt><dd>{formatNumber(numberOrUndefined(form.issuedShare))}</dd></div>
+            <div><dt>Utilization</dt><dd>{formatPercent(numberOrUndefined(form.utilizationPercent))}</dd></div>
+            <div><dt>Shortable shares</dt><dd>IBKR {formatNumber(numberOrUndefined(form.availableSharesIbkr))} · Futu {formatNumber(numberOrUndefined(form.availableSharesFutu))}</dd></div>
+            <div><dt>Initial margin</dt><dd>IBKR {formatPercent(numberOrUndefined(form.initialMarginIbkr))} · Futu {formatPercent(numberOrUndefined(form.initialMarginFutu))}</dd></div>
+            <div><dt>Maintenance margin</dt><dd>IBKR {formatPercent(numberOrUndefined(form.maintenanceMarginIbkr))} · Futu {formatPercent(numberOrUndefined(form.maintenanceMarginFutu))}</dd></div>
+            <div><dt>Average duration</dt><dd>{formatDays(numberOrUndefined(form.averageDurationDays))}</dd></div>
+            <div><dt>Short score</dt><dd>{formatNumber(numberOrUndefined(form.shortScore), 1)}</dd></div>
+          </dl>
+        </section>
+      </aside>
+      </div>
 
       <section className="ops-panel ops-wide-panel">
         <div className="ops-panel-head">
@@ -616,20 +625,11 @@ export function MarketDataOperationsClient() {
         </div>
       </section>
 
-      <section className="terminal-section import-data-dev-panel">
-        <div className="terminal-section__head">
-          <div>
-            <span>Development Data</span>
-            <h2>Manual Input V2 API Responses</h2>
-            <p className="section-subtitle">This table shows the exact API endpoints used by this operations page. No local JSON fallback is used here.</p>
-          </div>
-        </div>
-        <ImportDataTable
-          columns={['endpoint', 'source', 'status', 'recordCount', 'generatedAt', 'payload']}
-          rows={apiDebugRows}
-          pageSize={10}
-        />
-      </section>
+      <OperationsDevelopmentData
+        title="Manual Input V2 API Responses"
+        description="Exact authenticated endpoints and response state used by this page. No local JSON fallback is used here."
+        rows={apiDebugRows}
+      />
     </div>
   );
 }

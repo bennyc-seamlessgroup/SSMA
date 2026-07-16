@@ -3,5 +3,5 @@ import { normalizeTicker } from '@/lib/ticker-data';
 
 export default async function WorkspacePortalPage({ params }: Readonly<{ params: Promise<{ ticker: string }> }>) {
   const { ticker } = await params;
-  redirect(`/monitor/${normalizeTicker(ticker)}/dashboard-v2`);
+  redirect(`/monitor/${normalizeTicker(ticker)}/dashboard`);
 }

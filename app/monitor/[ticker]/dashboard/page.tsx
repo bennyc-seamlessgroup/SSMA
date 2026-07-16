@@ -1,6 +1,6 @@
-import { redirect } from 'next/navigation';
+import { DashboardBrowserPage } from './DashboardBrowserPage';
 
-export default async function ObsoleteDashboardPage({ params }: Readonly<{ params: Promise<{ ticker: string }> }>) {
+export default async function DashboardPage({ params }: Readonly<{ params: Promise<{ ticker: string }> }>) {
   const { ticker } = await params;
-  redirect(`/monitor/${encodeURIComponent(ticker)}/dashboard-v2`);
+  return <DashboardBrowserPage ticker={ticker} />;
 }

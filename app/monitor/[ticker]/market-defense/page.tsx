@@ -8,7 +8,6 @@ export default function MarketDefensePage() {
 
   return (
     <div className="page">
-      <div className="page__header"><div><h1 className="page__title">Market Defense Center</h1><p className="page__desc">Executive workflow for monitoring market pressure, preparing responses, and preserving evidence for board and IR review.</p></div></div>
       <section className="grid cols-3">
         {displayPanels.map(panel => <div className="panel" key={String(panel.title)}><h2 className="panel__title">{String(panel.title)}</h2><p className="page__desc">{String(panel.description)}</p></div>)}
       </section>

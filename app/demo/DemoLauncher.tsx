@@ -8,7 +8,7 @@ export function DemoLauncher() {
   useEffect(() => {
     clearAuthSession();
     startPublicDemoSession();
-    window.location.replace(`/monitor/${publicDemoTicker}/dashboard-v2`);
+    window.location.replace(`/monitor/${publicDemoTicker}/dashboard`);
   }, []);
 
   return (

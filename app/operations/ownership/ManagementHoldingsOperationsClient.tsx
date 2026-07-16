@@ -2,15 +2,16 @@
 
 import type { FormEvent } from 'react';
 import { useEffect, useMemo, useState } from 'react';
-import type { InternalFloatV2PrivateHolding } from '@/lib/internal-float-types';
+import type { InternalFloatPrivateHolding } from '@/lib/internal-float-types';
 import type { ManagementHoldingAction, ManagementHoldingInputRecord } from '@/lib/operations/data-types';
 import { authenticatedFetch } from '@/lib/auth-client';
+import { OperationsDevelopmentData } from '@/components/OperationsDevelopmentData';
 
 type ApiPayload = {
   ok: boolean;
   data?: {
     records?: ManagementHoldingInputRecord[];
-    workspacePrivateHoldings?: InternalFloatV2PrivateHolding[];
+    workspacePrivateHoldings?: InternalFloatPrivateHolding[];
   };
   error?: string;
 };
@@ -111,17 +112,22 @@ export function ManagementHoldingsOperationsClient() {
   const [autoApply, setAutoApply] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [records, setRecords] = useState<ManagementHoldingInputRecord[]>([]);
-  const [workspacePrivateHoldings, setWorkspacePrivateHoldings] = useState<InternalFloatV2PrivateHolding[]>([]);
+  const [workspacePrivateHoldings, setWorkspacePrivateHoldings] = useState<InternalFloatPrivateHolding[]>([]);
   const [status, setStatus] = useState<'idle' | 'loading' | 'saving' | 'error' | 'saved'>('idle');
   const [message, setMessage] = useState('');
+  const [developmentPayload, setDevelopmentPayload] = useState<unknown>();
+  const [developmentTicker, setDevelopmentTicker] = useState('CURR');
 
   const activeTicker = ticker.trim().toUpperCase() || 'CURR';
 
   async function loadRecords(nextTicker = activeTicker) {
     setStatus('loading');
     setMessage('');
+    setDevelopmentPayload(undefined);
+    setDevelopmentTicker(nextTicker.trim().toUpperCase() || 'CURR');
     try {
       const payload = await authenticatedFetch(`/manual-input/management-holdings?ticker=${encodeURIComponent(nextTicker)}`, { cache: 'no-store' });
+      setDevelopmentPayload(payload);
       setRecords(normalizeApiRecords(payload, nextTicker));
       setWorkspacePrivateHoldings([]);
       setStatus('idle');
@@ -380,6 +386,18 @@ export function ManagementHoldingsOperationsClient() {
       </div>
 
       <ManagementRecordsPanel records={records} workspacePrivateHoldings={workspacePrivateHoldings} onEdit={editRecord} onCopy={copyRecord} onDelete={deleteRecord} />
+
+      <OperationsDevelopmentData
+        title="Management Holdings API Response"
+        description="Raw authenticated response used to populate the ownership operations workspace."
+        rows={[{
+          endpoint: `GET /manual-input/management-holdings?ticker=${developmentTicker}`,
+          source: 'API Gateway',
+          state: status === 'error' && message ? `error: ${message}` : status,
+          recordCount: developmentPayload === undefined || status === 'error' ? undefined : extractManagementRecords(developmentPayload).length,
+          payload: developmentPayload,
+        }]}
+      />
     </div>
   );
 }
@@ -392,7 +410,7 @@ function ManagementRecordsPanel({
   onDelete,
 }: {
   records: ManagementHoldingInputRecord[];
-  workspacePrivateHoldings: InternalFloatV2PrivateHolding[];
+  workspacePrivateHoldings: InternalFloatPrivateHolding[];
   onEdit: (record: ManagementHoldingInputRecord) => void;
   onCopy: (record: DisplayRecord, target: CopyTarget) => void;
   onDelete: (record: ManagementHoldingInputRecord) => void;

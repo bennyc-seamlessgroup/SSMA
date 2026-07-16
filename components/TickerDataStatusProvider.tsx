@@ -44,9 +44,9 @@ async function getApiTickerDataStatus(ticker: string): Promise<Pick<TickerDataSt
   const shortVolumeHistory = history['short-volume-history'];
   const ftdHistory = history['ftd-history'];
   const pages = {
-    'dashboard-v2': apiStatus(marketCurrent, marketHistory, secFilingsHistory),
+    'dashboard': apiStatus(marketCurrent, marketHistory, secFilingsHistory),
     institutional: apiStatus(ownershipCurrent, ownershipHistory),
-    'internal-float-v2': apiStatus(internalFloatCurrent, ownershipCurrent),
+    'internal-float': apiStatus(internalFloatCurrent, ownershipCurrent),
     'short-interest': apiStatus(marketCurrent, marketHistory, shortVolumeHistory, ftdHistory),
     'lending-pressure': apiStatus(marketCurrent, marketHistory),
     'event-calendar': apiStatus(secFilingsHistory),

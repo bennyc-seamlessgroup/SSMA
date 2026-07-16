@@ -86,8 +86,8 @@ export function authorizedMonitorRedirect(pathname: string, profile: TickerAcces
   if (!allowed.length) return `/monitor/${defaultTicker}/companies`;
   const defaultCompany = defaultTickerFromProfile(profile);
   const match = pathname.match(/^\/monitor\/([^/]+)(\/.*)?$/i);
-  if (!match) return `/monitor/${defaultCompany}/dashboard-v2`;
+  if (!match) return `/monitor/${defaultCompany}/dashboard`;
   const requestedTicker = normalizeTicker(match[1]);
   if (profileAllowsTicker(profile, requestedTicker)) return pathname;
-  return `/monitor/${defaultCompany}${match[2] || '/dashboard-v2'}`;
+  return `/monitor/${defaultCompany}${match[2] || '/dashboard'}`;
 }

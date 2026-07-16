@@ -1,6 +1,7 @@
 'use client';
 
 import { authenticatedFetch } from '@/lib/auth-client';
+import { OperationsDevelopmentData } from '@/components/OperationsDevelopmentData';
 import { getOperationsTicker, setOperationsTicker } from '@/lib/operations/ticker-client';
 import { useEffect, useMemo, useState } from 'react';
 
@@ -134,8 +135,8 @@ function normalizeApiEnvelope(payload: unknown, ticker: string): SecFilingsRespo
       : [];
 
   return {
-    storage: 'api',
-    updatedAt: envelope.updatedAt ?? String((payload as { generatedAt?: unknown } | null)?.generatedAt ?? new Date().toISOString()),
+    storage: envelope.storage,
+    updatedAt: envelope.updatedAt ?? String((payload as { generatedAt?: unknown } | null)?.generatedAt ?? ''),
     records,
     log: Array.isArray(envelope.log) ? envelope.log : [],
   };
@@ -153,10 +154,14 @@ export function SecFilingsOperationsClient() {
   const [recordsPage, setRecordsPage] = useState(1);
   const [sortKey, setSortKey] = useState<SortKey>('filingDate');
   const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
+  const [developmentPayload, setDevelopmentPayload] = useState<unknown>();
+  const [developmentTicker, setDevelopmentTicker] = useState('CURR');
 
   async function loadRecords(ticker = selectedTicker) {
     const normalizedTicker = ticker.trim().toUpperCase() || 'CURR';
     setStatus('loading');
+    setDevelopmentPayload(undefined);
+    setDevelopmentTicker(normalizedTicker);
     try {
       const payload = await authenticatedFetch(`/manual-input/sec-filings?ticker=${encodeURIComponent(normalizedTicker)}`, { cache: 'no-store' });
       setSelectedTicker(normalizedTicker);
@@ -167,6 +172,7 @@ export function SecFilingsOperationsClient() {
         ticker: normalizedTicker,
         companyName: normalizedTicker,
       });
+      setDevelopmentPayload(payload);
       setData(normalizeApiEnvelope(payload, normalizedTicker));
       setStatus('idle');
       setMessage('');
@@ -360,19 +366,6 @@ export function SecFilingsOperationsClient() {
           </dl>
         </section>
 
-        <section className="ops-panel">
-          <div className="ops-panel-head">
-            <div>
-              <span className="ops-eyebrow">API Source</span>
-              <h2>Backend Endpoint</h2>
-            </div>
-          </div>
-          <div className="ops-storage-box">
-            <span>{data?.storage ?? 'api'}</span>
-              <strong>/manual-input/sec-filings?ticker={selectedTicker}</strong>
-            <small>{data?.updatedAt ? `Updated ${formatDateTime(data.updatedAt)}` : 'Waiting for first save'}</small>
-          </div>
-        </section>
       </aside>
 
       <section className="ops-panel ops-wide-panel">
@@ -462,6 +455,19 @@ export function SecFilingsOperationsClient() {
           {!log.length && <p>No save activity yet.</p>}
         </div>
       </section>
+
+      <OperationsDevelopmentData
+        title="SEC Filing API Response"
+        description="Raw response metadata for the authenticated filing endpoint used by this page."
+        rows={[{
+          endpoint: `GET /manual-input/sec-filings?ticker=${developmentTicker}`,
+          source: developmentPayload !== undefined && data?.storage ? `API Gateway · ${data.storage}` : 'API Gateway',
+          state: status === 'error' && message ? `error: ${message}` : status,
+          recordCount: developmentPayload === undefined || status === 'error' ? undefined : records.length,
+          updatedAt: developmentPayload === undefined ? undefined : data?.updatedAt,
+          payload: developmentPayload,
+        }]}
+      />
       </div>
     </>
   );

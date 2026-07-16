@@ -108,15 +108,6 @@ export function EventCalendarBrowserPage({ ticker }: { ticker: string }) {
 
   return (
     <div className="page catalysts-page">
-      <div className="page__header">
-        <div>
-          <h1 className="page__title">SEC Filings</h1>
-          <p className="page__desc">
-            All companies that sell securities in the United States must register with the Securities and Exchange Commission and file reports on a regular basis. This page shows recent SEC filings related to {ticker}.
-          </p>
-        </div>
-      </div>
-
       {status === 'error' ? <section className="panel"><h2>SEC filings unavailable</h2><p>{error}</p></section> : <SecFilingsList filings={filings} />}
       <PageDisclaimerNotice noticeKey="insider" disclaimerKey="regulatoryFiling" />
 

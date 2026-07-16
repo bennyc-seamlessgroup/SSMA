@@ -11,9 +11,9 @@ import {
   demoInternalFloatHoldings,
   demoInternalFloatUserInputs,
 } from '@/lib/internal-float-demo';
-import type { FloatAdjustments, InternalFloatV2UserInput } from '@/lib/internal-float-types';
+import type { FloatAdjustments, InternalFloatUserInput } from '@/lib/internal-float-types';
 import { normalizeTicker } from '@/lib/ticker-data';
-import { InternalFloatV2Client, type InsiderSuggestionSource, type InstitutionalOwnershipOverview } from './InternalFloatV2Client';
+import { InternalFloatClient, type InsiderSuggestionSource, type InstitutionalOwnershipOverview } from './InternalFloatClient';
 import { isPublicDemoSession } from '@/lib/public-demo';
 
 type OwnershipCurrent = {
@@ -30,14 +30,14 @@ type InternalFloatCurrent = {
   tokenizedShares?: { shares?: number; records?: Array<Record<string, unknown>> };
   collateralizedShares?: { shares?: number; records?: Array<Record<string, unknown>> };
   suggestedChanges?: InsiderSuggestionSource[];
-  auditLog?: InternalFloatV2UserInput['activityLog'];
+  auditLog?: InternalFloatUserInput['activityLog'];
 };
 
 type InternalFloatInputs = {
   managementStrategicHoldings?: { records?: Array<Record<string, unknown>> };
   tokenizedShares?: { records?: Array<Record<string, unknown>> };
   collateralizedShares?: { records?: Array<Record<string, unknown>> };
-  auditLog?: InternalFloatV2UserInput['activityLog'];
+  auditLog?: InternalFloatUserInput['activityLog'];
 };
 
 const liveSeedAdjustments: FloatAdjustments = {
@@ -90,7 +90,7 @@ function LiveInternalFloat({ ticker }: { ticker: string }) {
   const privateRecords = payloads.inputs.managementStrategicHoldings?.records ?? [];
   const tokenRecords = payloads.inputs.tokenizedShares?.records ?? [];
   const collateralRecords = payloads.inputs.collateralizedShares?.records ?? [];
-  const apiInputs: InternalFloatV2UserInput = {
+  const apiInputs: InternalFloatUserInput = {
     userId: `workspace:${ticker}`,
     workspaceId: ticker,
     ticker,
@@ -115,7 +115,7 @@ function LiveInternalFloat({ ticker }: { ticker: string }) {
 
   return (
     <>
-      <InternalFloatV2Client
+      <InternalFloatClient
         key={`live-${ticker}`}
         ticker={ticker}
         initialHoldings={[]}
@@ -144,7 +144,7 @@ function LiveInternalFloat({ ticker }: { ticker: string }) {
 
 function DemoInternalFloat() {
   return (
-    <InternalFloatV2Client
+    <InternalFloatClient
       key="demo-internal-float"
       ticker="CURR"
       initialHoldings={demoInternalFloatHoldings}

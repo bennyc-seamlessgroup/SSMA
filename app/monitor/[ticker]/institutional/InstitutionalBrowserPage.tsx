@@ -2,9 +2,7 @@
 
 import { PortalPageLoading } from '@/components/PortalPageLoading';
 import { PageDisclaimerNotice } from '@/components/PageDisclaimerNotice';
-import { usePortalTimeZone } from '@/components/usePortalTimeZone';
 import { authenticatedFetch } from '@/lib/auth-client';
-import { formatPortalDateTime } from '@/lib/timezone';
 import type { InstitutionalHolding } from '@/lib/types';
 import { normalizeTicker } from '@/lib/ticker-data';
 import { useEffect, useState } from 'react';
@@ -114,7 +112,6 @@ export function InstitutionalBrowserPage({ ticker }: { ticker: string }) {
   const [history, setHistory] = useState<OwnershipHistory | null>(null);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(true);
-  const timeZone = usePortalTimeZone();
 
   useEffect(() => {
     let cancelled = false;
@@ -198,19 +195,8 @@ export function InstitutionalBrowserPage({ ticker }: { ticker: string }) {
     sharesPercentChange: formatPercent(row.percentChange ?? row.sharesPercentChange),
     url: row.url ?? undefined,
   }));
-  const updatedAt = current.updatedAt ?? current.generatedAt ?? history.generatedAt;
-
   return (
     <div className="page institutional-page">
-      <div className="compact-page-header">
-        <span>Institutional Ownership</span>
-        <p>Normalized ownership records</p>
-        <span className="page-header-import-status" aria-label="Latest import data update">
-          <span>Latest import data update</span>
-          <strong>{updatedAt ? formatPortalDateTime(updatedAt, timeZone) : 'No API update available'}</strong>
-        </span>
-      </div>
-
       <InstitutionalOverview data={overviewData} ticker={normalizedTicker} managementRecords={managementRecords} />
       <section className="panel">
         <InstitutionalTabs holdings={holdings} activistFilings={activistFilings} ticker={normalizedTicker} companyName={normalizedTicker} />

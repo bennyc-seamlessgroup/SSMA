@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
+import { OperationsDevelopmentData } from '@/components/OperationsDevelopmentData';
 import { operationsProfile } from '@/lib/operations/api-client';
 
 type HotkeyMapping = {
@@ -12,6 +13,8 @@ type HotkeyMapping = {
 };
 
 type HotkeyResponse = HotkeyMapping[] | {
+  source?: string;
+  updatedAt?: string;
   hotkeys?: HotkeyMapping[];
   items?: HotkeyMapping[];
 };
@@ -50,6 +53,11 @@ function mappingsFromResponse(response: HotkeyResponse) {
   if (Array.isArray(response.hotkeys)) return response.hotkeys;
   if (Array.isArray(response.items)) return response.items;
   return [];
+}
+
+function responseMetadata(response: HotkeyResponse | undefined) {
+  if (!response || Array.isArray(response)) return {};
+  return { source: response.source, updatedAt: response.updatedAt };
 }
 
 function formatCreatedAt(value: string) {
@@ -93,15 +101,18 @@ export function HotkeyOperationsClient({ ticker }: { ticker: string }) {
   const [isOperator, setIsOperator] = useState(false);
   const [state, setState] = useState<LoadState>('loading');
   const [message, setMessage] = useState('');
+  const [developmentPayload, setDevelopmentPayload] = useState<HotkeyResponse>();
 
   async function loadMappings(preserveMessage = false) {
     setState('loading');
+    setDevelopmentPayload(undefined);
     if (!preserveMessage) setMessage('');
     try {
       const response = await jsonHotkeysFetch(
         `/hotkeys?ticker=${encodeURIComponent(normalizedTicker)}`,
         { cache: 'no-store' },
       ) as HotkeyResponse;
+      setDevelopmentPayload(response);
       setMappings(mappingsFromResponse(response));
       setState('idle');
     } catch (error) {
@@ -143,6 +154,7 @@ export function HotkeyOperationsClient({ ticker }: { ticker: string }) {
         if (cancelled) return;
         setIsOperator(String(profile.role ?? '').trim().toUpperCase() === 'OPERATOR');
         const nextMappings = mappingsFromResponse(response);
+        setDevelopmentPayload(response);
         setMappings(nextMappings);
         setState('idle');
         if (String(profile.role ?? '').trim().toUpperCase() === 'OPERATOR') {
@@ -173,6 +185,7 @@ export function HotkeyOperationsClient({ ticker }: { ticker: string }) {
   );
   const busy = state === 'loading' || state === 'saving' || state === 'deleting';
   const normalizedDraft = normalizeHotkey(hotkey);
+  const developmentMetadata = responseMetadata(developmentPayload);
 
   async function saveMapping(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -305,6 +318,19 @@ export function HotkeyOperationsClient({ ticker }: { ticker: string }) {
           </div>
         )}
       </section>
+
+      <OperationsDevelopmentData
+        title="Notification Hotkey API Response"
+        description="Raw mapping envelope returned by the operations hotkey route for the active ticker."
+        rows={[{
+          endpoint: `GET /api/operations/hotkeys?ticker=${normalizedTicker}`,
+          source: developmentMetadata.source || 'Operations API route',
+          state: state === 'error' && message ? `error: ${message}` : state,
+          recordCount: developmentPayload === undefined || state === 'error' ? undefined : mappings.length,
+          updatedAt: developmentMetadata.updatedAt,
+          payload: developmentPayload,
+        }]}
+      />
     </div>
   );
 }

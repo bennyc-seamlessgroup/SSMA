@@ -29,11 +29,6 @@ export default async function DataSourcesPage({ params }: Readonly<{ params: Pro
 
   return (
     <div className="page">
-      <div className="compact-page-header">
-        <span>Data Sources</span>
-        <p>Current ticker-aware API connections used by the active portal pages.</p>
-      </div>
-
       <section className="panel">
         <div className="section-list" style={{ marginBottom: 16 }}>
           <div className="section">

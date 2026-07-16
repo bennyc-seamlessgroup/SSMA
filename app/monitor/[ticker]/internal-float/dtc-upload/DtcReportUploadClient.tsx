@@ -102,7 +102,7 @@ export function DtcReportUploadClient({ ticker }: { ticker: string }) {
           {message && <p className={`dtc-upload-message ${selectedFile && confirmed ? 'success' : 'error'}`}>{message}</p>}
 
           <div className="dtc-upload-actions">
-            <Link className="button secondary" href={`/monitor/${ticker}/internal-float-v2`}>Back to Internal Float</Link>
+            <Link className="button secondary" href={`/monitor/${ticker}/internal-float`}>Back to Internal Float</Link>
             <button className="button primary" type="button" disabled={!selectedFile || !confirmed} onClick={proceed}>
               Proceed · $100
             </button>

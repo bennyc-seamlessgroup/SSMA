@@ -154,7 +154,7 @@ export async function startLogin(options: { redirectTo?: string; screenHint?: 's
   const state = Math.random().toString(36).slice(2, 15);
   const codeVerifier = generateCodeVerifier();
   const codeChallenge = await generateCodeChallenge(codeVerifier);
-  const redirectTo = options.redirectTo || '/monitor/CURR/dashboard-v2';
+  const redirectTo = options.redirectTo || '/monitor/CURR/dashboard';
 
   sessionStorage.setItem(tokenKeys.oauthState, state);
   sessionStorage.setItem(tokenKeys.codeVerifier, codeVerifier);
@@ -218,7 +218,7 @@ export async function handleOAuthCallback() {
   sessionStorage.removeItem(tokenKeys.oauthState);
   sessionStorage.removeItem(tokenKeys.codeVerifier);
 
-  let redirectTo = sessionStorage.getItem(tokenKeys.postLoginRedirect) || '/monitor/CURR/dashboard-v2';
+  let redirectTo = sessionStorage.getItem(tokenKeys.postLoginRedirect) || '/monitor/CURR/dashboard';
   sessionStorage.removeItem(tokenKeys.postLoginRedirect);
   try {
     const { authorizedMonitorRedirect } = await import('@/lib/ticker-access');

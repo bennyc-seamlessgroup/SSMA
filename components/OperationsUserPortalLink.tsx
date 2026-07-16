@@ -18,6 +18,17 @@ export function OperationsUserPortalLink() {
     };
   }, []);
 
-  return <Link className="ops-user-portal-link" href={`/monitor/${ticker}/dashboard-v2`}>User Portal · {ticker}</Link>;
+  return (
+    <Link
+      className="ops-user-portal-link"
+      href={`/monitor/${ticker}/dashboard`}
+      title={`Open ${ticker} user portal`}
+    >
+      <svg viewBox="0 0 24 24" aria-hidden="true">
+        <path d="M14 5h5v5M19 5l-7 7" />
+        <path d="M11 7H5v12h12v-6" />
+      </svg>
+      <span>User Portal · {ticker}</span>
+    </Link>
+  );
 }
-

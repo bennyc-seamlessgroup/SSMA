@@ -10,7 +10,6 @@ const scenarios = [
 export default function PriceScenarioPage() {
   return (
     <div className="page">
-      <div className="page__header"><div><h1 className="page__title">Price Scenario Engine</h1><p className="page__desc">Scenario-based price projections. This is not an analyst target price.</p></div></div>
       <section className="panel">
         <div className="research-module-grid">
           <div className="research-hero-card"><span>Current Price</span><strong>$4.00</strong><p>Scenario engine estimates where the stock could trade if market pressure, catalysts, and positioning change.</p></div>

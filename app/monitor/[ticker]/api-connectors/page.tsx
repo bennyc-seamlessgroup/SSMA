@@ -10,11 +10,6 @@ export default async function ApiConnectorsPage({ params }: Readonly<{ params: P
 
   return (
     <div className="page">
-      <div className="compact-page-header">
-        <span>Connectors</span>
-        <p>Active API pipelines and retained social/report data connections.</p>
-      </div>
-
       <section className="panel">
         <div className="section-list" style={{ marginBottom: 16 }}>
           {connectorNames.map(name => {

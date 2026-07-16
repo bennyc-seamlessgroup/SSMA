@@ -13,7 +13,7 @@ export function AuthGuard({ children, ticker }: { children: React.ReactNode; tic
 
   useEffect(() => {
     let cancelled = false;
-    const currentPath = () => window.location.pathname || `/monitor/${ticker}/dashboard-v2`;
+    const currentPath = () => window.location.pathname || `/monitor/${ticker}/dashboard`;
     const authorizeTicker = (profile: Awaited<ReturnType<typeof getAuthenticatedProfile>>) => {
       if (!allowedTickersFromProfile(profile).length) {
         const path = currentPath();
@@ -36,7 +36,7 @@ export function AuthGuard({ children, ticker }: { children: React.ReactNode; tic
       setStatus('checking');
       if (isPublicDemoSession()) {
         if (ticker.toUpperCase() !== publicDemoTicker) {
-          window.location.replace(`/monitor/${publicDemoTicker}/dashboard-v2`);
+          window.location.replace(`/monitor/${publicDemoTicker}/dashboard`);
           return;
         }
         if (!cancelled) setStatus('authenticated');

@@ -5,8 +5,8 @@ import { PortalPageLoading } from '@/components/PortalPageLoading';
 import { authenticatedFetch } from '@/lib/auth-client';
 import type { DashboardMarginRecord, DashboardUtilizationRecord, OperationsSecFilingRecord } from '@/lib/operations/data-types';
 import { normalizeTicker } from '@/lib/ticker-data';
-import { DashboardV2Client } from './DashboardV2Client';
-import { DashboardV2DevTables } from './DashboardV2DevTables';
+import { DashboardClient } from './DashboardClient';
+import { DashboardDevTables } from './DashboardDevTables';
 
 type TrendPoint = {
   date: string;
@@ -16,6 +16,7 @@ type TrendPoint = {
   shortableShares: number | null;
   daysToCover: number | null;
   utilization: number | null;
+  averageDuration: number | null;
   margin?: number | null;
 };
 
@@ -263,6 +264,7 @@ function marketHistoryToDashboardData(
         shortableShares: numericOrNull(row.availableShares ?? row.availableSharesIbkr ?? row.availableSharesFutu ?? row.availableSharesChartExchange),
         daysToCover: numericOrNull(row.daysToCover),
         utilization: null,
+        averageDuration: null,
         margin: null,
       };
     })
@@ -278,6 +280,7 @@ function marketHistoryToDashboardData(
       shortableShares: numericOrNull(currentFile.availableShares?.value),
       daysToCover: numericOrNull(currentFile.daysToCover?.value),
       utilization: null,
+      averageDuration: null,
       margin: null,
     });
     marketTrendData.sort((a, b) => a.date.localeCompare(b.date));
@@ -287,6 +290,11 @@ function marketHistoryToDashboardData(
   const utilizationInputs = manualUtilizationRecords(manualInputs.utilization, recordTicker);
   const marginInputs = manualMarginRecords(manualInputs.margins, recordTicker);
   const utilizationByDate = new Map(utilizationInputs.map(record => [record.date, record.utilization]));
+  const averageDurationByDate = new Map(
+    marginInputs
+      .filter(record => record.averageDurationDays !== null)
+      .map(record => [record.date, record.averageDurationDays as number]),
+  );
   const trendByDate = new Map(marketTrendData.map(point => [point.date, point]));
   utilizationInputs.forEach(record => {
     const marketPoint = trendByDate.get(record.date);
@@ -301,12 +309,35 @@ function marketHistoryToDashboardData(
         shortableShares: null,
         daysToCover: null,
         utilization: record.utilization,
+        averageDuration: null,
+        margin: null,
+      });
+    }
+  });
+  averageDurationByDate.forEach((averageDuration, date) => {
+    const existing = trendByDate.get(date);
+    if (existing) {
+      trendByDate.set(date, { ...existing, averageDuration });
+    } else {
+      trendByDate.set(date, {
+        date,
+        price: null,
+        feeRate: null,
+        tradeVolume: null,
+        shortableShares: null,
+        daysToCover: null,
+        utilization: null,
+        averageDuration,
         margin: null,
       });
     }
   });
   const trendData = [...trendByDate.values()]
-    .map(point => ({ ...point, utilization: utilizationByDate.get(point.date) ?? point.utilization }))
+    .map(point => ({
+      ...point,
+      utilization: utilizationByDate.get(point.date) ?? point.utilization,
+      averageDuration: averageDurationByDate.get(point.date) ?? point.averageDuration,
+    }))
     .sort((a, b) => a.date.localeCompare(b.date));
 
   const latestUtilization = latestManualRecord(manualInputs.utilization);
@@ -328,7 +359,7 @@ function marketHistoryToDashboardData(
   return { currentFile, historyFile, secFilingsFile, trendData, utilizationInputs, marginInputs, events: secFilingEvents(secFilingRows), current, manualInputs };
 }
 
-export function DashboardV2BrowserPage({ ticker }: { ticker: string }) {
+export function DashboardBrowserPage({ ticker }: { ticker: string }) {
   const normalizedTicker = normalizeTicker(ticker);
   const [apiData, setApiData] = useState<DashboardApiData | null>(null);
   const [apiError, setApiError] = useState<string | null>(null);
@@ -386,33 +417,15 @@ export function DashboardV2BrowserPage({ ticker }: { ticker: string }) {
   const marginInputs = apiData.marginInputs;
   const events = apiData.events;
   const current = apiData.current;
-  const devCurrent = {
-    ...apiData.currentFile,
-    marketHistoryGeneratedAt: apiData.historyFile?.generatedAt ?? null,
-    secFilingsHistoryGeneratedAt: apiData.secFilingsFile?.generatedAt ?? null,
-    manualInputV2: apiData.manualInputs,
-  };
-
   return (
-    <div className="page dashboard-v2-page">
-      <div className="dashboard-v2-header">
-        <span>Dashboard</span>
-        <p>Borrow market dashboard</p>
-      </div>
-
-      <DashboardV2Client ticker={normalizedTicker} data={trendData} events={events} utilizationRecords={utilizationInputs} marginRecords={marginInputs} current={current} />
-      <DashboardV2DevTables
-        file="GET /market-data/current + GET /market-data/history + GET /manual-input/utilization + GET /manual-input/margins"
-        sourcePlatform="Market Data API + Manual Input V2 API"
-        status="api-separated-sources"
-        current={devCurrent}
-        trends={trendData as Array<Record<string, unknown>>}
-        marginInputs={marginInputs as unknown as Array<Record<string, unknown>>}
-        marginFile="GET /manual-input/margins"
-        marginStatus="manual-input-api"
-        events={events as Array<Record<string, unknown>>}
-        missingFromSource={[]}
-        derived={null}
+    <div className="page dashboard-page">
+      <DashboardClient ticker={normalizedTicker} data={trendData} events={events} utilizationRecords={utilizationInputs} marginRecords={marginInputs} current={current} />
+      <DashboardDevTables
+        marketCurrent={apiData.currentFile as Record<string, unknown> | null}
+        marketHistory={apiData.historyFile as Record<string, unknown> | null}
+        manualUtilization={apiData.manualInputs.utilization as Array<Record<string, unknown>>}
+        manualMargins={apiData.manualInputs.margins as Array<Record<string, unknown>>}
+        secFilingsHistory={apiData.secFilingsFile as Record<string, unknown> | null}
       />
     </div>
   );

@@ -13,7 +13,7 @@ export function LoginButton({ children = 'Sign in with Cognito' }: { children?: 
     setError('');
     setIsLoading(true);
     try {
-      await startLogin({ redirectTo: searchParams.get('next') || '/monitor/CURR/dashboard-v2' });
+      await startLogin({ redirectTo: searchParams.get('next') || '/monitor/CURR/dashboard' });
     } catch (err) {
       setIsLoading(false);
       setError(err instanceof Error ? err.message : 'Unable to start login.');
@@ -38,7 +38,7 @@ export function SignupButton({ children = 'Create account with Cognito' }: { chi
     setError('');
     setIsLoading(true);
     try {
-      await startLogin({ redirectTo: '/monitor/CURR/dashboard-v2', screenHint: 'signup' });
+      await startLogin({ redirectTo: '/monitor/CURR/dashboard', screenHint: 'signup' });
     } catch (err) {
       setIsLoading(false);
       setError(err instanceof Error ? err.message : 'Unable to start signup.');

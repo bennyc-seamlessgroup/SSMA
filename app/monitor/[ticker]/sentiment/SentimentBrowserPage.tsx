@@ -505,7 +505,7 @@ const platformFilters: SentimentPlatformFilter[] = ['All', 'X', 'Reddit', 'Stock
 
 function DevJsonTables({ datasets, timeZone }: { datasets: Array<{ file: string; payload: SocialMentionsFile }>; timeZone: string }) {
   return (
-    <section className="narrative-feed-panel dev-only">
+    <section className="narrative-feed-panel dev-only import-data-dev-panel">
       <div className="narrative-section-head">
         <div>
           <h2>Development Data</h2>
@@ -659,18 +659,12 @@ export function SentimentBrowserPage({ ticker }: { ticker: string }) {
 
   return (
     <div className="page narrative-page">
-      <div className="compact-page-header">
-        <span>Social Sentiment</span>
-        <p>Track market sentiment and narrative momentum across X, Reddit, Facebook, Linkedin, and Stocktwits.</p>
-      </div>
-
-      <NarrativeRangeSelector activeRange={activeRange.label} ranges={rangeOptions} />
-
       <section className="narrative-overview-panel narrative-command-overview">
         <div className="narrative-section-head">
           <div>
-          <h2>Social Sentiment Overview</h2>
+            <h2>Social Sentiment Overview</h2>
           </div>
+          <NarrativeRangeSelector activeRange={activeRange.label} ranges={rangeOptions} />
         </div>
 
         <div className="narrative-command-kpis">

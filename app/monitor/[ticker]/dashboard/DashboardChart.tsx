@@ -2,9 +2,10 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import type { MouseEvent } from 'react';
-import { dashboardV2Periods, type PeriodKey } from './DashboardV2Kpis';
+import { dashboardPeriods, type PeriodKey } from './DashboardKpis';
 
-type SeriesKey = 'price' | 'feeRate' | 'tradeVolume' | 'shortableShares' | 'daysToCover' | 'utilization';
+export type DashboardSeriesKey = 'price' | 'feeRate' | 'tradeVolume' | 'shortableShares' | 'daysToCover' | 'utilization' | 'averageDuration';
+type SeriesKey = DashboardSeriesKey;
 
 type DataPoint = {
   date: string;
@@ -14,6 +15,7 @@ type DataPoint = {
   shortableShares: number | null;
   daysToCover: number | null;
   utilization: number | null;
+  averageDuration: number | null;
 };
 
 type ChartPoint = {
@@ -24,6 +26,7 @@ type ChartPoint = {
   shortableShares: number | null;
   daysToCover: number | null;
   utilization: number | null;
+  averageDuration: number | null;
 };
 
 type CompanyEvent = {
@@ -52,9 +55,14 @@ type SeriesConfig = {
   formatter: (value: number) => string;
 };
 
+export type DashboardFixedAxis = {
+  metric: DashboardSeriesKey;
+  side: 'left' | 'right';
+};
+
 const defaultMetric: SeriesKey = 'price';
 
-const seriesOrder: SeriesKey[] = ['price', 'feeRate', 'tradeVolume', 'shortableShares', 'daysToCover', 'utilization'];
+const seriesOrder: SeriesKey[] = ['price', 'feeRate', 'tradeVolume', 'shortableShares', 'daysToCover', 'utilization', 'averageDuration'];
 const bottomMetrics = new Set<SeriesKey>(['tradeVolume', 'shortableShares']);
 
 const seriesConfig: Record<SeriesKey, SeriesConfig> = {
@@ -93,6 +101,12 @@ const seriesConfig: Record<SeriesKey, SeriesConfig> = {
     axisTitle: 'Utilization %',
     color: '#15a67a',
     formatter: value => `${value.toLocaleString('en-US', { maximumFractionDigits: 1 })}%`,
+  },
+  averageDuration: {
+    label: 'Average Duration',
+    axisTitle: 'Average Duration (Days)',
+    color: '#8b5cf6',
+    formatter: value => `${value.toLocaleString('en-US', { maximumFractionDigits: 1 })}d`,
   },
 };
 
@@ -185,12 +199,18 @@ function fillMissingPrice(points: ChartPoint[]): ChartPoint[] {
   });
 }
 
-export function DashboardV2Chart({
+export function DashboardChart({
+  title,
+  series,
+  fixedAxes,
   data: sourceData,
   events: sourceEvents,
   period,
   onPeriodChange,
 }: {
+  title: string;
+  series: DashboardSeriesKey[];
+  fixedAxes?: DashboardFixedAxis[];
   data: DataPoint[];
   events: CompanyEvent[];
   period: PeriodKey;
@@ -203,6 +223,7 @@ export function DashboardV2Chart({
     shortableShares: true,
     daysToCover: true,
     utilization: true,
+    averageDuration: true,
   });
   const [hoveredMetric, setHoveredMetric] = useState<SeriesKey | null>(null);
   const [hoverIndex, setHoverIndex] = useState<number | null>(null);
@@ -215,7 +236,7 @@ export function DashboardV2Chart({
     function closePinnedPopover(event: PointerEvent) {
       const target = event.target;
       if (!(target instanceof Element)) return;
-      if (target.closest('.dashboard-v2-event-tooltip') || target.closest('.dashboard-v2-event-marker')) return;
+      if (target.closest('.dashboard-event-tooltip') || target.closest('.dashboard-event-marker')) return;
       setPinnedEventGroup(null);
     }
 
@@ -234,6 +255,7 @@ export function DashboardV2Chart({
         shortableShares: numericOrNull(point.shortableShares),
         daysToCover: numericOrNull(point.daysToCover),
         utilization: numericOrNull(point.utilization),
+        averageDuration: numericOrNull(point.averageDuration),
       }))
       .sort((a, b) => a.date.localeCompare(b.date));
     return fillMissingPrice(clean);
@@ -269,7 +291,7 @@ export function DashboardV2Chart({
     return Array.from(groups.values()).sort((a, b) => a.date.localeCompare(b.date) || a.type.localeCompare(b.type));
   }, [visibleEvents]);
 
-  const availableMetrics = useMemo(() => seriesOrder.filter(key => key === 'daysToCover' || key === 'utilization' || hasMetricValue(allData, key)), [allData]);
+  const availableMetrics = useMemo(() => seriesOrder.filter(key => series.includes(key)), [series]);
   const enabledKeys = availableMetrics.filter(key => enabledMetrics[key]);
   const activeMetric = hoveredMetric && enabledKeys.includes(hoveredMetric)
     ? hoveredMetric
@@ -282,8 +304,9 @@ export function DashboardV2Chart({
     const height = 560;
     const left = 72;
     const right = 100;
+    const hasBottomPanel = availableMetrics.some(key => bottomMetrics.has(key));
     const topPanelTop = 52;
-    const topPanelBottom = 326;
+    const topPanelBottom = hasBottomPanel ? 326 : 488;
     const bottomPanelTop = 366;
     const bottomPanelBottom = 488;
     const plotWidth = width - left - right;
@@ -303,7 +326,10 @@ export function DashboardV2Chart({
       });
       return nearest;
     };
-    const domains = Object.fromEntries(availableMetrics.map(key => [key, domainFor(data.map(point => point[key]).filter((value): value is number => value !== null))])) as Partial<Record<SeriesKey, { min: number; max: number }>>;
+    const domains = Object.fromEntries(availableMetrics.map(key => {
+      const values = data.map(point => point[key]).filter((value): value is number => value !== null);
+      return [key, domainFor(values.length ? values : [0])];
+    })) as Partial<Record<SeriesKey, { min: number; max: number }>>;
     const paths = Object.fromEntries(availableMetrics.map(key => {
       const domain = domains[key];
       if (!domain) return [key, { path: '', points: [] }];
@@ -363,6 +389,7 @@ export function DashboardV2Chart({
       bottomPanelTop,
       bottomPanelBottom,
       plotWidth,
+      hasBottomPanel,
       domains,
       paths,
       xTicks,
@@ -385,6 +412,7 @@ export function DashboardV2Chart({
   const activePanel = panelForMetric(activeMetric);
   const activePanelTop = activePanel === 'bottom' ? chart.bottomPanelTop : chart.topPanelTop;
   const activePanelBottom = activePanel === 'bottom' ? chart.bottomPanelBottom : chart.topPanelBottom;
+  const visibleFixedAxes = (fixedAxes ?? []).filter(axis => enabledKeys.includes(axis.metric));
   const hoveredPoint = hoverIndex === null ? null : data[hoverIndex] ?? null;
   const tooltipMetricOrder = activeMetric
     ? [activeMetric, ...enabledKeys.filter(key => key !== activeMetric)]
@@ -408,24 +436,10 @@ export function DashboardV2Chart({
   };
 
   return (
-    <section className="dashboard-v2-chart-card">
-      <div className="dashboard-v2-chart-head">
-        <div className="dashboard-v2-chart-title-wrap">
-          <span>Trend Overview</span>
-          <div className="dashboard-v2-period-control" aria-label="Dashboard v2 comparison period">
-            {dashboardV2Periods.map(item => (
-              <button
-                type="button"
-                key={item}
-                className={period === item ? 'active' : ''}
-                onClick={() => onPeriodChange(item)}
-              >
-                {item}
-              </button>
-            ))}
-          </div>
-        </div>
-        <div className="dashboard-v2-legend" aria-label="Chart series toggles">
+    <section className="dashboard-chart-card">
+      <div className="dashboard-chart-head">
+        <h2>{title}</h2>
+        <div className="dashboard-legend" aria-label="Chart series toggles">
           {seriesOrder.map(key => (
             !availableMetrics.includes(key) ? null : (
             <button
@@ -445,15 +459,27 @@ export function DashboardV2Chart({
             )
           ))}
         </div>
+        <div className="dashboard-period-control" aria-label={`${title} timeframe`}>
+          {dashboardPeriods.map(item => (
+            <button
+              type="button"
+              key={item}
+              className={period === item ? 'active' : ''}
+              onClick={() => onPeriodChange(item)}
+            >
+              {item}
+            </button>
+          ))}
+        </div>
       </div>
 
       {!data.length || !enabledKeys.length ? (
-        <div className="dashboard-v2-empty-chart">
+        <div className="dashboard-empty-chart">
           <strong>No chart data available</strong>
           <span>The market data API does not include chartable values for the selected metrics.</span>
         </div>
       ) : (
-      <div className="dashboard-v2-chart-shell">
+      <div className="dashboard-chart-shell">
         <svg
           viewBox={`0 0 ${chart.width} ${chart.height}`}
           role="img"
@@ -462,41 +488,82 @@ export function DashboardV2Chart({
           onMouseLeave={clearHover}
           onClick={() => setPinnedEventGroup(null)}
         >
-          <text
-            className="dashboard-v2-axis-title active-axis-title"
-            x={chart.width - 34}
-            y={activePanel === 'bottom' ? chart.bottomPanelTop - 14 : 25}
-            textAnchor="end"
-            style={{ fill: activeConfig.color }}
-          >
-            {activeConfig.axisTitle}
-          </text>
-
-          {activeTicks.map(tick => {
-            const y = scale(tick, activeDomain.min, activeDomain.max, activePanelTop, activePanelBottom);
+          {visibleFixedAxes.length ? visibleFixedAxes.map(axis => {
+            const config = seriesConfig[axis.metric];
+            const domain = chart.domains[axis.metric] ?? domainFor([0]);
+            const panel = panelForMetric(axis.metric);
+            const panelTop = panel === 'bottom' ? chart.bottomPanelTop : chart.topPanelTop;
+            const panelBottom = panel === 'bottom' ? chart.bottomPanelBottom : chart.topPanelBottom;
+            const panelAxes = visibleFixedAxes.filter(item => panelForMetric(item.metric) === panel);
+            const showGrid = panelAxes[0]?.metric === axis.metric;
+            const titleX = axis.side === 'left' ? chart.left : chart.width - chart.right;
+            const tickX = axis.side === 'left' ? chart.left - 12 : chart.width - chart.right + 12;
+            const anchor = axis.side === 'left' ? 'end' : 'start';
             return (
-              <g key={`active-${tick}`}>
-                <line className="dashboard-v2-grid-line" x1={chart.left} x2={chart.width - chart.right} y1={y} y2={y} />
-                <text className="dashboard-v2-axis-value active-axis-tick" x={chart.width - 32} y={y + 4} textAnchor="end" style={{ fill: activeConfig.color }}>
-                  {activeConfig.formatter(tick)}
+              <g key={`${axis.metric}-${axis.side}`}>
+                <text
+                  className="dashboard-axis-title active-axis-title"
+                  x={titleX}
+                  y={panel === 'bottom' ? chart.bottomPanelTop - 14 : 25}
+                  textAnchor={axis.side === 'left' ? 'start' : 'end'}
+                  style={{ fill: config.color }}
+                >
+                  {config.axisTitle}
                 </text>
+                {ticksFor(domain.min, domain.max).map(tick => {
+                  const y = scale(tick, domain.min, domain.max, panelTop, panelBottom);
+                  return (
+                    <g key={`${axis.metric}-${tick}`}>
+                      {showGrid && <line className="dashboard-grid-line" x1={chart.left} x2={chart.width - chart.right} y1={y} y2={y} />}
+                      <text className="dashboard-axis-value active-axis-tick" x={tickX} y={y + 4} textAnchor={anchor} style={{ fill: config.color }}>
+                        {config.formatter(tick)}
+                      </text>
+                    </g>
+                  );
+                })}
               </g>
             );
-          })}
+          }) : (
+            <>
+              <text
+                className="dashboard-axis-title active-axis-title"
+                x={chart.width - 34}
+                y={activePanel === 'bottom' ? chart.bottomPanelTop - 14 : 25}
+                textAnchor="end"
+                style={{ fill: activeConfig.color }}
+              >
+                {activeConfig.axisTitle}
+              </text>
+
+              {activeTicks.map(tick => {
+                const y = scale(tick, activeDomain.min, activeDomain.max, activePanelTop, activePanelBottom);
+                return (
+                  <g key={`active-${tick}`}>
+                    <line className="dashboard-grid-line" x1={chart.left} x2={chart.width - chart.right} y1={y} y2={y} />
+                    <text className="dashboard-axis-value active-axis-tick" x={chart.width - 32} y={y + 4} textAnchor="end" style={{ fill: activeConfig.color }}>
+                      {activeConfig.formatter(tick)}
+                    </text>
+                  </g>
+                );
+              })}
+            </>
+          )}
 
           {chart.xTicks.map(tick => (
             <g key={`${tick.label}-${tick.x}`}>
-              <line className="dashboard-v2-month-line" x1={tick.x} x2={tick.x} y1={chart.topPanelTop} y2={chart.bottomPanelBottom} />
-              <text className="dashboard-v2-x-label" x={tick.x} y={chart.bottomPanelBottom + 28} textAnchor={tick.textAnchor}>{tick.label}</text>
+              <line className="dashboard-month-line" x1={tick.x} x2={tick.x} y1={chart.topPanelTop} y2={chart.bottomPanelBottom} />
+              <text className="dashboard-x-label" x={tick.x} y={chart.bottomPanelBottom + 28} textAnchor={tick.textAnchor}>{tick.label}</text>
             </g>
           ))}
 
-          <line className="dashboard-v2-zero-line" x1={chart.left} x2={chart.width - chart.right} y1={chart.topPanelBottom} y2={chart.topPanelBottom} />
-          <line className="dashboard-v2-zero-line" x1={chart.left} x2={chart.width - chart.right} y1={chart.bottomPanelBottom} y2={chart.bottomPanelBottom} />
+          <line className="dashboard-zero-line" x1={chart.left} x2={chart.width - chart.right} y1={chart.topPanelBottom} y2={chart.topPanelBottom} />
+          {chart.hasBottomPanel && (
+            <line className="dashboard-zero-line" x1={chart.left} x2={chart.width - chart.right} y1={chart.bottomPanelBottom} y2={chart.bottomPanelBottom} />
+          )}
 
           {chart.eventMarkers.map(marker => (
             <g
-              className="dashboard-v2-event-marker"
+              className="dashboard-event-marker"
               key={marker.eventGroup.id}
               role="button"
               tabIndex={0}
@@ -511,7 +578,7 @@ export function DashboardV2Chart({
               onFocus={() => setHoveredEventGroup(marker.eventGroup)}
               onBlur={() => setHoveredEventGroup(null)}
             >
-              <rect className="dashboard-v2-event-hitbox" x={marker.x - 16} y={marker.y - 16} width="32" height="32" rx="8" />
+              <rect className="dashboard-event-hitbox" x={marker.x - 16} y={marker.y - 16} width="32" height="32" rx="8" />
               <line x1={marker.x} x2={marker.x} y1={chart.topPanelTop} y2={chart.bottomPanelBottom} />
               {marker.eventGroup.type === 'SEC' ? (
                 <>
@@ -533,12 +600,12 @@ export function DashboardV2Chart({
             return (
               <g key={key}>
                 <path
-                  className={`dashboard-v2-line dashboard-v2-line--${key} ${isFocused ? 'is-focused' : ''} ${isDimmed ? 'is-dimmed' : ''}`}
+                  className={`dashboard-line dashboard-line--${key} ${isFocused ? 'is-focused' : ''} ${isDimmed ? 'is-dimmed' : ''}`}
                   d={chart.paths[key]?.path ?? ''}
                   style={{ stroke: seriesConfig[key].color }}
                 />
                 <path
-                  className="dashboard-v2-line-hit"
+                  className="dashboard-line-hit"
                   d={chart.paths[key]?.path ?? ''}
                   onMouseEnter={() => setHoveredMetric(key)}
                   onFocus={() => setHoveredMetric(key)}
@@ -548,9 +615,9 @@ export function DashboardV2Chart({
           })}
 
           {hoveredPoint && (
-            <g className="dashboard-v2-hover-layer">
+            <g className="dashboard-hover-layer">
               <line
-                className="dashboard-v2-hover-line"
+                className="dashboard-hover-line"
                 x1={chart.paths[activeMetric]?.points[hoverIndex ?? 0]?.x}
                 x2={chart.paths[activeMetric]?.points[hoverIndex ?? 0]?.x}
                 y1={chart.topPanelTop}
@@ -562,7 +629,7 @@ export function DashboardV2Chart({
                 return (
                   <circle
                     key={`marker-${key}`}
-                    className={`dashboard-v2-hover-dot ${activeMetric === key ? 'is-focused' : ''}`}
+                    className={`dashboard-hover-dot ${activeMetric === key ? 'is-focused' : ''}`}
                     cx={point.x}
                     cy={point.y}
                     r={activeMetric === key ? 4.2 : 3}
@@ -575,7 +642,7 @@ export function DashboardV2Chart({
         </svg>
 
         {hoveredPoint && (
-          <div className="dashboard-v2-tooltip">
+          <div className="dashboard-tooltip">
             <strong>{formatFullDate(hoveredPoint.date)}</strong>
             {tooltipMetricOrder.map(key => (
               hoveredPoint[key] === null ? null : (
@@ -591,7 +658,7 @@ export function DashboardV2Chart({
 
         {(pinnedEventGroup ?? hoveredEventGroup) && (
           <div
-            className={`dashboard-v2-event-tooltip${pinnedEventGroup ? ' is-pinned' : ''}`}
+            className={`dashboard-event-tooltip${pinnedEventGroup ? ' is-pinned' : ''}`}
             style={{
               left: `${Math.min(Math.max(((pinnedEventGroup ?? hoveredEventGroup)?.x ?? chart.left) / chart.width * 100, 12), 82)}%`,
               top: `${Math.min((((pinnedEventGroup ?? hoveredEventGroup)?.y ?? chart.topPanelBottom) + 18) / chart.height * 100, 78)}%`,
@@ -599,7 +666,7 @@ export function DashboardV2Chart({
             onClick={event => event.stopPropagation()}
           >
             <span>{(pinnedEventGroup ?? hoveredEventGroup)!.type} · {formatFullDate((pinnedEventGroup ?? hoveredEventGroup)!.date)} · {(pinnedEventGroup ?? hoveredEventGroup)!.events.length} event{(pinnedEventGroup ?? hoveredEventGroup)!.events.length === 1 ? '' : 's'}</span>
-            <div className="dashboard-v2-event-list">
+            <div className="dashboard-event-list">
               {(pinnedEventGroup ?? hoveredEventGroup)!.events.map(event => (
                 <article key={event.id}>
                   <strong>{event.title}</strong>

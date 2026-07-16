@@ -1,6 +1,3 @@
-import { SettingsBackLink } from '@/components/SettingsBackLink';
-import { normalizeTicker } from '@/lib/ticker-data';
-
 const roles = [
   ['Owner', 'CEO / CFO', 'Full workspace, billing, users, exports'],
   ['IR Admin', 'Investor relations lead', 'Reports, recipients, alerts, company intelligence'],
@@ -9,19 +6,10 @@ const roles = [
 ];
 
 export default async function RolePermissionsPage({ params }: Readonly<{ params: Promise<{ ticker: string }> }>) {
-  const { ticker } = await params;
-  const normalizedTicker = normalizeTicker(ticker);
+  await params;
 
   return (
     <div className="page settings-page">
-      <div className="page__header">
-        <div>
-          <h1 className="page__title">Role & Permissions</h1>
-          <p className="page__desc">Access model for executives, IR users, advisors, and board viewers in the {normalizedTicker} workspace.</p>
-        </div>
-        <SettingsBackLink ticker={normalizedTicker} />
-      </div>
-
       <section className="settings-panel">
         <div className="settings-panel__head"><div><span>Access model</span><h2>Workspace roles</h2></div><span className="badge blue">Demo</span></div>
         <div className="settings-table">

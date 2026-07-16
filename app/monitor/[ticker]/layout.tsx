@@ -8,7 +8,7 @@ export default async function TickerLayout({ children, params }: Readonly<{ chil
   return (
     <AppShell
       ticker={normalizedTicker}
-      companyName={normalizedTicker}
+      companyName=""
       importDataVersion="browser-pending"
     >
       {children}

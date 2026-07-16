@@ -12,5 +12,5 @@ export function getPageDataSources(_ticker: string): Record<string, PageDataSour
 
 export function slugFromPathname(pathname: string) {
   const parts = pathname.split('/').filter(Boolean);
-  return parts[2] || 'dashboard-v2';
+  return parts[2] || 'dashboard';
 }
