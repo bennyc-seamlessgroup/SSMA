@@ -3104,6 +3104,16 @@ html[data-design-b-theme="dark"] .monitor-portal .report-history-pagination butt
   box-shadow: 0 0 0 3px rgba(47, 108, 207, .12);
 }
 
+.ops-sec-form input:disabled,
+.ops-sec-form select:disabled,
+.ops-sec-form textarea:disabled {
+  border-color: #e2e8f0;
+  background: #f1f5f9;
+  color: #94a3b8;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
 .ops-primary-button {
   display: inline-flex;
   align-items: center;
@@ -3530,6 +3540,112 @@ html[data-design-b-theme="dark"] .monitor-portal .report-history-pagination butt
 
 .ops-management-input-grid {
   margin-bottom: 14px;
+}
+
+.ops-sec-form label > small {
+  color: #71839a;
+  font-size: 11px;
+  font-weight: 650;
+  line-height: 1.4;
+}
+
+.ops-holder-identity {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  margin-bottom: 14px;
+  padding: 12px;
+  border: 1px solid #cfe0f5;
+  border-radius: 9px;
+  background: #f5f9ff;
+}
+
+.ops-holder-identity span,
+.ops-holder-identity strong {
+  display: block;
+}
+
+.ops-holder-identity span,
+.ops-difference-card > span {
+  color: #6a7d94;
+  font-size: 10px;
+  font-weight: 900;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+
+.ops-holder-identity strong {
+  margin-top: 4px;
+  color: #102033;
+  font-size: 13px;
+}
+
+.ops-latest-total-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1.45fr) minmax(230px, .75fr);
+  gap: 12px;
+  align-items: stretch;
+  margin-bottom: 14px;
+}
+
+.ops-difference-card {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-height: 94px;
+  padding: 12px 14px;
+  border: 1px solid #dbe3ee;
+  border-radius: 9px;
+  background: #f8fafc;
+}
+
+.ops-difference-card strong {
+  margin-top: 4px;
+  color: #334155;
+  font-size: 20px;
+  line-height: 1.15;
+}
+
+.ops-difference-card small {
+  margin-top: 5px;
+  color: #64748b;
+  font-size: 11px;
+  font-weight: 650;
+  line-height: 1.4;
+}
+
+.ops-difference-card.is-increase {
+  border-color: #a7f3d0;
+  background: #ecfdf5;
+}
+
+.ops-difference-card.is-increase strong,
+.ops-delta-value.is-increase {
+  color: #047857;
+}
+
+.ops-difference-card.is-decrease {
+  border-color: #fecdd3;
+  background: #fff1f2;
+}
+
+.ops-difference-card.is-decrease strong,
+.ops-delta-value.is-decrease {
+  color: #be123c;
+}
+
+.ops-difference-card.is-no-change {
+  border-color: #dbe3ee;
+  background: #f8fafc;
+}
+
+.ops-delta-value {
+  font-variant-numeric: tabular-nums;
+  font-weight: 850;
+}
+
+.ops-delta-value.is-no-change {
+  color: #64748b;
 }
 
 .ops-destination-fieldset {
@@ -4375,6 +4491,192 @@ html[data-design-b-theme="dark"] .monitor-portal .report-history-pagination butt
   display: grid;
   grid-template-columns: minmax(0, 1.6fr) minmax(300px, .7fr);
   gap: 16px;
+  align-items: stretch;
+}
+
+.ops-market-entry-column {
+  display: grid;
+  gap: 16px;
+  min-width: 0;
+}
+
+.ops-market-data-grid > .ops-side-stack,
+.ops-market-data-grid > .ops-side-stack > .ops-panel {
+  height: 100%;
+}
+
+.ops-market-entry-gate {
+  display: grid;
+  grid-template-columns: 34px minmax(0, 1fr);
+  gap: 10px;
+  align-items: center;
+  margin-top: 14px;
+  padding: 11px 12px;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  background: #f8fafc;
+}
+
+.ops-market-entry-gate.is-open {
+  border-color: #bbf7d0;
+  background: #f0fdf4;
+}
+
+.ops-market-entry-gate.is-locked {
+  border-color: #fde68a;
+  background: #fffbeb;
+}
+
+.ops-market-entry-icon {
+  display: grid;
+  width: 32px;
+  height: 32px;
+  place-items: center;
+  border-radius: 50%;
+  background: #ffffff;
+  color: #b45309;
+}
+
+.ops-market-entry-gate.is-open .ops-market-entry-icon {
+  color: #15803d;
+}
+
+.ops-market-entry-icon svg,
+.ops-readiness-check svg {
+  width: 18px;
+  height: 18px;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 2;
+}
+
+.ops-market-entry-gate strong,
+.ops-market-entry-gate small {
+  display: block;
+}
+
+.ops-market-entry-gate strong {
+  color: #172033;
+  font-size: 12px;
+}
+
+.ops-market-entry-gate small {
+  margin-top: 2px;
+  color: #64748b;
+  font-size: 11px;
+  line-height: 1.4;
+}
+
+.ops-published-date {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: center;
+  margin-bottom: 10px;
+  padding: 10px 11px;
+  border: 1px solid #dbeafe;
+  border-radius: 8px;
+  background: #eff6ff;
+}
+
+.ops-published-date span {
+  color: #64748b;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.ops-published-date strong {
+  color: #1d4ed8;
+  font-size: 12px;
+  text-align: right;
+}
+
+.ops-readiness-list {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.ops-readiness-head-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.ops-readiness-head-actions .ops-published-date {
+  margin: 0;
+  padding: 7px 9px;
+}
+
+.ops-readiness-row {
+  display: grid;
+  grid-template-columns: 26px minmax(0, 1fr) auto;
+  gap: 8px;
+  align-items: center;
+  min-height: 44px;
+  padding: 7px 9px;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  background: #ffffff;
+}
+
+.ops-readiness-row.is-missing {
+  background: #fffaf0;
+}
+
+.ops-readiness-check {
+  display: grid;
+  width: 24px;
+  height: 24px;
+  place-items: center;
+  border-radius: 50%;
+  background: #dcfce7;
+  color: #15803d;
+}
+
+.ops-readiness-list .is-missing .ops-readiness-check {
+  background: #fef3c7;
+  color: #b45309;
+}
+
+.ops-readiness-list span strong,
+.ops-readiness-list span small {
+  display: block;
+}
+
+.ops-readiness-list span strong {
+  color: #172033;
+  font-size: 12px;
+}
+
+.ops-readiness-list span small {
+  margin-top: 1px;
+  color: #7c8da5;
+  font-size: 10px;
+}
+
+.ops-readiness-list b {
+  color: #172033;
+  font-size: 12px;
+  text-align: right;
+}
+
+.ops-readiness-list .is-missing b {
+  color: #b45309;
+}
+
+.ops-readiness-note {
+  margin: 10px 0 0;
+  color: #64748b;
+  font-size: 11px;
+  line-height: 1.5;
+}
+
+.ops-readiness-refresh {
+  width: 100%;
+  margin-top: 10px;
 }
 
 .ops-market-batch-panel {
@@ -7904,8 +8206,26 @@ html[data-portal-design="b"] .portal-design-b-actions .user-menu__head span {
     padding: 16px;
   }
 
+  .ops-readiness-list {
+    grid-template-columns: 1fr;
+  }
+
+  .ops-readiness-head-actions {
+    width: 100%;
+    flex-wrap: wrap;
+  }
+
+  .ops-readiness-head-actions .ops-published-date {
+    width: 100%;
+  }
+
   .ops-form-grid.two,
   .ops-form-grid.three {
+    grid-template-columns: 1fr;
+  }
+
+  .ops-holder-identity,
+  .ops-latest-total-row {
     grid-template-columns: 1fr;
   }
 

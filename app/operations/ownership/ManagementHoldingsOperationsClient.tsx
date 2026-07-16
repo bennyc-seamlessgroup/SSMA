@@ -4,6 +4,17 @@ import type { FormEvent } from 'react';
 import { useEffect, useMemo, useState } from 'react';
 import type { InternalFloatPrivateHolding } from '@/lib/internal-float-types';
 import type { ManagementHoldingAction, ManagementHoldingInputRecord } from '@/lib/operations/data-types';
+import {
+  buildOwnershipSubmission,
+  calculateOwnershipDifference,
+  currentHoldersFromRecords,
+  NEW_HOLDER_VALUE,
+  parseShareTotal,
+  signedRecordDifference,
+  toManagementHoldingWritePayload,
+  validateOwnershipEntry,
+  type CurrentOwnershipHolder,
+} from '@/lib/operations/ownership-entry.js';
 import { authenticatedFetch } from '@/lib/auth-client';
 import { OperationsDevelopmentData } from '@/components/OperationsDevelopmentData';
 
@@ -30,6 +41,12 @@ type ManagementHoldingsEnvelope = {
   records?: ManagementHoldingInputRecord[];
 };
 
+type OwnershipCurrentEnvelope = {
+  strategicEntities?: {
+    records?: ManagementHoldingInputRecord[];
+  };
+};
+
 const categories = ['Founder', 'CEO', 'Management', 'Insider', 'Strategic Investor', 'Family Office', 'Long-Term Holder', 'Transfer Agent', 'Other'];
 
 function today() {
@@ -43,6 +60,11 @@ function numeric(value: unknown) {
 
 function formatNumber(value: unknown) {
   return numeric(value).toLocaleString('en-US');
+}
+
+function formatSignedShares(value: unknown) {
+  const parsed = numeric(value);
+  return `${parsed > 0 ? '+' : parsed < 0 ? '-' : ''}${formatNumber(Math.abs(parsed))}`;
 }
 
 function formatDate(value: string) {
@@ -78,6 +100,13 @@ function normalizeApiRecord(input: Partial<ManagementHoldingInputRecord>, ticker
     createdAt: String(input.createdAt ?? now),
     updatedAt: String(input.updatedAt ?? now),
     updatedBy: String(input.updatedBy ?? audit.createdBy ?? 'operations'),
+    entryMode: input.entryMode === 'existing' || input.entryMode === 'new' ? input.entryMode : undefined,
+    holderReferenceId: input.holderReferenceId ? String(input.holderReferenceId) : undefined,
+    previousShares: input.previousShares === undefined ? undefined : numeric(input.previousShares),
+    latestTotalShares: input.latestTotalShares === undefined ? undefined : numeric(input.latestTotalShares),
+    sharesChange: input.sharesChange === undefined ? undefined : numeric(input.sharesChange),
+    changeType: input.changeType === 'increase' || input.changeType === 'decrease' || input.changeType === 'no-change' ? input.changeType : undefined,
+    sharesSemantics: input.sharesSemantics === 'total' ? 'total' : input.sharesSemantics === 'delta' ? 'delta' : undefined,
   };
 }
 
@@ -101,35 +130,53 @@ function isSuggestedChange(row: ManagementHoldingInputRecord) {
 
 export function ManagementHoldingsOperationsClient() {
   const [ticker, setTicker] = useState('CURR');
+  const [holderSelection, setHolderSelection] = useState('');
   const [holderName, setHolderName] = useState('');
   const [category, setCategory] = useState('Strategic Investor');
-  const [shares, setShares] = useState('');
-  const [action, setAction] = useState<ManagementHoldingAction>('add');
+  const [latestTotalShares, setLatestTotalShares] = useState('');
   const [effectiveDate, setEffectiveDate] = useState(today());
   const [notes, setNotes] = useState('');
   const [showInOwnership, setShowInOwnership] = useState(true);
   const [showAsSuggestion, setShowAsSuggestion] = useState(false);
   const [autoApply, setAutoApply] = useState(false);
-  const [editingId, setEditingId] = useState<string | null>(null);
   const [records, setRecords] = useState<ManagementHoldingInputRecord[]>([]);
+  const [currentHolderRecords, setCurrentHolderRecords] = useState<ManagementHoldingInputRecord[]>([]);
   const [workspacePrivateHoldings, setWorkspacePrivateHoldings] = useState<InternalFloatPrivateHolding[]>([]);
   const [status, setStatus] = useState<'idle' | 'loading' | 'saving' | 'error' | 'saved'>('idle');
   const [message, setMessage] = useState('');
   const [developmentPayload, setDevelopmentPayload] = useState<unknown>();
+  const [developmentOwnershipPayload, setDevelopmentOwnershipPayload] = useState<unknown>();
   const [developmentTicker, setDevelopmentTicker] = useState('CURR');
 
   const activeTicker = ticker.trim().toUpperCase() || 'CURR';
+  const entryMode = holderSelection === NEW_HOLDER_VALUE ? 'new' : 'existing';
+  const currentHolders = useMemo(() => currentHoldersFromRecords(currentHolderRecords.length ? currentHolderRecords : records), [currentHolderRecords, records]);
+  const selectedHolder = currentHolders.find(holder => holder.key === holderSelection);
 
   async function loadRecords(nextTicker = activeTicker) {
     setStatus('loading');
     setMessage('');
     setDevelopmentPayload(undefined);
+    setDevelopmentOwnershipPayload(undefined);
     setDevelopmentTicker(nextTicker.trim().toUpperCase() || 'CURR');
     try {
-      const payload = await authenticatedFetch(`/manual-input/management-holdings?ticker=${encodeURIComponent(nextTicker)}`, { cache: 'no-store' });
+      const [payload, ownershipResult] = await Promise.all([
+        authenticatedFetch(`/manual-input/management-holdings?ticker=${encodeURIComponent(nextTicker)}`, { cache: 'no-store' }),
+        authenticatedFetch(`/market-data/current?ticker=${encodeURIComponent(nextTicker)}&category=ownership-current`, { cache: 'no-store' })
+          .then(value => ({ value, error: '' }))
+          .catch(error => ({ value: undefined, error: error instanceof Error ? error.message : 'Unable to load current ownership snapshot.' })),
+      ]);
       setDevelopmentPayload(payload);
-      setRecords(normalizeApiRecords(payload, nextTicker));
-      setWorkspacePrivateHoldings([]);
+      const nextRecords = normalizeApiRecords(payload, nextTicker);
+      const ownershipPayload = ownershipResult.value as OwnershipCurrentEnvelope | undefined;
+      const ownershipRecords = normalizeApiRecords(ownershipPayload?.strategicEntities?.records ?? [], nextTicker);
+      const workspaceRows = (payload as ApiPayload)?.data?.workspacePrivateHoldings;
+      setRecords(nextRecords);
+      setCurrentHolderRecords(ownershipRecords.length ? ownershipRecords : nextRecords);
+      setWorkspacePrivateHoldings(Array.isArray(workspaceRows) ? workspaceRows : []);
+      setDevelopmentOwnershipPayload(ownershipResult.error ? { error: ownershipResult.error, fallback: 'management-holdings records' } : ownershipResult.value);
+      setHolderSelection('');
+      setLatestTotalShares('');
       setStatus('idle');
     } catch (error) {
       setStatus('error');
@@ -143,44 +190,46 @@ export function ManagementHoldingsOperationsClient() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const preview = useMemo(() => ({
+  const parsedLatestTotal = parseShareTotal(latestTotalShares, { allowZero: entryMode === 'existing' });
+  const previewDifference = calculateOwnershipDifference(
+    selectedHolder?.priorTotalShares ?? 0,
+    parsedLatestTotal.valid ? parsedLatestTotal.value : 0,
+  );
+  const preview = {
     ticker: activeTicker,
-    holderName: holderName.trim() || 'Holder name',
-    category,
-    shares: numeric(shares),
-    action,
+    holderName: entryMode === 'existing' ? selectedHolder?.holderName ?? 'Select a holder' : holderName.trim() || 'New holder name',
+    category: entryMode === 'existing' ? selectedHolder?.category ?? 'N/A' : category,
     effectiveDate,
     showInOwnership,
     showAsSuggestion,
     autoApply,
-  }), [activeTicker, action, autoApply, category, effectiveDate, holderName, shares, showAsSuggestion, showInOwnership]);
+  };
 
   function resetForm() {
+    setHolderSelection('');
     setHolderName('');
     setCategory('Strategic Investor');
-    setShares('');
-    setAction('add');
+    setLatestTotalShares('');
     setEffectiveDate(today());
     setNotes('');
     setShowInOwnership(true);
     setShowAsSuggestion(false);
     setAutoApply(false);
-    setEditingId(null);
   }
 
-  function editRecord(record: ManagementHoldingInputRecord) {
-    setEditingId(record.id);
-    setHolderName(record.holderName);
-    setCategory(record.category);
-    setShares(String(record.shares));
-    setAction(record.action);
-    setEffectiveDate(record.effectiveDate || today());
-    setNotes(record.notes || '');
+  function useExistingHolder(record: ManagementHoldingInputRecord) {
+    const holder = currentHolders.find(candidate => candidate.key === record.holderName.trim().toLocaleLowerCase().replace(/\s+/g, ' '));
+    if (!holder) return;
+    setHolderSelection(holder.key);
+    setLatestTotalShares('');
+    setEffectiveDate(today());
+    setNotes('');
     setShowInOwnership(record.showInOwnership !== false);
     setShowAsSuggestion(Boolean(record.showAsSuggestion));
     setAutoApply(Boolean(record.autoApply));
     setMessage('');
     setStatus('idle');
+    document.querySelector('.ops-management-entry-form')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
 
   async function deleteRecord(record: ManagementHoldingInputRecord) {
@@ -193,7 +242,6 @@ export function ManagementHoldingsOperationsClient() {
         method: 'DELETE',
       });
       await loadRecords(activeTicker);
-      if (editingId === record.id) resetForm();
       setStatus('saved');
       setMessage('Record deleted.');
     } catch (error) {
@@ -209,8 +257,7 @@ export function ManagementHoldingsOperationsClient() {
     try {
       await authenticatedFetch(`/manual-input/management-holdings?ticker=${encodeURIComponent(activeTicker)}`, {
         method: 'POST',
-        body: JSON.stringify({
-          ticker: activeTicker,
+        body: JSON.stringify(toManagementHoldingWritePayload({
           holderName: record.holderName,
           category: record.category,
           shares: record.shares,
@@ -218,8 +265,9 @@ export function ManagementHoldingsOperationsClient() {
           effectiveDate: record.effectiveDate || today(),
           notes: [record.notes, `Copied to ${target}.`].filter(Boolean).join(' '),
           ...flags,
-          updatedBy: 'operations',
-        }),
+          source: 'operations-input',
+          status: 'pending',
+        })),
       });
       await loadRecords(activeTicker);
       setStatus('saved');
@@ -232,14 +280,16 @@ export function ManagementHoldingsOperationsClient() {
 
   async function saveRecord(event: FormEvent) {
     event.preventDefault();
-    if (!holderName.trim()) {
+    const validation = validateOwnershipEntry({
+      mode: entryMode,
+      holderName,
+      holderSelection,
+      latestTotalShares,
+      currentHolders,
+    });
+    if (!validation.valid) {
       setStatus('error');
-      setMessage('Holder name is required.');
-      return;
-    }
-    if (numeric(shares) <= 0) {
-      setStatus('error');
-      setMessage('Shares must be greater than zero.');
+      setMessage(validation.error);
       return;
     }
     if (!showInOwnership && !showAsSuggestion && !autoApply) {
@@ -250,27 +300,28 @@ export function ManagementHoldingsOperationsClient() {
 
     setStatus('saving');
     setMessage('');
+    const payload = buildOwnershipSubmission({
+      mode: entryMode,
+      holder: validation.holder,
+      holderName,
+      category,
+      latestTotalShares: validation.value,
+      effectiveDate,
+      notes,
+      showInOwnership,
+      showAsSuggestion,
+      autoApply,
+    });
     try {
-      await authenticatedFetch(`/manual-input/management-holdings?ticker=${encodeURIComponent(activeTicker)}${editingId ? `&id=${encodeURIComponent(editingId)}` : ''}`, {
-        method: editingId ? 'PUT' : 'POST',
-        body: JSON.stringify({
-          ticker: activeTicker,
-          holderName,
-          category,
-          shares,
-          action,
-          effectiveDate,
-          notes,
-          showInOwnership,
-          showAsSuggestion,
-          autoApply,
-          updatedBy: 'operations',
-        }),
+      await authenticatedFetch(`/manual-input/management-holdings?ticker=${encodeURIComponent(activeTicker)}`, {
+        method: 'POST',
+        body: JSON.stringify(payload),
       });
       await loadRecords(activeTicker);
       resetForm();
       setStatus('saved');
-      setMessage(autoApply ? 'Record saved and applied directly to Internal Float.' : 'Record saved.');
+      const stateLabel = previewDifference.state === 'increase' ? 'increase' : previewDifference.state === 'decrease' ? 'decrease' : 'no-change filing';
+      setMessage(`${payload.holderName} saved as a ${stateLabel}. Current total: ${formatNumber(validation.value)} shares.`);
     } catch (error) {
       setStatus('error');
       setMessage(error instanceof Error ? error.message : 'Unable to save record.');
@@ -289,40 +340,95 @@ export function ManagementHoldingsOperationsClient() {
       </div>
 
       <div className="ops-sec-grid">
-        <section className="ops-panel">
+        <section className="ops-panel ops-management-entry-form">
           <div className="ops-panel-head">
             <div>
-              <h2>Management Holdings Inputs</h2>
-              <p>Control whether each management holding record appears in Ownership, Internal Float suggestions, or direct Management / Strategic holdings.</p>
+              <h2>Record Latest 13/F Holding</h2>
+              <p>Select the holder and enter the latest total shares reported. The change is calculated automatically.</p>
             </div>
           </div>
           <form className="ops-sec-form" onSubmit={saveRecord}>
-            <div className="ops-form-grid three ops-management-input-grid">
+            <div className="ops-form-grid two ops-management-input-grid">
               <label>
-                <span>Holder / Entity</span>
-                <input suppressHydrationWarning value={holderName} onChange={event => setHolderName(event.target.value)} />
-              </label>
-              <label>
-                <span>Category</span>
-                <select suppressHydrationWarning className="ops-select" value={category} onChange={event => setCategory(event.target.value)}>
-                  {categories.map(option => <option key={option}>{option}</option>)}
+                <span>Holder</span>
+                <select
+                  suppressHydrationWarning
+                  className="ops-select"
+                  value={holderSelection}
+                  onChange={event => {
+                    setHolderSelection(event.target.value);
+                    setLatestTotalShares('');
+                    setMessage('');
+                    setStatus('idle');
+                  }}
+                  aria-describedby="ownership-holder-help"
+                >
+                  <option value="">Select an existing holder</option>
+                  {currentHolders.map(holder => (
+                    <option key={holder.key} value={holder.key}>{holder.holderName}</option>
+                  ))}
+                  <option value={NEW_HOLDER_VALUE}>+ New Holder</option>
                 </select>
-              </label>
-              <label>
-                <span>Action</span>
-                <select suppressHydrationWarning className="ops-select" value={action} onChange={event => setAction(event.target.value as ManagementHoldingAction)}>
-                  <option value="add">Add shares</option>
-                  <option value="deduct">Deduct shares</option>
-                </select>
-              </label>
-              <label>
-                <span>Shares</span>
-                <input suppressHydrationWarning inputMode="numeric" value={shares} onChange={event => setShares(event.target.value)} />
+                <small id="ownership-holder-help">Choose from the current strategic holder list or create a new holder.</small>
               </label>
               <label>
                 <span>Effective Date</span>
                 <input suppressHydrationWarning type="date" value={effectiveDate} onChange={event => setEffectiveDate(event.target.value)} />
               </label>
+            </div>
+            {entryMode === 'existing' && selectedHolder && (
+              <div className="ops-holder-identity" aria-live="polite">
+                <div><span>Holder identity</span><strong>{selectedHolder.holderName}</strong></div>
+                <div><span>Category</span><strong>{selectedHolder.category}</strong></div>
+                <div><span>Prior total shares</span><strong>{formatNumber(selectedHolder.priorTotalShares)}</strong></div>
+              </div>
+            )}
+            {entryMode === 'new' && (
+              <div className="ops-form-grid two ops-management-input-grid">
+                <label>
+                  <span>New Holder / Entity Name</span>
+                  <input suppressHydrationWarning value={holderName} onChange={event => setHolderName(event.target.value)} autoComplete="off" />
+                </label>
+                <label>
+                  <span>Category</span>
+                  <select suppressHydrationWarning className="ops-select" value={category} onChange={event => setCategory(event.target.value)}>
+                    {categories.map(option => <option key={option}>{option}</option>)}
+                  </select>
+                </label>
+              </div>
+            )}
+            <div className="ops-latest-total-row">
+              <label>
+                <span>{entryMode === 'new' ? 'Initial Total Shares' : 'Latest Total Shares'}</span>
+                <input
+                  suppressHydrationWarning
+                  inputMode="numeric"
+                  value={latestTotalShares}
+                  onChange={event => {
+                    setLatestTotalShares(event.target.value);
+                    if (status === 'error') {
+                      setStatus('idle');
+                      setMessage('');
+                    }
+                  }}
+                  placeholder="Enter the total shown in the filing"
+                  aria-invalid={Boolean(latestTotalShares && !parsedLatestTotal.valid)}
+                  aria-describedby="ownership-total-help"
+                  disabled={entryMode === 'existing' && !selectedHolder}
+                />
+                <small id="ownership-total-help">Use the total shares held from the latest filing, not the reported increase or reduction.</small>
+              </label>
+              <div className={`ops-difference-card is-${previewDifference.state}`} aria-live="polite">
+                <span>Calculated difference</span>
+                <strong>{parsedLatestTotal.valid ? formatSignedShares(previewDifference.signedDifference) : '—'} shares</strong>
+                <small>{!parsedLatestTotal.valid
+                  ? 'Enter a valid total to calculate the change.'
+                  : previewDifference.state === 'increase'
+                    ? 'Increase — latest total is above the prior holding.'
+                    : previewDifference.state === 'decrease'
+                      ? 'Decrease — latest total is below the prior holding.'
+                      : 'No change — latest total matches the prior holding.'}</small>
+              </div>
             </div>
             <fieldset className="ops-destination-fieldset">
               <legend>Record destinations</legend>
@@ -356,14 +462,13 @@ export function ManagementHoldingsOperationsClient() {
             </label>
             {message && <p className={`ops-form-message ${status === 'error' ? 'bad' : 'good'}`}>{message}</p>}
             <div className="ops-form-footer">
-              <span>{preview.action === 'add' ? '+' : '-'}{formatNumber(preview.shares)} shares · {[
+              <span>{parsedLatestTotal.valid ? `${formatSignedShares(previewDifference.signedDifference)} suggested delta` : 'Awaiting latest total'} · {[
                 preview.showInOwnership ? 'ownership' : '',
                 preview.showAsSuggestion ? 'suggestion' : '',
                 preview.autoApply ? 'direct apply' : '',
               ].filter(Boolean).join(' / ') || 'no destination selected'}</span>
-              {editingId && <button className="button secondary" type="button" onClick={resetForm}>Cancel Edit</button>}
               <button className="ops-primary-button" type="submit" disabled={status === 'saving'}>
-                {status === 'saving' ? 'Saving...' : editingId ? 'Update Record' : 'Save Record'}
+                {status === 'saving' ? 'Saving...' : 'Save Latest Total'}
               </button>
             </div>
           </form>
@@ -375,8 +480,10 @@ export function ManagementHoldingsOperationsClient() {
             <dl className="ops-preview-list">
               <div><dt>Ticker</dt><dd>{preview.ticker}</dd></div>
               <div><dt>Holder</dt><dd>{preview.holderName}</dd></div>
-              <div><dt>Action</dt><dd>{preview.action === 'add' ? 'Add shares' : 'Deduct shares'}</dd></div>
-              <div><dt>Shares</dt><dd>{formatNumber(preview.shares)}</dd></div>
+              <div><dt>Entry</dt><dd>{entryMode === 'new' ? 'New holder' : 'Existing holder update'}</dd></div>
+              <div><dt>Prior Total</dt><dd>{entryMode === 'existing' && selectedHolder ? formatNumber(selectedHolder.priorTotalShares) : 'Not applicable'}</dd></div>
+              <div><dt>Latest Total</dt><dd>{parsedLatestTotal.valid ? formatNumber(parsedLatestTotal.value) : 'Awaiting input'}</dd></div>
+              <div><dt>Suggested Delta</dt><dd className={`ops-delta-value is-${previewDifference.state}`}>{parsedLatestTotal.valid ? formatSignedShares(previewDifference.signedDifference) : '—'}</dd></div>
               <div><dt>Ownership</dt><dd>{preview.showInOwnership ? 'Visible' : 'Hidden'}</dd></div>
               <div><dt>Suggestion</dt><dd>{preview.showAsSuggestion ? 'Visible' : 'Hidden'}</dd></div>
               <div><dt>Management / Strategic</dt><dd>{preview.autoApply ? 'Direct apply' : 'No direct apply'}</dd></div>
@@ -385,18 +492,27 @@ export function ManagementHoldingsOperationsClient() {
         </aside>
       </div>
 
-      <ManagementRecordsPanel records={records} workspacePrivateHoldings={workspacePrivateHoldings} onEdit={editRecord} onCopy={copyRecord} onDelete={deleteRecord} />
+      <ManagementRecordsPanel records={records} workspacePrivateHoldings={workspacePrivateHoldings} onUseHolder={useExistingHolder} onCopy={copyRecord} onDelete={deleteRecord} />
 
       <OperationsDevelopmentData
         title="Management Holdings API Response"
         description="Raw authenticated response used to populate the ownership operations workspace."
-        rows={[{
-          endpoint: `GET /manual-input/management-holdings?ticker=${developmentTicker}`,
-          source: 'API Gateway',
-          state: status === 'error' && message ? `error: ${message}` : status,
-          recordCount: developmentPayload === undefined || status === 'error' ? undefined : extractManagementRecords(developmentPayload).length,
-          payload: developmentPayload,
-        }]}
+        rows={[
+          {
+            endpoint: `GET /manual-input/management-holdings?ticker=${developmentTicker}`,
+            source: 'API Gateway',
+            state: status === 'error' && message ? `error: ${message}` : status,
+            recordCount: developmentPayload === undefined || status === 'error' ? undefined : extractManagementRecords(developmentPayload).length,
+            payload: developmentPayload,
+          },
+          {
+            endpoint: `GET /market-data/current?ticker=${developmentTicker}&category=ownership-current`,
+            source: 'API Gateway',
+            state: developmentOwnershipPayload && typeof developmentOwnershipPayload === 'object' && 'error' in developmentOwnershipPayload ? 'fallback' : status,
+            recordCount: currentHolderRecords.length,
+            payload: developmentOwnershipPayload,
+          },
+        ]}
       />
     </div>
   );
@@ -405,13 +521,13 @@ export function ManagementHoldingsOperationsClient() {
 function ManagementRecordsPanel({
   records,
   workspacePrivateHoldings,
-  onEdit,
+  onUseHolder,
   onCopy,
   onDelete,
 }: {
   records: ManagementHoldingInputRecord[];
   workspacePrivateHoldings: InternalFloatPrivateHolding[];
-  onEdit: (record: ManagementHoldingInputRecord) => void;
+  onUseHolder: (record: ManagementHoldingInputRecord) => void;
   onCopy: (record: DisplayRecord, target: CopyTarget) => void;
   onDelete: (record: ManagementHoldingInputRecord) => void;
 }) {
@@ -499,8 +615,8 @@ function ManagementRecordsPanel({
               <th>Effective Date</th>
               <th>Holder</th>
               <th>Category</th>
-              <th>Action</th>
-              <th>Shares</th>
+              <th>Calculated Change</th>
+              <th>Reported Total</th>
               <th>Status</th>
               <th>Destinations</th>
               <th>Tools</th>
@@ -512,8 +628,14 @@ function ManagementRecordsPanel({
                 <td>{row.effectiveDate ? formatDate(row.effectiveDate) : 'Workspace'}</td>
                 <td>{row.holderName}</td>
                 <td>{row.category}</td>
-                <td>{row.action === 'add' ? 'Add' : 'Deduct'}</td>
-                <td>{formatNumber(row.shares)}</td>
+                <td>
+                  {row.source === 'workspace' ? 'Current holding' : (
+                    <span className={`ops-delta-value is-${signedRecordDifference(row) > 0 ? 'increase' : signedRecordDifference(row) < 0 ? 'decrease' : 'no-change'}`}>
+                      {formatSignedShares(signedRecordDifference(row))}
+                    </span>
+                  )}
+                </td>
+                <td>{row.source === 'workspace' ? formatNumber(row.shares) : row.latestTotalShares === undefined ? 'Legacy record' : formatNumber(row.latestTotalShares)}</td>
                 <td><span className={`ops-status ${row.status === 'pending' ? '' : 'good'}`}>{row.source === 'workspace' ? 'workspace' : row.status}</span></td>
                 <td>
                   <div className="ops-destination-tags">
@@ -528,7 +650,7 @@ function ManagementRecordsPanel({
                 </td>
                 <td>
                   <div className="ops-row-actions">
-                    <RowActionsMenu row={row} activeTab={activeTab} onEdit={onEdit} onCopy={onCopy} onDelete={onDelete} />
+                    <RowActionsMenu row={row} activeTab={activeTab} onUseHolder={onUseHolder} onCopy={onCopy} onDelete={onDelete} />
                   </div>
                 </td>
               </tr>
@@ -553,13 +675,13 @@ function ManagementRecordsPanel({
 function RowActionsMenu({
   row,
   activeTab,
-  onEdit,
+  onUseHolder,
   onCopy,
   onDelete,
 }: {
   row: DisplayRecord;
   activeTab: RecordsTab;
-  onEdit: (record: ManagementHoldingInputRecord) => void;
+  onUseHolder: (record: ManagementHoldingInputRecord) => void;
   onCopy: (record: DisplayRecord, target: CopyTarget) => void;
   onDelete: (record: ManagementHoldingInputRecord) => void;
 }) {
@@ -580,7 +702,9 @@ function RowActionsMenu({
         </svg>
       </summary>
       <div className="ops-row-menu__panel">
-        {row.editable && <button type="button" onClick={() => onEdit(row)}>Edit</button>}
+        {row.editable && row.showInOwnership !== false && row.status !== 'discarded' && (
+          <button type="button" onClick={() => onUseHolder(row)}>Record latest total for holder</button>
+        )}
         {copyTargets.map(target => (
           <button key={target.key} type="button" onClick={() => onCopy(row, target.key)}>{target.label}</button>
         ))}

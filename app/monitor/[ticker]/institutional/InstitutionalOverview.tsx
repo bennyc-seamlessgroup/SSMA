@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { InfoTooltip } from '@/components/InfoTooltip';
+import { signedRecordDifference } from '@/lib/operations/ownership-entry.js';
 
 type OwnershipKey = 'institutions' | 'public_float' | 'strategic_entities';
 
@@ -62,6 +63,7 @@ type ManagementHoldingInputRecord = {
   category: string;
   shares: number | string;
   action: 'add' | 'deduct';
+  sharesChange?: number | string;
   notes?: string;
   effectiveDate?: string;
   showInOwnership?: boolean;
@@ -145,10 +147,9 @@ export function InstitutionalOverview({
         shares: 0,
         latestDate: row.effectiveDate ?? '',
       };
-      const direction = row.action === 'deduct' ? -1 : 1;
       map.set(key, {
         ...current,
-        shares: current.shares + direction * numeric(row.shares),
+        shares: current.shares + signedRecordDifference(row),
         latestDate: row.effectiveDate && row.effectiveDate > current.latestDate ? row.effectiveDate : current.latestDate,
       });
       return map;

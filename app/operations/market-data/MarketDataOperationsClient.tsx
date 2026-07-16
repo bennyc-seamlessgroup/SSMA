@@ -3,8 +3,17 @@
 import { useEffect, useMemo, useState } from 'react';
 import { OperationsDevelopmentData, type OperationsDevelopmentDatum } from '@/components/OperationsDevelopmentData';
 import { authenticatedFetch } from '@/lib/auth-client';
+import {
+  isCompleteMarketPublicationRecord,
+  latestCompleteMarketPublicationRecordFromSources,
+  marketPublicationFields,
+  marketPublicationRecordForDate,
+  marketRecordDate,
+  type MarketPublicationRecord,
+} from '@/lib/market-data-publication';
 import { operationsProfile } from '@/lib/operations/api-client';
 import { getOperationsTicker, setOperationsTicker } from '@/lib/operations/ticker-client';
+import { formatMarketCountdown, latestClosedUsMarketDate, marketEntryAvailability } from '@/lib/us-market-calendar';
 
 type DateSpecificRecord = {
   tradeDate?: string;
@@ -69,13 +78,9 @@ type FormState = {
 
 const dateSpecificCategories = ['utilization', 'manual-availability', 'margins', 'short-score'] as const;
 
-function todayYmd() {
-  return new Date().toISOString().slice(0, 10);
-}
-
 function emptyForm(): FormState {
   return {
-    tradeDate: todayYmd(),
+    tradeDate: '',
     issuedShare: '',
     utilizationPercent: '',
     availableSharesIbkr: '',
@@ -97,6 +102,11 @@ function numberOrUndefined(value: string) {
   if (!value.trim()) return undefined;
   const parsed = Number(value.replace(/[%,$,]/g, ''));
   return Number.isFinite(parsed) ? parsed : undefined;
+}
+
+function formatShareInput(value: unknown) {
+  const digits = String(value ?? '').replace(/\D/g, '').replace(/^0+(?=\d)/, '');
+  return digits ? digits.replace(/\B(?=(\d{3})+(?!\d))/g, ',') : '';
 }
 
 function percentInputToRatio(value: string) {
@@ -138,6 +148,14 @@ function formatDays(value: unknown) {
     : 'N/A';
 }
 
+function formatReadinessValue(field: ReturnType<typeof marketPublicationFields>[number]) {
+  if (field.value === null) return 'Missing';
+  if (field.key === 'availableShares' || field.key.startsWith('availableShares')) return formatNumber(field.value);
+  if (field.key === 'averageDurationDays' || field.key === 'daysToCover') return formatDays(field.value);
+  if (field.key === 'initialMargin' || field.key === 'maintenanceMargin') return formatPercentFromRatio(field.value);
+  return formatPercent(field.value);
+}
+
 function formatDateTime(value?: string) {
   if (!value) return 'N/A';
   const date = new Date(value);
@@ -151,8 +169,12 @@ function formatDateTime(value?: string) {
   }).format(date);
 }
 
-function asArray<T>(value: unknown): T[] {
-  return Array.isArray(value) ? value as T[] : [];
+function recordsFromPayload<T>(value: unknown): T[] {
+  if (Array.isArray(value)) return value as T[];
+  if (isRecord(value) && Array.isArray(value.records)) return value.records as T[];
+  if (isRecord(value) && Array.isArray(value.data)) return value.data as T[];
+  if (isRecord(value) && isRecord(value.data) && Array.isArray(value.data.records)) return value.data.records as T[];
+  return [];
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -263,15 +285,34 @@ function mergeRows(
   return [...rows.values()].sort((a, b) => b.tradeDate.localeCompare(a.tradeDate));
 }
 
+function formFromDailyRecord(tradeDate: string, record: MarketInputRow | undefined, issuedShare: number | undefined): FormState {
+  return {
+    ...emptyForm(),
+    tradeDate,
+    issuedShare: formatShareInput(issuedShare),
+    utilizationPercent: record?.utilizationPercent === undefined ? '' : String(record.utilizationPercent),
+    availableSharesIbkr: formatShareInput(record?.availableSharesIbkr),
+    availableSharesFutu: formatShareInput(record?.availableSharesFutu),
+    initialMarginIbkr: ratioToPercent(record?.initialMarginIbkr),
+    initialMarginFutu: ratioToPercent(record?.initialMarginFutu),
+    maintenanceMarginIbkr: ratioToPercent(record?.maintenanceMarginIbkr),
+    maintenanceMarginFutu: ratioToPercent(record?.maintenanceMarginFutu),
+    averageDurationDays: record?.averageDurationDays === undefined ? '' : String(record.averageDurationDays),
+    shortScore: record?.shortScore === undefined ? '' : String(record.shortScore),
+  };
+}
+
 export function MarketDataOperationsClient() {
   const [selectedTicker, setSelectedTicker] = useState('CURR');
   const [tickerDraft, setTickerDraft] = useState('CURR');
   const [form, setForm] = useState<FormState>(() => emptyForm());
   const [rows, setRows] = useState<MarketInputRow[]>([]);
+  const [marketHistory, setMarketHistory] = useState<MarketPublicationRecord[]>([]);
   const [apiDebugRows, setApiDebugRows] = useState<OperationsDevelopmentDatum[]>([]);
   const [status, setStatus] = useState<'checking' | 'loading' | 'idle' | 'saving' | 'success' | 'error' | 'forbidden'>('checking');
   const [message, setMessage] = useState('');
   const [deletingDate, setDeletingDate] = useState('');
+  const [nowMs, setNowMs] = useState(() => Date.now());
 
   async function loadApi(endpoint: string) {
     try {
@@ -300,38 +341,54 @@ export function MarketDataOperationsClient() {
     }
   }
 
-  async function loadRecords(ticker: string, preserveFeedback = false) {
+  async function loadRecords(
+    ticker: string,
+    preserveFeedback = false,
+    additionalDebugRows: OperationsDevelopmentDatum[] = [],
+  ) {
     const normalized = normalizeTicker(ticker);
     setStatus('loading');
     if (!preserveFeedback) setMessage('');
     try {
       const endpoints = [
+        `/market-data/current?ticker=${encodeURIComponent(normalized)}&category=market-current`,
+        `/market-data/history?ticker=${encodeURIComponent(normalized)}&category=market-history`,
         `/manual-input/issued-share?ticker=${encodeURIComponent(normalized)}`,
         `/manual-input/utilization?ticker=${encodeURIComponent(normalized)}`,
         `/manual-input/manual-availability?ticker=${encodeURIComponent(normalized)}`,
         `/manual-input/margins?ticker=${encodeURIComponent(normalized)}`,
         `/manual-input/short-score?ticker=${encodeURIComponent(normalized)}`,
       ];
-      const [issuedShareResult, utilizationResult, availabilityResult, marginsResult, shortScoreResult] = await Promise.all([
+      const [marketCurrentResult, marketHistoryResult, issuedShareResult, utilizationResult, availabilityResult, marginsResult, shortScoreResult] = await Promise.all([
         loadApi(endpoints[0]),
         loadApi(endpoints[1]),
         loadApi(endpoints[2]),
         loadApi(endpoints[3]),
         loadApi(endpoints[4]),
+        loadApi(endpoints[5]),
+        loadApi(endpoints[6]),
       ]);
-      setApiDebugRows([issuedShareResult, utilizationResult, availabilityResult, marginsResult, shortScoreResult].map(result => result.debug));
+      setApiDebugRows([
+        ...[marketCurrentResult, marketHistoryResult, issuedShareResult, utilizationResult, availabilityResult, marginsResult, shortScoreResult].map(result => result.debug),
+        ...additionalDebugRows,
+      ]);
+      setMarketHistory(recordsFromPayload<MarketPublicationRecord>(marketHistoryResult.payload));
       const issuedShare = numberOrUndefined(String((issuedShareResult.payload as { issuedShare?: unknown } | null)?.issuedShare ?? ''));
+      const mergedRows = mergeRows(
+        issuedShare,
+        recordsFromPayload<UtilizationRecord>(utilizationResult.payload),
+        recordsFromPayload<AvailabilityRecord>(availabilityResult.payload),
+        recordsFromPayload<MarginRecord>(marginsResult.payload),
+        recordsFromPayload<ShortScoreRecord>(shortScoreResult.payload),
+      );
       setSelectedTicker(normalized);
       setTickerDraft(normalized);
       setOperationsTicker(normalized);
-      setForm(current => ({ ...emptyForm(), tradeDate: current.tradeDate || todayYmd(), issuedShare: issuedShare === undefined ? '' : String(issuedShare) }));
-      setRows(mergeRows(
-        issuedShare,
-        asArray<UtilizationRecord>(utilizationResult.payload),
-        asArray<AvailabilityRecord>(availabilityResult.payload),
-        asArray<MarginRecord>(marginsResult.payload),
-        asArray<ShortScoreRecord>(shortScoreResult.payload),
-      ));
+      setForm(current => {
+        const tradeDate = current.tradeDate || latestClosedUsMarketDate();
+        return formFromDailyRecord(tradeDate, mergedRows.find(record => record.tradeDate === tradeDate), issuedShare);
+      });
+      setRows(mergedRows);
       setStatus(preserveFeedback ? 'success' : 'idle');
     } catch (error) {
       setStatus('error');
@@ -368,6 +425,15 @@ export function MarketDataOperationsClient() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  useEffect(() => {
+    setForm(current => current.tradeDate ? current : { ...current, tradeDate: latestClosedUsMarketDate() });
+  }, []);
+
+  useEffect(() => {
+    const timer = window.setInterval(() => setNowMs(Date.now()), 1000);
+    return () => window.clearInterval(timer);
+  }, []);
+
   const formHasAnyData = useMemo(
     () => Object.entries(form).some(([key, value]) => key !== 'tradeDate' && Boolean(value.trim())),
     [form],
@@ -379,32 +445,75 @@ export function MarketDataOperationsClient() {
     numberOrUndefined(form.initialMarginIbkr) !== undefined || numberOrUndefined(form.initialMarginFutu) !== undefined || numberOrUndefined(form.maintenanceMarginIbkr) !== undefined || numberOrUndefined(form.maintenanceMarginFutu) !== undefined || numberOrUndefined(form.averageDurationDays) !== undefined ? 'Margins' : '',
     numberOrUndefined(form.shortScore) !== undefined ? 'Short Score' : '',
   ].filter(Boolean), [form]);
+  const entryAvailability = useMemo(
+    () => marketEntryAvailability(form.tradeDate, new Date(nowMs)),
+    [form.tradeDate, nowMs],
+  );
+  const manualPublicationInputs = useMemo(() => ({
+    utilization: rows as MarketPublicationRecord[],
+    availability: rows as MarketPublicationRecord[],
+    margins: rows as MarketPublicationRecord[],
+  }), [rows]);
+  const selectedReadinessRecord = useMemo(
+    () => marketPublicationRecordForDate(marketHistory, manualPublicationInputs, form.tradeDate),
+    [form.tradeDate, manualPublicationInputs, marketHistory],
+  );
+  const selectedReadiness = useMemo(() => marketPublicationFields(selectedReadinessRecord), [selectedReadinessRecord]);
+  const selectedReadinessSummary = useMemo(() => {
+    const borrowFee = selectedReadiness.find(field => field.key === 'borrowFeePercent');
+    const shortableShares = selectedReadiness.find(field => field.key === 'availableShares');
+    const chartExchange = shortableShares?.children?.find(field => field.key === 'availableSharesChartExchange');
+    const daysToCover = selectedReadiness.find(field => field.key === 'daysToCover');
+    const manualFields = selectedReadiness.filter(field => field.source === 'Manual Input');
+    const manualComplete = manualFields.length > 0
+      && manualFields.every(field => field.value !== null)
+      && shortableShares?.children?.filter(field => field.source === 'Manual Input').every(field => field.value !== null);
+
+    return [
+      borrowFee ? { ...borrowFee, label: 'Borrow Fee' } : null,
+      chartExchange ? { ...chartExchange, label: 'Chart Exchange Shortable Shares' } : null,
+      daysToCover ? { ...daysToCover, label: 'Days to Cover' } : null,
+      {
+        key: 'manualInputData',
+        label: 'Manual Input Data',
+        source: 'Manual Input' as const,
+        value: manualComplete ? 1 : null,
+      },
+    ].filter((field): field is NonNullable<typeof field> => Boolean(field));
+  }, [selectedReadiness]);
+  const selectedOutputReady = useMemo(() => isCompleteMarketPublicationRecord(selectedReadinessRecord), [selectedReadinessRecord]);
+  const publishedRecord = useMemo(
+    () => latestCompleteMarketPublicationRecordFromSources(marketHistory, manualPublicationInputs),
+    [manualPublicationInputs, marketHistory],
+  );
+  const publishedDate = publishedRecord ? marketRecordDate(publishedRecord) : '';
   const busy = ['checking', 'loading', 'saving'].includes(status);
 
   function updateField(field: keyof FormState, value: string) {
     setForm(current => ({ ...current, [field]: value }));
   }
 
+  function selectTradeDate(tradeDate: string) {
+    const record = rows.find(row => row.tradeDate === tradeDate);
+    const issuedShare = numberOrUndefined(form.issuedShare);
+    setForm(formFromDailyRecord(tradeDate, record, issuedShare));
+  }
+
   function editRecord(record: MarketInputRow) {
-    setForm({
-      tradeDate: record.tradeDate,
-      issuedShare: record.issuedShare === undefined ? '' : String(record.issuedShare),
-      utilizationPercent: record.utilizationPercent === undefined ? '' : String(record.utilizationPercent),
-      availableSharesIbkr: record.availableSharesIbkr === undefined ? '' : String(record.availableSharesIbkr),
-      availableSharesFutu: record.availableSharesFutu === undefined ? '' : String(record.availableSharesFutu),
-      initialMarginIbkr: ratioToPercent(record.initialMarginIbkr),
-      initialMarginFutu: ratioToPercent(record.initialMarginFutu),
-      maintenanceMarginIbkr: ratioToPercent(record.maintenanceMarginIbkr),
-      maintenanceMarginFutu: ratioToPercent(record.maintenanceMarginFutu),
-      averageDurationDays: record.averageDurationDays === undefined ? '' : String(record.averageDurationDays),
-      shortScore: record.shortScore === undefined ? '' : String(record.shortScore),
-    });
+    setForm(formFromDailyRecord(record.tradeDate, record, record.issuedShare));
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
   async function saveRecord(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!form.tradeDate || !formHasAnyData) return;
+    if (!entryAvailability.isOpen) {
+      setStatus('error');
+      setMessage(entryAvailability.isTradingDay
+        ? 'Inputs cannot be saved until the regular US market session has closed for this trade date.'
+        : 'This date is not a regular US market trading day. Select a valid trading date.');
+      return;
+    }
     setStatus('saving');
     setMessage('');
 
@@ -454,9 +563,38 @@ export function MarketDataOperationsClient() {
 
     try {
       await Promise.all(requests);
+      const consolidateEndpoint = `/manual-input/consolidate?ticker=${tickerParam}`;
+      let consolidationPayload: unknown;
+
+      try {
+        consolidationPayload = await authenticatedFetch(consolidateEndpoint, {
+          method: 'POST',
+          body: JSON.stringify({ ticker: selectedTicker }),
+        });
+      } catch (error) {
+        const consolidationDebug: OperationsDevelopmentDatum = {
+          endpoint: `POST ${consolidateEndpoint}`,
+          source: 'API Gateway',
+          state: error instanceof Error ? `error: ${error.message}` : 'error',
+          payload: null,
+        };
+        await loadRecords(selectedTicker, true, [consolidationDebug]);
+        setStatus('error');
+        setMessage(`Inputs were saved for ${form.tradeDate}, but the consolidation pipeline could not be triggered. ${error instanceof Error ? error.message : ''}`.trim());
+        return;
+      }
+
+      const consolidationDebug: OperationsDevelopmentDatum = {
+        endpoint: `POST ${consolidateEndpoint}`,
+        source: 'API Gateway',
+        state: 'triggered',
+        recordCount: payloadRecordCount(consolidationPayload),
+        updatedAt: payloadGeneratedAt(consolidationPayload),
+        payload: consolidationPayload,
+      };
+      await loadRecords(selectedTicker, true, [consolidationDebug]);
       setStatus('success');
-      setMessage(`Saved Manual Input V2 records for ${form.tradeDate}.`);
-      await loadRecords(selectedTicker, true);
+      setMessage(`Saved Manual Input V2 records for ${form.tradeDate} and triggered consolidation for ${selectedTicker}.`);
     } catch (error) {
       setStatus('error');
       setMessage(error instanceof Error ? error.message : 'Unable to save Manual Input V2 records.');
@@ -479,9 +617,36 @@ export function MarketDataOperationsClient() {
         authenticatedFetch(`/manual-input/margins?ticker=${tickerParam}&tradeDate=${tradeDateParam}`, { method: 'DELETE' }),
         authenticatedFetch(`/manual-input/short-score?ticker=${tickerParam}&tradeDate=${tradeDateParam}`, { method: 'DELETE' }),
       ]);
+      const consolidateEndpoint = `/manual-input/consolidate?ticker=${tickerParam}`;
+      let consolidationPayload: unknown;
+      try {
+        consolidationPayload = await authenticatedFetch(consolidateEndpoint, {
+          method: 'POST',
+          body: JSON.stringify({ ticker: selectedTicker }),
+        });
+      } catch (error) {
+        const consolidationDebug: OperationsDevelopmentDatum = {
+          endpoint: `POST ${consolidateEndpoint}`,
+          source: 'API Gateway',
+          state: error instanceof Error ? `error: ${error.message}` : 'error',
+          payload: null,
+        };
+        await loadRecords(selectedTicker, true, [consolidationDebug]);
+        setStatus('error');
+        setMessage(`Inputs for ${record.tradeDate} were deleted, but consolidation could not be triggered. ${error instanceof Error ? error.message : ''}`.trim());
+        return;
+      }
+      const consolidationDebug: OperationsDevelopmentDatum = {
+        endpoint: `POST ${consolidateEndpoint}`,
+        source: 'API Gateway',
+        state: 'triggered after delete',
+        recordCount: payloadRecordCount(consolidationPayload),
+        updatedAt: payloadGeneratedAt(consolidationPayload),
+        payload: consolidationPayload,
+      };
       setStatus('success');
-      setMessage(`Deleted daily Manual Input V2 records for ${record.tradeDate}. Issued Share was not deleted because it is a ticker-level value.`);
-      await loadRecords(selectedTicker, true);
+      setMessage(`Deleted daily Manual Input V2 records for ${record.tradeDate} and triggered consolidation. Issued Share was not deleted because it is a ticker-level value.`);
+      await loadRecords(selectedTicker, true, [consolidationDebug]);
     } catch (error) {
       setStatus('error');
       setMessage(error instanceof Error ? error.message : 'Unable to delete Manual Input V2 records.');
@@ -508,6 +673,7 @@ export function MarketDataOperationsClient() {
       </div>
 
       <div className="ops-market-data-grid">
+      <div className="ops-market-entry-column">
       <section className="ops-panel">
         <div className="ops-panel-head">
           <div><span className="ops-eyebrow">Manual Input V2</span><h2>Daily Market Inputs</h2></div>
@@ -515,31 +681,83 @@ export function MarketDataOperationsClient() {
         </div>
         <form className="ops-sec-form" onSubmit={saveRecord}>
           <div className="ops-form-grid three">
-            <label>Trade Date<input type="date" value={form.tradeDate} onChange={event => updateField('tradeDate', event.target.value)} required /></label>
-            <label>Issued Share<input inputMode="numeric" value={form.issuedShare} onChange={event => updateField('issuedShare', event.target.value)} /></label>
-            <label>Short Score<input inputMode="decimal" value={form.shortScore} onChange={event => updateField('shortScore', event.target.value)} /></label>
+            <label>Trade Date<input type="date" value={form.tradeDate} onChange={event => selectTradeDate(event.target.value)} required suppressHydrationWarning /></label>
+            <label>Issued Share<input inputMode="numeric" value={form.issuedShare} onChange={event => updateField('issuedShare', formatShareInput(event.target.value))} disabled={!entryAvailability.isOpen} suppressHydrationWarning /></label>
+            <label>Short Score<input inputMode="decimal" value={form.shortScore} onChange={event => updateField('shortScore', event.target.value)} disabled={!entryAvailability.isOpen} suppressHydrationWarning /></label>
           </div>
           <div className="ops-form-grid three">
-            <label>Utilization %<input inputMode="decimal" value={form.utilizationPercent} onChange={event => updateField('utilizationPercent', event.target.value)} /></label>
-            <label>IBKR Shortable Shares<input inputMode="numeric" value={form.availableSharesIbkr} onChange={event => updateField('availableSharesIbkr', event.target.value)} /></label>
-            <label>Futu Shortable Shares<input inputMode="numeric" value={form.availableSharesFutu} onChange={event => updateField('availableSharesFutu', event.target.value)} /></label>
+            <label>Utilization %<input inputMode="decimal" value={form.utilizationPercent} onChange={event => updateField('utilizationPercent', event.target.value)} disabled={!entryAvailability.isOpen} suppressHydrationWarning /></label>
+            <label>IBKR Shortable Shares<input inputMode="numeric" value={form.availableSharesIbkr} onChange={event => updateField('availableSharesIbkr', formatShareInput(event.target.value))} disabled={!entryAvailability.isOpen} suppressHydrationWarning /></label>
+            <label>Futu Shortable Shares<input inputMode="numeric" value={form.availableSharesFutu} onChange={event => updateField('availableSharesFutu', formatShareInput(event.target.value))} disabled={!entryAvailability.isOpen} suppressHydrationWarning /></label>
           </div>
           <div className="ops-form-grid three">
-            <label>IBKR Initial Margin %<input inputMode="decimal" value={form.initialMarginIbkr} onChange={event => updateField('initialMarginIbkr', event.target.value)} /></label>
-            <label>Futu Initial Margin %<input inputMode="decimal" value={form.initialMarginFutu} onChange={event => updateField('initialMarginFutu', event.target.value)} /></label>
-            <label>Average Duration (Days)<input inputMode="decimal" value={form.averageDurationDays} onChange={event => updateField('averageDurationDays', event.target.value)} /></label>
+            <label>IBKR Initial Margin %<input inputMode="decimal" value={form.initialMarginIbkr} onChange={event => updateField('initialMarginIbkr', event.target.value)} disabled={!entryAvailability.isOpen} suppressHydrationWarning /></label>
+            <label>Futu Initial Margin %<input inputMode="decimal" value={form.initialMarginFutu} onChange={event => updateField('initialMarginFutu', event.target.value)} disabled={!entryAvailability.isOpen} suppressHydrationWarning /></label>
+            <label>Average Duration (Days)<input inputMode="decimal" value={form.averageDurationDays} onChange={event => updateField('averageDurationDays', event.target.value)} disabled={!entryAvailability.isOpen} suppressHydrationWarning /></label>
           </div>
           <div className="ops-form-grid two">
-            <label>IBKR Maintenance Margin %<input inputMode="decimal" value={form.maintenanceMarginIbkr} onChange={event => updateField('maintenanceMarginIbkr', event.target.value)} /></label>
-            <label>Futu Maintenance Margin %<input inputMode="decimal" value={form.maintenanceMarginFutu} onChange={event => updateField('maintenanceMarginFutu', event.target.value)} /></label>
+            <label>IBKR Maintenance Margin %<input inputMode="decimal" value={form.maintenanceMarginIbkr} onChange={event => updateField('maintenanceMarginIbkr', event.target.value)} disabled={!entryAvailability.isOpen} suppressHydrationWarning /></label>
+            <label>Futu Maintenance Margin %<input inputMode="decimal" value={form.maintenanceMarginFutu} onChange={event => updateField('maintenanceMarginFutu', event.target.value)} disabled={!entryAvailability.isOpen} suppressHydrationWarning /></label>
+          </div>
+          <div className={`ops-market-entry-gate ${entryAvailability.isOpen ? 'is-open' : 'is-locked'}`}>
+            <span className="ops-market-entry-icon" aria-hidden="true">
+              {entryAvailability.isOpen ? (
+                <svg viewBox="0 0 24 24"><path d="m5 12 4 4 10-10" /></svg>
+              ) : (
+                <svg viewBox="0 0 24 24"><rect x="5" y="10" width="14" height="10" rx="2" /><path d="M8 10V7a4 4 0 0 1 8 0v3" /></svg>
+              )}
+            </span>
+            <div>
+              <strong>{entryAvailability.isOpen ? 'Market closed - input available' : entryAvailability.isTradingDay ? 'Input opens after market close' : 'No regular US market session'}</strong>
+              <small>
+                {entryAvailability.isOpen
+                  ? 'This trade date is closed and values may be entered or updated.'
+                  : entryAvailability.isTradingDay && entryAvailability.closeAt
+                    ? `Available in ${formatMarketCountdown(entryAvailability.remainingMs)} at 4:00 PM New York time.`
+                    : 'Weekends and US market holidays cannot receive daily market inputs.'}
+              </small>
+            </div>
           </div>
           <div className="ops-form-footer">
-            <span>{formHasAnyData ? 'Only fields with values will be saved to their matching Manual Input V2 category.' : 'Enter one or more values to save.'}</span>
-            <button className="ops-primary-button" type="submit" disabled={!form.tradeDate || !formHasAnyData || busy}>{status === 'saving' ? 'Saving...' : 'Save Inputs'}</button>
+            <span>{formHasAnyData ? 'Only fields with values will be saved. A successful submission will trigger ticker consolidation.' : 'Enter one or more values to save.'}</span>
+            <button className="ops-primary-button" type="submit" disabled={!form.tradeDate || !formHasAnyData || !entryAvailability.isOpen || busy}>{status === 'saving' ? 'Saving...' : 'Save Inputs'}</button>
           </div>
           {message ? <p className={`ops-form-message ${status === 'error' ? 'bad' : 'good'}`}>{message}</p> : null}
         </form>
       </section>
+
+      <section className="ops-panel ops-market-readiness-panel">
+        <div className="ops-panel-head">
+          <div><span className="ops-eyebrow">Publication Readiness</span><h2>{form.tradeDate || 'Select a trade date'}</h2></div>
+          <div className="ops-readiness-head-actions">
+            <div className="ops-published-date"><span>Frontend currently displays</span><strong>{publishedDate || 'No complete date available'}</strong></div>
+            <span className={`ops-status ${selectedOutputReady ? 'good' : ''}`}>{selectedOutputReady ? 'Ready' : 'Collecting'}</span>
+            <button className="ops-secondary-button" type="button" onClick={() => loadRecords(selectedTicker, true)} disabled={busy}>Refresh</button>
+          </div>
+        </div>
+        <div className="ops-readiness-list">
+          {selectedReadinessSummary.map(field => {
+            const complete = field.value !== null;
+            return (
+              <div className="ops-readiness-group" key={field.key}>
+                <div className={complete ? 'ops-readiness-row is-complete' : 'ops-readiness-row is-missing'}>
+                  <span className="ops-readiness-check" aria-hidden="true">
+                    {complete ? <svg viewBox="0 0 24 24"><path d="m5 12 4 4 10-10" /></svg> : <svg viewBox="0 0 24 24"><path d="M12 7v6m0 4h.01" /><circle cx="12" cy="12" r="9" /></svg>}
+                  </span>
+                  <span><strong>{field.label}</strong><small>{field.source}</small></span>
+                  <b>{field.key === 'manualInputData' ? (complete ? 'Complete' : 'Missing') : formatReadinessValue(field)}</b>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+        <p className="ops-readiness-note">
+          {selectedOutputReady
+            ? 'The vendor record and every exact-date manual input are present. This date is eligible for the user portal.'
+            : 'The user portal remains on the latest earlier complete date until every required vendor and exact-date manual value is available.'}
+        </p>
+      </section>
+      </div>
 
       <aside className="ops-side-stack">
         <section className="ops-panel">

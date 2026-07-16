@@ -54,6 +54,10 @@ type ManagementHoldingInputRecord = {
   category: string;
   shares: number | string;
   action: 'add' | 'deduct';
+  previousShares?: number | string;
+  latestTotalShares?: number | string;
+  sharesChange?: number | string;
+  changeType?: 'increase' | 'decrease' | 'no-change';
   notes?: string;
   effectiveDate?: string;
   showInOwnership?: boolean;

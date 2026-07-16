@@ -14,9 +14,13 @@ export type OperationsSecFilingRecord = {
 };
 
 export type ManagementHoldingAction = 'add' | 'deduct';
+export type OwnershipChangeType = 'increase' | 'decrease' | 'no-change';
 export type ManagementHoldingInputRecord = {
   id: string; ticker: string; holderName: string; category: string; shares: number;
   action: ManagementHoldingAction; notes: string; effectiveDate: string;
   showInOwnership: boolean; showAsSuggestion: boolean; autoApply: boolean;
   status: 'pending' | 'applied' | 'discarded'; createdAt: string; updatedAt: string; updatedBy: string;
+  entryMode?: 'existing' | 'new'; holderReferenceId?: string;
+  previousShares?: number; latestTotalShares?: number; sharesChange?: number;
+  changeType?: OwnershipChangeType; sharesSemantics?: 'delta' | 'total';
 };

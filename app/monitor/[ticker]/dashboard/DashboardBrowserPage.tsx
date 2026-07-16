@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { PortalPageLoading } from '@/components/PortalPageLoading';
 import { authenticatedFetch } from '@/lib/auth-client';
+import { latestCompleteMarketPublicationRecordFromSources, marketNumber, marketRecordDate } from '@/lib/market-data-publication';
 import type { DashboardMarginRecord, DashboardUtilizationRecord, OperationsSecFilingRecord } from '@/lib/operations/data-types';
 import { normalizeTicker } from '@/lib/ticker-data';
 import { DashboardClient } from './DashboardClient';
@@ -67,6 +68,8 @@ type MarketHistoryRecord = {
   availableSharesChartExchange?: unknown;
   utilizationPercent?: unknown;
   daysToCover?: unknown;
+  shortInterestShares?: unknown;
+  shortInterestPercent?: unknown;
   initialMargin?: unknown;
   maintenanceMargin?: unknown;
   averageDurationDays?: unknown;
@@ -101,6 +104,10 @@ type ManualDateRecord = {
 };
 
 type ManualUtilizationRecord = ManualDateRecord & { utilizationPercent?: unknown };
+type ManualAvailabilityRecord = ManualDateRecord & {
+  availableSharesIbkr?: unknown;
+  availableSharesFutu?: unknown;
+};
 type ManualMarginRecord = ManualDateRecord & {
   initialMarginIbkr?: unknown;
   initialMarginFutu?: unknown;
@@ -113,6 +120,7 @@ type ManualMarginRecord = ManualDateRecord & {
 
 type ManualMarketInputs = {
   utilization: ManualUtilizationRecord[];
+  availability: ManualAvailabilityRecord[];
   margins: ManualMarginRecord[];
 };
 
@@ -152,10 +160,6 @@ function asApiArray<T>(value: unknown): T[] {
   if (Array.isArray(payload.records)) return payload.records as T[];
   if (Array.isArray(payload.data)) return payload.data as T[];
   return [];
-}
-
-function latestManualRecord<T extends ManualDateRecord>(records: T[]) {
-  return [...records].sort((a, b) => plainText(b.tradeDate).localeCompare(plainText(a.tradeDate)))[0];
 }
 
 function maxNumeric(...values: unknown[]) {
@@ -251,8 +255,11 @@ function marketHistoryToDashboardData(
   manualInputs: ManualMarketInputs,
 ): DashboardApiData {
   const historyRecords = Array.isArray(historyFile?.records) ? historyFile.records : [];
+  const publishedRecord = latestCompleteMarketPublicationRecordFromSources(historyRecords, manualInputs);
+  const publishedDate = publishedRecord ? marketRecordDate(publishedRecord) : '';
   const secFilingRows = Array.isArray(secFilingsFile?.records) ? secFilingsFile.records : [];
   const marketTrendData = historyRecords
+    .filter(row => Boolean(publishedDate) && plainText(row.tradeDate ?? row.date) <= publishedDate)
     .map((row): TrendPoint | null => {
       const date = plainText(row.tradeDate ?? row.date);
       if (!date) return null;
@@ -271,7 +278,7 @@ function marketHistoryToDashboardData(
     .filter((row): row is TrendPoint => Boolean(row))
     .sort((a, b) => a.date.localeCompare(b.date));
 
-  if (currentFile?.snapshotDate && !marketTrendData.some(row => row.date === currentFile.snapshotDate)) {
+  if (currentFile?.snapshotDate && currentFile.snapshotDate <= publishedDate && !marketTrendData.some(row => row.date === currentFile.snapshotDate)) {
     marketTrendData.push({
       date: currentFile.snapshotDate,
       price: numericOrNull(currentFile.price?.value),
@@ -287,8 +294,8 @@ function marketHistoryToDashboardData(
   }
 
   const recordTicker = plainText(historyFile?.ticker ?? currentFile?.ticker, 'CURR').toUpperCase();
-  const utilizationInputs = manualUtilizationRecords(manualInputs.utilization, recordTicker);
-  const marginInputs = manualMarginRecords(manualInputs.margins, recordTicker);
+  const utilizationInputs = manualUtilizationRecords(manualInputs.utilization, recordTicker).filter(record => Boolean(publishedDate) && record.date <= publishedDate);
+  const marginInputs = manualMarginRecords(manualInputs.margins, recordTicker).filter(record => Boolean(publishedDate) && record.date <= publishedDate);
   const utilizationByDate = new Map(utilizationInputs.map(record => [record.date, record.utilization]));
   const averageDurationByDate = new Map(
     marginInputs
@@ -340,19 +347,19 @@ function marketHistoryToDashboardData(
     }))
     .sort((a, b) => a.date.localeCompare(b.date));
 
-  const latestUtilization = latestManualRecord(manualInputs.utilization);
-  const current = currentFile || latestUtilization ? {
-    shortInterestPcFreeFloat: numericOrNull(currentFile?.shortInterest?.percent),
-    shortInterestShares: numericOrNull(currentFile?.shortInterest?.shares),
-    shortScore: numericOrNull(currentFile?.scores?.shortScore?.value),
-    borrowFee: numericOrNull(currentFile?.borrowFee?.percent),
-    feeRate: numericOrNull(currentFile?.borrowFee?.percent),
-    utilization: numericOrNull(latestUtilization?.utilizationPercent),
-    availableShares: numericOrNull(currentFile?.availableShares?.value),
-    daysToCover: numericOrNull(currentFile?.daysToCover?.value),
-    price: numericOrNull(currentFile?.price?.value),
+  const current = publishedRecord ? {
+    publishedTradeDate: publishedDate,
+    shortInterestPcFreeFloat: marketNumber(publishedRecord.shortInterestPercent),
+    shortInterestShares: marketNumber(publishedRecord.shortInterestShares),
+    shortScore: marketNumber(publishedRecord.shortScore),
+    borrowFee: marketNumber(publishedRecord.borrowFeePercent),
+    feeRate: marketNumber(publishedRecord.borrowFeePercent),
+    utilization: marketNumber(publishedRecord.utilizationPercent),
+    availableShares: marketNumber(publishedRecord.availableShares),
+    daysToCover: marketNumber(publishedRecord.daysToCover),
+    price: marketNumber(publishedRecord.price),
     sourceRecords: {
-      marketCurrent: currentFile,
+      marketHistory: publishedRecord,
     },
   } : null;
 
@@ -372,15 +379,17 @@ export function DashboardBrowserPage({ ticker }: { ticker: string }) {
       setApiLoading(true);
       setApiError(null);
       try {
-        const [currentFile, historyFile, secFilingsFile, utilizationPayload, marginsPayload] = await Promise.all([
+        const [currentFile, historyFile, secFilingsFile, utilizationPayload, availabilityPayload, marginsPayload] = await Promise.all([
           authenticatedFetch(`/market-data/current?ticker=${encodeURIComponent(normalizedTicker)}&category=market-current`) as Promise<MarketCurrentFile>,
           authenticatedFetch(`/market-data/history?ticker=${encodeURIComponent(normalizedTicker)}&category=market-history`) as Promise<MarketHistoryFile>,
           authenticatedFetch(`/market-data/history?ticker=${encodeURIComponent(normalizedTicker)}&category=sec-filings-history`) as Promise<SecFilingsHistoryFile>,
           authenticatedFetch(`/manual-input/utilization?ticker=${encodeURIComponent(normalizedTicker)}`),
+          authenticatedFetch(`/manual-input/manual-availability?ticker=${encodeURIComponent(normalizedTicker)}`),
           authenticatedFetch(`/manual-input/margins?ticker=${encodeURIComponent(normalizedTicker)}`),
         ]);
         const manualInputs: ManualMarketInputs = {
           utilization: asApiArray<ManualUtilizationRecord>(utilizationPayload),
+          availability: asApiArray<ManualAvailabilityRecord>(availabilityPayload),
           margins: asApiArray<ManualMarginRecord>(marginsPayload),
         };
         if (!cancelled) setApiData(marketHistoryToDashboardData(currentFile, historyFile, secFilingsFile, manualInputs));
@@ -424,6 +433,7 @@ export function DashboardBrowserPage({ ticker }: { ticker: string }) {
         marketCurrent={apiData.currentFile as Record<string, unknown> | null}
         marketHistory={apiData.historyFile as Record<string, unknown> | null}
         manualUtilization={apiData.manualInputs.utilization as Array<Record<string, unknown>>}
+        manualAvailability={apiData.manualInputs.availability as Array<Record<string, unknown>>}
         manualMargins={apiData.manualInputs.margins as Array<Record<string, unknown>>}
         secFilingsHistory={apiData.secFilingsFile as Record<string, unknown> | null}
       />

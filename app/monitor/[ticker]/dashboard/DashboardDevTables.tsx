@@ -14,6 +14,7 @@ type DashboardDevTablesProps = {
   marketCurrent: Record<string, unknown> | null;
   marketHistory: Record<string, unknown> | null;
   manualUtilization: Array<Record<string, unknown>>;
+  manualAvailability: Array<Record<string, unknown>>;
   manualMargins: Array<Record<string, unknown>>;
   secFilingsHistory: Record<string, unknown> | null;
 };
@@ -80,6 +81,7 @@ export function DashboardDevTables({
   marketCurrent,
   marketHistory,
   manualUtilization,
+  manualAvailability,
   manualMargins,
   secFilingsHistory,
 }: DashboardDevTablesProps) {
@@ -101,6 +103,12 @@ export function DashboardDevTables({
       title: 'Manual Utilization',
       endpoint: 'GET /manual-input/utilization',
       payload: manualUtilization,
+    },
+    {
+      id: 'manual-availability',
+      title: 'Manual Availability',
+      endpoint: 'GET /manual-input/manual-availability',
+      payload: manualAvailability,
     },
     {
       id: 'manual-margins',

@@ -5,6 +5,7 @@ import { InfoTooltip } from '@/components/InfoTooltip';
 import { PortalPageLoading } from '@/components/PortalPageLoading';
 import { PageDisclaimerNotice } from '@/components/PageDisclaimerNotice';
 import { authenticatedFetch } from '@/lib/auth-client';
+import { latestCompleteMarketPublicationRecordFromSources, marketRecordDate } from '@/lib/market-data-publication';
 import { normalizeTicker } from '@/lib/ticker-data';
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
 
@@ -778,7 +779,7 @@ function apiFtdRows(payload: ApiFile): FtdRow[] {
 
 export function ShortInterestBrowserPage({ ticker }: { ticker: string }) {
   const normalizedTicker = normalizeTicker(ticker);
-  const [apiData, setApiData] = useState<{ current: ApiFile; history: ApiFile; shortVolume: ApiFile; ftd: ApiFile } | null>(null);
+  const [apiData, setApiData] = useState<{ current: ApiFile; history: ApiFile; shortVolume: ApiFile; ftd: ApiFile; utilization: ApiFile; availability: ApiFile; margins: ApiFile } | null>(null);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(true);
 
@@ -791,8 +792,11 @@ export function ShortInterestBrowserPage({ ticker }: { ticker: string }) {
       authenticatedFetch(`/market-data/history?ticker=${encodeURIComponent(normalizedTicker)}&category=market-history`) as Promise<ApiFile>,
       authenticatedFetch(`/market-data/history?ticker=${encodeURIComponent(normalizedTicker)}&category=short-volume-history`) as Promise<ApiFile>,
       authenticatedFetch(`/market-data/history?ticker=${encodeURIComponent(normalizedTicker)}&category=ftd-history`) as Promise<ApiFile>,
-    ]).then(([current, history, shortVolume, ftd]) => {
-      if (!cancelled) setApiData({ current, history, shortVolume, ftd });
+      authenticatedFetch(`/manual-input/utilization?ticker=${encodeURIComponent(normalizedTicker)}`) as Promise<ApiFile>,
+      authenticatedFetch(`/manual-input/manual-availability?ticker=${encodeURIComponent(normalizedTicker)}`) as Promise<ApiFile>,
+      authenticatedFetch(`/manual-input/margins?ticker=${encodeURIComponent(normalizedTicker)}`) as Promise<ApiFile>,
+    ]).then(([current, history, shortVolume, ftd, utilization, availability, margins]) => {
+      if (!cancelled) setApiData({ current, history, shortVolume, ftd, utilization, availability, margins });
     }).catch(cause => {
       if (!cancelled) setError(cause instanceof Error ? cause.message : 'Unable to load short-interest API data.');
     }).finally(() => {
@@ -806,8 +810,17 @@ export function ShortInterestBrowserPage({ ticker }: { ticker: string }) {
     return <div className="page"><section className="panel"><h2>Short interest data unavailable</h2><p>{error}</p></section></div>;
   }
 
-  const shortCurrent = marketCurrentToLegacy(apiData.current);
-  const dailyRows = apiRecords(apiData.history, 'market-history').map(marketHistoryToLegacy);
+  const marketHistoryRows = apiRecords(apiData.history, 'market-history');
+  const publishedRecord = latestCompleteMarketPublicationRecordFromSources(marketHistoryRows, {
+    utilization: rows(apiData.utilization),
+    availability: rows(apiData.availability),
+    margins: rows(apiData.margins),
+  });
+  const publishedDate = publishedRecord ? marketRecordDate(publishedRecord) : '';
+  const shortCurrent = publishedRecord ? marketCurrentToLegacy(publishedRecord as ApiFile) : {};
+  const dailyRows = marketHistoryRows
+    .filter(row => Boolean(publishedDate) && String(row.tradeDate ?? row.date ?? '').slice(0, 10) <= publishedDate)
+    .map(marketHistoryToLegacy);
   const shortInterestTrendRows = dailyRows
     .sort((a, b) => String(a.date ?? '').localeCompare(String(b.date ?? '')))
     .slice(-7);
@@ -995,6 +1008,9 @@ export function ShortInterestBrowserPage({ ticker }: { ticker: string }) {
             { endpoint: 'GET /market-data/history?category=market-history', generatedAt: String(apiData.history.generatedAt ?? 'N/A'), records: String(rows(apiData.history.records).length), payload: JSON.stringify(apiData.history) },
             { endpoint: 'GET /market-data/history?category=short-volume-history', generatedAt: String(apiData.shortVolume.generatedAt ?? 'N/A'), records: String(rows(apiData.shortVolume.records).length), payload: JSON.stringify(apiData.shortVolume) },
             { endpoint: 'GET /market-data/history?category=ftd-history', generatedAt: String(apiData.ftd.generatedAt ?? 'N/A'), records: String(rows(apiData.ftd.records).length), payload: JSON.stringify(apiData.ftd) },
+            { endpoint: 'GET /manual-input/utilization', generatedAt: 'N/A', records: String(rows(apiData.utilization).length), payload: JSON.stringify(apiData.utilization) },
+            { endpoint: 'GET /manual-input/manual-availability', generatedAt: 'N/A', records: String(rows(apiData.availability).length), payload: JSON.stringify(apiData.availability) },
+            { endpoint: 'GET /manual-input/margins', generatedAt: 'N/A', records: String(rows(apiData.margins).length), payload: JSON.stringify(apiData.margins) },
           ]}
           pageSize={10}
         />

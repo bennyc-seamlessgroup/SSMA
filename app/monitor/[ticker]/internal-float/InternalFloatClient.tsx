@@ -10,6 +10,7 @@ import {
   buildInternalFloatActivity,
   type InternalFloatActivityItem,
 } from '@/lib/internal-float-audit';
+import { signedRecordDifference, toManagementHoldingWritePayload } from '@/lib/operations/ownership-entry.js';
 
 type OwnershipData = {
   sharesOutstanding: number;
@@ -30,6 +31,10 @@ export type InsiderSuggestionSource = {
   holderName?: string;
   shares: number | string;
   action?: 'add' | 'deduct';
+  previousShares?: number | string;
+  latestTotalShares?: number | string;
+  sharesChange?: number | string;
+  changeType?: 'increase' | 'decrease' | 'no-change';
   category?: string;
   notes?: string;
   effectiveDate?: string | null;
@@ -40,6 +45,7 @@ export type InsiderSuggestionSource = {
   latestFileDate?: string | null;
   latestEffectiveDate?: string | null;
   formType?: string | null;
+  source?: string;
 };
 
 type PrivateHolding = {
@@ -396,7 +402,7 @@ export function InternalFloatClient({
 
   const availableInsiderSuggestions = insiderSuggestionSources.filter(row => {
       const holderName = row.holderName ?? row.name;
-      if (!holderName?.trim() || numeric(row.shares) <= 0) return false;
+      if (!holderName?.trim() || signedRecordDifference(row) === 0) return false;
       if (row.status && row.status !== 'pending') return false;
       if (resolvedSuggestionIds.includes(sourceSuggestionId(row))) return false;
       return true;
@@ -424,17 +430,22 @@ export function InternalFloatClient({
     await authenticatedFetch(`/manual-input/management-holdings?ticker=${encodeURIComponent(ticker)}&id=${encodeURIComponent(row.id)}`, {
       method: 'PUT',
       cache: 'no-store',
-      body: JSON.stringify({
-        ...row,
-        ticker,
+      body: JSON.stringify(toManagementHoldingWritePayload({
+        id: row.id,
         holderName: row.holderName ?? row.name ?? 'Unknown holder',
         action: row.action === 'deduct' ? 'deduct' : 'add',
         shares: numeric(row.shares),
+        category: row.category,
+        source: 'source' in row ? row.source : undefined,
+        showInOwnership: row.showInOwnership,
+        showAsSuggestion: row.showAsSuggestion,
         effectiveDate: row.effectiveDate ?? row.latestEffectiveDate ?? row.latestFileDate ?? new Date().toISOString().slice(0, 10),
         autoApply: false,
         status,
-        updatedBy: activityActor(),
-      }),
+        notes: row.notes,
+        fileDate: row.latestFileDate ?? undefined,
+        form: row.formType ?? undefined,
+      })),
     });
   }
 
@@ -458,8 +469,9 @@ export function InternalFloatClient({
   async function applyManagementSuggestion(row: InsiderSuggestionSource, targetId: string) {
     const suggestionId = sourceSuggestionId(row);
     const holderName = (row.holderName ?? row.name ?? 'Unknown holder').trim();
-    const action = row.action === 'deduct' ? 'deduct' : 'add';
-    const shareDelta = numeric(row.shares);
+    const signedDifference = signedRecordDifference(row);
+    const action = signedDifference < 0 ? 'deduct' : 'add';
+    const shareDelta = Math.abs(signedDifference);
     const note = [
       row.notes,
       `Operations ${action === 'deduct' ? 'deduction' : 'addition'} suggestion.`,
@@ -990,7 +1002,8 @@ export function InternalFloatClient({
     const suggestionId = sourceSuggestionId(activeSuggestion);
     const saving = suggestionActionId === suggestionId;
     const holderName = activeSuggestion.holderName ?? activeSuggestion.name ?? 'Unknown holder';
-    const action = activeSuggestion.action === 'deduct' ? 'deduct' : 'add';
+    const signedDifference = signedRecordDifference(activeSuggestion);
+    const action = signedDifference < 0 ? 'deduct' : 'add';
 
     return (
       <div className="modal-backdrop" role="presentation" onMouseDown={() => !saving && setActiveSuggestion(null)}>
@@ -1006,7 +1019,7 @@ export function InternalFloatClient({
           </div>
           <div className="internal-float-suggestion-summary">
             <strong>{holderName}</strong>
-            <span>{action === 'deduct' ? '-' : '+'}{formatNumber(activeSuggestion.shares)} shares</span>
+            <span>{action === 'deduct' ? '-' : '+'}{formatNumber(Math.abs(signedDifference))} shares</span>
             <small>{[activeSuggestion.category, activeSuggestion.effectiveDate ?? activeSuggestion.latestEffectiveDate ?? activeSuggestion.latestFileDate].filter(Boolean).join(' · ')}</small>
           </div>
           <div className="internal-float-suggestion-targets" role="radiogroup" aria-label="Select holding target">
@@ -1121,12 +1134,13 @@ export function InternalFloatClient({
                 const suggestionId = sourceSuggestionId(row);
                 const saving = suggestionActionId === suggestionId;
                 const holderName = row.holderName ?? row.name ?? 'Unknown holder';
-                const action = row.action === 'deduct' ? 'deduct' : 'add';
+                const signedDifference = signedRecordDifference(row);
+                const action = signedDifference < 0 ? 'deduct' : 'add';
                 return (
                   <article key={suggestionId}>
                     <div>
                       <strong>{holderName}</strong>
-                      <span>{action === 'deduct' ? '-' : '+'}{formatNumber(row.shares)} shares</span>
+                      <span>{action === 'deduct' ? '-' : '+'}{formatNumber(Math.abs(signedDifference))} shares</span>
                       {(row.category || row.effectiveDate || row.latestEffectiveDate || row.latestFileDate || row.formType) && (
                         <small>{[row.category, row.formType, row.effectiveDate ?? row.latestEffectiveDate ?? row.latestFileDate].filter(Boolean).join(' · ')}</small>
                       )}
