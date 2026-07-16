@@ -685,19 +685,21 @@ export function MarketDataOperationsClient() {
             <label>Issued Share<input inputMode="numeric" value={form.issuedShare} onChange={event => updateField('issuedShare', formatShareInput(event.target.value))} disabled={!entryAvailability.isOpen} suppressHydrationWarning /></label>
             <label>Short Score<input inputMode="decimal" value={form.shortScore} onChange={event => updateField('shortScore', event.target.value)} disabled={!entryAvailability.isOpen} suppressHydrationWarning /></label>
           </div>
-          <div className="ops-form-grid three">
-            <label>Utilization %<input inputMode="decimal" value={form.utilizationPercent} onChange={event => updateField('utilizationPercent', event.target.value)} disabled={!entryAvailability.isOpen} suppressHydrationWarning /></label>
-            <label>IBKR Shortable Shares<input inputMode="numeric" value={form.availableSharesIbkr} onChange={event => updateField('availableSharesIbkr', formatShareInput(event.target.value))} disabled={!entryAvailability.isOpen} suppressHydrationWarning /></label>
-            <label>Futu Shortable Shares<input inputMode="numeric" value={form.availableSharesFutu} onChange={event => updateField('availableSharesFutu', formatShareInput(event.target.value))} disabled={!entryAvailability.isOpen} suppressHydrationWarning /></label>
-          </div>
-          <div className="ops-form-grid three">
-            <label>IBKR Initial Margin %<input inputMode="decimal" value={form.initialMarginIbkr} onChange={event => updateField('initialMarginIbkr', event.target.value)} disabled={!entryAvailability.isOpen} suppressHydrationWarning /></label>
-            <label>Futu Initial Margin %<input inputMode="decimal" value={form.initialMarginFutu} onChange={event => updateField('initialMarginFutu', event.target.value)} disabled={!entryAvailability.isOpen} suppressHydrationWarning /></label>
-            <label>Average Duration (Days)<input inputMode="decimal" value={form.averageDurationDays} onChange={event => updateField('averageDurationDays', event.target.value)} disabled={!entryAvailability.isOpen} suppressHydrationWarning /></label>
-          </div>
-          <div className="ops-form-grid two">
-            <label>IBKR Maintenance Margin %<input inputMode="decimal" value={form.maintenanceMarginIbkr} onChange={event => updateField('maintenanceMarginIbkr', event.target.value)} disabled={!entryAvailability.isOpen} suppressHydrationWarning /></label>
-            <label>Futu Maintenance Margin %<input inputMode="decimal" value={form.maintenanceMarginFutu} onChange={event => updateField('maintenanceMarginFutu', event.target.value)} disabled={!entryAvailability.isOpen} suppressHydrationWarning /></label>
+          <div className="ops-broker-input-grid">
+            <fieldset className="ops-broker-input-group">
+              <legend><strong>IBKR</strong><span>Primary lending data</span></legend>
+              <label>Utilization %<input inputMode="decimal" value={form.utilizationPercent} onChange={event => updateField('utilizationPercent', event.target.value)} disabled={!entryAvailability.isOpen} suppressHydrationWarning /></label>
+              <label>Average Duration (Days)<input inputMode="decimal" value={form.averageDurationDays} onChange={event => updateField('averageDurationDays', event.target.value)} disabled={!entryAvailability.isOpen} suppressHydrationWarning /></label>
+              <label>IBKR Shortable Shares<input inputMode="numeric" value={form.availableSharesIbkr} onChange={event => updateField('availableSharesIbkr', formatShareInput(event.target.value))} disabled={!entryAvailability.isOpen} suppressHydrationWarning /></label>
+              <label>IBKR Initial Margin %<input inputMode="decimal" value={form.initialMarginIbkr} onChange={event => updateField('initialMarginIbkr', event.target.value)} disabled={!entryAvailability.isOpen} suppressHydrationWarning /></label>
+              <label>IBKR Maintenance Margin %<input inputMode="decimal" value={form.maintenanceMarginIbkr} onChange={event => updateField('maintenanceMarginIbkr', event.target.value)} disabled={!entryAvailability.isOpen} suppressHydrationWarning /></label>
+            </fieldset>
+            <fieldset className="ops-broker-input-group">
+              <legend><strong>Futu</strong><span>Secondary lending data</span></legend>
+              <label>Futu Shortable Shares<input inputMode="numeric" value={form.availableSharesFutu} onChange={event => updateField('availableSharesFutu', formatShareInput(event.target.value))} disabled={!entryAvailability.isOpen} suppressHydrationWarning /></label>
+              <label>Futu Initial Margin %<input inputMode="decimal" value={form.initialMarginFutu} onChange={event => updateField('initialMarginFutu', event.target.value)} disabled={!entryAvailability.isOpen} suppressHydrationWarning /></label>
+              <label>Futu Maintenance Margin %<input inputMode="decimal" value={form.maintenanceMarginFutu} onChange={event => updateField('maintenanceMarginFutu', event.target.value)} disabled={!entryAvailability.isOpen} suppressHydrationWarning /></label>
+            </fieldset>
           </div>
           <div className={`ops-market-entry-gate ${entryAvailability.isOpen ? 'is-open' : 'is-locked'}`}>
             <span className="ops-market-entry-icon" aria-hidden="true">

@@ -272,8 +272,11 @@ export async function authenticatedFetch(path: string, options: RequestInit = {}
   const tokens = getStoredTokens();
   if (!tokens?.idToken) throw new Error('Not authenticated');
   const isMultipart = typeof FormData !== 'undefined' && options.body instanceof FormData;
+  const requestUrl = typeof window !== 'undefined' && ['localhost', '127.0.0.1'].includes(window.location.hostname)
+    ? `/api/dev-api${path}`
+    : `${apiGatewayUrl}${path}`;
 
-  const doFetch = (idToken: string) => fetch(`${apiGatewayUrl}${path}`, {
+  const doFetch = (idToken: string) => fetch(requestUrl, {
     ...options,
     headers: {
       Authorization: idToken,
