@@ -38,11 +38,14 @@
   - [POST /market-data/batch](#post-market-data-batch)
   - [GET /market-data/current](#get-market-datacurrent)
   - [GET /market-data/history](#get-market-datahistory)
+  - [GET /social-data](#get-social-data)
+  - [POST /social-data](#post-social-data)
   - [Manual Input V2 APIs](#manual-input-v2-apis)
     - [GET /manual-input/{category}](#get-manual-inputcategory)
     - [POST /manual-input/{category}](#post-manual-inputcategory)
     - [PUT /manual-input/{category}](#put-manual-inputcategory)
     - [DELETE /manual-input/{category}](#delete-manual-inputcategory)
+    - [POST/PUT /manual-input/consolidate](#postput-manual-inputconsolidate)
   - [GET /hotkeys](#get-hotkeys)
   - [POST /hotkeys](#post-hotkeys)
   - [DELETE /hotkeys/{ticker}/{kwatchHotkey}](#delete-hotkeystickerkwatchhotkey)
@@ -954,6 +957,7 @@ Authorization: <id_token>
 | `internal-float-current` | `current/{ticker}/internal-float-current.json` | Share structure and tradable float breakdown |
 | `market-current` | `current/{ticker}/market-current.json` | Latest market data snapshot |
 | `ownership-current` | `current/{ticker}/ownership-current.json` | Institutional ownership current snapshot |
+| `sentiment-current` | `current/{ticker}/sentiment-current.json` | Social sentiment analysis snapshot |
 
 **Response** `200 OK` — Single category (e.g. `?category=market-current`):
 Returns the raw JSON content of the S3 file for that category.
@@ -975,7 +979,8 @@ Returns a combined object with all category names as keys. Missing files are ret
   "company-profile-current": { "schemaVersion": 1, "ticker": "CURR", ... },
   "internal-float-current": { "schemaVersion": 1, "ticker": "CURR", ... },
   "market-current": null,
-  "ownership-current": { "schemaVersion": 1, "ticker": "CURR", ... }
+  "ownership-current": { "schemaVersion": 1, "ticker": "CURR", ... },
+  "sentiment-current": { "schemaVersion": 1, "ticker": "CURR", ... }
 }
 ```
 
@@ -1011,6 +1016,7 @@ Authorization: <id_token>
 | `ownership-history` | `history/{ticker}/ownership-history.json` | Historical institutional ownership changes |
 | `sec-filings-history` | `history/{ticker}/sec-filings-history.json` | Historical SEC filing records |
 | `short-volume-history` | `history/{ticker}/short-volume-history.json` | Historical short volume by exchange |
+| `sentiment-events` | `history/{ticker}/sentiment-events.json` | Historical social sentiment event logs |
 
 **Response** `200 OK` — Single category (e.g. `?category=market-history`):
 Returns the raw JSON content of the S3 file for that history category.
@@ -1038,13 +1044,137 @@ Returns a combined object with all history category names as keys. Missing files
   "market-history": { "schemaVersion": 1, "ticker": "CURR", "records": [...] },
   "ownership-history": null,
   "sec-filings-history": { "schemaVersion": 1, "ticker": "CURR", "records": [...] },
-  "short-volume-history": { "schemaVersion": 1, "ticker": "CURR", "records": [...] }
+  "short-volume-history": { "schemaVersion": 1, "ticker": "CURR", "records": [...] },
+  "sentiment-events": { "schemaVersion": 1, "ticker": "CURR", "records": [...] }
 }
 ```
 
 **Response** `400 Bad Request`: If `ticker` is missing or `category` is not a valid category name.
 **Response** `403 Forbidden`: If the user's role is `USER` and the requested ticker is not in their profile's allowed tickers list.
 **Response** `404 Not Found`: If a specific `category` was requested but the corresponding S3 file does not exist.
+
+---
+
+### GET /social-data
+
+Retrieve social media posts and sentiment data from the centralized v2 data platform (`data-sync-platform-centralized-v2` S3 bucket, `kwatch/` prefix). This API supports listing all posts (with platform filtering and page-based pagination) and retrieving individual posts by S3 key.
+
+```
+GET /social-data?ticker=CURR&limit=20&page=1
+GET /social-data?ticker=CURR&platform=Reddit&limit=10&page=2
+GET /social-data?key=kwatch/CURR/Reddit/2026-06-26/Reddit_CURR_2026-06-29T11_00_12Z.json
+Authorization: <id_token>
+```
+
+**Access Control**:
+- Standard users (`USER` role) may only query tickers present in their user profile's `tickers` list. Requests for unauthorized tickers (whether via `ticker` or parsed from `key`) return `403 Forbidden`.
+- Operators and Admins (`OPERATOR` / `ADMIN` role) have unrestricted access.
+
+**Parameters**:
+- `key` (Optional / Query Parameter): The exact S3 key of a target social media record. If provided, the API retrieves that single post and ignores all other parameters.
+- `ticker` (**Required for listing** / Query Parameter): The stock ticker symbol (e.g. `CURR`). Ignored if `key` is specified.
+- `platform` (Optional / Query Parameter): Filter posts by platform (e.g., `Reddit`, `Twitter`, `Stocktwits`, `Facebook`, `LinkedIn`, `Youtube`).
+- `limit` (Optional / Query Parameter): Number of records per page (default `20`, max `100`).
+- `page` (Optional / Query Parameter): Page number for pagination (default `1`).
+
+**Response** `200 OK` — Single Record (when `key` is provided):
+Returns the complete JSON content of the requested social post, with the S3 `key` injected.
+```json
+{
+  "platform": "Reddit",
+  "query": "Keywords: CURR...",
+  "datetime": "2026-06-29T11:00:12Z",
+  "link": "https://www.reddit.com/r/RobinHood/comments/1uip9vr/daily_discussion_thread_june_29th_2026/ouha764/",
+  "author": "Robot_of_Sherwood",
+  "content": "Today is Monday, the 29th of June...",
+  "sentiment": "neutral",
+  "key": "kwatch/CURR/Reddit/2026-06-26/Reddit_CURR_2026-06-29T11_00_12Z.json"
+}
+```
+
+**Response** `200 OK` — Paged Listing (when `key` is omitted):
+Returns a paginated list of social posts sorted in descending chronological order (newest first) along with pagination metadata.
+```json
+{
+  "records": [
+    {
+      "platform": "Reddit",
+      "query": "Keywords: CURR...",
+      "datetime": "2026-06-29T11:00:12Z",
+      "link": "https://www.reddit.com/r/RobinHood/comments/1uip9vr/daily_discussion_thread_june_29th_2026/ouha764/",
+      "author": "Robot_of_Sherwood",
+      "content": "Today is Monday...",
+      "sentiment": "neutral",
+      "key": "kwatch/CURR/Reddit/2026-06-26/Reddit_CURR_2026-06-29T11_00_12Z.json"
+    }
+  ],
+  "pagination": {
+    "page": 1,
+    "limit": 20,
+    "totalItems": 83,
+    "totalPages": 5,
+    "hasNextPage": true,
+    "hasPreviousPage": false
+  }
+}
+```
+
+**Response** `400 Bad Request`: If `ticker` is missing for listing, or if the `key` query parameter is malformed, or if `page` / `limit` parameters are invalid.
+**Response** `403 Forbidden`: If the user's role is `USER` and the requested ticker (or the ticker parsed from `key`) is not in their profile's allowed tickers list.
+**Response** `404 Not Found`: If a target record `key` is specified but the S3 file does not exist.
+
+---
+
+### POST /social-data
+
+Upload a CSV file containing Stocktwits posts. The API parses the CSV, deletes all existing JSON records under `kwatch/{ticker}/Stocktwits/` in the S3 bucket, converts each row to an individual JSON record, and uploads them in parallel.
+
+```
+POST /social-data?ticker=CURR
+Authorization: <id_token>
+Content-Type: multipart/form-data; boundary=----WebKitFormBoundary7MA4YWxkTrZu0gW
+
+------WebKitFormBoundary7MA4YWxkTrZu0gW
+Content-Disposition: form-data; name="file"; filename="stocktwits.csv"
+Content-Type: text/csv
+
+<CSV File Bytes>
+------WebKitFormBoundary7MA4YWxkTrZu0gW--
+```
+
+**Access Control**:
+- Only operators and admins (`OPERATOR` / `ADMIN` role) can upload files for any ticker.
+- Standard users (`USER` role) can only upload files for tickers in their allowed profile list. Otherwise, returns `403 Forbidden`.
+
+**Parameters**:
+- `ticker` (**Required** / Query Parameter or Form Field): The stock ticker symbol (e.g. `CURR`).
+- `file` (**Required** / Form Field): The multipart CSV file containing the Stocktwits data.
+
+**CSV Format Requirements**:
+- Must contain the headers `messages__id` and `datetime`.
+- Other expected headers: `author`, `content`, `user__followers`, `likes`, `Reshares`, `link`, `sentiment_label`, `sentiment_score`, `analysis_catalyst_tag`.
+
+**Target S3 Location**:
+- Saved as `kwatch/{ticker}/Stocktwits/{date}/{messages__id}.json`.
+- The `{date}` folder is calculated dynamically based on the row's `datetime` value:
+  - Before 4:00 AM UTC: `ref_date = datetime - 1 day`
+  - At/After 4:00 AM UTC: `ref_date = datetime`
+  - If `ref_date` is a Monday: `date = ref_date - 3 days` (Friday)
+  - If `ref_date` is a Sunday: `date = ref_date - 3 days` (Thursday)
+  - If `ref_date` is a Saturday: `date = ref_date - 2 days` (Thursday)
+  - Otherwise: `date = ref_date - 1 day`
+
+**Response** `200 OK`:
+```json
+{
+  "message": "Successfully uploaded all records to S3.",
+  "uploadedCount": 150
+}
+```
+
+**Response** `400 Bad Request`: If `ticker` is missing, the CSV file is missing, or the CSV structure is invalid.
+**Response** `403 Forbidden`: If the user is unauthorized for the ticker.
+**Response** `500 Internal Server Error`: If S3 delete or upload fails.
 
 ---
 
@@ -1361,7 +1491,7 @@ The API manages **11 categories**, grouped into two types:
 * **Ticker Permissions:** For standard `USER`s, they can only access tickers associated with their profile. Any request for an unauthorized ticker returns `403 Access Denied`. Users with the `OPERATOR` or `ADMIN` roles can access any ticker.
 * **DELETE Method Restriction:** The `DELETE` method is strictly restricted to `OPERATOR` and `ADMIN` roles. Standard `USER`s requesting `DELETE` receive `403 Access Denied`.
 * **Automatic Metadata:** S3 file envelopes, audit attributes (`createdBy`, `createdAt`, `updatedBy`, `updatedAt`, `generatedAt`), and `_field_provenance` are generated and managed by the backend. Client-provided audit parameters are ignored.
-* **Downstream Triggers:** Every successful create, update, or deletion automatically triggers the downstream consolidator Lambda function (`data-sync-platform-fintel-consolidator`) asynchronously to trigger pipeline updates.
+* **Downstream Triggers:** Creating, updating, or deleting manual inputs does NOT automatically trigger downstream consolidation. Consolidation must be triggered manually using the `/manual-input/consolidate` API endpoint.
 
 ---
 
@@ -1515,6 +1645,55 @@ Authorization: <id_token>
 ```json
 {
   "message": "Record deleted successfully"
+}
+```
+
+---
+
+### POST/PUT /manual-input/consolidate
+
+Trigger the consolidation pipeline manually for a target stock ticker.
+
+```
+POST /manual-input/consolidate
+POST /manual-input/consolidate?ticker=SPY
+Authorization: <id_token>
+Content-Type: application/json
+
+{
+  "ticker": "SPY"
+}
+```
+
+**Parameters:**
+* `ticker` (optional query parameter or JSON body parameter): Target stock ticker. Defaults to the user's primary associated ticker if omitted.
+
+**Rules:**
+* This API ignores optional client parameters like `input_type`, `rebuild_from_date`, and `force_rebuild` from client input, hardcoding them on the backend.
+* It invokes the consolidator Lambda asynchronously with:
+  * `"input_type": "issued-share"`
+  * `"force_rebuild": true`
+  * `"rebuild_from_date"`: Calculated dynamically based on the current UTC time:
+    * Before 4:00 AM UTC: `ref_date = today_utc - 1 day`
+    * At/After 4:00 AM UTC: `ref_date = today_utc`
+    * If `ref_date` falls on a Monday: `rebuild_from_date = ref_date - 3 days` (Friday)
+    * If `ref_date` falls on a Sunday: `rebuild_from_date = ref_date - 3 days` (Thursday)
+    * If `ref_date` falls on a Saturday: `rebuild_from_date = ref_date - 2 days` (Thursday)
+    * Otherwise: `rebuild_from_date = ref_date - 1 day`
+* The API returns immediately without waiting for the consolidation to complete.
+
+**Response** `200 OK`:
+```json
+{
+  "message": "Consolidation pipeline triggered successfully",
+  "ticker": "SPY",
+  "detail": {
+    "source": "user-inputs-update",
+    "ticker": "SPY",
+    "input_type": "issued-share",
+    "rebuild_from_date": "2026-07-15",
+    "force_rebuild": true
+  }
 }
 ```
 
@@ -1980,6 +2159,7 @@ Content-Type, X-Amz-Date, Authorization, X-Api-Key, X-Amz-Security-Token
 - `/market-data/batch`: `POST, OPTIONS`
 - `/market-data/current`: `GET, OPTIONS`
 - `/market-data/history`: `GET, OPTIONS`
+- `/social-data`: `GET, POST, OPTIONS`
 
 ### Adding Your Frontend Origin
 
@@ -2082,7 +2262,7 @@ User inputs are stored in S3 at `s3://data-sync-platform-website-data/{TICKER}_v
 
 ### Consolidator Lambda side-effect
 
-Every successful PUT triggers the `data-sync-platform-fintel-consolidator` Lambda **asynchronously** with the following payload containing the resolved stock ticker:
+Every successful PUT triggers the `data-sync-platform-consolidator-v2` Lambda **asynchronously** with the following payload containing the resolved stock ticker:
 
 ```json
 { "detail": { "source": "user-inputs-update", "ticker": "<TICKER>" } }

@@ -18,9 +18,6 @@ export default function CompaniesPage() {
   const [access, setAccess] = useState<Array<{ ticker: string; role: string; name: string }>>([]);
   const [tickerStatuses, setTickerStatuses] = useState<Record<string, TickerStatus>>({});
   const [loading, setLoading] = useState(true);
-  const [invite, setInvite] = useState({ email: '', ticker });
-  const [inviteStatus, setInviteStatus] = useState<'idle' | 'sending' | 'success' | 'error'>('idle');
-  const [inviteMessage, setInviteMessage] = useState('');
 
   useEffect(() => {
     getAuthenticatedProfile()
@@ -50,31 +47,6 @@ export default function CompaniesPage() {
       effectiveDate: tickerStatuses[entry.ticker]?.effectiveDate ?? null,
     };
   }), [access, tickerStatuses]);
-
-  async function inviteUser(event: React.FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    const normalizedTicker = invite.ticker.trim().toUpperCase();
-    setInviteStatus('sending');
-    setInviteMessage('');
-    try {
-      const result = await authenticatedFetch('/tickers/invite', {
-        method: 'POST',
-        body: JSON.stringify({
-          email: invite.email.trim(),
-          ticker: normalizedTicker,
-        }),
-      }) as { email?: string; ticker?: string };
-      const invitedTicker = String(result.ticker ?? normalizedTicker).toUpperCase();
-      const status = await authenticatedFetch(`/tickers/${encodeURIComponent(invitedTicker)}`) as TickerStatus;
-      setTickerStatuses(current => ({ ...current, [invitedTicker]: status }));
-      setInviteStatus('success');
-      setInviteMessage(`Invitation created for ${result.email ?? invite.email.trim()} with access to ${invitedTicker}.`);
-      setInvite(current => ({ ...current, email: '' }));
-    } catch (error) {
-      setInviteStatus('error');
-      setInviteMessage(error instanceof Error ? error.message : 'Unable to create ticker invitation.');
-    }
-  }
 
   function formatEffectiveDate(value: string | null) {
     if (!value) return 'Not available';
@@ -129,43 +101,6 @@ export default function CompaniesPage() {
         </div>
       </section>
 
-      <section className="terminal-section company-invite-panel">
-        <div className="terminal-section__head">
-          <div>
-            <span>Invitations</span>
-            <h2>Invite User to Ticker</h2>
-            <p className="section-subtitle">Create a pending workspace invitation for another user.</p>
-          </div>
-        </div>
-        <form className="company-invite-form" onSubmit={inviteUser}>
-          <label>
-            <span>Email address</span>
-            <input
-              className="input"
-              type="email"
-              required
-              value={invite.email}
-              onChange={event => setInvite(current => ({ ...current, email: event.target.value }))}
-              placeholder="newuser@example.com"
-            />
-          </label>
-          <label>
-            <span>Ticker</span>
-            <input
-              className="input"
-              required
-              maxLength={10}
-              value={invite.ticker}
-              onChange={event => setInvite(current => ({ ...current, ticker: event.target.value.toUpperCase() }))}
-              placeholder="AAPL"
-            />
-          </label>
-          <button className="button" type="submit" disabled={inviteStatus === 'sending'}>
-            {inviteStatus === 'sending' ? 'Sending...' : 'Create Invitation'}
-          </button>
-        </form>
-        {inviteMessage && <p className={`company-invite-message ${inviteStatus}`}>{inviteMessage}</p>}
-      </section>
     </div>
   );
 }

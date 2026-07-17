@@ -304,7 +304,6 @@ function formFromDailyRecord(tradeDate: string, record: MarketInputRow | undefin
 
 export function MarketDataOperationsClient() {
   const [selectedTicker, setSelectedTicker] = useState('CURR');
-  const [tickerDraft, setTickerDraft] = useState('CURR');
   const [form, setForm] = useState<FormState>(() => emptyForm());
   const [rows, setRows] = useState<MarketInputRow[]>([]);
   const [marketHistory, setMarketHistory] = useState<MarketPublicationRecord[]>([]);
@@ -382,7 +381,6 @@ export function MarketDataOperationsClient() {
         recordsFromPayload<ShortScoreRecord>(shortScoreResult.payload),
       );
       setSelectedTicker(normalized);
-      setTickerDraft(normalized);
       setOperationsTicker(normalized);
       setForm(current => {
         const tradeDate = current.tradeDate || latestClosedUsMarketDate();
@@ -661,17 +659,6 @@ export function MarketDataOperationsClient() {
 
   return (
     <div className="ops-market-data-page">
-      <div className="ops-ticker-context">
-        <label>
-          <span>Company ticker</span>
-          <input value={tickerDraft} maxLength={10} onChange={event => setTickerDraft(event.target.value.toUpperCase())} suppressHydrationWarning />
-        </label>
-        <button type="button" onClick={() => loadRecords(tickerDraft)} disabled={busy}>
-          {status === 'loading' ? 'Loading...' : 'Load Workspace'}
-        </button>
-        <small>Manual Input V2 target: /manual-input/&lbrace;category&rbrace;?ticker={selectedTicker}</small>
-      </div>
-
       <div className="ops-market-data-grid">
       <div className="ops-market-entry-column">
       <section className="ops-panel">

@@ -4,11 +4,18 @@ import { ImportDataTable } from '@/components/ImportDataTable';
 import { InfoTooltip } from '@/components/InfoTooltip';
 import { PortalPageLoading } from '@/components/PortalPageLoading';
 import { usePortalTimeZone } from '@/components/usePortalTimeZone';
-import { usePublicImportFiles } from '@/components/usePublicImportFiles';
-import { authenticatedFetch } from '@/lib/auth-client';
-import { getPublicSocialPrefixes, readPublicSocialMentions } from '@/lib/social-s3-data';
 import { aggregateSentimentByBucket, getSentimentBuckets, type SentimentPlatformFilter, type SentimentTimeframe } from '@/lib/sentiment-buckets';
-import { normalizeTicker, stocktwitsFile } from '@/lib/ticker-data';
+import {
+  getAllSocialData,
+  getSentimentCurrent,
+  getSentimentEvents,
+  recordsFromSentimentEvents,
+  sentimentPeriod,
+  type SentimentCurrentPayload,
+  type SentimentEventsPayload,
+  type SocialMention,
+} from '@/lib/social-data-api';
+import { normalizeTicker } from '@/lib/ticker-data';
 import { formatPortalDateTime } from '@/lib/timezone';
 import { useSearchParams } from 'next/navigation';
 import { useEffect, useState, type ReactNode } from 'react';
@@ -18,32 +25,7 @@ import { SentimentTimeline } from './SentimentTimeline';
 
 type SentimentBucket = 'positive' | 'negative' | 'neutral';
 
-type AdanosMention = {
-  id?: string | number | null;
-  text?: string | null;
-  timestamp?: string | null;
-  platform?: string | null;
-  sentiment_score?: number | string | null;
-  sentiment_label?: string | null;
-  catalyst_tag?: string | null;
-  url?: string | null;
-  author?: string | null;
-  followers?: number | string | null;
-  likes?: number | string | null;
-  comments?: number | string | null;
-  retweets?: number | string | null;
-  reshares?: number | string | null;
-  upvotes?: number | string | null;
-  subreddit?: string | null;
-};
-
-type SocialMentionsFile = {
-  platform?: string;
-  updatedAt?: string;
-  recordCount?: number;
-  originalFileName?: string;
-  data?: AdanosMention[];
-};
+type AdanosMention = SocialMention;
 
 const rangeOptions = [
   { label: '1D', days: 1 },
@@ -57,185 +39,21 @@ function KpiTitle({ children, text }: { children: ReactNode; text: string }) {
   return <span className="narrative-kpi-title">{children} <InfoTooltip text={text} /></span>;
 }
 
-function asArray(value: unknown): AdanosMention[] {
-  if (Array.isArray(value)) return value as AdanosMention[];
-  if (value && typeof value === 'object' && Array.isArray((value as { data?: unknown }).data)) {
-    return (value as { data: AdanosMention[] }).data;
-  }
-  if (value && typeof value === 'object' && Array.isArray((value as { mentions?: unknown }).mentions)) {
-    return (value as { mentions: AdanosMention[] }).mentions;
-  }
-  return [];
-}
-
-type PublicFeedState = {
-  reddit: AdanosMention[];
-  x: AdanosMention[];
-  facebook: AdanosMention[];
-  linkedin: AdanosMention[];
-};
-
-type HotkeyMapping = {
-  ticker?: string | null;
-  kwatchHotkey?: string | null;
-  platform?: string | null;
-};
-
-type HotkeyResponse = HotkeyMapping[] | {
-  hotkeys?: HotkeyMapping[];
-  items?: HotkeyMapping[];
-};
-
-type SocialPrefixSet = {
-  reddit: string[];
-  x: string[];
-  facebook: string[];
-  linkedin: string[];
-};
-
-function hotkeyMappingsFromResponse(response: HotkeyResponse) {
-  if (Array.isArray(response)) return response;
-  if (Array.isArray(response.hotkeys)) return response.hotkeys;
-  if (Array.isArray(response.items)) return response.items;
-  return [];
-}
-
-function platformKey(value: unknown): keyof SocialPrefixSet | null {
-  const normalized = String(value ?? '').trim().toLowerCase();
-  if (normalized === 'reddit') return 'reddit';
-  if (normalized === 'x' || normalized === 'twitter') return 'x';
-  if (normalized === 'facebook') return 'facebook';
-  if (normalized === 'linkedin' || normalized === 'linked_in') return 'linkedin';
-  return null;
-}
-
-function inferPlatformKeyFromHotkey(value: unknown): keyof SocialPrefixSet | null {
-  const normalized = String(value ?? '').trim().toLowerCase();
-  if (!normalized || normalized.includes('youtube')) return null;
-  if (normalized.includes('reddit')) return 'reddit';
-  if (normalized.includes('twitter') || normalized.includes('tweet')) return 'x';
-  if (normalized === 'x' || normalized.startsWith('x_') || normalized.startsWith('x-') || normalized.includes('_x_') || normalized.includes('-x-')) return 'x';
-  if (normalized.includes('facebook') || normalized.includes('fb_') || normalized.includes('fb-')) return 'facebook';
-  if (normalized.includes('linkedin') || normalized.includes('linked_in')) return 'linkedin';
-  return null;
-}
-
-function socialPrefixFromHotkey(value: string) {
-  const trimmed = value.trim().replace(/^\/+/, '');
-  if (!trimmed) return '';
-  return trimmed.startsWith('social-data/') ? trimmed : `social-data/${trimmed}`;
-}
-
-function dedupeStrings(values: string[]) {
-  return Array.from(new Set(values.filter(Boolean)));
-}
-
-async function getMappedSocialPrefixes(ticker: string, defaults: ReturnType<typeof getPublicSocialPrefixes>): Promise<SocialPrefixSet> {
-  const prefixes: SocialPrefixSet = {
-    reddit: [defaults.reddit],
-    x: [defaults.x],
-    facebook: [defaults.facebook],
-    linkedin: [defaults.linkedin],
-  };
-
-  let mappings: HotkeyMapping[] = [];
-  try {
-    const response = await authenticatedFetch(`/hotkeys?ticker=${encodeURIComponent(ticker)}`, { cache: 'no-store' }) as HotkeyResponse;
-    mappings = hotkeyMappingsFromResponse(response);
-  } catch {
-    // Public demo sessions and temporary API issues still use the JSON-backed operations hotkeys.
-  }
-
-  if (!mappings.length) {
-    try {
-      const response = await fetch(`/api/operations/hotkeys?ticker=${encodeURIComponent(ticker)}`, { cache: 'no-store' });
-      const payload = await response.json() as { ok?: boolean; data?: HotkeyResponse };
-      if (response.ok && payload.ok !== false && payload.data) {
-        mappings = hotkeyMappingsFromResponse(payload.data);
-      }
-    } catch {
-      // Keep defaults when neither backend nor JSON-backed hotkeys are available.
-    }
-  }
-
-  mappings.forEach(mapping => {
-      const key = platformKey(mapping.platform) ?? inferPlatformKeyFromHotkey(mapping.kwatchHotkey);
-      const prefix = socialPrefixFromHotkey(String(mapping.kwatchHotkey ?? ''));
-      if (key && prefix) prefixes[key].push(prefix);
-  });
-
-  return {
-    reddit: dedupeStrings(prefixes.reddit),
-    x: dedupeStrings(prefixes.x),
-    facebook: dedupeStrings(prefixes.facebook),
-    linkedin: dedupeStrings(prefixes.linkedin),
-  };
-}
-
-function mentionDedupeKey(item: AdanosMention) {
-  return String(item.id ?? item.url ?? `${item.timestamp ?? ''}:${item.author ?? ''}:${item.text ?? ''}`);
-}
-
-function uniqueMentions(items: AdanosMention[]) {
-  const seen = new Set<string>();
-  return items.filter(item => {
-    const key = mentionDedupeKey(item);
-    if (seen.has(key)) return false;
-    seen.add(key);
-    return true;
-  });
-}
-
-async function readPublicNarrativeFeed(prefixes: string[], platform: 'Reddit' | 'X' | 'Facebook' | 'Linkedin') {
-  const settled = await Promise.allSettled(prefixes.map(prefix => readPublicSocialMentions(prefix, platform)));
-  if (settled.some(result => result.status === 'rejected')) {
-    throw new Error(`Unable to read every ${platform} social prefix.`);
-  }
-  return uniqueMentions(settled.flatMap(result => result.status === 'fulfilled' ? result.value as AdanosMention[] : []));
-}
-
-async function readPublicNarrativeFeeds(
-  ticker: string,
-  prefixes: SocialPrefixSet,
-) {
-  const results = await Promise.allSettled([
-    readPublicNarrativeFeed(prefixes.reddit, 'Reddit'),
-    readPublicNarrativeFeed(prefixes.x, 'X'),
-    readPublicNarrativeFeed(prefixes.facebook, 'Facebook'),
-    readPublicNarrativeFeed(prefixes.linkedin, 'Linkedin'),
-  ]);
-  const [redditResult, xResult, facebookResult, linkedinResult] = results;
-
-  if (results.every(result => result.status === 'fulfilled')) {
-    return {
-      reddit: redditResult.status === 'fulfilled' ? redditResult.value : [],
-      x: xResult.status === 'fulfilled' ? xResult.value : [],
-      facebook: facebookResult.status === 'fulfilled' ? facebookResult.value : [],
-      linkedin: linkedinResult.status === 'fulfilled' ? linkedinResult.value : [],
-    };
-  }
-
-  const response = await fetch(`/api/social-data-feed?ticker=${encodeURIComponent(ticker)}`, {
-    cache: 'no-store',
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ prefixes }),
-  });
-  if (!response.ok) {
-    throw new Error(`Social data fallback returned ${response.status} ${response.statusText}`);
-  }
-  const fallback = await response.json() as Partial<PublicFeedState>;
-  return {
-    reddit: redditResult.status === 'fulfilled' ? redditResult.value : (fallback.reddit ?? []),
-    x: xResult.status === 'fulfilled' ? xResult.value : (fallback.x ?? []),
-    facebook: facebookResult.status === 'fulfilled' ? facebookResult.value : (fallback.facebook ?? []),
-    linkedin: linkedinResult.status === 'fulfilled' ? linkedinResult.value : (fallback.linkedin ?? []),
-  };
-}
-
 function numeric(value: unknown) {
   const parsed = typeof value === 'number' ? value : Number(String(value ?? '').replace(/,/g, ''));
   return Number.isFinite(parsed) ? parsed : 0;
+}
+
+function optionalNumeric(value: unknown) {
+  if (value == null || value === '') return null;
+  const parsed = typeof value === 'number' ? value : Number(String(value).replace(/,/g, ''));
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
+function objectValue(value: unknown): Record<string, unknown> {
+  return value && typeof value === 'object' && !Array.isArray(value)
+    ? value as Record<string, unknown>
+    : {};
 }
 
 function sentimentBucketFromLabel(value: unknown): SentimentBucket {
@@ -273,8 +91,14 @@ function sentimentLabelFor(score: number) {
 }
 
 function deltaLabel(current: number, previous: number, label: string) {
-  const delta = current - previous;
-  return `${delta >= 0 ? '↑ +' : '↓ '}${delta} vs previous ${label}`;
+  const rawDelta = current - previous;
+  const delta = Math.abs(rawDelta) < .005 ? 0 : Math.round(rawDelta * 100) / 100;
+  const formattedDelta = Number.isInteger(delta)
+    ? Math.abs(delta).toLocaleString('en-US')
+    : Math.abs(delta).toLocaleString('en-US', { maximumFractionDigits: 2 });
+
+  if (delta === 0) return `→ 0 vs previous ${label}`;
+  return `${delta > 0 ? '↑ +' : '↓ -'}${formattedDelta} vs previous ${label}`;
 }
 
 function DeltaText({ current, previous, label }: { current: number; previous: number; label: string }) {
@@ -503,7 +327,39 @@ function PlatformSentimentCard({ platforms, totalFeeds }: {
 
 const platformFilters: SentimentPlatformFilter[] = ['All', 'X', 'Reddit', 'Stocktwits', 'Facebook', 'Linkedin'];
 
-function DevJsonTables({ datasets, timeZone }: { datasets: Array<{ file: string; payload: SocialMentionsFile }>; timeZone: string }) {
+function DevApiTables({
+  mentions,
+  socialPages,
+  current,
+  events,
+  timeZone,
+}: {
+  mentions: AdanosMention[];
+  socialPages: unknown[];
+  current: SentimentCurrentPayload | null;
+  events: SentimentEventsPayload | null;
+  timeZone: string;
+}) {
+  const mentionRows = mentions.map(row => ({
+    timestamp: formatMentionDate(row.timestamp, timeZone),
+    platform: row.platform,
+    author: row.author || 'N/A',
+    sentiment: row.sentiment_label || 'N/A',
+    catalystTag: row.catalyst_tag || 'N/A',
+    text: row.text,
+  }));
+  const currentRows = Object.entries(current ?? {}).map(([field, value]) => ({
+    field,
+    value: typeof value === 'object' ? JSON.stringify(value) : String(value ?? 'null'),
+  }));
+  const eventRows = recordsFromSentimentEvents(events).map(row => ({
+    timestamp: formatMentionDate(row.timestamp, timeZone),
+    platform: row.platform,
+    sentiment: row.sentiment_label || 'N/A',
+    author: row.author || 'N/A',
+    text: row.text,
+  }));
+
   return (
     <section className="narrative-feed-panel dev-only import-data-dev-panel">
       <div className="narrative-section-head">
@@ -512,22 +368,19 @@ function DevJsonTables({ datasets, timeZone }: { datasets: Array<{ file: string;
         </div>
       </div>
       <div className="import-render-stack">
-        {datasets.map(dataset => {
-          const rows = (dataset.payload.data ?? []).map(row => ({
-            timestamp: formatMentionDate(row.timestamp, timeZone),
-            platform: dataset.payload.platform ?? row.platform ?? 'N/A',
-            author: row.author ?? 'N/A',
-            sentiment: row.sentiment_label ?? 'N/A',
-            catalystTag: row.catalyst_tag ?? 'N/A',
-            text: row.text ?? '',
-          }));
-          return (
-            <div className="import-subsection" key={dataset.file}>
-              <h4>{dataset.file}</h4>
-              <ImportDataTable columns={['timestamp', 'platform', 'author', 'sentiment', 'catalystTag', 'text']} rows={rows} pageSize={10} />
-            </div>
-          );
-        })}
+        <div className="import-subsection">
+          <h4>GET /social-data</h4>
+          <p>{socialPages.length.toLocaleString('en-US')} API page(s) loaded.</p>
+          <ImportDataTable columns={['timestamp', 'platform', 'author', 'sentiment', 'catalystTag', 'text']} rows={mentionRows} pageSize={10} />
+        </div>
+        <div className="import-subsection">
+          <h4>GET /market-data/current?category=sentiment-current</h4>
+          <ImportDataTable columns={['field', 'value']} rows={currentRows} pageSize={10} />
+        </div>
+        <div className="import-subsection">
+          <h4>GET /market-data/history?category=sentiment-events</h4>
+          <ImportDataTable columns={['timestamp', 'platform', 'sentiment', 'author', 'text']} rows={eventRows} pageSize={10} />
+        </div>
       </div>
     </section>
   );
@@ -535,34 +388,42 @@ function DevJsonTables({ datasets, timeZone }: { datasets: Array<{ file: string;
 
 export function SentimentBrowserPage({ ticker }: { ticker: string }) {
   const normalizedTicker = normalizeTicker(ticker);
-  const defaultSocialPrefixes = getPublicSocialPrefixes(normalizedTicker);
-  const stocktwitsPath = stocktwitsFile(normalizedTicker);
   const searchParams = useSearchParams();
   const timeZone = usePortalTimeZone();
   const activeRange = rangeFromSearch(searchParams.get('range') ?? undefined);
   const [selectedPlatform, setSelectedPlatform] = useState<SentimentPlatformFilter>('All');
   const [selectedBucketId, setSelectedBucketId] = useState<string | null>(null);
-  const stocktwitsState = usePublicImportFiles([stocktwitsPath]);
-  const [publicFeeds, setPublicFeeds] = useState<PublicFeedState | null>(null);
-  const [publicSocialPrefixes, setPublicSocialPrefixes] = useState<SocialPrefixSet>({
-    reddit: [defaultSocialPrefixes.reddit],
-    x: [defaultSocialPrefixes.x],
-    facebook: [defaultSocialPrefixes.facebook],
-    linkedin: [defaultSocialPrefixes.linkedin],
-  });
+  const [apiData, setApiData] = useState<{
+    mentions: AdanosMention[];
+    socialPages: unknown[];
+    current: SentimentCurrentPayload | null;
+    events: SentimentEventsPayload | null;
+  } | null>(null);
+  const [loadError, setLoadError] = useState('');
 
   useEffect(() => {
     let cancelled = false;
     const load = async () => {
       try {
-        const mappedPrefixes = await getMappedSocialPrefixes(normalizedTicker, defaultSocialPrefixes);
-        const feeds = await readPublicNarrativeFeeds(normalizedTicker, mappedPrefixes);
+        setLoadError('');
+        const [social, current, events] = await Promise.all([
+          getAllSocialData(normalizedTicker),
+          getSentimentCurrent(normalizedTicker).catch(() => null),
+          getSentimentEvents(normalizedTicker).catch(() => null),
+        ]);
         if (!cancelled) {
-          setPublicSocialPrefixes(mappedPrefixes);
-          setPublicFeeds(feeds);
+          setApiData({
+            mentions: social.records,
+            socialPages: social.pages,
+            current,
+            events,
+          });
         }
-      } catch {
-        if (!cancelled) setPublicFeeds({ reddit: [], x: [], facebook: [], linkedin: [] });
+      } catch (error) {
+        if (!cancelled) {
+          setLoadError(error instanceof Error ? error.message : 'Unable to load social sentiment data.');
+          setApiData({ mentions: [], socialPages: [], current: null, events: null });
+        }
       }
     };
     void load();
@@ -571,31 +432,21 @@ export function SentimentBrowserPage({ ticker }: { ticker: string }) {
       cancelled = true;
       window.removeEventListener('import-data-updated', load);
     };
-  }, [
-    normalizedTicker,
-    defaultSocialPrefixes.reddit,
-    defaultSocialPrefixes.x,
-    defaultSocialPrefixes.facebook,
-    defaultSocialPrefixes.linkedin,
-  ]);
+  }, [normalizedTicker]);
 
-  if (!publicFeeds || (stocktwitsState.loading && !stocktwitsState.data)) {
+  if (!apiData) {
     return <PortalPageLoading variant="sentiment" />;
   }
 
-  const redditMentions = publicFeeds.reddit;
-  const xMentions = publicFeeds.x;
-  const facebookMentions = publicFeeds.facebook;
-  const linkedinMentions = publicFeeds.linkedin;
-  const stocktwitsJson = (stocktwitsState.data?.[stocktwitsPath] ?? {}) as SocialMentionsFile;
-  const stocktwitsMentions = asArray(stocktwitsJson);
-  const redditJson = { platform: 'Reddit', recordCount: redditMentions.length, originalFileName: publicSocialPrefixes.reddit.join(', '), data: redditMentions };
-  const xJson = { platform: 'X', recordCount: xMentions.length, originalFileName: publicSocialPrefixes.x.join(', '), data: xMentions };
-  const facebookJson = { platform: 'Facebook', recordCount: facebookMentions.length, originalFileName: publicSocialPrefixes.facebook.join(', '), data: facebookMentions };
-  const linkedinJson = { platform: 'Linkedin', recordCount: linkedinMentions.length, originalFileName: publicSocialPrefixes.linkedin.join(', '), data: linkedinMentions };
-
-  const mentions = [...redditMentions, ...xMentions, ...facebookMentions, ...linkedinMentions, ...stocktwitsMentions];
-  const validMentionTimes = mentions.map(item => mentionTimestampMs(item.timestamp)).filter(value => value > 0);
+  const mentions = apiData.mentions;
+  const redditMentions = mentions.filter(item => item.platform === 'Reddit');
+  const xMentions = mentions.filter(item => item.platform === 'X');
+  const facebookMentions = mentions.filter(item => item.platform === 'Facebook');
+  const linkedinMentions = mentions.filter(item => item.platform === 'Linkedin');
+  const stocktwitsMentions = mentions.filter(item => item.platform === 'Stocktwits');
+  const eventMentions = recordsFromSentimentEvents(apiData.events);
+  const timelineSourceMentions = eventMentions.length ? eventMentions : mentions;
+  const validMentionTimes = [...mentions, ...timelineSourceMentions].map(item => mentionTimestampMs(item.timestamp)).filter(value => value > 0);
   const latestMentionTime = validMentionTimes.length ? Math.max(...validMentionTimes) : Date.now();
   const dayMs = 24 * 60 * 60 * 1000;
   const currentWindowMs = activeRange.days * dayMs;
@@ -616,20 +467,48 @@ export function SentimentBrowserPage({ ticker }: { ticker: string }) {
   const previousLinkedinMentions = filterWindow(linkedinMentions, previousWindowStart, currentWindowStart);
   const previousStocktwitsMentions = filterWindow(stocktwitsMentions, previousWindowStart, currentWindowStart);
 
-  const sentimentCounts = countBySentiment(windowMentions);
-  const averageScore = averageScoreFor(windowMentions);
-  const previousAverageScore = averageScoreFor(previousWindowMentions);
-  const redditScore = averageScoreFor(windowRedditMentions);
-  const xScore = averageScoreFor(windowXMentions);
-  const facebookScore = averageScoreFor(windowFacebookMentions);
-  const linkedinScore = averageScoreFor(windowLinkedinMentions);
-  const stocktwitsScore = averageScoreFor(windowStocktwitsMentions);
+  const backendPeriod = sentimentPeriod(apiData.current, activeRange.label);
+  const backendDistribution = objectValue(backendPeriod.distribution);
+  const backendBreakdown = Array.isArray(backendPeriod.platformBreakdown)
+    ? backendPeriod.platformBreakdown.map(objectValue)
+    : [];
+  const backendPlatform = (platform: Exclude<SentimentPlatformFilter, 'All'>) => backendBreakdown.find(item => {
+    const label = String(item.platform ?? item.name ?? '').toLowerCase();
+    const target = platform === 'X' ? ['x', 'twitter'] : platform === 'Linkedin' ? ['linkedin', 'linked_in'] : [platform.toLowerCase()];
+    return target.includes(label);
+  });
+  const computedSentimentCounts = countBySentiment(windowMentions);
+  const sentimentCounts = {
+    positive: optionalNumeric(backendDistribution.positiveCount ?? backendDistribution.positive) ?? computedSentimentCounts.positive,
+    neutral: optionalNumeric(backendDistribution.neutralCount ?? backendDistribution.neutral) ?? computedSentimentCounts.neutral,
+    negative: optionalNumeric(backendDistribution.negativeCount ?? backendDistribution.negative) ?? computedSentimentCounts.negative,
+  };
+  const averageScore = optionalNumeric(backendPeriod.overallSentimentScore ?? backendPeriod.sentimentScore) ?? averageScoreFor(windowMentions);
+  const previousAverageScore = optionalNumeric(
+    backendPeriod.previousOverallSentimentScore
+    ?? backendPeriod.previousSentimentScore
+    ?? objectValue(backendPeriod.comparison).previousScore,
+  ) ?? averageScoreFor(previousWindowMentions);
+  const totalMentions = optionalNumeric(backendPeriod.totalMentions ?? backendPeriod.mentionCount) ?? windowMentions.length;
+  const scoreForPlatform = (platform: Exclude<SentimentPlatformFilter, 'All'>, rows: AdanosMention[]) => {
+    const item = backendPlatform(platform);
+    return optionalNumeric(item?.sentimentScore ?? item?.score) ?? averageScoreFor(rows);
+  };
+  const countForPlatform = (platform: Exclude<SentimentPlatformFilter, 'All'>, rows: AdanosMention[]) => {
+    const item = backendPlatform(platform);
+    return optionalNumeric(item?.count ?? item?.mentions ?? item?.mentionCount) ?? rows.length;
+  };
+  const redditScore = scoreForPlatform('Reddit', windowRedditMentions);
+  const xScore = scoreForPlatform('X', windowXMentions);
+  const facebookScore = scoreForPlatform('Facebook', windowFacebookMentions);
+  const linkedinScore = scoreForPlatform('Linkedin', windowLinkedinMentions);
+  const stocktwitsScore = scoreForPlatform('Stocktwits', windowStocktwitsMentions);
   const platformSentiments = [
-    { label: 'Reddit' as const, score: redditScore, previousScore: previousRedditMentions.length ? averageScoreFor(previousRedditMentions) : null, count: windowRedditMentions.length },
-    { label: 'X' as const, score: xScore, previousScore: previousXMentions.length ? averageScoreFor(previousXMentions) : null, count: windowXMentions.length },
-    { label: 'Facebook' as const, score: facebookScore, previousScore: previousFacebookMentions.length ? averageScoreFor(previousFacebookMentions) : null, count: windowFacebookMentions.length },
-    { label: 'Linkedin' as const, score: linkedinScore, previousScore: previousLinkedinMentions.length ? averageScoreFor(previousLinkedinMentions) : null, count: windowLinkedinMentions.length },
-    { label: 'Stocktwits' as const, score: stocktwitsScore, previousScore: previousStocktwitsMentions.length ? averageScoreFor(previousStocktwitsMentions) : null, count: windowStocktwitsMentions.length },
+    { label: 'Reddit' as const, score: redditScore, previousScore: previousRedditMentions.length ? averageScoreFor(previousRedditMentions) : null, count: countForPlatform('Reddit', windowRedditMentions) },
+    { label: 'X' as const, score: xScore, previousScore: previousXMentions.length ? averageScoreFor(previousXMentions) : null, count: countForPlatform('X', windowXMentions) },
+    { label: 'Facebook' as const, score: facebookScore, previousScore: previousFacebookMentions.length ? averageScoreFor(previousFacebookMentions) : null, count: countForPlatform('Facebook', windowFacebookMentions) },
+    { label: 'Linkedin' as const, score: linkedinScore, previousScore: previousLinkedinMentions.length ? averageScoreFor(previousLinkedinMentions) : null, count: countForPlatform('Linkedin', windowLinkedinMentions) },
+    { label: 'Stocktwits' as const, score: stocktwitsScore, previousScore: previousStocktwitsMentions.length ? averageScoreFor(previousStocktwitsMentions) : null, count: countForPlatform('Stocktwits', windowStocktwitsMentions) },
   ];
   const allRows = [
     ...feedRows(windowRedditMentions, 'Reddit', timeZone),
@@ -639,11 +518,12 @@ export function SentimentBrowserPage({ ticker }: { ticker: string }) {
     ...feedRows(windowStocktwitsMentions, 'Stocktwits', timeZone),
   ];
   const timelineMentions = [
-    ...redditMentions.map(item => ({ timestampMs: mentionTimestampMs(item.timestamp), platform: 'Reddit' as const, score: sentimentValue(item), sentiment: mentionSentiment(item) })),
-    ...xMentions.map(item => ({ timestampMs: mentionTimestampMs(item.timestamp), platform: 'X' as const, score: sentimentValue(item), sentiment: mentionSentiment(item) })),
-    ...facebookMentions.map(item => ({ timestampMs: mentionTimestampMs(item.timestamp), platform: 'Facebook' as const, score: sentimentValue(item), sentiment: mentionSentiment(item) })),
-    ...linkedinMentions.map(item => ({ timestampMs: mentionTimestampMs(item.timestamp), platform: 'Linkedin' as const, score: sentimentValue(item), sentiment: mentionSentiment(item) })),
-    ...stocktwitsMentions.map(item => ({ timestampMs: mentionTimestampMs(item.timestamp), platform: 'Stocktwits' as const, score: sentimentValue(item), sentiment: mentionSentiment(item) })),
+    ...timelineSourceMentions.map(item => ({
+      timestampMs: mentionTimestampMs(item.timestamp),
+      platform: item.platform,
+      score: sentimentValue(item),
+      sentiment: mentionSentiment(item),
+    })),
   ].filter(item => item.timestampMs > 0);
   const sentimentBuckets = getSentimentBuckets(activeRangeLabel, currentWindowStart, latestMentionTime);
   const aggregatedBuckets = aggregateSentimentByBucket(timelineMentions, sentimentBuckets, selectedPlatform);
@@ -659,6 +539,7 @@ export function SentimentBrowserPage({ ticker }: { ticker: string }) {
 
   return (
     <div className="page narrative-page">
+      {loadError && <div className="panel narrative-api-error">{loadError}</div>}
       <section className="narrative-overview-panel narrative-command-overview">
         <div className="narrative-section-head">
           <div>
@@ -673,13 +554,13 @@ export function SentimentBrowserPage({ ticker }: { ticker: string }) {
             <SentimentGauge score={averageScore} />
             <div className="narrative-overall-footer">
               <DeltaText current={averageScore} previous={previousAverageScore} label={activeRange.label} />
-              <small>{windowMentions.length.toLocaleString('en-US')} feeds in selected timeframe</small>
+              <small>{totalMentions.toLocaleString('en-US')} feeds in selected timeframe</small>
             </div>
           </div>
-          <PlatformSentimentCard platforms={platformSentiments} totalFeeds={windowMentions.length} />
+          <PlatformSentimentCard platforms={platformSentiments} totalFeeds={totalMentions} />
           <div className="narrative-kpi-card narrative-feed-summary-panel">
             <KpiTitle text="Distribution of bullish, neutral, and bearish social records in the selected timeframe.">Sentiment Distribution</KpiTitle>
-            <Donut total={windowMentions.length} segments={[
+            <Donut total={totalMentions} segments={[
               { label: 'Bullish', value: sentimentCounts.positive, color: '#16a34a' },
               { label: 'Neutral', value: sentimentCounts.neutral, color: '#facc15' },
               { label: 'Bearish', value: sentimentCounts.negative, color: '#ef4444' },
@@ -730,13 +611,13 @@ export function SentimentBrowserPage({ ticker }: { ticker: string }) {
         </div>
       </section>
 
-      <DevJsonTables timeZone={timeZone} datasets={[
-        { file: `S3 prefixes: ${publicSocialPrefixes.reddit.join(', ')}`, payload: redditJson },
-        { file: `S3 prefixes: ${publicSocialPrefixes.x.join(', ')}`, payload: xJson },
-        { file: `S3 prefixes: ${publicSocialPrefixes.facebook.join(', ')}`, payload: facebookJson },
-        { file: `S3 prefixes: ${publicSocialPrefixes.linkedin.join(', ')}`, payload: linkedinJson },
-        { file: stocktwitsPath, payload: stocktwitsJson },
-      ]} />
+      <DevApiTables
+        mentions={mentions}
+        socialPages={apiData.socialPages}
+        current={apiData.current}
+        events={apiData.events}
+        timeZone={timeZone}
+      />
     </div>
   );
 }

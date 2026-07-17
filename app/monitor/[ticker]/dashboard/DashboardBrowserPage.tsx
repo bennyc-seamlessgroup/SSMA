@@ -156,9 +156,13 @@ function normalizeMarginPercent(value: unknown, valueFormat?: string, displayFor
 function asApiArray<T>(value: unknown): T[] {
   if (Array.isArray(value)) return value as T[];
   if (!value || typeof value !== 'object') return [];
-  const payload = value as { records?: unknown; data?: unknown };
+  const payload = value as { records?: unknown; data?: unknown | { records?: unknown } };
   if (Array.isArray(payload.records)) return payload.records as T[];
   if (Array.isArray(payload.data)) return payload.data as T[];
+  if (payload.data && typeof payload.data === 'object') {
+    const nested = payload.data as { records?: unknown };
+    if (Array.isArray(nested.records)) return nested.records as T[];
+  }
   return [];
 }
 
@@ -257,7 +261,7 @@ function marketHistoryToDashboardData(
   const historyRecords = Array.isArray(historyFile?.records) ? historyFile.records : [];
   const publishedRecord = latestCompleteMarketPublicationRecordFromSources(historyRecords, manualInputs);
   const publishedDate = publishedRecord ? marketRecordDate(publishedRecord) : '';
-  const secFilingRows = Array.isArray(secFilingsFile?.records) ? secFilingsFile.records : [];
+  const secFilingRows = asApiArray<OperationsSecFilingRecord>(secFilingsFile);
   const marketTrendData = historyRecords
     .filter(row => Boolean(publishedDate) && plainText(row.tradeDate ?? row.date) <= publishedDate)
     .map((row): TrendPoint | null => {
@@ -382,7 +386,7 @@ export function DashboardBrowserPage({ ticker }: { ticker: string }) {
         const [currentFile, historyFile, secFilingsFile, utilizationPayload, availabilityPayload, marginsPayload] = await Promise.all([
           authenticatedFetch(`/market-data/current?ticker=${encodeURIComponent(normalizedTicker)}&category=market-current`) as Promise<MarketCurrentFile>,
           authenticatedFetch(`/market-data/history?ticker=${encodeURIComponent(normalizedTicker)}&category=market-history`) as Promise<MarketHistoryFile>,
-          authenticatedFetch(`/market-data/history?ticker=${encodeURIComponent(normalizedTicker)}&category=sec-filings-history`) as Promise<SecFilingsHistoryFile>,
+          authenticatedFetch(`/manual-input/sec-filings?ticker=${encodeURIComponent(normalizedTicker)}`) as Promise<SecFilingsHistoryFile>,
           authenticatedFetch(`/manual-input/utilization?ticker=${encodeURIComponent(normalizedTicker)}`),
           authenticatedFetch(`/manual-input/manual-availability?ticker=${encodeURIComponent(normalizedTicker)}`),
           authenticatedFetch(`/manual-input/margins?ticker=${encodeURIComponent(normalizedTicker)}`),

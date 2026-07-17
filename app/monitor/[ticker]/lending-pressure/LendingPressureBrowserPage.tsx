@@ -480,7 +480,7 @@ export function LendingPressureBrowserPage({ ticker }: { ticker: string }) {
               <div className="short-score-compact">
                 <div
                   className="short-score-radial"
-                  style={{ background: `conic-gradient(var(--short-score-accent) ${scoreProgress}%, #e8eef7 ${scoreProgress}% 100%)` }}
+                  style={{ background: `conic-gradient(var(--short-score-accent) ${scoreProgress}%, var(--short-score-track) ${scoreProgress}% 100%)` }}
                 >
                   <div><strong>{displayPressureScore}</strong><small>/ 100</small></div>
                 </div>

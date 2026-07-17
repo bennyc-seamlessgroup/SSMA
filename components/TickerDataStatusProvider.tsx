@@ -12,6 +12,7 @@ export type TickerPageDataStatus = {
 
 export type TickerDataStatus = {
   ticker: string;
+  companyName: string | null;
   version: string;
   updatedAt: string | null;
   pages: Record<string, TickerPageDataStatus>;
@@ -23,6 +24,10 @@ const pollIntervalMs = Math.max(30, Number.isFinite(configuredPollSeconds) ? con
 
 type ApiDataset = { generatedAt?: string; updatedAt?: string } | null;
 type CombinedApiPayload = Record<string, ApiDataset>;
+type SocialStatusPayload = {
+  records?: Array<{ key?: string; datetime?: string; timestamp?: string }>;
+  pagination?: { totalItems?: number };
+};
 
 function apiStatus(...datasets: ApiDataset[]): TickerPageDataStatus {
   const timestamps = datasets.map(row => row?.updatedAt ?? row?.generatedAt).filter((value): value is string => Boolean(value));
@@ -30,29 +35,48 @@ function apiStatus(...datasets: ApiDataset[]): TickerPageDataStatus {
   return { version: datasets.map(row => row?.updatedAt ?? row?.generatedAt ?? 'missing').join('|'), updatedAt };
 }
 
-async function getApiTickerDataStatus(ticker: string): Promise<Pick<TickerDataStatus, 'pages' | 'updatedAt'>> {
-  const [current, history] = await Promise.all([
+async function getApiTickerDataStatus(ticker: string): Promise<Pick<TickerDataStatus, 'companyName' | 'pages' | 'updatedAt'>> {
+  const [current, history, social] = await Promise.all([
     authenticatedFetch(`/market-data/current?ticker=${encodeURIComponent(ticker)}`) as Promise<CombinedApiPayload>,
     authenticatedFetch(`/market-data/history?ticker=${encodeURIComponent(ticker)}`) as Promise<CombinedApiPayload>,
+    authenticatedFetch(`/social-data?ticker=${encodeURIComponent(ticker)}&limit=1&page=1`) as Promise<SocialStatusPayload>,
   ]);
   const marketCurrent = current['market-current'];
+  const companyProfileCurrent = current['company-profile-current'] as (ApiDataset & { companyName?: unknown }) | undefined;
   const marketHistory = history['market-history'];
   const ownershipCurrent = current['ownership-current'];
   const ownershipHistory = history['ownership-history'];
   const internalFloatCurrent = current['internal-float-current'];
+  const sentimentCurrent = current['sentiment-current'];
   const secFilingsHistory = history['sec-filings-history'];
   const shortVolumeHistory = history['short-volume-history'];
   const ftdHistory = history['ftd-history'];
+  const sentimentEvents = history['sentiment-events'];
+  const latestSocialRecord = social.records?.[0];
+  const socialUpdatedAt = latestSocialRecord?.datetime ?? latestSocialRecord?.timestamp ?? null;
+  const sentimentStatus = apiStatus(sentimentCurrent, sentimentEvents);
+  sentimentStatus.version = [
+    sentimentStatus.version,
+    latestSocialRecord?.key ?? socialUpdatedAt ?? 'missing',
+    social.pagination?.totalItems ?? 0,
+  ].join('|');
+  sentimentStatus.updatedAt = [sentimentStatus.updatedAt, socialUpdatedAt]
+    .filter((value): value is string => Boolean(value))
+    .sort((a, b) => b.localeCompare(a))[0] ?? null;
   const pages = {
     'dashboard': apiStatus(marketCurrent, marketHistory, secFilingsHistory),
     institutional: apiStatus(ownershipCurrent, ownershipHistory),
     'internal-float': apiStatus(internalFloatCurrent, ownershipCurrent),
     'short-interest': apiStatus(marketCurrent, marketHistory, shortVolumeHistory, ftdHistory),
     'lending-pressure': apiStatus(marketCurrent, marketHistory),
+    sentiment: sentimentStatus,
     'event-calendar': apiStatus(secFilingsHistory),
   };
   const updatedAt = Object.values(pages).map(page => page.updatedAt).filter((value): value is string => Boolean(value)).sort((a, b) => b.localeCompare(a))[0] ?? null;
-  return { pages, updatedAt };
+  const companyName = typeof companyProfileCurrent?.companyName === 'string'
+    ? companyProfileCurrent.companyName.trim() || null
+    : null;
+  return { companyName, pages, updatedAt };
 }
 
 export function TickerDataStatusProvider({ ticker, children }: { ticker: string; children: React.ReactNode }) {
@@ -79,6 +103,7 @@ export function TickerDataStatusProvider({ ticker, children }: { ticker: string;
         const updatedAt = [publicStatus.updatedAt, apiStatusResult.updatedAt].filter((value): value is string => Boolean(value)).sort((a, b) => b.localeCompare(a))[0] ?? null;
         const next: TickerDataStatus = {
           ticker,
+          companyName: apiStatusResult.companyName,
           pages,
           updatedAt,
           version: Object.entries(pages).map(([slug, page]) => `${slug}:${page.version}`).join('|'),

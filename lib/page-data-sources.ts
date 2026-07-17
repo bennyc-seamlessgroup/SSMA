@@ -1,13 +1,9 @@
-export type PageDataSource =
-  { type: 'social-data' };
+export type PageDataSource = never;
 
-// Market, ownership, short-interest, lending-pressure, SEC filing, and
-// internal-float pages use authenticated APIs directly. Only the two
-// explicitly retained public-data integrations are tracked here.
+// Portal datasets are now loaded through authenticated APIs. This mapping
+// remains for the public status helper, which currently has no page sources.
 export function getPageDataSources(_ticker: string): Record<string, PageDataSource> {
-  return {
-    sentiment: { type: 'social-data' },
-  };
+  return {};
 }
 
 export function slugFromPathname(pathname: string) {

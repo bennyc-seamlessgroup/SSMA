@@ -5,6 +5,7 @@ import { usePathname } from 'next/navigation';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { getAuthenticatedProfile } from '@/lib/auth-client';
 import { companyAccessFromProfile } from '@/lib/ticker-access';
+import { useTickerDataStatus } from './TickerDataStatusProvider';
 
 type CompanyOption = {
   ticker: string;
@@ -14,6 +15,7 @@ type CompanyOption = {
 
 export function CompanySwitcher({ ticker, companyName }: { ticker: string; companyName: string }) {
   const pathname = usePathname();
+  const tickerStatus = useTickerDataStatus();
   const menuRef = useRef<HTMLDivElement | null>(null);
   const [isOpen, setIsOpen] = useState(false);
   const [companies, setCompanies] = useState<CompanyOption[]>([{
@@ -64,7 +66,9 @@ export function CompanySwitcher({ ticker, companyName }: { ticker: string; compa
     name: companyName,
     role: 'Viewer',
   };
-  const currentDisplayName = current.name.trim() || 'Company name unavailable';
+  const currentDisplayName = tickerStatus?.companyName?.trim()
+    || current.name.trim()
+    || 'Company name unavailable';
   const routeSuffix = useMemo(() => {
     const match = pathname.match(/^\/monitor\/[^/]+(\/.*)?$/i);
     return match?.[1] || '/dashboard';
@@ -100,7 +104,11 @@ export function CompanySwitcher({ ticker, companyName }: { ticker: string; compa
             >
               <span className="company-switcher__ticker">{company.ticker}</span>
               <span>
-                <strong>{company.name.trim() || 'Company name unavailable'}</strong>
+                <strong>
+                  {company.ticker === ticker
+                    ? currentDisplayName
+                    : company.name.trim() || 'Company name unavailable'}
+                </strong>
                 <small>{company.role}</small>
               </span>
               {company.ticker === ticker && (

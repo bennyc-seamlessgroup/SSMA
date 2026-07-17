@@ -74,7 +74,7 @@ export function DashboardClient({
           { metric: 'tradeVolume', side: 'right' },
         ]}
         data={data}
-        events={events}
+        events={[]}
         period={marketPeriod}
         onPeriodChange={setMarketPeriod}
       />

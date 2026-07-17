@@ -110,7 +110,6 @@ html[data-design-b-theme='dark'] {
   .narrative-overview-panel,
   .narrative-feed-panel,
   .narrative-intel-card,
-  .narrative-timeline-card,
   .report-center,
   .report-history-panel,
   .report-history-table-panel,
@@ -694,7 +693,8 @@ html[data-portal-design='b'] .portal-design-b-company-main > :is(strong, span, s
 }
 
 html[data-design-b-theme='dark'] .monitor-portal .narrative-feed-summary-panel .terminal-donut div {
-  background: var(--ci-surface-muted);
+  border-color: var(--ci-border);
+  background: var(--ci-surface);
 }
 
 html[data-design-b-theme='dark'] .monitor-portal .narrative-feed-summary-panel .terminal-donut strong {
@@ -1071,7 +1071,6 @@ html[data-design-b-theme='dark'] .monitor-portal :is(
   .narrative-overview-panel,
   .narrative-feed-panel,
   .narrative-intel-card,
-  .narrative-timeline-card,
   .report-center,
   .report-history-panel,
   .report-history-table-panel,

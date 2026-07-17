@@ -103,6 +103,38 @@ function percentageChange(current: number | null, previous: number | null) {
   return ((current - previous) / previous) * 100;
 }
 
+function dateValue(value: unknown) {
+  const parsed = Date.parse(String(value ?? ''));
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
+function rowAtOrBeforeDaysAgo(items: Row[], latestDate: unknown, daysAgo: number) {
+  const latestTimestamp = dateValue(latestDate);
+  if (latestTimestamp === null) return {};
+  const targetTimestamp = latestTimestamp - (daysAgo * 24 * 60 * 60 * 1000);
+  return [...items]
+    .filter(item => {
+      const timestamp = dateValue(item.date);
+      return timestamp !== null && timestamp <= targetTimestamp;
+    })
+    .sort((a, b) => (dateValue(b.date) ?? 0) - (dateValue(a.date) ?? 0))[0] ?? {};
+}
+
+function biweeklyRows(items: Row[], maximumPoints = 8) {
+  const sorted = [...items]
+    .filter(item => dateValue(item.date) !== null)
+    .sort((a, b) => (dateValue(a.date) ?? 0) - (dateValue(b.date) ?? 0));
+  if (!sorted.length) return [];
+
+  const selected: Row[] = [];
+  let cursor = sorted[sorted.length - 1];
+  while (cursor && selected.length < maximumPoints) {
+    selected.push(cursor);
+    cursor = rowAtOrBeforeDaysAgo(sorted, cursor.date, 14);
+  }
+  return selected.reverse();
+}
+
 function sourceChip(source: string) {
   return <span className="source-chip ready">Source: {source}</span>;
 }
@@ -236,7 +268,12 @@ function DeltaBadge({ info, suffix = '', display }: { info: ReturnType<typeof de
   );
 }
 
-function ExecutiveMetric({ label, value, changePercent }: { label: string; value: string; changePercent?: number | null }) {
+function ExecutiveMetric({ label, value, changePercent, comparisonLabel = 'vs yesterday' }: {
+  label: string;
+  value: string;
+  changePercent?: number | null;
+  comparisonLabel?: string;
+}) {
   const tone = typeof changePercent !== 'number' || !Number.isFinite(changePercent)
     ? 'neutral'
     : changePercent > 0
@@ -250,7 +287,7 @@ function ExecutiveMetric({ label, value, changePercent }: { label: string; value
       <strong>{value}</strong>
       <em className={tone}>
         {typeof changePercent === 'number' && Number.isFinite(changePercent)
-          ? `${changePercent > 0 ? '+' : ''}${changePercent.toLocaleString('en-US', { maximumFractionDigits: 2 })}% vs yesterday`
+          ? `${changePercent > 0 ? '+' : ''}${changePercent.toLocaleString('en-US', { maximumFractionDigits: 2 })}% ${comparisonLabel}`
           : 'No prior period'}
       </em>
     </div>
@@ -824,12 +861,21 @@ export function ShortInterestBrowserPage({ ticker }: { ticker: string }) {
   const shortInterestTrendRows = dailyRows
     .sort((a, b) => String(a.date ?? '').localeCompare(String(b.date ?? '')))
     .slice(-7);
-  const shortSharesTrendRows = shortInterestTrendRows.filter(row => optionalNumeric(record(row.shortInterest).shortInterestShares) !== null);
   const borrowFeeTrendRows = shortInterestTrendRows.filter(row => optionalNumeric(record(row.borrowFeeAll).costToBorrowAll) !== null);
   const availabilityTrendRows = shortInterestTrendRows.filter(row => optionalNumeric(record(row.availability).shortAvailabilityShares) !== null);
   const sortedDailyRows = [...dailyRows].sort((a, b) => String(b.date ?? '').localeCompare(String(a.date ?? '')));
   const latestDaily = sortedDailyRows[0] ?? {};
   const previousDaily = sortedDailyRows[1] ?? {};
+  const twoWeeksAgoDaily = rowAtOrBeforeDaysAgo(dailyRows, latestDaily.date, 14);
+  const biweeklyShortInterestTrendRows = biweeklyRows(
+    dailyRows.filter(row => optionalNumeric(record(row.shortInterest).shortInterestShares) !== null),
+  );
+  const shortVolumeTrendRows = apiShortVolumeRows(apiData.shortVolume)
+    .sort((a, b) => a.date.localeCompare(b.date))
+    .slice(-7);
+  const ftdTrendRows = apiFtdRows(apiData.ftd)
+    .sort((a, b) => String(a.tradeDate || a.settlementDate).localeCompare(String(b.tradeDate || b.settlementDate)))
+    .slice(-7);
 
   const shortInterestShares = numeric(shortCurrent.shortInterestShares);
   const shortInterestPercent = numeric(shortCurrent.shortInterestPcFreeFloat);
@@ -841,9 +887,9 @@ export function ShortInterestBrowserPage({ ticker }: { ticker: string }) {
   const shortScoreTone = shortScore >= 80 ? 'extreme' : shortScore >= 65 ? 'high' : shortScore >= 40 ? 'moderate' : 'low';
   const daysToCover = numeric(shortCurrent.daysToCoverQuantity);
   const latestShortInterest = record(latestDaily.shortInterest);
-  const previousShortInterest = record(previousDaily.shortInterest);
+  const twoWeeksAgoShortInterest = record(twoWeeksAgoDaily.shortInterest);
   const latestDaysToCover = record(latestDaily.daysToCover);
-  const previousDaysToCover = record(previousDaily.daysToCover);
+  const twoWeeksAgoDaysToCover = record(twoWeeksAgoDaily.daysToCover);
   const latestBorrowFee = record(latestDaily.borrowFeeAll);
   const previousBorrowFee = record(previousDaily.borrowFeeAll);
   const latestAvailability = record(latestDaily.availability);
@@ -852,9 +898,9 @@ export function ShortInterestBrowserPage({ ticker }: { ticker: string }) {
   const previousShortScore = record(previousDaily.shortScore);
   const latestClosing = record(latestDaily.closingPrices);
   const previousClosing = record(previousDaily.closingPrices);
-  const shortInterestDelta = delta(numeric(latestShortInterest.shortInterestShares), numeric(previousShortInterest.shortInterestShares), { maximumFractionDigits: 0 });
-  const shortInterestPctDelta = delta(numeric(latestShortInterest.shortInterestPcFreeFloat), numeric(previousShortInterest.shortInterestPcFreeFloat), { maximumFractionDigits: 2 });
-  const daysToCoverDelta = delta(numeric(latestDaysToCover.daysToCover), numeric(previousDaysToCover.daysToCover), { maximumFractionDigits: 2 });
+  const shortInterestDelta = delta(numeric(latestShortInterest.shortInterestShares), numeric(twoWeeksAgoShortInterest.shortInterestShares), { maximumFractionDigits: 0 });
+  const shortInterestPctDelta = delta(numeric(latestShortInterest.shortInterestPcFreeFloat), numeric(twoWeeksAgoShortInterest.shortInterestPcFreeFloat), { maximumFractionDigits: 2 });
+  const daysToCoverDelta = delta(numeric(latestDaysToCover.daysToCover), numeric(twoWeeksAgoDaysToCover.daysToCover), { maximumFractionDigits: 2 });
   const borrowFeeDelta = delta(numeric(latestBorrowFee.costToBorrowAll), numeric(previousBorrowFee.costToBorrowAll), { maximumFractionDigits: 2 });
   const shortScoreDelta = delta(Math.round(numeric(latestShortScore.score) ?? 0) || null, numeric(previousShortScore.score), { maximumFractionDigits: 1 });
   const sharesAvailableDelta = delta(numeric(latestAvailability.shortAvailabilityShares), numeric(previousAvailability.shortAvailabilityShares), { maximumFractionDigits: 0 });
@@ -901,7 +947,7 @@ export function ShortInterestBrowserPage({ ticker }: { ticker: string }) {
               <div className="short-score-compact">
                 <div
                   className="short-score-radial"
-                  style={{ background: `conic-gradient(var(--short-score-accent) ${scoreProgress}%, #e8eef7 ${scoreProgress}% 100%)` }}
+                  style={{ background: `conic-gradient(var(--short-score-accent) ${scoreProgress}%, var(--short-score-track) ${scoreProgress}% 100%)` }}
                 >
                   <div>
                     <strong>{numeric(shortCurrent.shortScore) === null ? 'N/A' : shortScore}</strong>
@@ -928,9 +974,9 @@ export function ShortInterestBrowserPage({ ticker }: { ticker: string }) {
           <article className="terminal-card short-executive-card short-key-metrics-card">
             <span>Key Short Metrics</span>
             <div className="short-executive-metrics">
-              <ExecutiveMetric label="Short Interest %" value={String(siPercentCard.valueDisplay ?? formatPercent(shortInterestPercent, { maximumFractionDigits: 2 }))} changePercent={numeric(siPercentCard.changePercent) ?? shortInterestPctDelta?.percent} />
-              <ExecutiveMetric label="Short Interest Shares" value={String(shortInterestCard.valueDisplay ?? formatNumber(shortInterestShares))} changePercent={shortInterestChangePercent} />
-              <ExecutiveMetric label="Days to Cover" value={String(daysToCoverCard.valueDisplay ?? formatNumber(daysToCover, { maximumFractionDigits: 2 }))} changePercent={numeric(daysToCoverCard.changePercent) ?? daysToCoverDelta?.percent} />
+              <ExecutiveMetric label="Short Interest %" value={String(siPercentCard.valueDisplay ?? formatPercent(shortInterestPercent, { maximumFractionDigits: 2 }))} changePercent={numeric(siPercentCard.changePercent) ?? shortInterestPctDelta?.percent} comparisonLabel="vs 2 weeks ago" />
+              <ExecutiveMetric label="Short Interest Shares" value={String(shortInterestCard.valueDisplay ?? formatNumber(shortInterestShares))} changePercent={shortInterestChangePercent} comparisonLabel="vs 2 weeks ago" />
+              <ExecutiveMetric label="Days to Cover" value={String(daysToCoverCard.valueDisplay ?? formatNumber(daysToCover, { maximumFractionDigits: 2 }))} changePercent={numeric(daysToCoverCard.changePercent) ?? daysToCoverDelta?.percent} comparisonLabel="vs 2 weeks ago" />
               <ExecutiveMetric label="Borrow Fee" value={String(borrowFeeCard.valueDisplay ?? formatPercent(borrowFee, { maximumFractionDigits: 2 }))} changePercent={borrowFeeChangePercent} />
               <ExecutiveMetric label="Utilization" value={String(utilizationCard.valueDisplay ?? formatPercent(utilization, { maximumFractionDigits: 2 }))} changePercent={numeric(utilizationCard.changePercent) ?? utilizationDelta?.percent} />
             </div>
@@ -950,7 +996,7 @@ export function ShortInterestBrowserPage({ ticker }: { ticker: string }) {
           <div>
             <span>Trend Analysis</span>
             <h2>Short Interest Movement</h2>
-            <p className="section-subtitle">Trend charts for short exposure, borrow cost, and borrow availability.</p>
+            <p className="section-subtitle">Daily market trends are grouped in the 2×2 view. Reported short interest appears separately below because it updates bi-weekly.</p>
           </div>
           <div className="terminal-section-actions">
             {sourceChip('Market Data API')}
@@ -958,11 +1004,11 @@ export function ShortInterestBrowserPage({ ticker }: { ticker: string }) {
         </div>
         <div className="short-interest-trend-grid">
           <div className="terminal-card chart-card">
-            <h3><InfoTitle text="Trend of reported short-interest shares. Rising values indicate more shares have been sold short.">Short Interest Trend</InfoTitle></h3>
+            <h3><InfoTitle text="Daily reported short-sale volume across trading venues. This is trading activity, not outstanding short interest.">Short Volume Trend</InfoTitle></h3>
             <TrendLine
-              label="Shares"
-              labels={shortSharesTrendRows.map(row => shortDateLabel(row.date))}
-              values={shortSharesTrendRows.map(row => optionalNumeric(record(row.shortInterest).shortInterestShares) as number)}
+              label="Volume"
+              labels={shortVolumeTrendRows.map(row => shortDateLabel(row.date))}
+              values={shortVolumeTrendRows.map(row => row.totalShortVolume)}
             />
           </div>
           <div className="terminal-card chart-card">
@@ -982,6 +1028,25 @@ export function ShortInterestBrowserPage({ ticker }: { ticker: string }) {
               values={availabilityTrendRows.map(row => optionalNumeric(record(row.availability).shortAvailabilityShares) as number)}
             />
           </div>
+          <div className="terminal-card chart-card">
+            <h3><InfoTitle text="Daily fails-to-deliver shares. Higher values can indicate increasing settlement pressure.">Fails-to-Deliver Trend</InfoTitle></h3>
+            <TrendLine
+              label="FTD Shares"
+              labels={ftdTrendRows.map(row => shortDateLabel(row.tradeDate || row.settlementDate))}
+              values={ftdTrendRows.map(row => row.failsToDeliver)}
+            />
+          </div>
+        </div>
+        <div className="terminal-card chart-card short-interest-biweekly-chart">
+          <div className="short-interest-biweekly-chart__head">
+            <h3><InfoTitle text="Reported short-interest shares sampled on a 14-day cadence, matching the bi-weekly data update schedule.">Short Interest Trend</InfoTitle></h3>
+            <span>Bi-weekly · 14-day reporting cadence</span>
+          </div>
+          <TrendLine
+            label="Shares"
+            labels={biweeklyShortInterestTrendRows.map(row => shortDateLabel(row.date))}
+            values={biweeklyShortInterestTrendRows.map(row => optionalNumeric(record(row.shortInterest).shortInterestShares) as number)}
+          />
         </div>
       </section>
 

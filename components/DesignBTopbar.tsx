@@ -8,6 +8,7 @@ import { formatPortalDateTime } from '@/lib/timezone';
 import { usePortalTimeZone } from './usePortalTimeZone';
 import { CompanySwitcher } from './CompanySwitcher';
 import { useTickerDataStatus } from './TickerDataStatusProvider';
+import { NotificationInbox } from './NotificationInbox';
 
 const storageKey = 'monitor-design-b-sidebar-collapsed';
 const themeStorageKey = 'monitor-design-b-theme';
@@ -69,6 +70,17 @@ export function DesignBTopbar({
     setTheme(storedTheme);
     applyCollapsedState(stored);
     applyThemeState(storedTheme);
+  }, []);
+
+  useEffect(() => {
+    const handleThemeChange = (event: Event) => {
+      const next = (event as CustomEvent<'light' | 'dark'>).detail;
+      if (next !== 'light' && next !== 'dark') return;
+      setTheme(next);
+      applyThemeState(next);
+    };
+    window.addEventListener('currenc-theme-change', handleThemeChange);
+    return () => window.removeEventListener('currenc-theme-change', handleThemeChange);
   }, []);
 
   const current = useMemo(() => {
@@ -144,12 +156,7 @@ export function DesignBTopbar({
               )}
             </svg>
           </button>
-          <button type="button" aria-label="Notifications">
-            <svg viewBox="0 0 24 24" aria-hidden="true">
-              <path d="M18 16v-5a6 6 0 0 0-12 0v5l-2 2h16l-2-2Z" />
-              <path d="M10 21h4" />
-            </svg>
-          </button>
+          <NotificationInbox />
           <UserMenu ticker={ticker} />
         </div>
       </div>

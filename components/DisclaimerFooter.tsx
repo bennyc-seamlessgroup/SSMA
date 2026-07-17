@@ -1,4 +1,7 @@
+'use client';
+
 import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 import { footerDisclaimer } from '@/lib/legal/disclaimers';
 
 const links = [
@@ -10,6 +13,11 @@ const links = [
 ] as const;
 
 export function DisclaimerFooter() {
+  const pathname = usePathname();
+  const isPortalSettingsPage = /^\/monitor\/[^/]+\/(?:settings(?:\/.*)?|user-profile|companies|alert-rules|email-settings)\/?$/i.test(pathname);
+
+  if (isPortalSettingsPage) return null;
+
   return (
     <footer className="disclaimer-footer">
       <p>{footerDisclaimer}</p>

@@ -1,7 +1,7 @@
 'use client';
 
 import type { AggregatedSentimentBucket, SentimentPlatformFilter } from '@/lib/sentiment-buckets';
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 const platformColors: Record<SentimentPlatformFilter, string> = {
   All: '#7c3aed',
@@ -13,7 +13,6 @@ const platformColors: Record<SentimentPlatformFilter, string> = {
 };
 
 const chart = {
-  width: 1100,
   height: 250,
   left: 48,
   right: 22,
@@ -21,8 +20,8 @@ const chart = {
   bottom: 38,
 };
 
-function groupCenterX(index: number, total: number) {
-  const plotWidth = chart.width - chart.left - chart.right;
+function groupCenterX(index: number, total: number, width: number) {
+  const plotWidth = width - chart.left - chart.right;
   return chart.left + ((index + .5) / Math.max(total, 1)) * plotWidth;
 }
 
@@ -55,17 +54,31 @@ export function SentimentTimeline({
   selectedBucketId: string | null;
   onSelectBucket: (bucket: AggregatedSentimentBucket) => void;
 }) {
+  const chartRef = useRef<HTMLDivElement>(null);
+  const [chartWidth, setChartWidth] = useState(1100);
   const [hoveredBucketId, setHoveredBucketId] = useState<string | null>(null);
   const labels = visibleLabelIndexes(buckets.length);
   const selectedColor = platformColors[selectedPlatform];
-  const plotWidth = chart.width - chart.left - chart.right;
+  const plotWidth = chartWidth - chart.left - chart.right;
   const groupStep = plotWidth / Math.max(buckets.length, 1);
   const barWidth = Math.min(Math.max(groupStep * .46, 5), 28);
   const selectedIndex = selectedBucketId ? buckets.findIndex(bucket => bucket.id === selectedBucketId) : -1;
   const hoveredIndex = hoveredBucketId ? buckets.findIndex(bucket => bucket.id === hoveredBucketId) : -1;
   const activeIndex = hoveredIndex >= 0 ? hoveredIndex : selectedIndex >= 0 ? selectedIndex : null;
   const tooltipIndex = activeIndex;
-  const tooltipX = tooltipIndex !== null ? groupCenterX(tooltipIndex, buckets.length) : 0;
+  const tooltipX = tooltipIndex !== null ? groupCenterX(tooltipIndex, buckets.length, chartWidth) : 0;
+
+  useEffect(() => {
+    const element = chartRef.current;
+    if (!element) return;
+
+    const updateWidth = () => setChartWidth(Math.max(640, Math.round(element.clientWidth)));
+    updateWidth();
+
+    const observer = new ResizeObserver(updateWidth);
+    observer.observe(element);
+    return () => observer.disconnect();
+  }, []);
 
   return (
     <div className="narrative-timeline-card narrative-line-timeline">
@@ -80,16 +93,16 @@ export function SentimentTimeline({
         </div>
       </div>
 
-      <div className="narrative-line-chart narrative-grouped-bar-chart">
+      <div ref={chartRef} className="narrative-line-chart narrative-grouped-bar-chart">
         <svg
-          viewBox={`0 0 ${chart.width} ${chart.height}`}
+          viewBox={`0 0 ${chartWidth} ${chart.height}`}
           role="img"
-          aria-label="Grouped sentiment scores over time"
+          aria-label={`${platformLabel(selectedPlatform)} sentiment scores over time`}
           onMouseLeave={() => setHoveredBucketId(null)}
         >
           {[100, 75, 50, 25, 0].map(tick => (
             <g key={tick} className="narrative-line-grid">
-              <line x1={chart.left} x2={chart.width - chart.right} y1={yFor(tick)} y2={yFor(tick)} />
+              <line x1={chart.left} x2={chartWidth - chart.right} y1={yFor(tick)} y2={yFor(tick)} />
               <text x={chart.left - 12} y={yFor(tick) + 4} textAnchor="end">{tick}</text>
             </g>
           ))}
@@ -98,7 +111,7 @@ export function SentimentTimeline({
             <text
               className="narrative-line-x-label"
               key={`${bucket.label}-${index}`}
-              x={groupCenterX(index, buckets.length)}
+              x={groupCenterX(index, buckets.length, chartWidth)}
               y={chart.height - 12}
               textAnchor="middle"
             >
@@ -115,7 +128,7 @@ export function SentimentTimeline({
                 <rect
                   key={bucket.id}
                   className={`narrative-series-bar ${selected ? 'selected' : ''} ${bucket.mentions ? '' : 'is-empty'}`}
-                  x={groupCenterX(bucketIndex, buckets.length) - barWidth / 2}
+                  x={groupCenterX(bucketIndex, buckets.length, chartWidth) - barWidth / 2}
                   y={y}
                   width={barWidth}
                   height={Math.max(2, yFor(0) - y)}
@@ -131,8 +144,8 @@ export function SentimentTimeline({
 
         {tooltipIndex !== null && (
           <div
-            className={`narrative-line-tooltip ${tooltipX > chart.width * .68 ? 'is-right' : ''}`}
-            style={{ left: `${(tooltipX / chart.width) * 100}%` }}
+            className={`narrative-line-tooltip ${tooltipX > chartWidth * .68 ? 'is-right' : ''}`}
+            style={{ left: `${(tooltipX / chartWidth) * 100}%` }}
           >
             <strong>{buckets[tooltipIndex].tooltipLabel}</strong>
             <span className="focused">

@@ -144,7 +144,6 @@ function normalizeApiEnvelope(payload: unknown, ticker: string): SecFilingsRespo
 
 export function SecFilingsOperationsClient() {
   const [selectedTicker, setSelectedTicker] = useState('CURR');
-  const [tickerDraft, setTickerDraft] = useState('CURR');
   const [form, setForm] = useState(initialForm);
   const [data, setData] = useState<SecFilingsResponse | null>(null);
   const [status, setStatus] = useState<'idle' | 'loading' | 'saving' | 'saved' | 'error'>('loading');
@@ -166,7 +165,6 @@ export function SecFilingsOperationsClient() {
       const payload = await authenticatedFetch(`/manual-input/sec-filings?ticker=${encodeURIComponent(normalizedTicker)}`, { cache: 'no-store' });
       setSelectedTicker(normalizedTicker);
       setOperationsTicker(normalizedTicker);
-      setTickerDraft(normalizedTicker);
       setForm({
         ...initialForm,
         ticker: normalizedTicker,
@@ -302,16 +300,6 @@ export function SecFilingsOperationsClient() {
 
   return (
     <>
-      <div className="ops-ticker-context">
-        <label>
-          <span>Company ticker</span>
-          <input value={tickerDraft} maxLength={10} onChange={event => setTickerDraft(event.target.value.toUpperCase())} />
-        </label>
-        <button type="button" onClick={() => loadRecords(tickerDraft)} disabled={status === 'loading' || status === 'saving'}>
-          {status === 'loading' ? 'Loading...' : 'Load Workspace'}
-        </button>
-        <small>API target: /manual-input/sec-filings?ticker={selectedTicker}</small>
-      </div>
       <div className="ops-sec-grid">
       <section className="ops-panel ops-sec-form-panel">
         <div className="ops-panel-head">

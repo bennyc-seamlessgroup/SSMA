@@ -17,6 +17,7 @@ import {
 } from '@/lib/operations/ownership-entry.js';
 import { authenticatedFetch } from '@/lib/auth-client';
 import { OperationsDevelopmentData } from '@/components/OperationsDevelopmentData';
+import { getOperationsTicker } from '@/lib/operations/ticker-client';
 
 type ApiPayload = {
   ok: boolean;
@@ -185,7 +186,9 @@ export function ManagementHoldingsOperationsClient() {
   }
 
   useEffect(() => {
-    loadRecords('CURR');
+    const storedTicker = getOperationsTicker();
+    setTicker(storedTicker);
+    loadRecords(storedTicker);
     // Initial operations workspace load only.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -330,15 +333,6 @@ export function ManagementHoldingsOperationsClient() {
 
   return (
     <div className="ops-management-workspace">
-      <div className="ops-ticker-context">
-        <label>
-          <span>Company ticker</span>
-          <input suppressHydrationWarning value={ticker} maxLength={10} onChange={event => setTicker(event.target.value.toUpperCase())} />
-        </label>
-        <button type="button" onClick={() => loadRecords(activeTicker)} disabled={status === 'loading'}>Load Workspace</button>
-        <small>Records are stored per ticker and used by Ownership and Internal Float.</small>
-      </div>
-
       <div className="ops-sec-grid">
         <section className="ops-panel ops-management-entry-form">
           <div className="ops-panel-head">

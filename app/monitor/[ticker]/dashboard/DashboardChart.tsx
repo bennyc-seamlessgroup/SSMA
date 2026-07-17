@@ -584,6 +584,14 @@ export function DashboardChart({
                 <>
                   <rect x={marker.x - 7} y={marker.y - 8} width="14" height="16" rx="3" />
                   <path d={`M ${marker.x - 3.5} ${marker.y - 3.8} H ${marker.x + 3.8} M ${marker.x - 3.5} ${marker.y} H ${marker.x + 3.8} M ${marker.x - 3.5} ${marker.y + 3.8} H ${marker.x + 1.8}`} />
+                  {marker.eventGroup.events.length > 1 && (
+                    <>
+                      <circle className="dashboard-event-count" cx={marker.x + 7} cy={marker.y - 8} r="6" />
+                      <text className="dashboard-event-count-label" x={marker.x + 7} y={marker.y - 5.6} textAnchor="middle">
+                        {marker.eventGroup.events.length > 9 ? '9+' : marker.eventGroup.events.length}
+                      </text>
+                    </>
+                  )}
                 </>
               ) : (
                 <>

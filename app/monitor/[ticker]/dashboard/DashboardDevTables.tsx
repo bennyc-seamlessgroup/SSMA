@@ -119,7 +119,7 @@ export function DashboardDevTables({
     {
       id: 'sec-filings',
       title: 'SEC Filings',
-      endpoint: 'GET /market-data/history?category=sec-filings-history',
+      endpoint: 'GET /manual-input/sec-filings',
       payload: secFilingsHistory,
     },
   ];
@@ -127,7 +127,7 @@ export function DashboardDevTables({
     id: table.id,
     title: table.title,
     file: table.endpoint,
-    sourcePlatform: table.id.startsWith('manual-') ? 'Manual Input V2 API' : 'Market Data API',
+    sourcePlatform: table.id.startsWith('manual-') || table.id === 'sec-filings' ? 'Manual Input V2 API' : 'Market Data API',
     recordCount: recordCount(table.payload),
     status: 'api',
   }));
