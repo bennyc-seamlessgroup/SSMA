@@ -3891,6 +3891,104 @@ html[data-design-b-theme="dark"] .monitor-portal .report-history-pagination butt
   grid-column: 1 / -1;
 }
 
+.ops-custody-input-panel {
+  margin-top: 18px;
+}
+
+.ops-custody-input-heading {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.ops-custody-input-heading > span {
+  display: inline-flex;
+  align-items: center;
+  min-height: 22px;
+  border: 1px solid #f2cf72;
+  border-radius: 999px;
+  background: #fff8e6;
+  padding: 2px 8px;
+  color: #9a6300;
+  font-size: 9.5px;
+  font-weight: 750;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+}
+
+.ops-custody-pending-note {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  margin-bottom: 12px;
+  border: 1px solid var(--ci-border, #d9e1eb);
+  border-radius: 7px;
+  background: var(--ci-surface-muted, #f5f8fc);
+  padding: 9px 11px;
+  color: var(--ci-muted, #64748d);
+  font-size: 11px;
+}
+
+.ops-custody-pending-note strong {
+  flex: 0 0 auto;
+  color: var(--ci-text, #16243a);
+}
+
+.ops-custody-input-table {
+  min-width: 720px;
+}
+
+.ops-custody-input-table th:last-child,
+.ops-custody-input-table td:last-child {
+  width: 110px;
+  text-align: right;
+}
+
+.ops-custody-input-table input {
+  width: 100%;
+  min-height: 34px;
+  border: 1px solid var(--ci-border, #cfd8e5);
+  border-radius: 6px;
+  background: var(--ci-surface, #fff);
+  padding: 6px 9px;
+  color: var(--ci-text, #16243a);
+  font: inherit;
+}
+
+.ops-custody-input-table input:focus {
+  border-color: var(--ci-accent, #315fbd);
+  outline: 2px solid color-mix(in srgb, var(--ci-accent, #315fbd) 20%, transparent);
+  outline-offset: 1px;
+}
+
+.ops-custody-input-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--ci-border, #d9e1eb);
+}
+
+.ops-custody-input-actions > button:not(.ops-primary-button) {
+  min-height: 34px;
+  border: 1px solid var(--ci-border, #cfd8e5);
+  border-radius: 6px;
+  background: var(--ci-surface-muted, #f5f8fc);
+  padding: 7px 12px;
+  color: var(--ci-accent, #315fbd);
+  cursor: pointer;
+  font-weight: 700;
+}
+
+.ops-custody-input-actions button:disabled,
+.ops-custody-input-table button:disabled {
+  cursor: not-allowed;
+  opacity: .5;
+}
+
 .ops-table-wrap {
   overflow: auto;
 }

@@ -10,6 +10,7 @@ import {
   demoInternalFloatAdjustments,
   demoInternalFloatHoldings,
   demoInternalFloatUserInputs,
+  sampleTraditionalCustodyRows,
 } from '@/lib/internal-float-demo';
 import type { FloatAdjustments, InternalFloatUserInput } from '@/lib/internal-float-types';
 import type { ManagementHoldingInputRecord } from '@/lib/operations/data-types';
@@ -159,7 +160,7 @@ function LiveInternalFloat({ ticker }: { ticker: string }) {
       includeInDeduction: row.includeInDeduction !== false,
       notes: String(row.notes ?? ''),
     })),
-    custodyRows: [],
+    custodyRows: sampleTraditionalCustodyRows,
     tokenChains: tokenRecords.map((row, index) => ({ id: String(row.id ?? `token-${index}`), chain: String(row.chain ?? ''), shares: Number(row.shares ?? 0), provider: String(row.provider ?? '') })),
     collateralChains: collateralRecords.map((row, index) => ({ id: String(row.id ?? `collateral-${index}`), chain: String(row.chain ?? ''), shares: Number(row.shares ?? 0), protocol: String(row.protocol ?? '') })),
     activityLog: payloads.inputs.auditLog ?? payloads.current.auditLog ?? [],
@@ -179,6 +180,7 @@ function LiveInternalFloat({ ticker }: { ticker: string }) {
         initialAdjustments={liveSeedAdjustments}
         initialUserInputs={apiInputs}
         institutionalOverview={institutionalOverview}
+        custodyDataIsSample
         insiderSuggestionSources={[
           ...(payloads.current.suggestedChanges ?? []),
           ...payloads.managementHoldings
@@ -216,6 +218,7 @@ function DemoInternalFloat() {
       initialUserInputs={demoInternalFloatUserInputs}
       institutionalOverview={demoInstitutionalOverview}
       insiderSuggestionSources={demoInsiderSuggestions}
+      custodyDataIsSample
       demoMode
     />
   );

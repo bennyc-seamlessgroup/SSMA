@@ -23,6 +23,13 @@ export const demoInternalFloatAdjustments: FloatAdjustments = {
   internalAdjustedSqueezeScore: 74,
 };
 
+export const sampleTraditionalCustodyRows = [
+  { id: 'sample-custody-1', name: 'Example Prime Broker', shares: 18_000_000 },
+  { id: 'sample-custody-2', name: 'Sample Global Custody', shares: 14_000_000 },
+  { id: 'sample-custody-3', name: 'Prototype Retail Broker', shares: 11_500_000 },
+  { id: 'sample-custody-4', name: 'Other Demo Custodians', shares: 19_000_000 },
+];
+
 export const demoInternalFloatUserInputs: InternalFloatUserInput = {
   userId: 'demo-session',
   workspaceId: 'CURR',
@@ -33,12 +40,7 @@ export const demoInternalFloatUserInputs: InternalFloatUserInput = {
     { id: 'demo-management', holderName: 'Prototype Management Trust', category: 'Management', shares: 2_500_000, includeInDeduction: true, notes: 'Fictional demonstration record.' },
     { id: 'demo-transfer-agent', holderName: 'Demo Transfer Agent Reserve', category: 'Transfer Agent', shares: 1_000_000, includeInDeduction: true, notes: 'Fictional demonstration record.' },
   ],
-  custodyRows: [
-    { id: 'demo-custody-1', name: 'Example Prime Broker', shares: 18_000_000 },
-    { id: 'demo-custody-2', name: 'Sample Global Custody', shares: 14_000_000 },
-    { id: 'demo-custody-3', name: 'Prototype Retail Broker', shares: 11_500_000 },
-    { id: 'demo-custody-4', name: 'Other Demo Custodians', shares: 19_000_000 },
-  ],
+  custodyRows: sampleTraditionalCustodyRows,
   tokenChains: [
     { id: 'demo-eth-securitize', chain: 'ETH', shares: 3_000_000, provider: 'Securitize' },
     { id: 'demo-sol-xstocks', chain: 'SOL', shares: 2_500_000, provider: 'xStocks' },

@@ -314,6 +314,7 @@ export function InternalFloatClient({
   initialUserInputs,
   institutionalOverview,
   insiderSuggestionSources = [],
+  custodyDataIsSample = false,
   demoMode = false,
 }: {
   ticker: string;
@@ -322,6 +323,7 @@ export function InternalFloatClient({
   initialUserInputs: InternalFloatUserInput;
   institutionalOverview?: InstitutionalOwnershipOverview;
   insiderSuggestionSources?: InsiderSuggestionSource[];
+  custodyDataIsSample?: boolean;
   demoMode?: boolean;
 }) {
   const [editPanel, setEditPanel] = useState<EditPanel>(null);
@@ -1210,9 +1212,11 @@ export function InternalFloatClient({
           <div>
             <div className="internal-float-sample-heading">
               <h2>Traditional Custody Breakdown</h2>
-              <span>Sample only</span>
+              <span>{custodyDataIsSample ? 'Sample only' : 'Operations data'}</span>
             </div>
-            <p className="section-subtitle">Example of the broker and custodian breakdown available after we process your DTC Position Report.</p>
+            <p className="section-subtitle">{custodyDataIsSample
+              ? 'Example broker and custodian positions shown until the Operations team publishes workspace data.'
+              : 'Broker and custodian positions maintained by the Operations team for this workspace.'}</p>
           </div>
           <Link className="button primary" href={`/monitor/${ticker}/internal-float/dtc-upload`}>
             Upload DTC Report
@@ -1229,7 +1233,7 @@ export function InternalFloatClient({
           </div>
         </div>
         <div className="terminal-card internal-float-custody-sample">
-          <span className="internal-float-sample-watermark" aria-hidden="true">Sample</span>
+          {custodyDataIsSample && <span className="internal-float-sample-watermark" aria-hidden="true">Sample</span>}
           <RankedBars rows={custodyRows.map(row => ({ key: row.id, label: row.name, value: row.shares }))} total={floatBeforeInternalAdjustments} />
         </div>
       </section>
