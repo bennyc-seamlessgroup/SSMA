@@ -50,6 +50,19 @@ function formatImportDataUpdatedAt(updatedAt: string | null, timeZone: string) {
   return formatPortalDateTime(updatedAt, timeZone);
 }
 
+function formatMarketSnapshotDate(snapshotDate: string | null) {
+  if (!snapshotDate) return 'No market snapshot found';
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(snapshotDate);
+  if (!match) return snapshotDate;
+  const date = new Date(Date.UTC(Number(match[1]), Number(match[2]) - 1, Number(match[3])));
+  return `${new Intl.DateTimeFormat('en-US', {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+    timeZone: 'UTC',
+  }).format(date)} · US Market Close`;
+}
+
 export function DesignBTopbar({
   ticker,
   companyName,
@@ -96,6 +109,7 @@ export function DesignBTopbar({
   const currentSlug = slugFromPathname(pathname);
   const pageStatus = tickerStatus?.pages[currentSlug];
   const pageUpdatedAt = pageStatus?.updatedAt ?? null;
+  const isDashboard = currentSlug === 'dashboard';
 
   const toggleCollapsed = () => {
     const next = !collapsed;
@@ -176,8 +190,12 @@ export function DesignBTopbar({
         {pageStatus ? (
           <div className="portal-design-b-heading-actions">
             <div className="portal-design-b-update">
-              <span>Last Update</span>
-              <strong>{formatImportDataUpdatedAt(pageUpdatedAt, timeZone)}</strong>
+              <span>{isDashboard ? 'Data as of' : 'Last Update'}</span>
+              <strong title={isDashboard ? 'US market trading-session date' : undefined}>
+                {isDashboard
+                  ? formatMarketSnapshotDate(pageStatus.snapshotDate ?? null)
+                  : formatImportDataUpdatedAt(pageUpdatedAt, timeZone)}
+              </strong>
             </div>
           </div>
         ) : null}

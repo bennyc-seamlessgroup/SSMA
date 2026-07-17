@@ -447,11 +447,31 @@ export function MarketDataOperationsClient() {
     () => marketEntryAvailability(form.tradeDate, new Date(nowMs)),
     [form.tradeDate, nowMs],
   );
+  const previewPublicationRows = useMemo(() => {
+    if (!form.tradeDate) return rows as MarketPublicationRecord[];
+    const saved = rows.find(row => row.tradeDate === form.tradeDate);
+    const preview: MarketPublicationRecord = {
+      ...saved,
+      tradeDate: form.tradeDate,
+      utilizationPercent: numberOrUndefined(form.utilizationPercent),
+      availableSharesIbkr: numberOrUndefined(form.availableSharesIbkr),
+      availableSharesFutu: numberOrUndefined(form.availableSharesFutu),
+      initialMarginIbkr: percentInputToRatio(form.initialMarginIbkr),
+      initialMarginFutu: percentInputToRatio(form.initialMarginFutu),
+      maintenanceMarginIbkr: percentInputToRatio(form.maintenanceMarginIbkr),
+      maintenanceMarginFutu: percentInputToRatio(form.maintenanceMarginFutu),
+      averageDurationDays: numberOrUndefined(form.averageDurationDays),
+    };
+    return [
+      ...(rows as MarketPublicationRecord[]).filter(row => marketRecordDate(row) !== form.tradeDate),
+      preview,
+    ];
+  }, [form, rows]);
   const manualPublicationInputs = useMemo(() => ({
-    utilization: rows as MarketPublicationRecord[],
-    availability: rows as MarketPublicationRecord[],
-    margins: rows as MarketPublicationRecord[],
-  }), [rows]);
+    utilization: previewPublicationRows,
+    availability: previewPublicationRows,
+    margins: previewPublicationRows,
+  }), [previewPublicationRows]);
   const selectedReadinessRecord = useMemo(
     () => marketPublicationRecordForDate(marketHistory, manualPublicationInputs, form.tradeDate),
     [form.tradeDate, manualPublicationInputs, marketHistory],
@@ -510,6 +530,11 @@ export function MarketDataOperationsClient() {
       setMessage(entryAvailability.isTradingDay
         ? 'Inputs cannot be saved until the regular US market session has closed for this trade date.'
         : 'This date is not a regular US market trading day. Select a valid trading date.');
+      return;
+    }
+    if (!selectedOutputReady) {
+      setStatus('error');
+      setMessage('Publication Readiness is incomplete. Resolve every missing vendor and manual input before saving and publishing this trade date.');
       return;
     }
     setStatus('saving');
@@ -708,8 +733,12 @@ export function MarketDataOperationsClient() {
             </div>
           </div>
           <div className="ops-form-footer">
-            <span>{formHasAnyData ? 'Only fields with values will be saved. A successful submission will trigger ticker consolidation.' : 'Enter one or more values to save.'}</span>
-            <button className="ops-primary-button" type="submit" disabled={!form.tradeDate || !formHasAnyData || !entryAvailability.isOpen || busy}>{status === 'saving' ? 'Saving...' : 'Save Inputs'}</button>
+            <span>{!formHasAnyData
+              ? 'Enter the required values to prepare this trade date.'
+              : selectedOutputReady
+                ? 'Publication Readiness is complete. Saving will publish the consolidated data to the user portal.'
+                : 'Complete every Publication Readiness requirement before saving.'}</span>
+            <button className="ops-primary-button" type="submit" disabled={!form.tradeDate || !formHasAnyData || !entryAvailability.isOpen || !selectedOutputReady || busy}>{status === 'saving' ? 'Publishing...' : 'Save Inputs & Publish'}</button>
           </div>
           {message ? <p className={`ops-form-message ${status === 'error' ? 'bad' : 'good'}`}>{message}</p> : null}
         </form>
@@ -742,7 +771,7 @@ export function MarketDataOperationsClient() {
         </div>
         <p className="ops-readiness-note">
           {selectedOutputReady
-            ? 'The vendor record and every exact-date manual input are present. This date is eligible for the user portal.'
+            ? 'The vendor record and every required manual input are present. Save Inputs & Publish to update the user portal and its Last Update time.'
             : 'The user portal remains on the latest earlier complete date until every required vendor and exact-date manual value is available.'}
         </p>
       </section>

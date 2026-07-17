@@ -8,6 +8,7 @@ import { authenticatedFetch } from '@/lib/auth-client';
 export type TickerPageDataStatus = {
   version: string;
   updatedAt: string | null;
+  snapshotDate?: string | null;
 };
 
 export type TickerDataStatus = {
@@ -22,7 +23,7 @@ const TickerDataStatusContext = createContext<TickerDataStatus | null>(null);
 const configuredPollSeconds = Number(process.env.NEXT_PUBLIC_IMPORT_DATA_POLL_SECONDS ?? 60);
 const pollIntervalMs = Math.max(30, Number.isFinite(configuredPollSeconds) ? configuredPollSeconds : 60) * 1000;
 
-type ApiDataset = { generatedAt?: string; updatedAt?: string } | null;
+type ApiDataset = { generatedAt?: string; updatedAt?: string; snapshotDate?: string } | null;
 type CombinedApiPayload = Record<string, ApiDataset>;
 type SocialStatusPayload = {
   records?: Array<{ key?: string; datetime?: string; timestamp?: string }>;
@@ -33,6 +34,17 @@ function apiStatus(...datasets: ApiDataset[]): TickerPageDataStatus {
   const timestamps = datasets.map(row => row?.updatedAt ?? row?.generatedAt).filter((value): value is string => Boolean(value));
   const updatedAt = timestamps.sort((a, b) => b.localeCompare(a))[0] ?? null;
   return { version: datasets.map(row => row?.updatedAt ?? row?.generatedAt ?? 'missing').join('|'), updatedAt };
+}
+
+function publishedApiStatus(publication: ApiDataset, ...versionDatasets: ApiDataset[]): TickerPageDataStatus {
+  // Use the consolidated market-current file's generation time for the dashboard
+  // until the publication pipeline writes a reliable `updatedAt` timestamp.
+  const updatedAt = publication?.generatedAt ?? null;
+  return {
+    version: versionDatasets.map(row => row?.updatedAt ?? row?.generatedAt ?? 'missing').join('|'),
+    updatedAt,
+    snapshotDate: publication?.snapshotDate ?? null,
+  };
 }
 
 async function getApiTickerDataStatus(ticker: string): Promise<Pick<TickerDataStatus, 'companyName' | 'pages' | 'updatedAt'>> {
@@ -64,7 +76,9 @@ async function getApiTickerDataStatus(ticker: string): Promise<Pick<TickerDataSt
     .filter((value): value is string => Boolean(value))
     .sort((a, b) => b.localeCompare(a))[0] ?? null;
   const pages = {
-    'dashboard': apiStatus(marketCurrent, marketHistory, secFilingsHistory),
+    // The dashboard displays the US trading-session date from market-current.
+    // History and filings remain in the version so their changes still refresh the UI.
+    'dashboard': publishedApiStatus(marketCurrent, marketCurrent, marketHistory, secFilingsHistory),
     institutional: apiStatus(ownershipCurrent, ownershipHistory),
     'internal-float': apiStatus(internalFloatCurrent, ownershipCurrent),
     'short-interest': apiStatus(marketCurrent, marketHistory, shortVolumeHistory, ftdHistory),
