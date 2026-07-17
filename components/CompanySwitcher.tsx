@@ -3,9 +3,10 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { getAuthenticatedProfile } from '@/lib/auth-client';
+import { authenticatedFetch, getAuthenticatedProfile } from '@/lib/auth-client';
 import { companyAccessFromProfile } from '@/lib/ticker-access';
 import { useTickerDataStatus } from './TickerDataStatusProvider';
+import { usePortalLanguage } from './usePortalLanguage';
 
 type CompanyOption = {
   ticker: string;
@@ -13,8 +14,43 @@ type CompanyOption = {
   role: string;
 };
 
+const companyNameCache = new Map<string, string>();
+
+function companyNameFromPayload(payload: unknown) {
+  const root = payload && typeof payload === 'object' ? payload as Record<string, unknown> : null;
+  const data = root?.data && typeof root.data === 'object' ? root.data as Record<string, unknown> : null;
+  const candidates = [
+    root,
+    data,
+    root?.['company-profile-current'],
+    data?.['company-profile-current'],
+  ];
+  for (const candidate of candidates) {
+    if (!candidate || typeof candidate !== 'object') continue;
+    const name = String((candidate as Record<string, unknown>).companyName ?? '').trim();
+    if (name) return name;
+  }
+  return '';
+}
+
+async function resolveCompanyName(ticker: string, fallback: string) {
+  const cached = companyNameCache.get(ticker);
+  if (cached) return cached;
+  try {
+    const payload = await authenticatedFetch(
+      `/market-data/current?ticker=${encodeURIComponent(ticker)}&category=company-profile-current`,
+    );
+    const name = companyNameFromPayload(payload) || fallback;
+    if (name) companyNameCache.set(ticker, name);
+    return name;
+  } catch {
+    return fallback;
+  }
+}
+
 export function CompanySwitcher({ ticker, companyName }: { ticker: string; companyName: string }) {
   const pathname = usePathname();
+  const { t } = usePortalLanguage();
   const tickerStatus = useTickerDataStatus();
   const menuRef = useRef<HTMLDivElement | null>(null);
   const [isOpen, setIsOpen] = useState(false);
@@ -27,13 +63,18 @@ export function CompanySwitcher({ ticker, companyName }: { ticker: string; compa
   useEffect(() => {
     let cancelled = false;
     getAuthenticatedProfile()
-      .then(profile => {
+      .then(async profile => {
         if (cancelled) return;
-        setCompanies(companyAccessFromProfile(profile).map(entry => ({
+        const access = companyAccessFromProfile(profile);
+        const resolved = await Promise.all(access.map(async entry => ({
           ticker: entry.ticker,
           role: entry.role,
-          name: entry.name,
+          name: await resolveCompanyName(
+            entry.ticker,
+            entry.name || (entry.ticker === ticker ? companyName : ''),
+          ),
         })));
+        if (!cancelled) setCompanies(resolved);
       })
       .catch(() => {
         if (!cancelled) setCompanies([{ ticker, name: companyName, role: 'Viewer' }]);
@@ -68,7 +109,8 @@ export function CompanySwitcher({ ticker, companyName }: { ticker: string; compa
   };
   const currentDisplayName = tickerStatus?.companyName?.trim()
     || current.name.trim()
-    || 'Company name unavailable';
+    || t('companyNameUnavailable');
+  const roleLabel = (role: string) => role.trim().toLowerCase() === 'viewer' ? t('viewer') : role;
   const routeSuffix = useMemo(() => {
     const match = pathname.match(/^\/monitor\/[^/]+(\/.*)?$/i);
     return match?.[1] || '/dashboard';
@@ -91,7 +133,7 @@ export function CompanySwitcher({ ticker, companyName }: { ticker: string; compa
       {isOpen && (
         <div className="company-switcher__menu" role="menu">
           <div className="company-switcher__head">
-            <span>Company access</span>
+            <span>{t('companyAccess')}</span>
             <strong>{companies.length}</strong>
           </div>
           {companies.map(company => (
@@ -107,9 +149,9 @@ export function CompanySwitcher({ ticker, companyName }: { ticker: string; compa
                 <strong>
                   {company.ticker === ticker
                     ? currentDisplayName
-                    : company.name.trim() || 'Company name unavailable'}
+                    : company.name.trim() || t('companyNameUnavailable')}
                 </strong>
-                <small>{company.role}</small>
+                <small>{roleLabel(company.role)}</small>
               </span>
               {company.ticker === ticker && (
                 <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m5 12 4 4L19 6" /></svg>
@@ -117,7 +159,7 @@ export function CompanySwitcher({ ticker, companyName }: { ticker: string; compa
             </Link>
           ))}
           <Link className="company-switcher__manage" href={`/monitor/${ticker}/companies`} onClick={() => setIsOpen(false)}>
-            Manage company access
+            {t('manageCompanyAccess')}
           </Link>
         </div>
       )}

@@ -458,8 +458,7 @@ export function LendingPressureBrowserPage({ ticker }: { ticker: string }) {
   ];
 
   return (
-    <div className="page">
-      <section className="panel">
+    <div className="page lending-pressure-page">
       <section className="terminal-section lending-page-overview">
         <div className="terminal-section__head">
           <div>
@@ -544,7 +543,6 @@ export function LendingPressureBrowserPage({ ticker }: { ticker: string }) {
           </div>
         </div>
         <ImportDataTable columns={['endpoint', 'source', 'status', 'recordCount', 'generatedAt', 'payload']} rows={apiRows} pageSize={10} />
-      </section>
       </section>
     </div>
   );

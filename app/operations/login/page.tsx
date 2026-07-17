@@ -1,9 +1,15 @@
 import Link from 'next/link';
+import { PortalLanguageMenu } from '@/components/PortalLanguageMenu';
+import { PortalPageTranslator } from '@/components/PortalPageTranslator';
 
 export default function OperationsLoginPage() {
   return (
     <main className="ops-login-page">
+      <PortalPageTranslator rootSelector=".ops-login-page" />
       <section className="ops-login-card">
+        <div className="ops-login-language">
+          <PortalLanguageMenu buttonClassName="ops-topbar__icon-button" />
+        </div>
         <div>
           <span className="ops-eyebrow">Operations Portal</span>
           <h1>Backend data workspace</h1>

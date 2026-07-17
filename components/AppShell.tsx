@@ -5,6 +5,7 @@ import { DesignBTopbar } from './DesignBTopbar';
 import { DisclaimerFooter } from './DisclaimerFooter';
 import { PublicDemoWelcome } from './PublicDemoWelcome';
 import { TickerDataStatusProvider } from './TickerDataStatusProvider';
+import { PortalPageTranslator } from './PortalPageTranslator';
 
 export function AppShell({
   ticker,
@@ -21,6 +22,7 @@ export function AppShell({
     <AuthGuard ticker={ticker}>
       <TickerDataStatusProvider ticker={ticker}>
         <div className="portal-page monitor-portal">
+          <PortalPageTranslator />
           <Sidebar ticker={ticker} companyName={companyName} importDataVersion={importDataVersion} />
           <main className="portal-main main-content">
             <DesignBTopbar ticker={ticker} companyName={companyName} />

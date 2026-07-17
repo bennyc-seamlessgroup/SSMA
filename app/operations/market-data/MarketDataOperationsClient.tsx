@@ -311,6 +311,7 @@ export function MarketDataOperationsClient() {
   const [status, setStatus] = useState<'checking' | 'loading' | 'idle' | 'saving' | 'success' | 'error' | 'forbidden'>('checking');
   const [message, setMessage] = useState('');
   const [deletingDate, setDeletingDate] = useState('');
+  const [editingDate, setEditingDate] = useState('');
   const [nowMs, setNowMs] = useState(() => Date.now());
 
   async function loadApi(endpoint: string) {
@@ -387,6 +388,7 @@ export function MarketDataOperationsClient() {
         return formFromDailyRecord(tradeDate, mergedRows.find(record => record.tradeDate === tradeDate), issuedShare);
       });
       setRows(mergedRows);
+      setEditingDate('');
       setStatus(preserveFeedback ? 'success' : 'idle');
     } catch (error) {
       setStatus('error');
@@ -506,6 +508,12 @@ export function MarketDataOperationsClient() {
   );
   const publishedDate = publishedRecord ? marketRecordDate(publishedRecord) : '';
   const busy = ['checking', 'loading', 'saving'].includes(status);
+  const selectedSavedRecord = useMemo(
+    () => rows.find(record => record.tradeDate === form.tradeDate),
+    [form.tradeDate, rows],
+  );
+  const isEditingSavedRecord = Boolean(selectedSavedRecord && editingDate === form.tradeDate);
+  const inputFieldsDisabled = !entryAvailability.isOpen || Boolean(selectedSavedRecord && !isEditingSavedRecord);
 
   function updateField(field: keyof FormState, value: string) {
     setForm(current => ({ ...current, [field]: value }));
@@ -515,16 +523,35 @@ export function MarketDataOperationsClient() {
     const record = rows.find(row => row.tradeDate === tradeDate);
     const issuedShare = numberOrUndefined(form.issuedShare);
     setForm(formFromDailyRecord(tradeDate, record, issuedShare));
+    setEditingDate('');
+    setMessage('');
   }
 
   function editRecord(record: MarketInputRow) {
     setForm(formFromDailyRecord(record.tradeDate, record, record.issuedShare));
+    setEditingDate(record.tradeDate);
+    setMessage('');
     window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  function beginEditingSelectedRecord() {
+    if (!selectedSavedRecord) return;
+    setForm(formFromDailyRecord(selectedSavedRecord.tradeDate, selectedSavedRecord, selectedSavedRecord.issuedShare));
+    setEditingDate(selectedSavedRecord.tradeDate);
+    setMessage('');
+  }
+
+  function cancelEditingSelectedRecord() {
+    if (!selectedSavedRecord) return;
+    setForm(formFromDailyRecord(selectedSavedRecord.tradeDate, selectedSavedRecord, selectedSavedRecord.issuedShare));
+    setEditingDate('');
+    setMessage('');
   }
 
   async function saveRecord(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!form.tradeDate || !formHasAnyData) return;
+    if (selectedSavedRecord && !isEditingSavedRecord) return;
     if (!entryAvailability.isOpen) {
       setStatus('error');
       setMessage(entryAvailability.isTradingDay
@@ -689,28 +716,37 @@ export function MarketDataOperationsClient() {
       <section className="ops-panel">
         <div className="ops-panel-head">
           <div><span className="ops-eyebrow">Manual Input V2</span><h2>Daily Market Inputs</h2></div>
-          <span className={`ops-status ${status === 'error' ? 'bad' : status === 'success' ? 'good' : ''}`}>{status}</span>
+          <div className="ops-market-form-head-actions">
+            {selectedSavedRecord ? (
+              isEditingSavedRecord ? (
+                <button className="ops-secondary-button" type="button" onClick={cancelEditingSelectedRecord} disabled={busy}>Cancel Edit</button>
+              ) : (
+                <button className="ops-secondary-button" type="button" onClick={beginEditingSelectedRecord} disabled={busy || !entryAvailability.isOpen}>Edit Record</button>
+              )
+            ) : null}
+            <span className={`ops-status ${status === 'error' ? 'bad' : status === 'success' ? 'good' : ''}`}>{status}</span>
+          </div>
         </div>
         <form className="ops-sec-form" onSubmit={saveRecord}>
           <div className="ops-form-grid three">
             <label>Trade Date<input type="date" value={form.tradeDate} onChange={event => selectTradeDate(event.target.value)} required suppressHydrationWarning /></label>
-            <label>Issued Share<input inputMode="numeric" value={form.issuedShare} onChange={event => updateField('issuedShare', formatShareInput(event.target.value))} disabled={!entryAvailability.isOpen} suppressHydrationWarning /></label>
-            <label>Short Score<input inputMode="decimal" value={form.shortScore} onChange={event => updateField('shortScore', event.target.value)} disabled={!entryAvailability.isOpen} suppressHydrationWarning /></label>
+            <label>Issued Share<input inputMode="numeric" value={form.issuedShare} onChange={event => updateField('issuedShare', formatShareInput(event.target.value))} disabled={inputFieldsDisabled} suppressHydrationWarning /></label>
+            <label>Short Score<input inputMode="decimal" value={form.shortScore} onChange={event => updateField('shortScore', event.target.value)} disabled={inputFieldsDisabled} suppressHydrationWarning /></label>
           </div>
           <div className="ops-broker-input-grid">
             <fieldset className="ops-broker-input-group">
               <legend><strong>IBKR</strong><span>Primary lending data</span></legend>
-              <label>Utilization %<input inputMode="decimal" value={form.utilizationPercent} onChange={event => updateField('utilizationPercent', event.target.value)} disabled={!entryAvailability.isOpen} suppressHydrationWarning /></label>
-              <label>Average Duration (Days)<input inputMode="decimal" value={form.averageDurationDays} onChange={event => updateField('averageDurationDays', event.target.value)} disabled={!entryAvailability.isOpen} suppressHydrationWarning /></label>
-              <label>IBKR Shortable Shares<input inputMode="numeric" value={form.availableSharesIbkr} onChange={event => updateField('availableSharesIbkr', formatShareInput(event.target.value))} disabled={!entryAvailability.isOpen} suppressHydrationWarning /></label>
-              <label>IBKR Initial Margin %<input inputMode="decimal" value={form.initialMarginIbkr} onChange={event => updateField('initialMarginIbkr', event.target.value)} disabled={!entryAvailability.isOpen} suppressHydrationWarning /></label>
-              <label>IBKR Maintenance Margin %<input inputMode="decimal" value={form.maintenanceMarginIbkr} onChange={event => updateField('maintenanceMarginIbkr', event.target.value)} disabled={!entryAvailability.isOpen} suppressHydrationWarning /></label>
+              <label>Utilization %<input inputMode="decimal" value={form.utilizationPercent} onChange={event => updateField('utilizationPercent', event.target.value)} disabled={inputFieldsDisabled} suppressHydrationWarning /></label>
+              <label>Average Duration (Days)<input inputMode="decimal" value={form.averageDurationDays} onChange={event => updateField('averageDurationDays', event.target.value)} disabled={inputFieldsDisabled} suppressHydrationWarning /></label>
+              <label>IBKR Shortable Shares<input inputMode="numeric" value={form.availableSharesIbkr} onChange={event => updateField('availableSharesIbkr', formatShareInput(event.target.value))} disabled={inputFieldsDisabled} suppressHydrationWarning /></label>
+              <label>IBKR Initial Margin %<input inputMode="decimal" value={form.initialMarginIbkr} onChange={event => updateField('initialMarginIbkr', event.target.value)} disabled={inputFieldsDisabled} suppressHydrationWarning /></label>
+              <label>IBKR Maintenance Margin %<input inputMode="decimal" value={form.maintenanceMarginIbkr} onChange={event => updateField('maintenanceMarginIbkr', event.target.value)} disabled={inputFieldsDisabled} suppressHydrationWarning /></label>
             </fieldset>
             <fieldset className="ops-broker-input-group">
               <legend><strong>Futu</strong><span>Secondary lending data</span></legend>
-              <label>Futu Shortable Shares<input inputMode="numeric" value={form.availableSharesFutu} onChange={event => updateField('availableSharesFutu', formatShareInput(event.target.value))} disabled={!entryAvailability.isOpen} suppressHydrationWarning /></label>
-              <label>Futu Initial Margin %<input inputMode="decimal" value={form.initialMarginFutu} onChange={event => updateField('initialMarginFutu', event.target.value)} disabled={!entryAvailability.isOpen} suppressHydrationWarning /></label>
-              <label>Futu Maintenance Margin %<input inputMode="decimal" value={form.maintenanceMarginFutu} onChange={event => updateField('maintenanceMarginFutu', event.target.value)} disabled={!entryAvailability.isOpen} suppressHydrationWarning /></label>
+              <label>Futu Shortable Shares<input inputMode="numeric" value={form.availableSharesFutu} onChange={event => updateField('availableSharesFutu', formatShareInput(event.target.value))} disabled={inputFieldsDisabled} suppressHydrationWarning /></label>
+              <label>Futu Initial Margin %<input inputMode="decimal" value={form.initialMarginFutu} onChange={event => updateField('initialMarginFutu', event.target.value)} disabled={inputFieldsDisabled} suppressHydrationWarning /></label>
+              <label>Futu Maintenance Margin %<input inputMode="decimal" value={form.maintenanceMarginFutu} onChange={event => updateField('maintenanceMarginFutu', event.target.value)} disabled={inputFieldsDisabled} suppressHydrationWarning /></label>
             </fieldset>
           </div>
           <div className={`ops-market-entry-gate ${entryAvailability.isOpen ? 'is-open' : 'is-locked'}`}>
@@ -733,12 +769,14 @@ export function MarketDataOperationsClient() {
             </div>
           </div>
           <div className="ops-form-footer">
-            <span>{!formHasAnyData
+            <span>{selectedSavedRecord && !isEditingSavedRecord
+              ? 'A record already exists for this trade date. Click Edit Record to make changes.'
+              : !formHasAnyData
               ? 'Enter the required values to prepare this trade date.'
               : selectedOutputReady
                 ? 'Publication Readiness is complete. Saving will publish the consolidated data to the user portal.'
                 : 'Complete every Publication Readiness requirement before saving.'}</span>
-            <button className="ops-primary-button" type="submit" disabled={!form.tradeDate || !formHasAnyData || !entryAvailability.isOpen || !selectedOutputReady || busy}>{status === 'saving' ? 'Publishing...' : 'Save Inputs & Publish'}</button>
+            <button className="ops-primary-button" type="submit" disabled={!form.tradeDate || !formHasAnyData || !entryAvailability.isOpen || !selectedOutputReady || Boolean(selectedSavedRecord && !isEditingSavedRecord) || busy}>{status === 'saving' ? 'Publishing...' : 'Save Inputs & Publish'}</button>
           </div>
           {message ? <p className={`ops-form-message ${status === 'error' ? 'bad' : 'good'}`}>{message}</p> : null}
         </form>

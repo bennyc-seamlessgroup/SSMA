@@ -2,20 +2,19 @@
 
 import { useEffect, useState } from 'react';
 import { PortalTimeZoneSelect } from '@/components/PortalTimeZoneSelect';
+import { usePortalLanguage } from '@/components/usePortalLanguage';
+import {
+  normalizePortalLanguage,
+  portalGeneralSettingsChangedEvent,
+  portalGeneralSettingsStorageKey,
+  portalLanguageOptions,
+  type PortalLanguage,
+} from '@/lib/portal-i18n';
 
-const languageOptions = [
-  ['en', 'English'],
-  ['zh-Hant', 'Traditional Chinese'],
-  ['zh-Hans', 'Simplified Chinese'],
-  ['ja', 'Japanese'],
-  ['ko', 'Korean'],
-] as const;
-
-const storageKey = 'currenc-general-settings';
 const themeStorageKey = 'monitor-design-b-theme';
 
 type GeneralSettings = {
-  language: string;
+  language: PortalLanguage;
   theme: 'light' | 'dark' | 'system';
 };
 
@@ -26,11 +25,11 @@ const defaultSettings: GeneralSettings = {
 
 function readSettings(): GeneralSettings {
   try {
-    const raw = window.localStorage.getItem(storageKey);
+    const raw = window.localStorage.getItem(portalGeneralSettingsStorageKey);
     const stored = raw ? JSON.parse(raw) as Partial<GeneralSettings> : {};
     const portalTheme = window.localStorage.getItem(themeStorageKey);
     return {
-      language: typeof stored.language === 'string' ? stored.language : defaultSettings.language,
+      language: normalizePortalLanguage(stored.language),
       theme: portalTheme === 'dark' ? 'dark' : portalTheme === 'light' ? 'light' : defaultSettings.theme,
     };
   } catch {
@@ -55,6 +54,7 @@ function applyThemePreference(theme: GeneralSettings['theme']) {
 }
 
 export function GeneralSettingsClient({ ticker: _ticker }: { ticker: string }) {
+  const { t } = usePortalLanguage();
   const [settings, setSettings] = useState<GeneralSettings>(defaultSettings);
   const [ready, setReady] = useState(false);
 
@@ -66,13 +66,11 @@ export function GeneralSettingsClient({ ticker: _ticker }: { ticker: string }) {
   }, []);
 
   function patchSettings(patch: Partial<GeneralSettings>) {
-    setSettings(current => {
-      const next = { ...current, ...patch };
-      window.localStorage.setItem(storageKey, JSON.stringify(next));
-      if (patch.theme) applyThemePreference(next.theme);
-      window.dispatchEvent(new CustomEvent('currenc-general-settings-change', { detail: next }));
-      return next;
-    });
+    const next = { ...settings, ...patch };
+    setSettings(next);
+    window.localStorage.setItem(portalGeneralSettingsStorageKey, JSON.stringify(next));
+    if (patch.theme) applyThemePreference(next.theme);
+    window.dispatchEvent(new CustomEvent(portalGeneralSettingsChangedEvent, { detail: next }));
   }
 
   return (
@@ -80,15 +78,15 @@ export function GeneralSettingsClient({ ticker: _ticker }: { ticker: string }) {
       <section className="settings-simple-panel" aria-busy={!ready}>
         <div className="settings-simple-row">
           <div>
-            <strong>Language</strong>
-            <span>Choose the language used across the portal.</span>
+            <strong>{t('language')}</strong>
+            <span>{t('languageDescription')}</span>
           </div>
           <select
-            aria-label="Portal language"
+            aria-label={t('portalLanguage')}
             value={settings.language}
-            onChange={event => patchSettings({ language: event.target.value })}
+            onChange={event => patchSettings({ language: normalizePortalLanguage(event.target.value) })}
           >
-            {languageOptions.map(([value, label]) => (
+            {portalLanguageOptions.map(([value, label]) => (
               <option value={value} key={value}>{label}</option>
             ))}
           </select>
@@ -96,29 +94,29 @@ export function GeneralSettingsClient({ ticker: _ticker }: { ticker: string }) {
 
         <div className="settings-simple-row">
           <div>
-            <strong>Theme</strong>
-            <span>Control the portal appearance on this device.</span>
+            <strong>{t('theme')}</strong>
+            <span>{t('themeDescription')}</span>
           </div>
           <select
-            aria-label="Portal theme"
+            aria-label={t('portalTheme')}
             value={settings.theme}
             onChange={event => patchSettings({ theme: event.target.value as GeneralSettings['theme'] })}
           >
-            <option value="light">Light</option>
-            <option value="dark">Dark</option>
-            <option value="system">System</option>
+            <option value="light">{t('light')}</option>
+            <option value="dark">{t('dark')}</option>
+            <option value="system">{t('system')}</option>
           </select>
         </div>
 
         <div className="settings-simple-row settings-simple-row--timezone">
           <div>
-            <strong>Date &amp; Time</strong>
-            <span>Display dates and update times in your preferred time zone.</span>
+            <strong>{t('dateTime')}</strong>
+            <span>{t('dateTimeDescription')}</span>
           </div>
           <PortalTimeZoneSelect />
         </div>
       </section>
-      <p className="settings-simple-note">Changes are applied automatically and stored on this device.</p>
+      <p className="settings-simple-note">{t('automaticChanges')}</p>
     </div>
   );
 }

@@ -5,24 +5,26 @@ import { usePathname } from 'next/navigation';
 import { useEffect, useMemo, useState } from 'react';
 import { DevModeToggle } from './DevModeToggle';
 import { useTickerDataStatus } from './TickerDataStatusProvider';
+import { setOperationsTicker } from '@/lib/operations/ticker-client';
+import { usePortalLanguage } from './usePortalLanguage';
 
 const workspaceItems = [
-  ['Dashboard', 'dashboard'],
-  ['Ownership', 'institutional'],
-  ['Internal Float', 'internal-float'],
-  ['Short Interest', 'short-interest'],
-  ['Lending Pressure', 'lending-pressure'],
-  ['Social Sentiment', 'sentiment'],
-  ['SEC Filings', 'event-calendar'],
-  ['Report Archive', 'reports'],
+  ['dashboard', 'dashboard'],
+  ['ownership', 'institutional'],
+  ['internalFloat', 'internal-float'],
+  ['shortInterest', 'short-interest'],
+  ['lendingPressure', 'lending-pressure'],
+  ['socialSentiment', 'sentiment'],
+  ['secFilings', 'event-calendar'],
+  ['reportArchive', 'reports'],
 ] as const;
 
 const settingsItems = [
-  ['General', 'settings'],
-  ['User Profile', 'user-profile'],
-  ['Company Management', 'companies'],
-  ['Alert Rules', 'alert-rules'],
-  ['Delivery Settings', 'email-settings'],
+  ['general', 'settings'],
+  ['userProfile', 'user-profile'],
+  ['companyManagement', 'companies'],
+  ['alertRules', 'alert-rules'],
+  ['deliverySettings', 'email-settings'],
 ] as const;
 
 const importDataSeenKeyPrefix = 'import-data-seen-version';
@@ -89,6 +91,7 @@ export function Sidebar({
   importDataVersion: string;
 }) {
   const pathname = usePathname();
+  const { t } = usePortalLanguage();
   const tickerStatus = useTickerDataStatus();
   const currentImportDataVersion = tickerStatus?.version ?? importDataVersion;
   const [, setSeenImportDataVersion] = useState(importDataVersion);
@@ -166,8 +169,8 @@ export function Sidebar({
 
       <div className="portal-sidebar__scroll">
         <div className={`portal-navigation-slider is-${navigationView}`}>
-          <nav className="portal-primary-navigation portal-navigation-panel portal-workspace-navigation" aria-label="Primary navigation" aria-hidden={navigationView !== 'workspace'}>
-            {workspaceItems.map(([label, slug]) => {
+          <nav className="portal-primary-navigation portal-navigation-panel portal-workspace-navigation" aria-label={t('primaryNavigation')} aria-hidden={navigationView !== 'workspace'}>
+            {workspaceItems.map(([labelKey, slug]) => {
               const href = `/monitor/${ticker}/${slug}`;
               const active = pathname === href;
               const pageHasImportUpdate = hasPageImportUpdate(slug);
@@ -176,7 +179,7 @@ export function Sidebar({
                   key={slug}
                   href={href as any}
                   className={`portal-menu ${active ? 'active' : ''}`}
-                  title={label}
+                  title={t(labelKey)}
                   tabIndex={navigationView === 'workspace' ? 0 : -1}
                   onClick={() => {
                     acknowledgeImportDataUpdate();
@@ -186,27 +189,27 @@ export function Sidebar({
                   <span className="portal-menu__icon">
                     <NavigationIcon slug={slug} />
                     {navigationView === 'workspace' && pageHasImportUpdate && (
-                      <span className="portal-update-dot" aria-label="New data available" />
+                      <span className="portal-update-dot" aria-label={t('newDataAvailable')} />
                     )}
                   </span>
-                  <span className="portal-menu__label">{label}</span>
+                  <span className="portal-menu__label">{t(labelKey)}</span>
                 </Link>
               );
             })}
             <button
               className={`portal-menu portal-menu--button ${isSettingsPath(pathname, ticker) ? 'active' : ''}`}
               type="button"
-              title="Settings"
+              title={t('settings')}
               tabIndex={navigationView === 'workspace' ? 0 : -1}
               onClick={() => setNavigationView('settings')}
             >
               <span className="portal-menu__icon"><NavigationIcon slug="settings" /></span>
-              <span className="portal-menu__label">Settings</span>
+              <span className="portal-menu__label">{t('settings')}</span>
               <svg className="portal-menu__arrow" viewBox="0 0 24 24" aria-hidden="true"><path d="m9 18 6-6-6-6" /></svg>
             </button>
           </nav>
 
-          <nav className="portal-primary-navigation portal-navigation-panel portal-settings-navigation" aria-label="Settings navigation" aria-hidden={navigationView !== 'settings'}>
+          <nav className="portal-primary-navigation portal-navigation-panel portal-settings-navigation" aria-label={t('settingsNavigation')} aria-hidden={navigationView !== 'settings'}>
             <button
               className="portal-settings-back"
               type="button"
@@ -214,20 +217,20 @@ export function Sidebar({
               onClick={() => setNavigationView('workspace')}
             >
               <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m15 18-6-6 6-6" /></svg>
-              <span>Settings</span>
+              <span>{t('settings')}</span>
             </button>
-            {settingsItems.map(([label, slug]) => {
+            {settingsItems.map(([labelKey, slug]) => {
               const href = `/monitor/${ticker}/${slug}`;
               return (
                 <Link
                   key={slug}
                   href={href as any}
                   className={`portal-menu ${pathname === href ? 'active' : ''}`}
-                  title={label}
+                  title={t(labelKey)}
                   tabIndex={navigationView === 'settings' ? 0 : -1}
                 >
                   <span className="portal-menu__icon"><NavigationIcon slug={slug} /></span>
-                  <span className="portal-menu__label">{label}</span>
+                  <span className="portal-menu__label">{t(labelKey)}</span>
                 </Link>
               );
             })}
@@ -237,9 +240,14 @@ export function Sidebar({
 
       <div className="portal-sidebar__utilities">
         <DevModeToggle />
-        <Link className="portal-backend-link dev-only" href="/operations/market-data" title="Backend Portal">
+        <Link
+          className="portal-backend-link dev-only"
+          href={`/operations/market-data?ticker=${encodeURIComponent(ticker)}`}
+          title={t('openBackendPortal', { ticker })}
+          onClick={() => setOperationsTicker(ticker)}
+        >
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m8 9-4 3 4 3M16 9l4 3-4 3M14 5l-4 14" /></svg>
-          <span>Backend Portal</span>
+          <span>{t('backendPortal')}</span>
         </Link>
       </div>
     </aside>

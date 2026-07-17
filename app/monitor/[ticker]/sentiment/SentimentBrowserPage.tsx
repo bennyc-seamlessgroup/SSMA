@@ -21,7 +21,7 @@ import { useSearchParams } from 'next/navigation';
 import { useEffect, useState, type ReactNode } from 'react';
 import { MentionFeedCards, type MentionFeedRow } from './MentionFeedCards';
 import { NarrativeRangeSelector } from './NarrativeRangeSelector';
-import { SentimentTimeline } from './SentimentTimeline';
+import { sentimentPlatformColors, SentimentTimeline } from './SentimentTimeline';
 
 type SentimentBucket = 'positive' | 'negative' | 'neutral';
 
@@ -268,20 +268,12 @@ function PlatformIcon({ platform }: { platform: Exclude<SentimentPlatformFilter,
       ? '/x_logo_128x128.png'
       : platform === 'Stocktwits'
         ? '/stocktwits_logo_128x128.png'
-        : '';
+        : platform === 'Facebook'
+          ? '/facebook_logo_128x128.png'
+          : '/linkedin_logo_128x128.png';
   return (
     <span className={`narrative-platform-icon ${platform.toLowerCase()}`}>
-      {logo ? (
-        <img src={logo} alt="" />
-      ) : platform === 'Facebook' ? (
-        <svg viewBox="0 0 24 24" aria-hidden="true" className="narrative-brand-svg">
-          <path d="M15.2 8.2h-2.1c-.6 0-.9.4-.9 1v1.7h2.8l-.4 2.8h-2.4V21H9.3v-7.3H7v-2.8h2.3V8.8c0-2.4 1.5-3.8 3.7-3.8.9 0 1.8.1 2.2.1v3.1Z" />
-        </svg>
-      ) : (
-        <svg viewBox="0 0 24 24" aria-hidden="true" className="narrative-brand-svg">
-          <path d="M5 9h3.1v10H5V9Zm1.6-4.8A1.8 1.8 0 1 1 6.6 8a1.8 1.8 0 0 1 0-3.6ZM10.4 9h3v1.4h.1c.4-.8 1.5-1.7 3.1-1.7 3.3 0 3.9 2.2 3.9 5V19h-3.1v-4.7c0-1.1 0-2.6-1.6-2.6s-1.8 1.2-1.8 2.5V19h-3.1V9Z" />
-        </svg>
-      )}
+      <img src={logo} alt="" />
     </span>
   );
 }
@@ -575,20 +567,26 @@ export function SentimentBrowserPage({ ticker }: { ticker: string }) {
             <h2 className="panel__title">Sentiment Timeline & Social Feed <InfoTooltip text="Platform and date filters apply to both the timeline and feed list." /></h2>
           </div>
         </div>
-        <div className="narrative-filter-group narrative-platform-filter" aria-label="Platform filter">
-          {platformFilters.map(platform => (
-            <button
-              key={platform}
-              type="button"
-              className={selectedPlatform === platform ? 'active' : ''}
-              onClick={() => {
-                setSelectedPlatform(platform);
-                setSelectedBucketId(null);
-              }}
-            >
-              {platformDisplayLabel(platform)} ({platformCounts[platform].toLocaleString('en-US')})
-            </button>
-          ))}
+        <div className="narrative-platform-filter-row">
+          <div className="narrative-filter-group narrative-platform-filter" aria-label="Platform filter">
+            {platformFilters.map(platform => (
+              <button
+                key={platform}
+                type="button"
+                className={selectedPlatform === platform ? 'active' : ''}
+                onClick={() => {
+                  setSelectedPlatform(platform);
+                  setSelectedBucketId(null);
+                }}
+              >
+                {platformDisplayLabel(platform)} ({platformCounts[platform].toLocaleString('en-US')})
+              </button>
+            ))}
+          </div>
+          <div className="narrative-timeline-current" aria-label={`Timeline series: ${platformDisplayLabel(selectedPlatform)}`}>
+            <i style={{ background: sentimentPlatformColors[selectedPlatform] }} />
+            {platformDisplayLabel(selectedPlatform)}
+          </div>
         </div>
         <SentimentTimeline
           buckets={aggregatedBuckets}

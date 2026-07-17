@@ -4,8 +4,10 @@ import Link from 'next/link';
 import { useEffect, useRef, useState } from 'react';
 import { getAuthenticatedProfile, getCurrentUser, signOut } from '@/lib/auth-client';
 import { endPublicDemoSession, isPublicDemoSession } from '@/lib/public-demo';
+import { usePortalLanguage } from './usePortalLanguage';
 
 export function UserMenu({ ticker }: { ticker: string }) {
+  const { t } = usePortalLanguage();
   const [isOpen, setIsOpen] = useState(false);
   const [email, setEmail] = useState(() => {
     const tokenEmail = getCurrentUser()?.email;
@@ -65,7 +67,7 @@ export function UserMenu({ ticker }: { ticker: string }) {
         <span className="user-avatar" aria-hidden="true">{avatarLetter}</span>
         <span className="user-menu__meta">
           <strong>{displayName}</strong>
-          <small>{isDemo ? 'Demo Viewer' : 'IR Admin'}</small>
+          <small>{isDemo ? t('demoViewer') : t('irAdmin')}</small>
         </span>
       </button>
 
@@ -73,12 +75,12 @@ export function UserMenu({ ticker }: { ticker: string }) {
         <div className="user-menu__panel">
           <div className="user-menu__head">
             <strong>Currenc Intelligence</strong>
-            <span>{email || 'Signed in'}</span>
+            <span>{email || t('signedIn')}</span>
           </div>
-          <Link href={`/monitor/${ticker}/user-profile`} onClick={() => setIsOpen(false)}>User Profile</Link>
-          <Link href={`/monitor/${ticker}/companies`} onClick={() => setIsOpen(false)}>Company Management</Link>
-          <Link href={`/monitor/${ticker}/settings`} onClick={() => setIsOpen(false)}>Settings</Link>
-          <Link href={`/monitor/${ticker}/email-settings`} onClick={() => setIsOpen(false)}>Delivery Settings</Link>
+          <Link href={`/monitor/${ticker}/user-profile`} onClick={() => setIsOpen(false)}>{t('userProfile')}</Link>
+          <Link href={`/monitor/${ticker}/companies`} onClick={() => setIsOpen(false)}>{t('companyManagement')}</Link>
+          <Link href={`/monitor/${ticker}/settings`} onClick={() => setIsOpen(false)}>{t('settings')}</Link>
+          <Link href={`/monitor/${ticker}/email-settings`} onClick={() => setIsOpen(false)}>{t('deliverySettings')}</Link>
           <button className="user-menu__link-button" type="button" onClick={() => {
             setIsOpen(false);
             if (isDemo) {
@@ -87,7 +89,7 @@ export function UserMenu({ ticker }: { ticker: string }) {
             } else {
               signOut();
             }
-          }}>{isDemo ? 'Exit demo' : 'Sign out'}</button>
+          }}>{isDemo ? t('exitDemo') : t('signOut')}</button>
         </div>
       )}
     </div>

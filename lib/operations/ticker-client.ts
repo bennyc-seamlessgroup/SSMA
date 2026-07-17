@@ -7,7 +7,10 @@ export const operationsTickerChangedEvent = 'operations-ticker-changed';
 
 export function getOperationsTicker() {
   if (typeof window === 'undefined') return 'CURR';
-  return normalizeTicker(window.localStorage.getItem(operationsTickerStorageKey));
+  const routeTicker = window.location.pathname.startsWith('/operations')
+    ? new URLSearchParams(window.location.search).get('ticker')
+    : null;
+  return normalizeTicker(routeTicker || window.localStorage.getItem(operationsTickerStorageKey));
 }
 
 export function setOperationsTicker(ticker: string) {
@@ -16,4 +19,3 @@ export function setOperationsTicker(ticker: string) {
   window.dispatchEvent(new CustomEvent(operationsTickerChangedEvent, { detail: normalized }));
   return normalized;
 }
-

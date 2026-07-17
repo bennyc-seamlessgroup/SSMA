@@ -9,32 +9,35 @@ import { usePortalTimeZone } from './usePortalTimeZone';
 import { CompanySwitcher } from './CompanySwitcher';
 import { useTickerDataStatus } from './TickerDataStatusProvider';
 import { NotificationInbox } from './NotificationInbox';
+import { usePortalLanguage } from './usePortalLanguage';
+import { portalLocale, type PortalMessageKey } from '@/lib/portal-i18n';
+import { PortalLanguageMenu } from './PortalLanguageMenu';
 
 const storageKey = 'monitor-design-b-sidebar-collapsed';
 const themeStorageKey = 'monitor-design-b-theme';
 
-const routeLabels: Record<string, { section: string; page: string }> = {
-  'dashboard': { section: 'Workspace', page: 'Dashboard' },
-  institutional: { section: 'Workspace', page: 'Ownership' },
-  'short-interest': { section: 'Workspace', page: 'Short Interest' },
-  'lending-pressure': { section: 'Workspace', page: 'Lending Pressure' },
-  'squeeze-readiness': { section: 'Development', page: 'Squeeze Readiness' },
-  'internal-float': { section: 'Workspace', page: 'Internal Float' },
-  sentiment: { section: 'Workspace', page: 'Social Sentiment' },
-  'event-calendar': { section: 'Workspace', page: 'SEC Filings' },
-  'price-scenario': { section: 'Development', page: 'Price Scenarios' },
-  reports: { section: 'Workspace', page: 'Report Archive' },
-  settings: { section: 'Settings', page: 'General' },
-  'user-profile': { section: 'Settings', page: 'User Profile' },
-  'role-permissions': { section: 'Settings', page: 'Role & Permissions' },
-  billing: { section: 'Development', page: 'Billing & Plan' },
-  companies: { section: 'Settings', page: 'Company Management' },
-  'email-settings': { section: 'Settings', page: 'Delivery Settings' },
-  'alert-rules': { section: 'Settings', page: 'Alert Rules' },
-  notifications: { section: 'Development', page: 'Notifications' },
-  policy: { section: 'Development', page: 'Security Policy' },
-  'api-connectors': { section: 'Development', page: 'Connectors' },
-  'import-data': { section: 'Development', page: 'Data Sources' },
+const routeLabels: Record<string, { section: PortalMessageKey; page: PortalMessageKey }> = {
+  'dashboard': { section: 'workspace', page: 'dashboard' },
+  institutional: { section: 'workspace', page: 'ownership' },
+  'short-interest': { section: 'workspace', page: 'shortInterest' },
+  'lending-pressure': { section: 'workspace', page: 'lendingPressure' },
+  'squeeze-readiness': { section: 'development', page: 'squeezeReadiness' },
+  'internal-float': { section: 'workspace', page: 'internalFloat' },
+  sentiment: { section: 'workspace', page: 'socialSentiment' },
+  'event-calendar': { section: 'workspace', page: 'secFilings' },
+  'price-scenario': { section: 'development', page: 'priceScenarios' },
+  reports: { section: 'workspace', page: 'reportArchive' },
+  settings: { section: 'settings', page: 'general' },
+  'user-profile': { section: 'settings', page: 'userProfile' },
+  'role-permissions': { section: 'settings', page: 'rolePermissions' },
+  billing: { section: 'development', page: 'billingPlan' },
+  companies: { section: 'settings', page: 'companyManagement' },
+  'email-settings': { section: 'settings', page: 'deliverySettings' },
+  'alert-rules': { section: 'settings', page: 'alertRules' },
+  notifications: { section: 'development', page: 'notifications' },
+  policy: { section: 'development', page: 'securityPolicy' },
+  'api-connectors': { section: 'development', page: 'connectors' },
+  'import-data': { section: 'development', page: 'dataSources' },
 };
 
 function applyCollapsedState(collapsed: boolean) {
@@ -45,22 +48,23 @@ function applyThemeState(theme: 'light' | 'dark') {
   document.documentElement.dataset.designBTheme = theme;
 }
 
-function formatImportDataUpdatedAt(updatedAt: string | null, timeZone: string) {
-  if (!updatedAt) return 'No import data files found';
-  return formatPortalDateTime(updatedAt, timeZone);
+function formatImportDataUpdatedAt(updatedAt: string | null, timeZone: string, emptyText: string, locale: string) {
+  if (!updatedAt) return emptyText;
+  return formatPortalDateTime(updatedAt, timeZone, {}, locale);
 }
 
-function formatMarketSnapshotDate(snapshotDate: string | null) {
-  if (!snapshotDate) return 'No market snapshot found';
-  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(snapshotDate);
-  if (!match) return snapshotDate;
+function formatDataDate(value: string | null, locale: string, emptyText: string, suffix = '') {
+  if (!value) return emptyText;
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
+  if (!match) return `${value}${suffix}`;
   const date = new Date(Date.UTC(Number(match[1]), Number(match[2]) - 1, Number(match[3])));
-  return `${new Intl.DateTimeFormat('en-US', {
+  const formatted = new Intl.DateTimeFormat(locale, {
     month: 'short',
     day: 'numeric',
     year: 'numeric',
     timeZone: 'UTC',
-  }).format(date)} · US Market Close`;
+  }).format(date);
+  return `${formatted}${suffix}`;
 }
 
 export function DesignBTopbar({
@@ -71,6 +75,7 @@ export function DesignBTopbar({
   companyName: string;
 }) {
   const pathname = usePathname();
+  const { language, t } = usePortalLanguage();
   const tickerStatus = useTickerDataStatus();
   const [collapsed, setCollapsed] = useState(false);
   const [theme, setTheme] = useState<'light' | 'dark'>('light');
@@ -98,18 +103,31 @@ export function DesignBTopbar({
 
   const current = useMemo(() => {
     if (pathname.endsWith('/internal-float/dtc-upload')) {
-      return { section: 'Internal Float', page: 'DTC Report Upload' };
+      return { section: t('internalFloat'), page: t('dtcReportUpload') };
     }
     if (pathname.endsWith('/settings/alerts')) {
-      return { section: 'Settings', page: 'Alert Rules' };
+      return { section: t('settings'), page: t('alertRules') };
     }
     const slug = slugFromPathname(pathname);
-    return routeLabels[slug] ?? { section: 'Workspace', page: slug ? slug.replace(/-/g, ' ') : 'Overview' };
-  }, [pathname]);
+    const route = routeLabels[slug];
+    return route
+      ? { section: t(route.section), page: t(route.page) }
+      : { section: t('workspace'), page: slug ? slug.replace(/-/g, ' ') : t('overview') };
+  }, [pathname, t]);
   const currentSlug = slugFromPathname(pathname);
   const pageStatus = tickerStatus?.pages[currentSlug];
   const pageUpdatedAt = pageStatus?.updatedAt ?? null;
-  const isDashboard = currentSlug === 'dashboard';
+  const dateMode = pageStatus?.dateMode ?? 'last-update';
+  const isDataAsOf = dateMode === 'market-close' || dateMode === 'snapshot';
+  const statusLabel = dateMode === 'latest-filing'
+    ? t('latestFiling')
+    : dateMode === 'last-update'
+      ? t('lastUpdate')
+      : t('dataAsOf');
+  const locale = portalLocale(language);
+  const statusValue = dateMode === 'last-update'
+    ? formatImportDataUpdatedAt(pageUpdatedAt, timeZone, t('noImportFiles'), locale)
+    : formatDataDate(pageStatus?.displayDate ?? null, locale, t('noData'), isDataAsOf ? ` · ${t('usMarketClose')}` : '');
 
   const toggleCollapsed = () => {
     const next = !collapsed;
@@ -131,9 +149,9 @@ export function DesignBTopbar({
         <button
           type="button"
           className="portal-design-b-collapse"
-          aria-label={collapsed ? 'Keep sidebar expanded' : 'Use compact hover sidebar'}
+          aria-label={collapsed ? t('keepSidebarExpanded') : t('useCompactSidebar')}
           aria-pressed={!collapsed}
-          title={collapsed ? 'Keep sidebar expanded' : 'Use compact hover sidebar'}
+          title={collapsed ? t('keepSidebarExpanded') : t('useCompactSidebar')}
           onClick={toggleCollapsed}
         >
           <svg viewBox="0 0 24 24" aria-hidden="true">
@@ -143,12 +161,12 @@ export function DesignBTopbar({
           </svg>
         </button>
 
-        <div className="portal-design-b-actions" aria-label="Design B quick actions">
+        <div className="portal-design-b-actions" aria-label={t('quickActions')}>
           <CompanySwitcher ticker={ticker} companyName={companyName} />
           <button
             type="button"
             className={theme === 'dark' ? 'is-active' : ''}
-            aria-label={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+            aria-label={theme === 'dark' ? t('switchToLight') : t('switchToDark')}
             aria-pressed={theme === 'dark'}
             onClick={toggleTheme}
           >
@@ -170,6 +188,7 @@ export function DesignBTopbar({
               )}
             </svg>
           </button>
+          <PortalLanguageMenu />
           <NotificationInbox />
           <UserMenu ticker={ticker} />
         </div>
@@ -190,12 +209,8 @@ export function DesignBTopbar({
         {pageStatus ? (
           <div className="portal-design-b-heading-actions">
             <div className="portal-design-b-update">
-              <span>{isDashboard ? 'Data as of' : 'Last Update'}</span>
-              <strong title={isDashboard ? 'US market trading-session date' : undefined}>
-                {isDashboard
-                  ? formatMarketSnapshotDate(pageStatus.snapshotDate ?? null)
-                  : formatImportDataUpdatedAt(pageUpdatedAt, timeZone)}
-              </strong>
+              <span>{statusLabel}</span>
+              <strong title={isDataAsOf ? 'US market trading-session date' : undefined}>{statusValue}</strong>
             </div>
           </div>
         ) : null}

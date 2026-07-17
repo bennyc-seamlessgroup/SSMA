@@ -3,7 +3,7 @@
 import type { AggregatedSentimentBucket, SentimentPlatformFilter } from '@/lib/sentiment-buckets';
 import { useEffect, useRef, useState } from 'react';
 
-const platformColors: Record<SentimentPlatformFilter, string> = {
+export const sentimentPlatformColors: Record<SentimentPlatformFilter, string> = {
   All: '#7c3aed',
   X: 'var(--narrative-x-color, #111827)',
   Reddit: '#ff4500',
@@ -58,7 +58,7 @@ export function SentimentTimeline({
   const [chartWidth, setChartWidth] = useState(1100);
   const [hoveredBucketId, setHoveredBucketId] = useState<string | null>(null);
   const labels = visibleLabelIndexes(buckets.length);
-  const selectedColor = platformColors[selectedPlatform];
+  const selectedColor = sentimentPlatformColors[selectedPlatform];
   const plotWidth = chartWidth - chart.left - chart.right;
   const groupStep = plotWidth / Math.max(buckets.length, 1);
   const barWidth = Math.min(Math.max(groupStep * .46, 5), 28);
@@ -82,17 +82,6 @@ export function SentimentTimeline({
 
   return (
     <div className="narrative-timeline-card narrative-line-timeline">
-      <div className="narrative-section-head narrative-timeline-head">
-        <div>
-          <h2>Sentiment Timeline</h2>
-          <p>Fixed date buckets keep every bar aligned to the selected timeframe.</p>
-        </div>
-        <div className="narrative-timeline-current">
-          <i style={{ background: selectedColor }} />
-          {selectedPlatform}
-        </div>
-      </div>
-
       <div ref={chartRef} className="narrative-line-chart narrative-grouped-bar-chart">
         <svg
           viewBox={`0 0 ${chartWidth} ${chart.height}`}

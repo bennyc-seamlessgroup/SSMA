@@ -1,93 +1,57 @@
-# CURRENC Daily Close Post-Market Report
+# CURRENC Daily Market Close Report
 
-This folder contains the modular browser-rendered template for the daily post-market executive PDF.
+This folder contains the active browser-rendered template for the management daily-close PDF.
 
-The active structure is:
+## Active Files
 
 ```text
 template.html
 styles.css
-report-data.json
 render.js
+report-data.json
+generate-portal-backed-pdf.js
+REPORT_DATA_CONTRACT.md
+DAILY_REPORT_RULES.md
+report-ai-data-points.csv
 ```
 
-Backend can replace `report-data.json` every day without touching the report layout.
+- `template.html` is the fixed HTML shell.
+- `styles.css` defines A4 print layout and all report styling.
+- `render.js` renders supplied values and SVG charts. It does not own business calculations.
+- `report-data.json` is a replaceable sample payload following the v2 contract.
+- `generate-portal-backed-pdf.js` exports the report with Playwright.
+- `REPORT_DATA_CONTRACT.md` defines the complete backend payload.
+- `DAILY_REPORT_RULES.md` defines deterministic alerts and watch thresholds.
+- `report-ai-data-points.csv` lists the proposed AI outputs to add to the central data inventory.
 
-## Active Files
+## Report Structure
 
-- `template.html`
-  - The HTML shell.
-  - Loads `styles.css`, `render.js`, and indirectly `report-data.json`.
+1. Cover and reporting scope
+2. Executive close snapshot
+3. Market performance and liquidity
+4. Short interest and lending pressure
+5. Social sentiment, filings, and material events
+6. Next-session outlook and management priorities
+7. Legal disclaimer
 
-- `styles.css`
-  - All print/PDF styling.
-  - Uses A4 page sizing and fixed page sections for Playwright PDF export.
+The report intentionally excludes routine quarterly ownership detail, private internal-float inputs, and long-form raw tables. Those remain in the portal. A material ownership or float event may appear only when a same-day change is detected.
 
-- `report-data.json`
-  - The replaceable daily report data file.
-  - Backend should generate this file after market close.
-  - Data contract is documented in `REPORT_DATA_CONTRACT.md`.
+## Local PDF Generation
 
-- `render.js`
-  - Browser-side renderer.
-  - Fetches `report-data.json` and renders the full report into `template.html`.
-  - Does display formatting and SVG chart rendering only.
-  - Should not contain business/risk calculations.
-
-- `generate-portal-backed-pdf.js`
-  - Playwright exporter.
-  - Starts a local static server, opens `template.html`, waits for `window.__REPORT_READY__`, and exports the final A4 PDF.
-
-- `build-report-data.js`
-  - Prototype-only helper.
-  - Reads the current local portal `import_data` files and writes sample `report-data.json`.
-  - Backend does not need to use this script in production if it can generate `report-data.json` directly.
-
-- `currenc-post-market-portal-backed-report-playwright.pdf`
-  - Current sample PDF output for visual review.
-
-- `DAILY_REPORT_RULES.md`
-  - Deterministic rules for Top Daily Alerts, Management Watch Items, Tomorrow Watchlist, and SEC filing display.
-
-- `REPORT_DATA_CONTRACT.md`
-  - Exact JSON contract for `report-data.json`.
-
-- `old-files/`
-  - Legacy static demo and old scaffold files.
-  - Reference only. Not part of the active report generation pipeline.
-
-## Backend Setup
-
-Install dependencies:
+Install browser support once:
 
 ```bash
 npm install
 npx playwright install chromium
 ```
 
-For Linux servers, Playwright may also need OS dependencies:
+On Linux servers:
 
 ```bash
 npx playwright install --with-deps chromium
 ```
 
-The repo includes Playwright as a dev dependency.
-
-## Local Prototype Generation
-
-For local prototype data only:
-
-```bash
-node "Report Templates/currenc-closing-digest-report-demo/build-report-data.js"
-```
-
-This writes:
-
-```text
-Report Templates/currenc-closing-digest-report-demo/report-data.json
-```
-
-Then export the PDF:
+Generate the sample PDF:
 
 ```bash
 node "Report Templates/currenc-closing-digest-report-demo/generate-portal-backed-pdf.js"
@@ -99,104 +63,59 @@ Output:
 Report Templates/currenc-closing-digest-report-demo/currenc-post-market-portal-backed-report-playwright.pdf
 ```
 
-## Production Backend Workflow
+## Production Workflow
 
-Recommended daily job:
-
-1. Trigger after market close, for example 7:00 PM ET.
-2. Read latest daily market, borrow, short interest, social, and SEC filing data.
-3. Calculate all derived values and deterministic alerts in backend.
-4. Generate `report-data.json` following `REPORT_DATA_CONTRACT.md`.
-5. Serve `template.html`, `styles.css`, `render.js`, and `report-data.json` together.
-6. Use Playwright to open `template.html`.
-7. Wait until `window.__REPORT_READY__ === true`.
-8. Export PDF with:
-   - `format: "A4"`
-   - `printBackground: true`
-   - `preferCSSPageSize: true`
-   - zero margins
-9. Upload the PDF to report storage.
-10. Save report metadata:
-   - ticker
-   - report date
-   - generated time
-   - PDF URL
-   - source data version/hash
+1. Trigger after the agreed market-data cutoff.
+2. Read exact-date market, short, lending, social, filing, event, and approved manual-input records.
+3. Apply backend calculations and deterministic alert rules.
+4. Evaluate report data coverage. Keep missing fields explicit.
+5. Generate all available rule-based sections.
+6. Generate AI sections when the AI pipeline is enabled; otherwise keep `status: "pending"`.
+7. Validate the payload against `REPORT_DATA_CONTRACT.md`.
+8. Serve the four runtime files together: `template.html`, `styles.css`, `render.js`, and the generated `report-data.json`.
+9. Open `template.html` with Playwright and wait for `window.__REPORT_READY__ === true`.
+10. Export A4 PDF using `printBackground: true` and `preferCSSPageSize: true`.
+11. Save the PDF or render it on demand from the immutable report-data snapshot.
+12. Store ticker, report date, payload version/hash, generated time, model/prompt versions, and approval state.
 
 ## Responsibility Split
 
-Backend should own:
+Backend owns:
 
-- all API/data fetching
-- all calculations
-- all threshold triggers
-- all alert ranking
-- all LLM-generated sections once LLM is implemented
-- final `report-data.json`
+- API and database reads
+- current/prior-period selection
+- calculations and score labels
+- report readiness
+- deterministic alert triggers and ranking
+- AI prompts and generated output
+- legal disclaimer injection
+- final immutable report payload
 
-The live portal PDF route injects the approved report footer and full disclaimer from
-`lib/legal/disclaimers.ts` into `legalDisclaimers.footer` and
-`legalDisclaimers.full` before rendering. A standalone backend renderer must provide
-the same two fields or perform the same injection so every report page has the short
-footer and the final PDF page contains the full disclaimer.
+Template owns:
 
-Template should own:
+- A4 page layout
+- typography and visual hierarchy
+- supplied-value formatting
+- SVG chart rendering
+- explicit pending and missing-data states
 
-- visual layout
-- print styling
-- chart SVG rendering from supplied arrays
-- rendering text supplied by backend
+## Data and AI Rules
 
-## Daily Report Scope
+- Do not disclose vendor names in user-facing content.
+- Do not use zero as a fallback for a missing observation.
+- Do not silently carry forward stale values.
+- AI analysis must distinguish verified events from speculation.
+- AI analysis must cite supplied report evidence and state material uncertainty.
+- AI analysis must not create unsupported price targets, trading instructions, or legal conclusions.
+- Approved legal copy must come from the portal legal disclaimer module, never from an AI model.
 
-This is a daily close market report. Keep the PDF focused on:
-
-- daily price movement
-- borrow fee
-- shortable shares
-- trade volume
-- utilization
-- days to cover
-- short interest / float
-- social narrative record counts
-- latest SEC filings
-- tomorrow watchlist
-
-Do not include quarterly ownership sections, manually maintained float inputs, or long-term ownership breakdowns in the core daily report. Those belong in a separate ownership/float report or periodic appendix.
-
-## Source Disclosure Rule
-
-Do not disclose third-party data-provider names in the user-facing report.
-
-Allowed wording:
-
-- daily market data
-- short interest data
-- borrow market data
-- filing data
-- social feed data
-
-Provider/source metadata may be stored internally in backend logs or report metadata, but not rendered in the PDF.
-
-## LLM Sections
-
-The following sections currently display `PENDING FOR LLM INTEGRATION`:
-
-- Executive Summary
-- Borrow / Short Interpretation
-- Narrative Summary
-- Management Action Queue
-
-Backend should replace those placeholders only after the LLM summarization pipeline is implemented.
-
-## Important Docs
-
-For backend implementation, read these files together:
+Read these files together before backend implementation:
 
 ```text
 README.md
 REPORT_DATA_CONTRACT.md
 DAILY_REPORT_RULES.md
+report-ai-data-points.csv
 template.html
 styles.css
 render.js

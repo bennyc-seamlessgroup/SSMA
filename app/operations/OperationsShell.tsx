@@ -5,6 +5,8 @@ import { usePathname } from 'next/navigation';
 import { useEffect, useRef, useState } from 'react';
 import { DevModeToggle } from '@/components/DevModeToggle';
 import { OperationsUserPortalLink } from '@/components/OperationsUserPortalLink';
+import { PortalLanguageMenu } from '@/components/PortalLanguageMenu';
+import { PortalPageTranslator } from '@/components/PortalPageTranslator';
 import { getAuthenticatedProfile, getCurrentUser, signOut } from '@/lib/auth-client';
 import { getOperationsTicker, setOperationsTicker } from '@/lib/operations/ticker-client';
 
@@ -140,6 +142,7 @@ export function OperationsShell({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="ops-shell">
+      <PortalPageTranslator rootSelector=".ops-shell" />
       <aside className="ops-sidebar">
         <Link href="/operations/market-data" className="ops-brand">
           <span><img src="/ci_logo01.png" alt="" /></span>
@@ -208,6 +211,7 @@ export function OperationsShell({ children }: { children: React.ReactNode }) {
                 )}
               </svg>
             </button>
+            <PortalLanguageMenu buttonClassName="ops-topbar__icon-button" />
             <div className="ops-account ops-topbar__account" ref={accountRef}>
               <button
                 type="button"

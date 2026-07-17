@@ -79,12 +79,13 @@ export function formatPortalDateTime(
   value: string | number | Date | null | undefined,
   timeZone: string,
   options: Intl.DateTimeFormatOptions = {},
+  locale = 'en-US',
 ) {
   if (!value) return 'N/A';
   const date = value instanceof Date ? value : new Date(value);
   if (Number.isNaN(date.getTime())) return 'N/A';
   const hasCustomOptions = Object.keys(options).length > 0;
-  return new Intl.DateTimeFormat('en-US', {
+  return new Intl.DateTimeFormat(locale, {
     ...(hasCustomOptions ? {} : { dateStyle: 'medium' as const, timeStyle: 'short' as const }),
     timeZone: normalizePortalTimeZone(timeZone),
     ...options,
