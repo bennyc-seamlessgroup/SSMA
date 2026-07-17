@@ -56,7 +56,6 @@ const initialForm = {
   accessionNumber: '',
   filingsUrl: '',
   notes: '',
-  createdBy: 'operations',
 };
 
 const recordsPageSize = 25;
@@ -142,6 +141,23 @@ function normalizeApiEnvelope(payload: unknown, ticker: string): SecFilingsRespo
   };
 }
 
+function secFilingWritePayload(form: typeof initialForm, ticker: string) {
+  return {
+    ticker,
+    companyName: form.companyName,
+    formType: form.formType,
+    formDescription: form.formDescription,
+    filingDate: form.filingDate,
+    reportingDate: form.reportingDate,
+    act: form.act,
+    filmNumber: form.filmNumber,
+    fileNumber: form.fileNumber,
+    accessionNumber: form.accessionNumber,
+    filingsUrl: form.filingsUrl,
+    notes: form.notes,
+  };
+}
+
 export function SecFilingsOperationsClient() {
   const [selectedTicker, setSelectedTicker] = useState('CURR');
   const [form, setForm] = useState(initialForm);
@@ -214,7 +230,7 @@ export function SecFilingsOperationsClient() {
     try {
       await authenticatedFetch(`/manual-input/sec-filings?ticker=${encodeURIComponent(selectedTicker)}`, {
         method: 'POST',
-        body: JSON.stringify({ ...form, ticker: selectedTicker }),
+        body: JSON.stringify(secFilingWritePayload(form, selectedTicker)),
       });
       await loadRecords(selectedTicker);
       setStatus('saved');
@@ -223,7 +239,6 @@ export function SecFilingsOperationsClient() {
         ...initialForm,
         ticker: selectedTicker,
         companyName: current.companyName,
-        createdBy: current.createdBy,
       }));
     } catch (error) {
       setStatus('error');

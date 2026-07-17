@@ -935,7 +935,7 @@ html[data-design-b-theme='dark'] .monitor-portal .narrative-intel-card {
   color: var(--ci-accent);
 }
 
-.ops-shell :is(.ops-panel, .ops-ticker-context, .ops-empty-panel, .ops-storage-box, .ops-login-card) {
+.ops-shell :is(.ops-panel, .settings-panel, .ops-ticker-context, .ops-empty-panel, .ops-storage-box, .ops-login-card) {
   border: 1px solid var(--ci-border);
   border-radius: var(--ci-radius);
   background: var(--ci-surface);
@@ -1025,6 +1025,39 @@ html[data-design-b-theme='dark'] .monitor-portal .narrative-intel-card {
   color: var(--ci-text);
 }
 
+.ops-shell :is(.ops-broker-input-group, .hotkey-empty, .hotkey-table) {
+  border-color: var(--ci-border);
+  background: var(--ci-surface-muted);
+  color: var(--ci-text-secondary);
+}
+
+.ops-shell :is(.ops-broker-input-group legend strong, .hotkey-empty strong) {
+  color: var(--ci-text);
+}
+
+.ops-shell .settings-panel__head h2 {
+  color: var(--ci-text);
+  font-size: 14px;
+}
+
+.ops-shell .settings-panel__head > div > span {
+  color: var(--ci-accent);
+}
+
+.ops-shell :is(.ops-broker-input-group legend span, .hotkey-count, .hotkey-table__row time) {
+  color: var(--ci-muted);
+}
+
+.ops-shell .hotkey-form label {
+  color: var(--ci-text-secondary);
+}
+
+.ops-shell :is(.hotkey-form input, .hotkey-form select) {
+  border-color: var(--ci-border);
+  background: var(--ci-surface-muted);
+  color: var(--ci-text);
+}
+
 .ops-shell :is(.ops-check-row small, .ops-preview-list dt, .ops-social-preview article p, .ops-social-preview article small) {
   color: var(--ci-muted);
 }
@@ -1048,6 +1081,132 @@ html[data-design-b-theme='dark'] .monitor-portal .narrative-intel-card {
   background: var(--ci-surface);
   color: var(--ci-accent);
   box-shadow: 0 1px 2px rgba(15, 23, 42, .08);
+}
+
+html[data-design-b-theme='dark'] .ops-shell input[type='date'] {
+  color-scheme: dark;
+}
+
+html[data-design-b-theme='dark'] .ops-shell :is(.ops-sec-form input, .ops-sec-form select, .ops-sec-form textarea):disabled {
+  border-color: var(--ci-border);
+  background: color-mix(in srgb, var(--ci-surface-muted) 78%, var(--ci-canvas));
+  color: var(--ci-muted);
+  opacity: 1;
+}
+
+html[data-design-b-theme='dark'] .ops-shell .ops-difference-card {
+  border-color: var(--ci-border);
+  background: var(--ci-surface-muted);
+}
+
+html[data-design-b-theme='dark'] .ops-shell .ops-difference-card > span,
+html[data-design-b-theme='dark'] .ops-shell .ops-difference-card small {
+  color: var(--ci-muted);
+}
+
+html[data-design-b-theme='dark'] .ops-shell .ops-difference-card strong {
+  color: var(--ci-text);
+}
+
+html[data-design-b-theme='dark'] .ops-shell .ops-difference-card.is-increase {
+  border-color: color-mix(in srgb, var(--ci-success) 42%, var(--ci-border));
+  background: color-mix(in srgb, var(--ci-success) 10%, var(--ci-surface));
+}
+
+html[data-design-b-theme='dark'] .ops-shell .ops-difference-card.is-increase strong {
+  color: #6ee7b7;
+}
+
+html[data-design-b-theme='dark'] .ops-shell .ops-difference-card.is-decrease {
+  border-color: color-mix(in srgb, var(--ci-danger) 42%, var(--ci-border));
+  background: color-mix(in srgb, var(--ci-danger) 10%, var(--ci-surface));
+}
+
+html[data-design-b-theme='dark'] .ops-shell .ops-difference-card.is-decrease strong {
+  color: #fda4af;
+}
+
+html[data-design-b-theme='dark'] .ops-shell .ops-market-entry-gate {
+  border-color: var(--ci-border);
+  background: var(--ci-surface-muted);
+}
+
+html[data-design-b-theme='dark'] .ops-shell .ops-market-entry-gate.is-open {
+  border-color: color-mix(in srgb, var(--ci-success) 40%, var(--ci-border));
+  background: color-mix(in srgb, var(--ci-success) 9%, var(--ci-surface));
+}
+
+html[data-design-b-theme='dark'] .ops-shell .ops-market-entry-gate.is-locked {
+  border-color: color-mix(in srgb, #f59e0b 40%, var(--ci-border));
+  background: color-mix(in srgb, #f59e0b 9%, var(--ci-surface));
+}
+
+html[data-design-b-theme='dark'] .ops-shell :is(.ops-market-entry-gate strong, .ops-readiness-list span strong) {
+  color: var(--ci-text);
+}
+
+html[data-design-b-theme='dark'] .ops-shell :is(.ops-market-entry-gate small, .ops-readiness-list span small, .ops-readiness-note) {
+  color: var(--ci-muted);
+}
+
+html[data-design-b-theme='dark'] .ops-shell .ops-published-date {
+  border-color: var(--ci-border);
+  background: var(--ci-surface-muted);
+}
+
+html[data-design-b-theme='dark'] .ops-shell .ops-published-date span {
+  color: var(--ci-muted);
+}
+
+html[data-design-b-theme='dark'] .ops-shell .ops-published-date strong {
+  color: #93c5fd;
+}
+
+html[data-design-b-theme='dark'] .ops-shell .ops-readiness-row {
+  border-color: var(--ci-border);
+  background: var(--ci-surface-muted);
+}
+
+html[data-design-b-theme='dark'] .ops-shell .ops-readiness-row.is-missing {
+  border-color: color-mix(in srgb, #f59e0b 38%, var(--ci-border));
+  background: color-mix(in srgb, #f59e0b 8%, var(--ci-surface));
+}
+
+html[data-design-b-theme='dark'] .ops-shell .ops-readiness-list b {
+  color: var(--ci-text-secondary);
+}
+
+html[data-design-b-theme='dark'] .ops-shell .ops-readiness-list .is-missing b {
+  color: #fbbf24;
+}
+
+html[data-design-b-theme='dark'] .ops-shell .ops-danger-button,
+html[data-design-b-theme='dark'] .ops-shell .ops-row-actions button.danger {
+  border-color: color-mix(in srgb, var(--ci-danger) 45%, var(--ci-border));
+  background: color-mix(in srgb, var(--ci-danger) 12%, var(--ci-surface));
+  color: #fda4af;
+}
+
+html[data-design-b-theme='dark'] .ops-shell .ops-danger-button:disabled,
+html[data-design-b-theme='dark'] .ops-shell .ops-row-actions button.danger:disabled {
+  color: #e58b9a;
+  opacity: .72;
+}
+
+html[data-design-b-theme='dark'] .ops-shell .ops-pagination button {
+  border-color: var(--ci-border);
+  background: var(--ci-surface-muted);
+  color: #93c5fd;
+}
+
+html[data-design-b-theme='dark'] .ops-shell .ops-pagination button:disabled {
+  background: color-mix(in srgb, var(--ci-surface-muted) 72%, var(--ci-canvas));
+  color: var(--ci-muted);
+  opacity: .72;
+}
+
+html[data-design-b-theme='dark'] .ops-shell .ops-pagination span {
+  color: var(--ci-text-secondary);
 }
 
 /* Dark mode must override legacy white page-specific surfaces. */

@@ -82,6 +82,17 @@ type OwnershipCurrent = {
 
 type OwnershipHistory = { generatedAt?: string; records?: Array<Record<string, unknown>> };
 
+type ManagementHoldingsResponse =
+  | ManagementHoldingInputRecord[]
+  | { records?: ManagementHoldingInputRecord[]; data?: { records?: ManagementHoldingInputRecord[] } };
+
+function managementHoldingRecords(payload: ManagementHoldingsResponse | null) {
+  if (Array.isArray(payload)) return payload;
+  if (Array.isArray(payload?.records)) return payload.records;
+  if (Array.isArray(payload?.data?.records)) return payload.data.records;
+  return [];
+}
+
 function formatNumber(value: unknown, options?: Intl.NumberFormatOptions) {
   const numeric = typeof value === 'number' ? value : Number(String(value ?? '').replace(/,/g, ''));
   if (!Number.isFinite(numeric)) return value ? String(value) : 'N/A';
@@ -114,6 +125,7 @@ export function InstitutionalBrowserPage({ ticker }: { ticker: string }) {
   const normalizedTicker = normalizeTicker(ticker);
   const [current, setCurrent] = useState<OwnershipCurrent | null>(null);
   const [history, setHistory] = useState<OwnershipHistory | null>(null);
+  const [managementHoldings, setManagementHoldings] = useState<ManagementHoldingInputRecord[]>([]);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(true);
 
@@ -124,10 +136,12 @@ export function InstitutionalBrowserPage({ ticker }: { ticker: string }) {
     Promise.all([
       authenticatedFetch(`/market-data/current?ticker=${encodeURIComponent(normalizedTicker)}&category=ownership-current`) as Promise<OwnershipCurrent>,
       authenticatedFetch(`/market-data/history?ticker=${encodeURIComponent(normalizedTicker)}&category=ownership-history`) as Promise<OwnershipHistory>,
-    ]).then(([nextCurrent, nextHistory]) => {
+      authenticatedFetch(`/manual-input/management-holdings?ticker=${encodeURIComponent(normalizedTicker)}`, { cache: 'no-store' }) as Promise<ManagementHoldingsResponse>,
+    ]).then(([nextCurrent, nextHistory, nextManagementHoldings]) => {
       if (cancelled) return;
       setCurrent(nextCurrent);
       setHistory(nextHistory);
+      setManagementHoldings(managementHoldingRecords(nextManagementHoldings));
     }).catch(cause => {
       if (!cancelled) setError(cause instanceof Error ? cause.message : 'Unable to load ownership data.');
     }).finally(() => {
@@ -144,7 +158,7 @@ export function InstitutionalBrowserPage({ ticker }: { ticker: string }) {
   const allHistoryRows = Array.isArray(history.records) ? history.records : [];
   const securityRows = allHistoryRows.filter(row => !String(row.sourceType ?? '').toLowerCase().includes('activist')) as SecurityOwnershipRow[];
   const activistRows = allHistoryRows.filter(row => String(row.sourceType ?? '').toLowerCase().includes('activist')) as ActivistFilingRow[];
-  const managementRecords = Array.isArray(current.strategicEntities?.records) ? current.strategicEntities.records : [];
+  const managementRecords = managementHoldings;
   const institutionBars = (current.institutionBreakdown ?? []).map(row => ({
     name: String(row.holderName ?? row.name ?? 'Unknown holder'),
     shares: Number(row.shares ?? 0),
@@ -217,6 +231,7 @@ export function InstitutionalBrowserPage({ ticker }: { ticker: string }) {
         publicFloatBreakdown={(overviewData.public_float_breakdown ?? []) as Array<Record<string, unknown>>}
         securityRows={securityRows as Array<Record<string, unknown>>}
         activistRows={activistRows as Array<Record<string, unknown>>}
+        managementHoldings={managementRecords as Array<Record<string, unknown>>}
       />
     </div>
   );

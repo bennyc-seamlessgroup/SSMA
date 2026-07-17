@@ -14,6 +14,7 @@ type InstitutionalDevTablesProps = {
   publicFloatBreakdown: Array<Record<string, unknown>>;
   securityRows: Array<Record<string, unknown>>;
   activistRows: Array<Record<string, unknown>>;
+  managementHoldings: Array<Record<string, unknown>>;
 };
 
 const securityColumns = [
@@ -73,11 +74,13 @@ export function InstitutionalDevTables({
   publicFloatBreakdown,
   securityRows,
   activistRows,
+  managementHoldings,
 }: InstitutionalDevTablesProps) {
   const ownershipStructureColumns = columnsFor(ownershipStructure, ['key', 'label', 'shares', 'percent', 'color']);
   const insiderBarColumns = columnsFor(insiderBars, ['name', 'shares', 'ownershipPercentOfInsiders', 'ownershipPercentOfSharesOutstanding']);
   const institutionBarColumns = columnsFor(institutionBars, ['name', 'shares', 'value', 'ownershipPercentOfInstitutional', 'ownershipPercentOfSharesOutstanding']);
   const publicFloatBreakdownColumns = columnsFor(publicFloatBreakdown, ['key', 'label', 'shares', 'percent', 'color', 'source']);
+  const managementHoldingColumns = columnsFor(managementHoldings, ['holderName', 'category', 'shares', 'action', 'effectiveDate', 'showInOwnership', 'status']);
   const tabs = [
     {
       id: 'overview',
@@ -85,6 +88,14 @@ export function InstitutionalDevTables({
       file: overviewFile,
       sourcePlatform: 'Centralized Data API',
       recordCount: overview ? 1 : 0,
+      status: 'ready',
+    },
+    {
+      id: 'management-holdings',
+      title: 'Strategic Entities',
+      file: 'GET /manual-input/management-holdings',
+      sourcePlatform: 'Manual Input V2 API',
+      recordCount: managementHoldings.length,
       status: 'ready',
     },
     {
@@ -147,11 +158,13 @@ export function InstitutionalDevTables({
           <span className="import-file-tag">{overviewFile}</span>
           <span className="import-file-tag">{securityFile}</span>
           <span className="import-file-tag">{activistFile}</span>
+          <span className="import-file-tag">GET /manual-input/management-holdings</span>
         </div>
       </div>
 
       <ImportDataTabs tabs={tabs}>
         <ImportDataTable columns={['field', 'value']} rows={overviewRows(overview)} pageSize={25} />
+        <ImportDataTable columns={managementHoldingColumns} rows={toTableRows(managementHoldings, managementHoldingColumns)} pageSize={25} />
         <ImportDataTable columns={ownershipStructureColumns} rows={toTableRows(ownershipStructure, ownershipStructureColumns)} pageSize={25} />
         <ImportDataTable columns={insiderBarColumns} rows={toTableRows(insiderBars, insiderBarColumns)} pageSize={25} />
         <ImportDataTable columns={institutionBarColumns} rows={toTableRows(institutionBars, institutionBarColumns)} pageSize={25} />
