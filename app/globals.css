@@ -2596,9 +2596,11 @@ body { min-height: 100vh; }
 }
 
 .report-timeline-actions a,
+.report-timeline-actions button,
 .report-history-row-menu a,
 .report-history-row-menu button,
-.report-history-popover a {
+.report-history-popover a,
+.report-history-popover button {
   display: inline-flex;
   min-height: 34px;
   align-items: center;
@@ -2617,6 +2619,25 @@ body { min-height: 100vh; }
 .report-timeline-step.is-latest .report-timeline-actions a:first-child {
   background: #2563eb;
   color: #ffffff;
+}
+
+.report-timeline-step.is-latest .report-timeline-actions button:first-child {
+  color: #fff;
+  border-color: #2563eb;
+  background: #2563eb;
+}
+
+.report-timeline-actions button,
+.report-history-popover button {
+  font-family: inherit;
+  cursor: pointer;
+}
+
+.report-timeline-actions button:disabled,
+.report-history-row-menu button:disabled,
+.report-history-popover button:disabled {
+  cursor: wait;
+  opacity: .6;
 }
 
 .report-timeline-actions span,
@@ -2765,6 +2786,21 @@ body { min-height: 100vh; }
   padding: 0 10px;
 }
 
+.report-history-popover button {
+  width: 100%;
+  text-align: left;
+}
+
+.report-generation-error {
+  margin: 12px 18px 0;
+  padding: 10px 12px;
+  border: 1px solid #fecaca;
+  border-radius: 6px;
+  color: #b91c1c;
+  background: #fef2f2;
+  font-size: 12px;
+}
+
 .report-history-row-menu {
   display: flex;
   align-items: center;
@@ -2857,7 +2893,7 @@ html[data-design-b-theme="dark"] .monitor-portal :where(.report-timeline-actions
   color: #7f94af;
 }
 
-html[data-design-b-theme="dark"] .monitor-portal :where(.report-timeline-actions a, .report-history-row-menu a, .report-history-row-menu button, .report-history-popover a) {
+html[data-design-b-theme="dark"] .monitor-portal :where(.report-timeline-actions a, .report-timeline-actions button, .report-history-row-menu a, .report-history-row-menu button, .report-history-popover a, .report-history-popover button) {
   border-color: rgba(96,165,250,.42);
   background: rgba(37,99,235,.12);
   color: #bfdbfe;
@@ -2866,6 +2902,12 @@ html[data-design-b-theme="dark"] .monitor-portal :where(.report-timeline-actions
 html[data-design-b-theme="dark"] .monitor-portal .report-timeline-step.is-latest .report-timeline-actions a:first-child {
   background: #2563eb;
   color: #ffffff;
+}
+
+html[data-design-b-theme="dark"] .monitor-portal .report-timeline-step.is-latest .report-timeline-actions button:first-child {
+  color: #fff;
+  border-color: #3b82f6;
+  background: #2563eb;
 }
 
 @media (max-width: 860px) {
@@ -3458,10 +3500,13 @@ html[data-design-b-theme="dark"] .monitor-portal .report-history-pagination butt
   position: relative;
 }
 
-.ops-row-menu summary {
+.ops-row-menu summary,
+.ops-row-menu__trigger {
   display: inline-grid;
+  box-sizing: border-box;
   width: 30px;
   height: 30px;
+  min-height: 30px;
   place-items: center;
   border: 1px solid #c7d7ea;
   border-radius: 8px;
@@ -3469,20 +3514,31 @@ html[data-design-b-theme="dark"] .monitor-portal .report-history-pagination butt
   color: #52677f;
   cursor: pointer;
   list-style: none;
+  padding: 0;
+  line-height: 0;
+}
+
+.ops-row-actions .ops-row-menu__trigger {
+  width: 30px;
+  min-width: 30px;
+  padding: 0;
 }
 
 .ops-row-menu summary::-webkit-details-marker {
   display: none;
 }
 
-.ops-row-menu summary svg {
+.ops-row-menu summary svg,
+.ops-row-menu__trigger svg {
   width: 16px;
   height: 16px;
   fill: currentColor;
 }
 
 .ops-row-menu[open] summary,
-.ops-row-menu summary:hover {
+.ops-row-menu summary:hover,
+.ops-row-menu__trigger[aria-expanded="true"],
+.ops-row-menu__trigger:hover {
   background: #f5f9ff;
   color: #2457b8;
 }
@@ -3500,6 +3556,12 @@ html[data-design-b-theme="dark"] .monitor-portal .report-history-pagination butt
   border-radius: 8px;
   background: #fff;
   box-shadow: 0 16px 34px rgba(15, 23, 42, .14);
+}
+
+.ops-row-menu__panel--portal {
+  position: fixed;
+  right: auto;
+  z-index: 1000;
 }
 
 .ops-row-menu__panel button {
@@ -20834,6 +20896,36 @@ html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .dashbo
 .table-link {
   white-space: nowrap;
 }
+.import-expandable-cell {
+  display: grid;
+  min-width: 280px;
+  max-width: min(680px, 62vw);
+  gap: 8px;
+}
+.import-expandable-cell pre {
+  max-width: 100%;
+  margin: 0;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+  color: inherit;
+  font: inherit;
+  line-height: 1.5;
+}
+.import-expandable-cell__toggle {
+  justify-self: start;
+  border: 1px solid #cbd5e1;
+  border-radius: 7px;
+  background: #fff;
+  color: #3152b4;
+  padding: 6px 9px;
+  font-size: 11px;
+  font-weight: 800;
+  cursor: pointer;
+}
+.import-expandable-cell__toggle:hover {
+  border-color: #93a7c1;
+  background: #f8fafc;
+}
 .with-info {
   display: inline-flex;
   align-items: center;
@@ -27173,6 +27265,7 @@ html[data-design-b-theme="dark"] :where(
   .ops-pagination button,
   .ops-row-actions button,
   .ops-row-menu summary,
+  .ops-row-menu__trigger,
   .ops-secondary-button
 ) {
   border-color: #3b4b61;

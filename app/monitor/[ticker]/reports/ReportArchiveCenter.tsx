@@ -5,6 +5,7 @@ import type { CSSProperties } from 'react';
 import { usePortalTimeZone } from '@/components/usePortalTimeZone';
 import { formatPortalDate } from '@/lib/timezone';
 import type { ReportArchiveRecord } from '@/lib/report-archive';
+import { generateClientReportPdf, reportFileName } from './client-report-pdf';
 
 const reportWindows = [
   { type: '8AM', step: 1, time: '8:00 AM', title: 'Pre-Market Brief', shortTitle: 'Pre-Market', icon: 'sunrise' },
@@ -59,10 +60,6 @@ function iconSvg(icon: string) {
   );
 }
 
-function reportUrl(ticker: string, report: ReportArchiveRecord, download = false) {
-  return `/api/reports/render/${ticker}/${report.reportDate}${download ? '?download=1' : ''}`;
-}
-
 export function ReportArchiveCenter({
   ticker,
   reports,
@@ -83,6 +80,8 @@ export function ReportArchiveCenter({
   const [selectedType, setSelectedType] = useState<ReportType | 'all'>('all');
   const [openMenu, setOpenMenu] = useState<string | null>(null);
   const [historyPage, setHistoryPage] = useState(1);
+  const [generatingReportId, setGeneratingReportId] = useState<string | null>(null);
+  const [generationError, setGenerationError] = useState('');
 
   useEffect(() => {
     if (!openMenu) return undefined;
@@ -159,12 +158,42 @@ export function ReportArchiveCenter({
   const historyStart = historyRows.length ? (safeHistoryPage - 1) * HISTORY_PAGE_SIZE + 1 : 0;
   const historyEnd = Math.min(safeHistoryPage * HISTORY_PAGE_SIZE, historyRows.length);
 
-  function downloadAllReports(dateReports: ReportArchiveRecord[]) {
-    dateReports.forEach((report, index) => {
-      window.setTimeout(() => {
-        window.open(reportUrl(ticker, report, true), '_blank', 'noopener,noreferrer');
-      }, index * 120);
-    });
+  async function openReport(report: ReportArchiveRecord, download = false) {
+    const previewWindow = download ? null : window.open('', '_blank');
+    if (previewWindow) {
+      previewWindow.document.title = 'Generating report';
+      previewWindow.document.body.innerHTML = '<p style="font:14px system-ui;padding:24px;color:#334155">Generating PDF...</p>';
+    }
+
+    setGeneratingReportId(report.id);
+    setGenerationError('');
+    try {
+      const blob = await generateClientReportPdf(report);
+      const objectUrl = URL.createObjectURL(blob);
+      if (download) {
+        const link = document.createElement('a');
+        link.href = objectUrl;
+        link.download = reportFileName(report);
+        link.click();
+      } else if (previewWindow) {
+        previewWindow.location.href = objectUrl;
+      } else {
+        window.location.href = objectUrl;
+      }
+      window.setTimeout(() => URL.revokeObjectURL(objectUrl), 60_000);
+    } catch (error) {
+      previewWindow?.close();
+      setGenerationError(error instanceof Error ? error.message : 'Unable to generate the report.');
+    } finally {
+      setGeneratingReportId(null);
+      setOpenMenu(null);
+    }
+  }
+
+  async function downloadAllReports(dateReports: ReportArchiveRecord[]) {
+    for (const report of dateReports) {
+      await openReport(report, true);
+    }
   }
 
   return (
@@ -202,8 +231,8 @@ export function ReportArchiveCenter({
                 <div className="report-timeline-actions">
                   {item.report ? (
                     <>
-                      <a href={reportUrl(ticker, item.report)} target="_blank" rel="noreferrer">View PDF</a>
-                      <a href={reportUrl(ticker, item.report, true)}>Download</a>
+                      <button type="button" onClick={() => openReport(item.report!)} disabled={generatingReportId === item.report.id}>{generatingReportId === item.report.id ? 'Generating...' : 'View PDF'}</button>
+                      <button type="button" onClick={() => openReport(item.report!, true)} disabled={generatingReportId === item.report.id}>Download</button>
                     </>
                   ) : (
                     <span>Pending</span>
@@ -272,8 +301,8 @@ export function ReportArchiveCenter({
                       </button>
                       {report && openMenu === report.id ? (
                         <span className="report-history-popover">
-                          <a href={reportUrl(ticker, report)} target="_blank" rel="noreferrer">View PDF</a>
-                          <a href={reportUrl(ticker, report, true)}>Download</a>
+                          <button type="button" onClick={() => openReport(report)} disabled={generatingReportId === report.id}>{generatingReportId === report.id ? 'Generating...' : 'View PDF'}</button>
+                          <button type="button" onClick={() => openReport(report, true)} disabled={generatingReportId === report.id}>Download</button>
                         </span>
                       ) : null}
                     </span>
@@ -283,10 +312,10 @@ export function ReportArchiveCenter({
               <div className="report-history-row-menu">
                 {row.reports.length > 0 ? (
                   <>
-                    <a href={reportUrl(ticker, row.reports[row.reports.length - 1])} target="_blank" rel="noreferrer">
+                    <button type="button" onClick={() => openReport(row.reports[row.reports.length - 1])} disabled={Boolean(generatingReportId)}>
                       View All ({row.reports.length})
-                    </a>
-                    <button type="button" onClick={() => downloadAllReports(row.reports)}>Download All</button>
+                    </button>
+                    <button type="button" onClick={() => downloadAllReports(row.reports)} disabled={Boolean(generatingReportId)}>Download All</button>
                   </>
                 ) : (
                   <span>Pending</span>
@@ -298,6 +327,7 @@ export function ReportArchiveCenter({
         {historyRows.length === 0 ? (
           <div className="report-history-empty">No reports match the selected range.</div>
         ) : null}
+        {generationError ? <div className="report-generation-error" role="alert">{generationError}</div> : null}
         {historyRows.length > HISTORY_PAGE_SIZE ? (
           <div className="report-history-pagination">
             <span>Showing {historyStart}-{historyEnd} of {historyRows.length} days</span>

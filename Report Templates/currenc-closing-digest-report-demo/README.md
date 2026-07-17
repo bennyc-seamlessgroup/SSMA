@@ -78,6 +78,18 @@ Report Templates/currenc-closing-digest-report-demo/currenc-post-market-portal-b
 11. Save the PDF or render it on demand from the immutable report-data snapshot.
 12. Store ticker, report date, payload version/hash, generated time, model/prompt versions, and approval state.
 
+## Portal Archive Delivery
+
+The Report Archive uses the same template for on-demand browser generation:
+
+1. An archive record supplies `ticker`, `reportDate`, `generatedAt`, and `dataUrl`.
+2. The browser loads `public/report-templates/daily-close/template.html` in an isolated hidden frame.
+3. The template fetches the record payload and applies the archive date metadata.
+4. `html2canvas` captures each A4 page and `jsPDF` assembles the PDF.
+5. View opens the generated PDF in a new tab; Download saves the dated report filename.
+
+The current yesterday entry uses the bundled sample payload. Replace its `dataUrl` with the backend's dated report-data URL when the centralized report endpoint is available; the rendering and archive components do not need to change.
+
 ## Responsibility Split
 
 Backend owns:

@@ -23,9 +23,9 @@ function serializePayload(payload: unknown) {
   if (typeof payload === 'string') return payload || 'Empty string';
 
   try {
-    const serialized = JSON.stringify(payload);
+    const serialized = JSON.stringify(payload, null, 2);
     if (!serialized) return String(payload);
-    return serialized.length > 800 ? `${serialized.slice(0, 800)}…` : serialized;
+    return serialized;
   } catch {
     return String(payload);
   }
@@ -54,6 +54,7 @@ export function OperationsDevelopmentData({ title, description, rows }: Operatio
         columns={['endpoint', 'source', 'state', 'recordCount', 'updatedAt', 'payload']}
         rows={tableRows}
         pageSize={10}
+        expandableColumns={['payload']}
       />
     </section>
   );

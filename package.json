@@ -10,6 +10,8 @@
     "test:ownership": "node --test lib/operations/ownership-entry.test.mjs"
   },
   "dependencies": {
+    "html2canvas": "^1.4.1",
+    "jspdf": "^4.2.1",
     "next": "^15.1.6",
     "pdfkit": "^0.18.0",
     "pptxgenjs": "^4.0.1",

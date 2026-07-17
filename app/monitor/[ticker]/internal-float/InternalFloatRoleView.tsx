@@ -63,14 +63,16 @@ function mergeAutoAppliedHoldings(
   operationsRows: ManagementHoldingInputRecord[],
 ) {
   const holdings = new Map<string, Record<string, unknown>>();
+  const savedHolderKeys = new Set<string>();
 
   inputRows.forEach((row, index) => {
     const key = holderKey(row.holderName) || `input-${index}`;
+    savedHolderKeys.add(key);
     holdings.set(key, { ...row, shares: Math.max(0, Number(row.shares ?? 0)) });
   });
 
   operationsRows
-    .filter(row => row.autoApply && row.status !== 'discarded')
+    .filter(row => row.autoApply && row.status !== 'discarded' && !savedHolderKeys.has(holderKey(row.holderName)))
     .forEach((row, index) => {
       const key = holderKey(row.holderName) || `operations-${row.id || index}`;
       const current = holdings.get(key);
@@ -202,6 +204,7 @@ function LiveInternalFloat({ ticker }: { ticker: string }) {
             { endpoint: 'GET /manual-input/management-holdings', records: String(payloads.managementHoldings.length), payload: JSON.stringify(payloads.managementHoldings) },
           ]}
           pageSize={10}
+          expandableColumns={['payload']}
         />
       </section>
     </>

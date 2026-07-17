@@ -1,7 +1,8 @@
 'use client';
 
 import type { FormEvent } from 'react';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import type { InternalFloatPrivateHolding } from '@/lib/internal-float-types';
 import type { ManagementHoldingAction, ManagementHoldingInputRecord } from '@/lib/operations/data-types';
 import {
@@ -571,7 +572,7 @@ function ManagementRecordsPanel({
       description: 'Current Management / Strategic holdings shown in Internal Float.',
     },
   };
-  const pageSize = 7;
+  const pageSize = 25;
   const visibleRecords = recordsByTab[activeTab];
   const totalPages = Math.max(1, Math.ceil(visibleRecords.length / pageSize));
   const currentPage = Math.min(pageByTab[activeTab], totalPages);
@@ -679,6 +680,10 @@ function RowActionsMenu({
   onCopy: (record: DisplayRecord, target: CopyTarget) => void;
   onDelete: (record: ManagementHoldingInputRecord) => void;
 }) {
+  const [open, setOpen] = useState(false);
+  const [panelPosition, setPanelPosition] = useState({ top: 0, left: 0 });
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const panelRef = useRef<HTMLDivElement>(null);
   const copyTargetOptions: Array<{ key: CopyTarget; label: string }> = [
     { key: 'ownership', label: 'Copy to Strategic Entities' },
     { key: 'suggestions', label: 'Copy to Suggested Changes' },
@@ -686,28 +691,97 @@ function RowActionsMenu({
   ];
   const copyTargets = copyTargetOptions.filter(target => target.key !== activeTab);
 
+  function positionPanel() {
+    const trigger = triggerRef.current;
+    if (!trigger) return;
+    const triggerRect = trigger.getBoundingClientRect();
+    const panelWidth = panelRef.current?.offsetWidth ?? 240;
+    const panelHeight = panelRef.current?.offsetHeight ?? 190;
+    const gap = 6;
+    const left = Math.max(8, Math.min(triggerRect.right - panelWidth, window.innerWidth - panelWidth - 8));
+    const top = triggerRect.bottom + gap + panelHeight <= window.innerHeight
+      ? triggerRect.bottom + gap
+      : Math.max(8, triggerRect.top - panelHeight - gap);
+    setPanelPosition({ top, left });
+  }
+
+  useEffect(() => {
+    if (!open) return;
+    positionPanel();
+    const frame = window.requestAnimationFrame(positionPanel);
+    const closeMenu = () => setOpen(false);
+    const handlePointerDown = (event: PointerEvent) => {
+      const target = event.target as Node;
+      if (!triggerRef.current?.contains(target) && !panelRef.current?.contains(target)) closeMenu();
+    };
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') closeMenu();
+    };
+    window.addEventListener('resize', closeMenu);
+    window.addEventListener('scroll', closeMenu, true);
+    document.addEventListener('pointerdown', handlePointerDown);
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      window.cancelAnimationFrame(frame);
+      window.removeEventListener('resize', closeMenu);
+      window.removeEventListener('scroll', closeMenu, true);
+      document.removeEventListener('pointerdown', handlePointerDown);
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [open]);
+
+  function runAction(action: () => void) {
+    setOpen(false);
+    action();
+  }
+
+  function toggleMenu() {
+    if (open) {
+      setOpen(false);
+      return;
+    }
+    positionPanel();
+    setOpen(true);
+  }
+
   return (
-    <details className="ops-row-menu">
-      <summary aria-label={`Open actions for ${row.holderName}`}>
+    <div className="ops-row-menu">
+      <button
+        ref={triggerRef}
+        className="ops-row-menu__trigger"
+        type="button"
+        aria-label={`Open actions for ${row.holderName}`}
+        aria-haspopup="menu"
+        aria-expanded={open}
+        onClick={toggleMenu}
+      >
         <svg viewBox="0 0 24 24" aria-hidden="true">
           <circle cx="12" cy="5" r="1.8" />
           <circle cx="12" cy="12" r="1.8" />
           <circle cx="12" cy="19" r="1.8" />
         </svg>
-      </summary>
-      <div className="ops-row-menu__panel">
-        {row.editable && row.showInOwnership !== false && row.status !== 'discarded' && (
-          <button type="button" onClick={() => onUseHolder(row)}>Record latest total for holder</button>
-        )}
-        {copyTargets.map(target => (
-          <button key={target.key} type="button" onClick={() => onCopy(row, target.key)}>{target.label}</button>
-        ))}
-        {row.editable ? (
-          <button type="button" className="danger" onClick={() => onDelete(row)}>Delete</button>
-        ) : (
-          <small>Workspace row is read-only here</small>
-        )}
-      </div>
-    </details>
+      </button>
+      {open && createPortal(
+        <div
+          ref={panelRef}
+          className="ops-row-menu__panel ops-row-menu__panel--portal"
+          role="menu"
+          style={{ top: panelPosition.top, left: panelPosition.left }}
+        >
+          {row.editable && row.showInOwnership !== false && row.status !== 'discarded' && (
+            <button role="menuitem" type="button" onClick={() => runAction(() => onUseHolder(row))}>Record latest total for holder</button>
+          )}
+          {copyTargets.map(target => (
+            <button role="menuitem" key={target.key} type="button" onClick={() => runAction(() => onCopy(row, target.key))}>{target.label}</button>
+          ))}
+          {row.editable ? (
+            <button role="menuitem" type="button" className="danger" onClick={() => runAction(() => onDelete(row))}>Delete</button>
+          ) : (
+            <small>Workspace row is read-only here</small>
+          )}
+        </div>,
+        document.body,
+      )}
+    </div>
   );
 }

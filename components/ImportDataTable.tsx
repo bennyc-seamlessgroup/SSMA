@@ -6,13 +6,39 @@ type ImportDataTableProps = {
   columns: string[];
   rows: Array<Record<string, string>>;
   pageSize?: number;
+  expandableColumns?: string[];
 };
+
+const expandablePreviewLength = 800;
+
+function ExpandableTableCell({ value }: { value: string }) {
+  const [expanded, setExpanded] = useState(false);
+  const isLong = value.length > expandablePreviewLength;
+  const compactValue = value.replace(/\s+/g, ' ').trim();
+  const displayedValue = expanded || !isLong ? value : `${compactValue.slice(0, expandablePreviewLength)}…`;
+
+  return (
+    <div className={`import-expandable-cell${expanded ? ' is-expanded' : ''}`}>
+      <pre>{displayedValue || 'N/A'}</pre>
+      {isLong ? (
+        <button
+          className="import-expandable-cell__toggle"
+          type="button"
+          aria-expanded={expanded}
+          onClick={() => setExpanded(current => !current)}
+        >
+          {expanded ? 'Show less' : 'Show all'}
+        </button>
+      ) : null}
+    </div>
+  );
+}
 
 function formatLabel(value: string) {
   return value.replace(/([A-Z])/g, ' $1').replace(/^./, char => char.toUpperCase());
 }
 
-export function ImportDataTable({ columns, rows, pageSize = 25 }: ImportDataTableProps) {
+export function ImportDataTable({ columns, rows, pageSize = 25, expandableColumns = [] }: ImportDataTableProps) {
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(1);
   const [sort, setSort] = useState<{ column: string; direction: 'asc' | 'desc' } | null>(null);
@@ -59,7 +85,8 @@ export function ImportDataTable({ columns, rows, pageSize = 25 }: ImportDataTabl
     return sort.direction === 'asc' ? '↑' : '↓';
   }
 
-  function renderCell(value: string) {
+  function renderCell(value: string, column: string) {
+    if (expandableColumns.includes(column)) return <ExpandableTableCell value={value} />;
     if (/^https?:\/\//.test(value) || value.startsWith('/')) {
       return <a className="text-link table-link" href={value} target="_blank" rel="noreferrer">Open source</a>;
     }
@@ -99,7 +126,7 @@ export function ImportDataTable({ columns, rows, pageSize = 25 }: ImportDataTabl
           <tbody>
             {pageRows.map((row, index) => (
               <tr key={`${safePage}-${index}`}>
-                {columns.map(column => <td key={column}>{renderCell(row[column] || '')}</td>)}
+                {columns.map(column => <td key={column}>{renderCell(row[column] || '', column)}</td>)}
               </tr>
             ))}
           </tbody>

@@ -1094,6 +1094,16 @@ html[data-design-b-theme='dark'] .ops-shell :is(.ops-sec-form input, .ops-sec-fo
   opacity: 1;
 }
 
+html[data-design-b-theme='dark'] .ops-shell .import-expandable-cell__toggle {
+  border-color: var(--ci-border);
+  background: var(--ci-surface-muted);
+  color: var(--ci-accent);
+}
+
+html[data-design-b-theme='dark'] .ops-shell .import-expandable-cell__toggle:hover {
+  background: color-mix(in srgb, var(--ci-surface-muted) 78%, var(--ci-canvas));
+}
+
 html[data-design-b-theme='dark'] .ops-shell .ops-difference-card {
   border-color: var(--ci-border);
   background: var(--ci-surface-muted);
