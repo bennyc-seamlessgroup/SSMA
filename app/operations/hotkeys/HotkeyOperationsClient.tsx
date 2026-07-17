@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { OperationsDevelopmentData } from '@/components/OperationsDevelopmentData';
-import { operationsProfile } from '@/lib/operations/api-client';
+import { operationsFetch, operationsProfile } from '@/lib/operations/api-client';
 
 type HotkeyMapping = {
   ticker: string;
@@ -17,6 +17,8 @@ type HotkeyResponse = HotkeyMapping[] | {
   updatedAt?: string;
   hotkeys?: HotkeyMapping[];
   items?: HotkeyMapping[];
+  records?: HotkeyMapping[];
+  data?: HotkeyMapping[];
 };
 
 type LoadState = 'loading' | 'idle' | 'saving' | 'deleting' | 'error';
@@ -52,6 +54,8 @@ function mappingsFromResponse(response: HotkeyResponse) {
   if (Array.isArray(response)) return response;
   if (Array.isArray(response.hotkeys)) return response.hotkeys;
   if (Array.isArray(response.items)) return response.items;
+  if (Array.isArray(response.records)) return response.records;
+  if (Array.isArray(response.data)) return response.data;
   return [];
 }
 
@@ -70,27 +74,7 @@ function formatCreatedAt(value: string) {
 }
 
 async function jsonHotkeysFetch(path: string, options: RequestInit = {}) {
-  let localPath = `/api/operations${path}`;
-  if (path.startsWith('/hotkeys/')) {
-    const [, , ticker = '', hotkey = ''] = path.split('/');
-    const params = new URLSearchParams({
-      ticker: decodeURIComponent(ticker),
-      kwatchHotkey: decodeURIComponent(hotkey),
-    });
-    localPath = `/api/operations/hotkeys?${params.toString()}`;
-  }
-  const response = await fetch(localPath, {
-    ...options,
-    cache: options.cache ?? 'no-store',
-    headers: options.body instanceof FormData
-      ? options.headers
-      : { 'Content-Type': 'application/json', ...(options.headers ?? {}) },
-  });
-  const payload = await response.json().catch(() => ({})) as { ok?: boolean; data?: unknown; error?: string };
-  if (!response.ok || payload.ok === false) {
-    throw new Error(payload.error || 'Unable to load notification hotkeys.');
-  }
-  return payload.data ?? payload;
+  return operationsFetch(path, { ...options, cache: options.cache ?? 'no-store' });
 }
 
 export function HotkeyOperationsClient({ ticker }: { ticker: string }) {
@@ -323,8 +307,8 @@ export function HotkeyOperationsClient({ ticker }: { ticker: string }) {
         title="Notification Hotkey API Response"
         description="Raw mapping envelope returned by the operations hotkey route for the active ticker."
         rows={[{
-          endpoint: `GET /api/operations/hotkeys?ticker=${normalizedTicker}`,
-          source: developmentMetadata.source || 'Operations API route',
+          endpoint: `GET /hotkeys?ticker=${normalizedTicker}`,
+          source: developmentMetadata.source || 'Authenticated Hotkey API',
           state: state === 'error' && message ? `error: ${message}` : state,
           recordCount: developmentPayload === undefined || state === 'error' ? undefined : mappings.length,
           updatedAt: developmentMetadata.updatedAt,
