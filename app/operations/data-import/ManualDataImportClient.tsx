@@ -315,6 +315,17 @@ export function ManualDataImportClient() {
       const rejectedRows = (result.skippedRows ?? 0) > 0 || Boolean(result.errors?.length);
       const importResponseValid = !invalidGeneratedPath && !recordCountMismatch && !rejectedRows;
       setImportVerified(importResponseValid);
+      const baseMessage = result.message || 'Import completed successfully.';
+      if (!importResponseValid) {
+        setStatus('error');
+        setMessage(invalidGeneratedPath
+          ? `${baseMessage} Backend verification failed: ${invalidGeneratedPath}. No follow-up GET was attempted.`
+          : recordCountMismatch
+            ? `${baseMessage} Backend verification failed: the API reported ${reportedImportedRows ?? 'an unknown number of'} imported rows from ${reportedInputRows ?? 'an unknown number of'} input rows, but the CSV contains ${fileDetails?.rowCount} data rows. No follow-up GET was attempted.`
+            : `${baseMessage} Backend verification failed: ${result.skippedRows ?? 0} rows were skipped and ${result.errors?.length ?? 0} validation errors were returned. No follow-up GET was attempted.`);
+        return;
+      }
+
       let refreshedPayload: unknown;
       for (const delay of [0, 500, 1500]) {
         if (delay) await new Promise(resolve => window.setTimeout(resolve, delay));
@@ -322,15 +333,8 @@ export function ManualDataImportClient() {
         if (refreshedPayload !== undefined && JSON.stringify(refreshedPayload) !== previousPayload) break;
       }
       const currentChanged = refreshedPayload !== undefined && JSON.stringify(refreshedPayload) !== previousPayload;
-      const baseMessage = result.message || 'Import completed successfully.';
-      setStatus(!importResponseValid || refreshedPayload === undefined ? 'error' : 'idle');
-      setMessage(invalidGeneratedPath
-        ? `${baseMessage} Backend verification failed: ${invalidGeneratedPath}.`
-        : recordCountMismatch
-          ? `${baseMessage} Backend verification failed: the API reported ${reportedImportedRows ?? 'an unknown number of'} imported rows from ${reportedInputRows ?? 'an unknown number of'} input rows, but the CSV contains ${fileDetails?.rowCount} data rows.`
-          : rejectedRows
-            ? `${baseMessage} Backend verification failed: ${result.skippedRows ?? 0} rows were skipped and ${result.errors?.length ?? 0} validation errors were returned.`
-          : refreshedPayload === undefined
+      setStatus(refreshedPayload === undefined ? 'error' : 'idle');
+      setMessage(refreshedPayload === undefined
         ? `${baseMessage} The follow-up GET request failed, so the saved records could not be verified.`
         : currentChanged
           ? `${baseMessage} Raw API data was refreshed. Run consolidation when all imports are complete.`
