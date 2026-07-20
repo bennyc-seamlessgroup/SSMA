@@ -23596,6 +23596,62 @@ html[data-portal-design="b"] .monitor-portal .short-market-table-card__head sele
   padding: 0 10px;
 }
 
+html[data-portal-design="b"] .monitor-portal .short-market-table-card__controls {
+  display: flex;
+  align-items: flex-end;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+html[data-portal-design="b"] .monitor-portal .short-market-date-range {
+  display: flex;
+  align-items: flex-end;
+  gap: 6px;
+}
+
+html[data-portal-design="b"] .monitor-portal .short-market-date-range label {
+  display: grid;
+  gap: 4px;
+}
+
+html[data-portal-design="b"] .monitor-portal .short-market-date-range label > span {
+  color: var(--portal-muted);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+}
+
+html[data-portal-design="b"] .monitor-portal .short-market-date-range input {
+  width: 138px;
+  height: 34px;
+  border: 1px solid #d6e0ee;
+  border-radius: 7px;
+  background: #fff;
+  color: #102238;
+  font: 600 11px/1 inherit;
+  padding: 0 8px;
+}
+
+html[data-portal-design="b"] .monitor-portal .short-market-date-range__arrow {
+  padding-bottom: 9px;
+  color: var(--portal-muted);
+  font-size: 12px;
+}
+
+html[data-portal-design="b"] .monitor-portal .short-market-date-range button {
+  height: 34px;
+  border: 1px solid #d6e0ee;
+  border-radius: 7px;
+  background: #fff;
+  color: #235fcf;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 0 10px;
+  cursor: pointer;
+}
+
 html[data-portal-design="b"] .monitor-portal .short-market-table-wrap {
   overflow-x: auto;
   border: 1px solid #e0e7f1;
@@ -23732,10 +23788,40 @@ html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .short-
 }
 
 html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .short-market-table-card__head select,
+html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .short-market-date-range input,
+html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .short-market-date-range button,
 html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .short-market-table-pager button {
   border-color: #2a3d56;
   background: #102542;
   color: #8fb7ff;
+}
+
+@media (max-width: 880px) {
+  html[data-portal-design="b"] .monitor-portal .short-market-table-card__head {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  html[data-portal-design="b"] .monitor-portal .short-market-table-card__controls {
+    justify-content: flex-start;
+  }
+}
+
+@media (max-width: 560px) {
+  html[data-portal-design="b"] .monitor-portal .short-market-date-range {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    width: 100%;
+  }
+
+  html[data-portal-design="b"] .monitor-portal .short-market-date-range label,
+  html[data-portal-design="b"] .monitor-portal .short-market-date-range input {
+    width: 100%;
+  }
+
+  html[data-portal-design="b"] .monitor-portal .short-market-date-range__arrow {
+    display: none;
+  }
 }
 
 html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .short-market-table-wrap {

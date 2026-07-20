@@ -368,13 +368,48 @@ function shortVolumeValue(row: ShortVolumeRow, key: keyof ShortVolumeRow, mode: 
   return denominator ? formatMarketTableValue((value / denominator) * 100, 'percent') : '—';
 }
 
+function marketDateKey(value: string) {
+  return value.trim().slice(0, 10);
+}
+
+function DateRangeControls({
+  id,
+  startDate,
+  endDate,
+  onStartDate,
+  onEndDate,
+}: {
+  id: string;
+  startDate: string;
+  endDate: string;
+  onStartDate: (value: string) => void;
+  onEndDate: (value: string) => void;
+}) {
+  return (
+    <div className="short-market-date-range" role="search" aria-label="Filter records by date range">
+      <label htmlFor={`${id}-start`}><span>From</span><input id={`${id}-start`} type="date" value={startDate} max={endDate || undefined} onChange={event => onStartDate(event.target.value)} /></label>
+      <span className="short-market-date-range__arrow" aria-hidden="true">→</span>
+      <label htmlFor={`${id}-end`}><span>To</span><input id={`${id}-end`} type="date" value={endDate} min={startDate || undefined} onChange={event => onEndDate(event.target.value)} /></label>
+      {(startDate || endDate) && <button type="button" onClick={() => { onStartDate(''); onEndDate(''); }}>Clear</button>}
+    </div>
+  );
+}
+
 function PagedShortVolumeTable({ rows: apiRows }: { rows: ShortVolumeRow[] }) {
   const [page, setPage] = useState(1);
   const [mode, setMode] = useState<ShortVolumeMode>('volume');
+  const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
   const pageSize = 7;
-  const totalPages = Math.max(1, Math.ceil(apiRows.length / pageSize));
+  const filteredRows = useMemo(() => [...apiRows]
+    .sort((a, b) => marketDateKey(b.date).localeCompare(marketDateKey(a.date)))
+    .filter(row => {
+      const date = marketDateKey(row.date);
+      return (!startDate || date >= startDate) && (!endDate || date <= endDate);
+    }), [apiRows, startDate, endDate]);
+  const totalPages = Math.max(1, Math.ceil(filteredRows.length / pageSize));
   const safePage = Math.min(page, totalPages);
-  const pageRows = apiRows.slice((safePage - 1) * pageSize, safePage * pageSize);
+  const pageRows = filteredRows.slice((safePage - 1) * pageSize, safePage * pageSize);
 
   return (
     <article className="terminal-card short-market-table-card">
@@ -383,11 +418,20 @@ function PagedShortVolumeTable({ rows: apiRows }: { rows: ShortVolumeRow[] }) {
           <h3><InfoTitle text="Daily reported short volume by venue. API integration will replace this placeholder table.">Short Volume</InfoTitle></h3>
           <p>Daily reported short, long, and venue-level short volume.</p>
         </div>
-        <select value={mode} onChange={event => setMode(event.target.value as ShortVolumeMode)} aria-label="Short volume display mode">
-          <option value="volume">Short Volume</option>
-          <option value="totalPercent">Short Percent of Total</option>
-          <option value="exchangePercent">Short Percent of Exchange</option>
-        </select>
+        <div className="short-market-table-card__controls">
+          <DateRangeControls
+            id="short-volume-range"
+            startDate={startDate}
+            endDate={endDate}
+            onStartDate={value => { setStartDate(value); setPage(1); }}
+            onEndDate={value => { setEndDate(value); setPage(1); }}
+          />
+          <select value={mode} onChange={event => setMode(event.target.value as ShortVolumeMode)} aria-label="Short volume display mode">
+            <option value="volume">Short Volume</option>
+            <option value="totalPercent">Short Percent of Total</option>
+            <option value="exchangePercent">Short Percent of Exchange</option>
+          </select>
+        </div>
       </div>
       <div className="short-market-table-wrap">
         <table className="short-market-table">
@@ -406,17 +450,25 @@ function PagedShortVolumeTable({ rows: apiRows }: { rows: ShortVolumeRow[] }) {
           </tbody>
         </table>
       </div>
-      <TablePager page={safePage} totalPages={totalPages} onPage={setPage} />
+      <TablePager page={safePage} totalPages={totalPages} totalRows={filteredRows.length} onPage={setPage} />
     </article>
   );
 }
 
 function PagedFtdTable({ rows: apiRows }: { rows: FtdRow[] }) {
   const [page, setPage] = useState(1);
+  const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
   const pageSize = 7;
-  const totalPages = Math.max(1, Math.ceil(apiRows.length / pageSize));
+  const filteredRows = useMemo(() => [...apiRows]
+    .sort((a, b) => marketDateKey(b.tradeDate || b.settlementDate).localeCompare(marketDateKey(a.tradeDate || a.settlementDate)))
+    .filter(row => {
+      const date = marketDateKey(row.tradeDate || row.settlementDate);
+      return (!startDate || date >= startDate) && (!endDate || date <= endDate);
+    }), [apiRows, startDate, endDate]);
+  const totalPages = Math.max(1, Math.ceil(filteredRows.length / pageSize));
   const safePage = Math.min(page, totalPages);
-  const pageRows = apiRows.slice((safePage - 1) * pageSize, safePage * pageSize);
+  const pageRows = filteredRows.slice((safePage - 1) * pageSize, safePage * pageSize);
 
   return (
     <article className="terminal-card short-market-table-card">
@@ -424,6 +476,15 @@ function PagedFtdTable({ rows: apiRows }: { rows: FtdRow[] }) {
         <div>
           <h3><InfoTitle text="Failures-to-deliver are settlement failures reported with a delay. API integration will replace this placeholder table.">Fails-to-Deliver</InfoTitle></h3>
           <p>Settlement failures, closing deadlines, price, and notional value.</p>
+        </div>
+        <div className="short-market-table-card__controls">
+          <DateRangeControls
+            id="ftd-range"
+            startDate={startDate}
+            endDate={endDate}
+            onStartDate={value => { setStartDate(value); setPage(1); }}
+            onEndDate={value => { setEndDate(value); setPage(1); }}
+          />
         </div>
       </div>
       <div className="short-market-table-wrap">
@@ -453,16 +514,16 @@ function PagedFtdTable({ rows: apiRows }: { rows: FtdRow[] }) {
           </tbody>
         </table>
       </div>
-      <TablePager page={safePage} totalPages={totalPages} onPage={setPage} />
+      <TablePager page={safePage} totalPages={totalPages} totalRows={filteredRows.length} onPage={setPage} />
     </article>
   );
 }
 
-function TablePager({ page, totalPages, onPage }: { page: number; totalPages: number; onPage: (page: number) => void }) {
+function TablePager({ page, totalPages, totalRows, onPage }: { page: number; totalPages: number; totalRows: number; onPage: (page: number) => void }) {
   return (
     <div className="short-market-table-pager">
       <button type="button" onClick={() => onPage(page - 1)} disabled={page <= 1}>Previous</button>
-      <span>Page {page} / {totalPages}</span>
+      <span>{totalRows.toLocaleString('en-US')} records · Page {page} / {totalPages}</span>
       <button type="button" onClick={() => onPage(page + 1)} disabled={page >= totalPages}>Next</button>
     </div>
   );
@@ -803,8 +864,8 @@ function apiShortVolumeRows(payload: ApiFile): ShortVolumeRow[] {
 
 function apiFtdRows(payload: ApiFile): FtdRow[] {
   return apiRecords(payload, 'ftd-history').map(row => ({
-    tradeDate: String(row.tradeDate ?? ''),
-    settlementDate: String(row.settlementDate ?? ''),
+    tradeDate: String(row.settlementDate ?? ''),
+    settlementDate: String(row.tradeDate ?? ''),
     closingDeadline: String(row.closingDeadline ?? ''),
     failsToDeliver: numeric(row.shares) ?? 0,
     ftdChange: numeric(row.change) ?? 0,

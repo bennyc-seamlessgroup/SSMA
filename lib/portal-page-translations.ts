@@ -93,6 +93,7 @@ const zhHant: Record<string, string> = {
   'Daily market trends are grouped in the 2×2 view. Reported short interest appears separately below because it updates bi-weekly.': '每日市場趨勢以 2×2 顯示。由於空頭倉位每兩週更新，因此在下方獨立顯示。',
   'Daily reported short, long, and venue-level short volume.': '每日申報的沽空、長倉及各交易場所沽空成交量。',
   'Settlement failures, closing deadlines, price, and notional value.': '交收失敗、平倉期限、價格及名義價值。',
+  'From': '由', 'To': '至', 'Clear': '清除', 'Filter records by date range': '按日期範圍篩選記錄',
   'vs 2 weeks ago': '與兩週前比較', 'Short interest data unavailable': '空頭倉位資料暫時無法使用',
   'No short-volume API records available.': '暫無沽空成交量 API 記錄。', 'No FTD API records available.': '暫無未能交收 API 記錄。',
 

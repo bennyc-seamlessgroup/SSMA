@@ -30,8 +30,17 @@ function normalizeHotkey(value: string) {
   return value.trim();
 }
 
-function isConfiguredPlatform(value: unknown): value is HotkeyPlatform {
-  return platformOptions.includes(value as HotkeyPlatform);
+function normalizeConfiguredPlatform(value: unknown): HotkeyPlatform | null {
+  const normalized = String(value ?? '').trim().toLowerCase().replace(/[\s_-]+/g, '');
+  if (normalized === 'reddit') return 'Reddit';
+  if (normalized === 'x' || normalized === 'twitter') return 'X';
+  if (normalized === 'facebook' || normalized === 'fb') return 'Facebook';
+  if (normalized === 'linkedin' || normalized === 'linkin') return 'Linkedin';
+  return null;
+}
+
+function hasConfiguredPlatform(value: unknown) {
+  return normalizeConfiguredPlatform(value) !== null;
 }
 
 function inferPlatformFromHotkey(value: string): HotkeyPlatform | null {
@@ -41,13 +50,18 @@ function inferPlatformFromHotkey(value: string): HotkeyPlatform | null {
   if (normalized.includes('twitter') || normalized.includes('tweet')) return 'X';
   if (normalized === 'x' || normalized.startsWith('x_') || normalized.startsWith('x-') || normalized.includes('_x_') || normalized.includes('-x-')) return 'X';
   if (normalized.includes('facebook') || normalized.includes('fb_') || normalized.includes('fb-')) return 'Facebook';
-  if (normalized.includes('linkedin') || normalized.includes('linked_in')) return 'Linkedin';
+  if (normalized.includes('linkedin') || normalized.includes('linked_in') || normalized.includes('linkin')) return 'Linkedin';
   return null;
 }
 
 function platformForDisplay(mapping: HotkeyMapping) {
-  if (isConfiguredPlatform(mapping.platform)) return mapping.platform;
+  const configuredPlatform = normalizeConfiguredPlatform(mapping.platform);
+  if (configuredPlatform) return configuredPlatform;
   return inferPlatformFromHotkey(mapping.kwatchHotkey);
+}
+
+function platformLabel(platform: HotkeyPlatform) {
+  return platform === 'Linkedin' ? 'LinkedIn' : platform;
 }
 
 function mappingsFromResponse(response: HotkeyResponse) {
@@ -110,7 +124,7 @@ export function HotkeyOperationsClient({ ticker }: { ticker: string }) {
       .map(mapping => ({ mapping, inferredPlatform: platformForDisplay(mapping) }))
       .filter((item): item is { mapping: HotkeyMapping; inferredPlatform: HotkeyPlatform } => (
         Boolean(item.inferredPlatform)
-        && !isConfiguredPlatform(item.mapping.platform)
+        && !hasConfiguredPlatform(item.mapping.platform)
       ));
 
     if (!updates.length) return;
@@ -187,7 +201,7 @@ export function HotkeyOperationsClient({ ticker }: { ticker: string }) {
         }),
       });
       setHotkey('');
-      setMessage(`Saved ${normalizedDraft} for ${normalizedTicker} under ${platform}.`);
+      setMessage(`Saved ${normalizedDraft} for ${normalizedTicker} under ${platformLabel(platform)}.`);
       await loadMappings(true);
     } catch (error) {
       setState('error');
@@ -243,7 +257,7 @@ export function HotkeyOperationsClient({ ticker }: { ticker: string }) {
                 onChange={event => setPlatform(event.target.value as HotkeyPlatform)}
               >
                 {platformOptions.map(option => (
-                  <option key={option} value={option}>{option}</option>
+                  <option key={option} value={option}>{platformLabel(option)}</option>
                 ))}
               </select>
             </label>
@@ -281,24 +295,27 @@ export function HotkeyOperationsClient({ ticker }: { ticker: string }) {
               <span>Created</span>
               {isOperator && <span>Action</span>}
             </div>
-            {sortedMappings.map(mapping => (
-              <div className={`hotkey-table__row ${isOperator ? '' : 'is-readonly'}`} key={`${mapping.ticker}:${mapping.kwatchHotkey}:${mapping.platform ?? 'unassigned'}`}>
-                <kbd>{mapping.kwatchHotkey}</kbd>
-                <span className="hotkey-platform">{platformForDisplay(mapping) || 'Unassigned'}</span>
-                <span>{mapping.createUser || 'Not available'}</span>
-                <time dateTime={mapping.createDatetime}>{formatCreatedAt(mapping.createDatetime)}</time>
-                {isOperator && (
-                  <button
-                    className="hotkey-delete"
-                    type="button"
-                    disabled={busy}
-                    onClick={() => deleteMapping(mapping)}
-                  >
-                    Delete
-                  </button>
-                )}
-              </div>
-            ))}
+            {sortedMappings.map(mapping => {
+              const mappedPlatform = platformForDisplay(mapping);
+              return (
+                <div className={`hotkey-table__row ${isOperator ? '' : 'is-readonly'}`} key={`${mapping.ticker}:${mapping.kwatchHotkey}:${mapping.platform ?? 'unassigned'}`}>
+                  <kbd>{mapping.kwatchHotkey}</kbd>
+                  <span className="hotkey-platform">{mappedPlatform ? platformLabel(mappedPlatform) : 'Unassigned'}</span>
+                  <span>{mapping.createUser || 'Not available'}</span>
+                  <time dateTime={mapping.createDatetime}>{formatCreatedAt(mapping.createDatetime)}</time>
+                  {isOperator && (
+                    <button
+                      className="hotkey-delete"
+                      type="button"
+                      disabled={busy}
+                      onClick={() => deleteMapping(mapping)}
+                    >
+                      Delete
+                    </button>
+                  )}
+                </div>
+              );
+            })}
           </div>
         )}
       </section>
