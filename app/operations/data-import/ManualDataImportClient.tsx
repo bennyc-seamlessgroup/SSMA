@@ -95,6 +95,8 @@ const categories: CategoryDefinition[] = [
   },
 ];
 
+const dateSpecificCategories: ImportCategory[] = ['utilization', 'margins', 'short-score', 'manual-availability'];
+
 function csvCell(value: string | number | boolean) {
   const text = String(value);
   return /[",\n]/.test(text) ? `"${text.replace(/"/g, '""')}"` : text;
@@ -166,7 +168,6 @@ async function inspectCsvTicker(file: File) {
 }
 
 function expectedImportPaths(category: ImportCategory, ticker: string, tradeDates: string[]) {
-  const dateSpecificCategories: ImportCategory[] = ['utilization', 'margins', 'short-score', 'manual-availability'];
   if (dateSpecificCategories.includes(category)) {
     return tradeDates.map(date => `manual-input/${category}/${ticker}/${date}/${category}.json`);
   }
@@ -189,6 +190,7 @@ export function ManualDataImportClient() {
   const [file, setFile] = useState<File | null>(null);
   const [fileDetails, setFileDetails] = useState<{ rowCount: number; tickers: string[]; tradeDates: string[] }>();
   const [currentData, setCurrentData] = useState<unknown>();
+  const [currentEndpoint, setCurrentEndpoint] = useState('');
   const [importResult, setImportResult] = useState<ImportResponse>();
   const [importVerified, setImportVerified] = useState(false);
   const [consolidationResult, setConsolidationResult] = useState<unknown>();
@@ -199,11 +201,16 @@ export function ManualDataImportClient() {
   const categoryEffectReady = useRef(false);
   const definition = useMemo(() => categories.find(item => item.key === category) ?? categories[0], [category]);
 
-  async function loadCurrent(nextTicker = ticker, nextCategory = category) {
+  async function loadCurrent(nextTicker = ticker, nextCategory = category, importedTradeDates: string[] = []) {
     setStatus('loading');
     setCurrentData(undefined);
+    const verificationDate = dateSpecificCategories.includes(nextCategory)
+      ? [...importedTradeDates].sort().at(-1)
+      : undefined;
+    const endpoint = `/manual-input/${nextCategory}?ticker=${encodeURIComponent(nextTicker)}${verificationDate ? `&tradeDate=${encodeURIComponent(verificationDate)}` : ''}`;
+    setCurrentEndpoint(`GET ${endpoint}`);
     try {
-      const payload = await authenticatedFetch(`/manual-input/${nextCategory}?ticker=${encodeURIComponent(nextTicker)}`, {
+      const payload = await authenticatedFetch(endpoint, {
         cache: 'no-store',
         headers: {
           'Cache-Control': 'no-cache, no-store, max-age=0',
@@ -311,7 +318,7 @@ export function ManualDataImportClient() {
       let refreshedPayload: unknown;
       for (const delay of [0, 500, 1500]) {
         if (delay) await new Promise(resolve => window.setTimeout(resolve, delay));
-        refreshedPayload = await loadCurrent(ticker, category);
+        refreshedPayload = await loadCurrent(ticker, category, fileDetails?.tradeDates ?? []);
         if (refreshedPayload !== undefined && JSON.stringify(refreshedPayload) !== previousPayload) break;
       }
       const currentChanged = refreshedPayload !== undefined && JSON.stringify(refreshedPayload) !== previousPayload;
@@ -453,7 +460,7 @@ export function ManualDataImportClient() {
         description="Uncombined API responses for the selected manual-input category, CSV import, and consolidation trigger."
         rows={[
           {
-            endpoint: `GET /manual-input/${category}?ticker=${ticker}`,
+            endpoint: currentEndpoint || `GET /manual-input/${category}?ticker=${ticker}`,
             source: 'Manual Input V2 API',
             state: currentData === undefined ? status : 'loaded',
             payload: currentData,
