@@ -212,10 +212,6 @@ export function ManualDataImportClient() {
     try {
       const payload = await authenticatedFetch(endpoint, {
         cache: 'no-store',
-        headers: {
-          'Cache-Control': 'no-cache, no-store, max-age=0',
-          Pragma: 'no-cache',
-        },
       });
       setCurrentData(payload);
       setCurrentLoadedAt(new Date().toISOString());
