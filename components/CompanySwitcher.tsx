@@ -16,7 +16,7 @@ type CompanyOption = {
 
 const companyNameCache = new Map<string, string>();
 
-function companyNameFromPayload(payload: unknown) {
+function companyNameFromPayload(payload: unknown, requestedTicker: string) {
   const root = payload && typeof payload === 'object' ? payload as Record<string, unknown> : null;
   const data = root?.data && typeof root.data === 'object' ? root.data as Record<string, unknown> : null;
   const candidates = [
@@ -27,24 +27,27 @@ function companyNameFromPayload(payload: unknown) {
   ];
   for (const candidate of candidates) {
     if (!candidate || typeof candidate !== 'object') continue;
-    const name = String((candidate as Record<string, unknown>).companyName ?? '').trim();
+    const record = candidate as Record<string, unknown>;
+    const responseTicker = String(record.ticker ?? record.stockCode ?? '').trim().toUpperCase();
+    if (responseTicker !== requestedTicker.trim().toUpperCase()) continue;
+    const name = String(record.companyName ?? '').trim();
     if (name) return name;
   }
   return '';
 }
 
-async function resolveCompanyName(ticker: string, fallback: string) {
+async function resolveCompanyName(ticker: string) {
   const cached = companyNameCache.get(ticker);
   if (cached) return cached;
   try {
     const payload = await authenticatedFetch(
       `/market-data/current?ticker=${encodeURIComponent(ticker)}&category=company-profile-current`,
     );
-    const name = companyNameFromPayload(payload) || fallback;
+    const name = companyNameFromPayload(payload, ticker);
     if (name) companyNameCache.set(ticker, name);
     return name;
   } catch {
-    return fallback;
+    return '';
   }
 }
 
@@ -69,10 +72,7 @@ export function CompanySwitcher({ ticker, companyName }: { ticker: string; compa
         const resolved = await Promise.all(access.map(async entry => ({
           ticker: entry.ticker,
           role: entry.role,
-          name: await resolveCompanyName(
-            entry.ticker,
-            entry.name || (entry.ticker === ticker ? companyName : ''),
-          ),
+          name: await resolveCompanyName(entry.ticker),
         })));
         if (!cancelled) setCompanies(resolved);
       })
@@ -108,7 +108,6 @@ export function CompanySwitcher({ ticker, companyName }: { ticker: string; compa
     role: 'Viewer',
   };
   const currentDisplayName = tickerStatus?.companyName?.trim()
-    || current.name.trim()
     || t('companyNameUnavailable');
   const roleLabel = (role: string) => role.trim().toLowerCase() === 'viewer' ? t('viewer') : role;
   const routeSuffix = useMemo(() => {

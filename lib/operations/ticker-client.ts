@@ -16,6 +16,11 @@ export function getOperationsTicker() {
 export function setOperationsTicker(ticker: string) {
   const normalized = normalizeTicker(ticker);
   window.localStorage.setItem(operationsTickerStorageKey, normalized);
+  if (window.location.pathname.startsWith('/operations')) {
+    const url = new URL(window.location.href);
+    url.searchParams.set('ticker', normalized);
+    window.history.replaceState(window.history.state, '', `${url.pathname}${url.search}${url.hash}`);
+  }
   window.dispatchEvent(new CustomEvent(operationsTickerChangedEvent, { detail: normalized }));
   return normalized;
 }

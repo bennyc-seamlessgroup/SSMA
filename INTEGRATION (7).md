@@ -38,6 +38,7 @@
   - [POST /market-data/batch](#post-market-data-batch)
   - [GET /market-data/current](#get-market-datacurrent)
   - [GET /market-data/history](#get-market-datahistory)
+  - [GET /market-data/reports](#get-market-datareports)
   - [GET /social-data](#get-social-data)
   - [POST /social-data](#post-social-data)
   - [Manual Input V2 APIs](#manual-input-v2-apis)
@@ -1056,6 +1057,84 @@ Returns a combined object with all history category names as keys. Missing files
 
 ---
 
+### GET /market-data/reports
+
+Retrieve consolidated report indexes (with pagination) or fetch specific daily report data for a stock ticker from the centralized v2 data platform (`data-sync-platform-centralized-v2` S3 bucket, `reports/` prefix).
+
+```
+GET /market-data/reports?ticker=CURR
+GET /market-data/reports?ticker=CURR&limit=10&page=2
+GET /market-data/reports?ticker=CURR&date=2026-07-18
+Authorization: <id_token>
+```
+
+**Access Control**:
+- Standard users (`USER` role) may only query tickers present in their user profile's `tickers` list. Requests for unauthorized tickers return `403 Forbidden`.
+- Operators and Admins (`OPERATOR` / `ADMIN` role) have unrestricted access to all tickers.
+
+**Parameters**:
+- `ticker` (**Required** / Query Parameter): The stock ticker symbol (case-insensitive, e.g. `CURR`).
+- `date` (Optional / Query Parameter): Retrieve the full report data for a specific date in `YYYY-MM-DD` format.
+- `limit` (Optional / Query Parameter): The maximum number of records to return in the paginated report index list (default is `20`, maximum is `100`). Only applicable when `date` is omitted.
+- `page` (Optional / Query Parameter): The page index of records to return (default is `1`). Only applicable when `date` is omitted.
+
+**Response** `200 OK` — Fetch specific report (when `date` is specified):
+Returns the raw JSON content of the S3 file at `reports/{ticker}/{date}/{ticker}_report_data.json`.
+
+```json
+{
+  "ticker": "CURR",
+  "asOfDate": "2026-07-18",
+  "companyProfile": {
+    "companyName": "CURRENC Group Inc.",
+    "stockCode": "CURR"
+  },
+  "marketSnapshot": {
+    "price": 10.45,
+    "shortInterest": 1250000
+  },
+  "ownershipSnapshot": {
+    "institutionalShares": 850000,
+    "strategicShares": 120000,
+    "publicFloatShares": 2030000
+  },
+  "sentimentSnapshot": {
+    "overallSentimentScore": 0.45
+  },
+  "riskSummary": {
+    "shortInterestRisk": "medium",
+    "borrowFeeRisk": "low"
+  }
+}
+```
+
+**Response** `200 OK` — List available reports (when `date` is omitted):
+Returns the paginated list of available dates.
+
+```json
+{
+  "dates": [
+    "2026-07-18"
+  ],
+  "pagination": {
+    "page": 1,
+    "limit": 20,
+    "totalItems": 1,
+    "totalPages": 1,
+    "hasNextPage": false,
+    "hasPreviousPage": false
+  },
+  "ticker": "CURR",
+  "generatedAt": "2026-07-20T06:29:20Z"
+}
+```
+
+**Response** `400 Bad Request`: If `ticker` is missing or if `date` is formatted incorrectly.
+**Response** `403 Forbidden`: If the user is unauthorized to view reports for the specified ticker.
+**Response** `404 Not Found`: If the report for the requested date or the report index does not exist in S3.
+
+---
+
 ### GET /social-data
 
 Retrieve social media posts and sentiment data from the centralized v2 data platform (`data-sync-platform-centralized-v2` S3 bucket, `kwatch/` prefix). This API supports listing all posts (with platform filtering and page-based pagination) and retrieving individual posts by S3 key.
@@ -1746,7 +1825,7 @@ Content-Type: text/csv
   - This category stores complex nested structures in a single JSON file: `manual-input/internal-float-inputs/{ticker}/internal-float-inputs.json`.
   - The API completely replaces the file. Existing holdings, tokenized shares, and collateralized shares records are cleared, and a fresh file with a newly auto-generated `auditLog` list is written.
 - **Record-Array Categories** (`sec-filings`, `institutional-owner`, `management-holdings`, `hotkeys`):
-  - These categories store multiple records under a `"records"` array in a single JSON file (e.g. `manual-input/sec-filings/{ticker}/sec_filings.json`).
+  - These categories store multiple records under a `"records"` array in a single JSON file (e.g. `manual-input/sec-filings/{ticker}/sec-filings.json`).
   - The API completely replaces this JSON file. All existing items under the `"records"` array are discarded and replaced by the rows parsed from the CSV.
 
 **Downstream Triggers**:
@@ -1761,7 +1840,11 @@ Content-Type: text/csv
   "recordsCount": 386,
   "generatedFiles": [
     "manual-input/utilization/CURR/2026-07-17/utilization.json"
-  ]
+  ],
+  "inputRows": 386,
+  "importedRows": 386,
+  "skippedRows": 0,
+  "errors": []
 }
 ```
 
@@ -2230,6 +2313,7 @@ Content-Type, X-Amz-Date, Authorization, X-Api-Key, X-Amz-Security-Token
 - `/market-data/batch`: `POST, OPTIONS`
 - `/market-data/current`: `GET, OPTIONS`
 - `/market-data/history`: `GET, OPTIONS`
+- `/market-data/reports`: `GET, OPTIONS`
 - `/social-data`: `GET, POST, OPTIONS`
 
 ### Adding Your Frontend Origin

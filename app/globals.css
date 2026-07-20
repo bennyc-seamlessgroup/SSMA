@@ -5314,15 +5314,57 @@ html[data-design-b-theme="dark"] .ops-account__panel > button:hover {
 }
 
 .ops-import-result {
-  display: flex;
-  justify-content: space-between;
-  gap: 12px;
+  display: grid;
+  gap: 8px;
   margin-bottom: 10px;
   padding: 10px 12px;
   border-radius: 8px;
   background: #ecfdf3;
   color: #087443;
   font-size: 11px;
+}
+
+.ops-import-result > div {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.ops-import-result ul {
+  display: grid;
+  gap: 4px;
+  margin: 0;
+  padding: 8px 0 0 18px;
+  border-top: 1px solid currentColor;
+}
+
+.ops-import-result code {
+  overflow-wrap: anywhere;
+}
+
+.ops-import-result.is-invalid {
+  border: 1px solid #fecaca;
+  background: #fff1f2;
+  color: #b42318;
+}
+
+.ops-import-preview-tools {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.ops-import-preview-tools .ops-secondary-button {
+  min-height: 32px;
+  padding: 0 10px;
+}
+
+.ops-import-refreshed {
+  display: block;
+  margin: -4px 0 10px;
+  color: #64748b;
+  font-size: 10px;
+  font-weight: 650;
 }
 
 html[data-design-b-theme="dark"] .ops-import-definition,
@@ -5372,6 +5414,16 @@ html[data-design-b-theme="dark"] .ops-import-result {
   color: #80e1b7;
 }
 
+html[data-design-b-theme="dark"] .ops-import-result.is-invalid {
+  border-color: #7f1d1d;
+  background: #351b22;
+  color: #fda4af;
+}
+
+html[data-design-b-theme="dark"] .ops-import-refreshed {
+  color: #9fb0c5;
+}
+
 @media (max-width: 980px) {
   .ops-import-layout {
     grid-template-columns: 1fr;
@@ -5389,6 +5441,7 @@ html[data-design-b-theme="dark"] .ops-import-result {
     max-width: none;
     text-align: left;
   }
+
 }
 
 .ops-access-invite-panel,

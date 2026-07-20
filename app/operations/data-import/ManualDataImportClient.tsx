@@ -32,6 +32,10 @@ type ImportResponse = {
   ticker?: string;
   recordsCount?: number;
   generatedFiles?: string[];
+  inputRows?: number;
+  importedRows?: number;
+  skippedRows?: number;
+  errors?: unknown[];
 };
 
 const categories: CategoryDefinition[] = [
@@ -80,8 +84,8 @@ const categories: CategoryDefinition[] = [
   {
     key: 'sec-filings', label: 'SEC filings', description: 'Complete operations-maintained SEC filing history.',
     replacement: 'The complete filing list is replaced.',
-    columns: ['id', 'companyName', 'formType', 'formDescription', 'filingDate', 'reportingDate', 'act', 'filmNumber', 'fileNumber', 'accessionNumber', 'filingsUrl', 'notes'],
-    sample: ['filing-001', 'CURRENC Group Inc.', '10-Q', 'Quarterly Report', '2026-07-17', '2026-06-30', '', '', '', '0001213900-26-001234', 'https://www.sec.gov/', ''],
+    columns: ['tradeDate', 'id', 'recordTicker', 'companyName', 'formType', 'formDescription', 'filingDate', 'reportingDate', 'act', 'filmNumber', 'fileNumber', 'accessionNumber', 'filingsUrl', 'notes'],
+    sample: ['2026-07-17', 'filing-001', 'CURR', 'CURRENC Group Inc.', '10-Q', 'Quarterly Report', '2026-07-17', '2026-06-30', '', '', '', '0001213900-26-001234', 'https://www.sec.gov/', ''],
   },
   {
     key: 'internal-float-inputs', label: 'Internal float inputs', description: 'Complete nested internal-float input document.',
@@ -108,13 +112,87 @@ function downloadTemplate(definition: CategoryDefinition, ticker: string) {
   URL.revokeObjectURL(url);
 }
 
+function parseCsvRows(text: string) {
+  const rows: string[][] = [];
+  let row: string[] = [];
+  let cell = '';
+  let quoted = false;
+
+  for (let index = 0; index < text.length; index += 1) {
+    const character = text[index];
+    if (character === '"') {
+      if (quoted && text[index + 1] === '"') {
+        cell += '"';
+        index += 1;
+      } else {
+        quoted = !quoted;
+      }
+    } else if (character === ',' && !quoted) {
+      row.push(cell);
+      cell = '';
+    } else if ((character === '\n' || character === '\r') && !quoted) {
+      if (character === '\r' && text[index + 1] === '\n') index += 1;
+      row.push(cell);
+      if (row.some(value => value.trim())) rows.push(row);
+      row = [];
+      cell = '';
+    } else {
+      cell += character;
+    }
+  }
+  row.push(cell);
+  if (row.some(value => value.trim())) rows.push(row);
+  return rows;
+}
+
+async function inspectCsvTicker(file: File) {
+  const rows = parseCsvRows(await file.text());
+  const headers = rows[0]?.map(header => header.trim().replace(/^\uFEFF/, '').toLowerCase()) ?? [];
+  const tickerIndex = ['recordticker', 'ticker', 'stockcode']
+    .map(header => headers.indexOf(header))
+    .find(index => index >= 0) ?? -1;
+  const tickers = tickerIndex < 0
+    ? []
+    : Array.from(new Set(rows.slice(1)
+      .map(row => row[tickerIndex]?.trim().toUpperCase())
+      .filter(Boolean)));
+  const tradeDateIndex = headers.indexOf('tradedate');
+  const tradeDates = tradeDateIndex < 0
+    ? []
+    : Array.from(new Set(rows.slice(1)
+      .map(row => row[tradeDateIndex]?.trim())
+      .filter(Boolean)));
+  return { rowCount: Math.max(0, rows.length - 1), tickers, tradeDates };
+}
+
+function expectedImportPaths(category: ImportCategory, ticker: string, tradeDates: string[]) {
+  const dateSpecificCategories: ImportCategory[] = ['utilization', 'margins', 'short-score', 'manual-availability'];
+  if (dateSpecificCategories.includes(category)) {
+    return tradeDates.map(date => `manual-input/${category}/${ticker}/${date}/${category}.json`);
+  }
+  return [`manual-input/${category}/${ticker}/${category}.json`];
+}
+
+function invalidImportPath(result: ImportResponse, category: ImportCategory, ticker: string, tradeDates: string[]) {
+  const invalidPath = result.generatedFiles?.find(path => /\/(?:none|null|undefined)(?:$|\/)/i.test(path));
+  if (invalidPath) return `invalid generated path ${invalidPath}`;
+
+  const expected = expectedImportPaths(category, ticker, tradeDates).sort();
+  const generated = [...(result.generatedFiles ?? [])].sort();
+  if (expected.length === generated.length && expected.every((path, index) => path === generated[index])) return undefined;
+  return `expected ${expected.join(', ') || 'a canonical output file'}, received ${generated.join(', ') || 'no generated files'}`;
+}
+
 export function ManualDataImportClient() {
   const [ticker, setTicker] = useState('CURR');
   const [category, setCategory] = useState<ImportCategory>('utilization');
   const [file, setFile] = useState<File | null>(null);
+  const [fileDetails, setFileDetails] = useState<{ rowCount: number; tickers: string[]; tradeDates: string[] }>();
   const [currentData, setCurrentData] = useState<unknown>();
   const [importResult, setImportResult] = useState<ImportResponse>();
+  const [importVerified, setImportVerified] = useState(false);
   const [consolidationResult, setConsolidationResult] = useState<unknown>();
+  const [currentLoadedAt, setCurrentLoadedAt] = useState('');
   const [status, setStatus] = useState<'idle' | 'loading' | 'importing' | 'consolidating' | 'error'>('loading');
   const [message, setMessage] = useState('');
   const fileInput = useRef<HTMLInputElement | null>(null);
@@ -125,13 +203,22 @@ export function ManualDataImportClient() {
     setStatus('loading');
     setCurrentData(undefined);
     try {
-      const payload = await authenticatedFetch(`/manual-input/${nextCategory}?ticker=${encodeURIComponent(nextTicker)}`, { cache: 'no-store' });
+      const payload = await authenticatedFetch(`/manual-input/${nextCategory}?ticker=${encodeURIComponent(nextTicker)}`, {
+        cache: 'no-store',
+        headers: {
+          'Cache-Control': 'no-cache, no-store, max-age=0',
+          Pragma: 'no-cache',
+        },
+      });
       setCurrentData(payload);
+      setCurrentLoadedAt(new Date().toISOString());
       setStatus('idle');
       setMessage('');
+      return payload;
     } catch (error) {
       setStatus('error');
       setMessage(error instanceof Error ? error.message : 'Unable to load the current category data.');
+      return undefined;
     }
   }
 
@@ -150,23 +237,38 @@ export function ManualDataImportClient() {
     }
     if (status === 'loading' && currentData === undefined) return;
     setFile(null);
+    setFileDetails(undefined);
     setImportResult(undefined);
+    setImportVerified(false);
     setConsolidationResult(undefined);
     loadCurrent(ticker, category);
     // Category-driven API refresh only.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [category]);
 
-  function selectFile(nextFile?: File) {
+  async function selectFile(nextFile?: File) {
     if (!nextFile || !nextFile.name.toLowerCase().endsWith('.csv')) {
       setFile(null);
+      setFileDetails(undefined);
       setStatus('error');
       setMessage('Choose a CSV file for this import.');
       return;
     }
-    setFile(nextFile);
-    setStatus('idle');
-    setMessage('');
+    try {
+      const details = await inspectCsvTicker(nextFile);
+      setFile(nextFile);
+      setFileDetails(details);
+      const mismatch = details.tickers.length > 0 && !details.tickers.includes(ticker);
+      setStatus(mismatch ? 'error' : 'idle');
+      setMessage(mismatch
+        ? `CSV ticker ${details.tickers.join(', ')} does not match target ticker ${ticker}. Change the target ticker before importing.`
+        : '');
+    } catch {
+      setFile(null);
+      setFileDetails(undefined);
+      setStatus('error');
+      setMessage('The CSV could not be inspected. Confirm that it is a valid UTF-8 CSV file.');
+    }
   }
 
   async function importCsv() {
@@ -175,24 +277,57 @@ export function ManualDataImportClient() {
       setMessage('Choose a CSV file before importing.');
       return;
     }
+    if (fileDetails?.tickers.length && !fileDetails.tickers.includes(ticker)) {
+      setStatus('error');
+      setMessage(`CSV ticker ${fileDetails.tickers.join(', ')} does not match target ticker ${ticker}.`);
+      return;
+    }
     setStatus('importing');
     setMessage('');
     setImportResult(undefined);
+    setImportVerified(false);
     setConsolidationResult(undefined);
     const formData = new FormData();
     formData.append('ticker', ticker);
     formData.append('category', category);
     formData.append('file', file);
     try {
+      const previousPayload = JSON.stringify(currentData);
       const result = await authenticatedFetch(`/manual-input/import?ticker=${encodeURIComponent(ticker)}&category=${encodeURIComponent(category)}`, {
         method: 'POST',
         body: formData,
       }) as ImportResponse;
       setImportResult(result);
       setFile(null);
-      await loadCurrent(ticker, category);
-      setStatus('idle');
-      setMessage(result.message || 'Import completed successfully. Run consolidation when all imports are complete.');
+      const invalidGeneratedPath = invalidImportPath(result, category, ticker, fileDetails?.tradeDates ?? []);
+      const reportedInputRows = result.inputRows ?? result.recordsCount;
+      const reportedImportedRows = result.importedRows ?? result.recordsCount;
+      const recordCountMismatch = fileDetails !== undefined
+        && ((reportedInputRows !== undefined && reportedInputRows !== fileDetails.rowCount)
+          || (reportedImportedRows !== undefined && reportedImportedRows !== fileDetails.rowCount));
+      const rejectedRows = (result.skippedRows ?? 0) > 0 || Boolean(result.errors?.length);
+      const importResponseValid = !invalidGeneratedPath && !recordCountMismatch && !rejectedRows;
+      setImportVerified(importResponseValid);
+      let refreshedPayload: unknown;
+      for (const delay of [0, 500, 1500]) {
+        if (delay) await new Promise(resolve => window.setTimeout(resolve, delay));
+        refreshedPayload = await loadCurrent(ticker, category);
+        if (refreshedPayload !== undefined && JSON.stringify(refreshedPayload) !== previousPayload) break;
+      }
+      const currentChanged = refreshedPayload !== undefined && JSON.stringify(refreshedPayload) !== previousPayload;
+      const baseMessage = result.message || 'Import completed successfully.';
+      setStatus(!importResponseValid || refreshedPayload === undefined ? 'error' : 'idle');
+      setMessage(invalidGeneratedPath
+        ? `${baseMessage} Backend verification failed: ${invalidGeneratedPath}.`
+        : recordCountMismatch
+          ? `${baseMessage} Backend verification failed: the API reported ${reportedImportedRows ?? 'an unknown number of'} imported rows from ${reportedInputRows ?? 'an unknown number of'} input rows, but the CSV contains ${fileDetails?.rowCount} data rows.`
+          : rejectedRows
+            ? `${baseMessage} Backend verification failed: ${result.skippedRows ?? 0} rows were skipped and ${result.errors?.length ?? 0} validation errors were returned.`
+          : refreshedPayload === undefined
+        ? `${baseMessage} The follow-up GET request failed, so the saved records could not be verified.`
+        : currentChanged
+          ? `${baseMessage} Raw API data was refreshed. Run consolidation when all imports are complete.`
+          : `${baseMessage} The raw GET response is still unchanged. The CSV may match the existing data, or the backend import and read paths are not synchronized.`);
     } catch (error) {
       setStatus('error');
       setMessage(error instanceof Error ? error.message : 'Import failed.');
@@ -259,7 +394,9 @@ export function ManualDataImportClient() {
           >
             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 16V4m0 0L8 8m4-4 4 4M4 15v5h16v-5" /></svg>
             <strong>{file?.name || 'Drop CSV here or choose a file'}</strong>
-            <small>{file ? `${(file.size / 1024).toFixed(1)} KB selected` : 'CSV only'}</small>
+            <small>{file
+              ? `${(file.size / 1024).toFixed(1)} KB · ${fileDetails?.rowCount ?? 0} rows${fileDetails?.tickers.length ? ` · ${fileDetails.tickers.join(', ')}` : ''}`
+              : 'CSV only'}</small>
           </button>
 
           <div className="ops-import-warning">
@@ -269,10 +406,15 @@ export function ManualDataImportClient() {
 
           {message && <p className={`ops-form-message ${status === 'error' ? 'bad' : 'good'}`}>{message}</p>}
           <div className="ops-import-actions">
-            <button className="ops-primary-button" type="button" disabled={!file || status === 'importing' || status === 'consolidating'} onClick={importCsv}>
+            <button
+              className="ops-primary-button"
+              type="button"
+              disabled={!file || Boolean(fileDetails?.tickers.length && !fileDetails.tickers.includes(ticker)) || status === 'importing' || status === 'consolidating'}
+              onClick={importCsv}
+            >
               {status === 'importing' ? 'Importing...' : 'Import CSV'}
             </button>
-            <button className="ops-secondary-button" type="button" disabled={!importResult || status === 'consolidating'} onClick={consolidate}>
+            <button className="ops-secondary-button" type="button" disabled={!importVerified || status === 'consolidating'} onClick={consolidate}>
               {status === 'consolidating' ? 'Consolidating...' : 'Run consolidation'}
             </button>
           </div>
@@ -280,13 +422,26 @@ export function ManualDataImportClient() {
 
         <section className="ops-panel ops-import-preview">
           <div className="ops-panel-head">
-            <div><span className="ops-eyebrow">Current API data</span><h2>{definition.label}</h2></div>
-            <span className="ops-status">{status === 'loading' ? 'Loading' : ticker}</span>
+            <div><span className="ops-eyebrow">Raw manual-input API</span><h2>{definition.label}</h2></div>
+            <div className="ops-import-preview-tools">
+              <span className="ops-status">{status === 'loading' ? 'Loading' : ticker}</span>
+              <button className="ops-secondary-button" type="button" disabled={status === 'loading'} onClick={() => loadCurrent(ticker, category)}>
+                Refresh API data
+              </button>
+            </div>
           </div>
+          {currentLoadedAt && <small className="ops-import-refreshed">Fetched {new Date(currentLoadedAt).toLocaleString()}</small>}
           {importResult && (
-            <div className="ops-import-result">
-              <strong>{(importResult.recordsCount ?? 0).toLocaleString('en-US')} records imported</strong>
-              <span>{importResult.generatedFiles?.length ?? 0} files generated</span>
+            <div className={`ops-import-result ${importVerified ? '' : 'is-invalid'}`}>
+              <div>
+                <strong>{importVerified ? 'Import verified' : 'Import verification failed'} · {(importResult.importedRows ?? importResult.recordsCount ?? 0).toLocaleString('en-US')} records imported</strong>
+                <span>
+                  {(importResult.inputRows ?? importResult.recordsCount ?? 0).toLocaleString('en-US')} input rows · {(importResult.skippedRows ?? 0).toLocaleString('en-US')} skipped · {importResult.errors?.length ?? 0} errors · {importResult.generatedFiles?.length ?? 0} files generated
+                </span>
+              </div>
+              {Boolean(importResult.generatedFiles?.length) && (
+                <ul>{importResult.generatedFiles?.map(path => <li key={path}><code>{path}</code></li>)}</ul>
+              )}
             </div>
           )}
           <pre>{currentData === undefined ? 'Loading current API response...' : JSON.stringify(currentData, null, 2)}</pre>

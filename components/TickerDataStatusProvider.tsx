@@ -71,7 +71,7 @@ async function getApiTickerDataStatus(ticker: string): Promise<Pick<TickerDataSt
     authenticatedFetch(`/social-data?ticker=${encodeURIComponent(ticker)}&limit=1&page=1`) as Promise<SocialStatusPayload>,
   ]);
   const marketCurrent = current['market-current'];
-  const companyProfileCurrent = current['company-profile-current'] as (ApiDataset & { companyName?: unknown }) | undefined;
+  const companyProfileCurrent = current['company-profile-current'] as (ApiDataset & { companyName?: unknown; ticker?: unknown; stockCode?: unknown }) | undefined;
   const marketHistory = history['market-history'];
   const ownershipCurrent = current['ownership-current'];
   const ownershipHistory = history['ownership-history'];
@@ -102,7 +102,8 @@ async function getApiTickerDataStatus(ticker: string): Promise<Pick<TickerDataSt
     'event-calendar': latestFilingStatus(secFilingsHistory),
   };
   const updatedAt = Object.values(pages).map(page => page.updatedAt).filter((value): value is string => Boolean(value)).sort((a, b) => b.localeCompare(a))[0] ?? null;
-  const companyName = typeof companyProfileCurrent?.companyName === 'string'
+  const profileTicker = String(companyProfileCurrent?.ticker ?? companyProfileCurrent?.stockCode ?? '').trim().toUpperCase();
+  const companyName = profileTicker === ticker.trim().toUpperCase() && typeof companyProfileCurrent?.companyName === 'string'
     ? companyProfileCurrent.companyName.trim() || null
     : null;
   return { companyName, pages, updatedAt };
