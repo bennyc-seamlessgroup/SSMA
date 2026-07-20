@@ -169,7 +169,7 @@ export async function getSentimentEvents(ticker: string) {
   ) as Promise<SentimentEventsPayload>;
 }
 
-export async function uploadStocktwitsCsv(ticker: string, file: File) {
+export async function uploadSocialCsv(ticker: string, file: File) {
   const formData = new FormData();
   formData.append('ticker', ticker);
   formData.append('file', file);

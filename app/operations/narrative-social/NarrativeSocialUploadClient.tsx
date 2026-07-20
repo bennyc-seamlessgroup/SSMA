@@ -5,7 +5,7 @@ import { OperationsDevelopmentData } from '@/components/OperationsDevelopmentDat
 import { getOperationsTicker, setOperationsTicker } from '@/lib/operations/ticker-client';
 import {
   getSocialDataPage,
-  uploadStocktwitsCsv,
+  uploadSocialCsv,
   type SocialMention,
   type SocialPlatform,
 } from '@/lib/social-data-api';
@@ -22,6 +22,10 @@ type SocialMentionFile = {
 };
 
 type UploadState = Record<PlatformKey, SocialMentionFile>;
+type UploadResponseState = Partial<Record<PlatformKey, {
+  message?: string;
+  uploadedCount?: number;
+}>>;
 
 function platformCards(ticker: string): Array<{
   key: PlatformKey;
@@ -31,11 +35,11 @@ function platformCards(ticker: string): Array<{
   uploadable: boolean;
 }> {
   return [
-    { key: 'x', label: 'X', hint: 'Automated social feed', jsonPath: `GET /social-data?ticker=${ticker}&platform=Twitter`, uploadable: false },
-    { key: 'reddit', label: 'Reddit', hint: 'Automated social feed', jsonPath: `GET /social-data?ticker=${ticker}&platform=Reddit`, uploadable: false },
+    { key: 'x', label: 'X', hint: 'CSV requires platform=Twitter and datetime columns', jsonPath: `GET /social-data?ticker=${ticker}&platform=X`, uploadable: true },
+    { key: 'reddit', label: 'Reddit', hint: 'CSV requires platform=Reddit and datetime columns', jsonPath: `GET /social-data?ticker=${ticker}&platform=Reddit`, uploadable: true },
     { key: 'facebook', label: 'Facebook', hint: 'Automated social feed', jsonPath: `GET /social-data?ticker=${ticker}&platform=Facebook`, uploadable: false },
     { key: 'linkedin', label: 'LinkedIn', hint: 'Automated social feed', jsonPath: `GET /social-data?ticker=${ticker}&platform=LinkedIn`, uploadable: false },
-    { key: 'stocktwits', label: 'Stocktwits', hint: 'CSV with message ID, timestamp, author, content, and sentiment fields', jsonPath: `POST /social-data?ticker=${ticker}`, uploadable: true },
+    { key: 'stocktwits', label: 'Stocktwits', hint: 'CSV requires messages__id and datetime columns', jsonPath: `GET /social-data?ticker=${ticker}&platform=Stocktwits`, uploadable: true },
   ];
 }
 
@@ -65,6 +69,7 @@ export function NarrativeSocialUploadClient() {
   const [files, setFiles] = useState<Partial<Record<PlatformKey, File>>>({});
   const [data, setData] = useState<Partial<UploadState>>({});
   const [developmentData, setDevelopmentData] = useState<Partial<UploadState>>();
+  const [uploadResponses, setUploadResponses] = useState<UploadResponseState>({});
   const [status, setStatus] = useState<'idle' | 'loading' | 'uploading' | 'done' | 'error'>('loading');
   const [message, setMessage] = useState('');
   const [developmentTicker, setDevelopmentTicker] = useState('CURR');
@@ -142,7 +147,7 @@ export function NarrativeSocialUploadClient() {
     setFiles(current => ({ ...current, ...next }));
     if (!Object.keys(next).length) {
       setStatus('error');
-      setMessage('No uploadable Stocktwits CSV was detected. Other platforms are maintained by the automated social-data pipeline.');
+      setMessage('No supported Reddit, X, or Stocktwits CSV was detected.');
     } else {
       setStatus('idle');
       setMessage('');
@@ -156,19 +161,26 @@ export function NarrativeSocialUploadClient() {
       return;
     }
 
-    const file = files.stocktwits;
-    if (!file) return;
-
     setStatus('uploading');
     setMessage('');
     setDevelopmentData(undefined);
 
     try {
-      const payload = await uploadStocktwitsCsv(selectedTicker, file);
+      const uploads = (Object.entries(files) as Array<[PlatformKey, File | undefined]>)
+        .filter((entry): entry is [PlatformKey, File] => Boolean(entry[1]));
+      const responses = await Promise.all(uploads.map(async ([platform, file]) => ({
+        platform,
+        response: await uploadSocialCsv(selectedTicker, file),
+      })));
+      setUploadResponses(current => ({
+        ...current,
+        ...Object.fromEntries(responses.map(item => [item.platform, item.response])),
+      }));
+      const uploadedCount = responses.reduce((total, item) => total + (item.response.uploadedCount ?? 0), 0);
       await load(selectedTicker);
       setFiles({});
       setStatus('done');
-      setMessage(payload.message || `Uploaded ${(payload.uploadedCount ?? 0).toLocaleString('en-US')} Stocktwits records.`);
+      setMessage(`Uploaded ${uploadedCount.toLocaleString('en-US')} records across ${responses.length} platform${responses.length === 1 ? '' : 's'}.`);
     } catch (error) {
       setStatus('error');
       setMessage(error instanceof Error ? error.message : 'Upload failed.');
@@ -188,7 +200,7 @@ export function NarrativeSocialUploadClient() {
         <div>
           <span className="ops-eyebrow">Batch Upload</span>
           <h2>Drop CSV files here</h2>
-          <p>Use this workspace for the Stocktwits CSV. Reddit, X, Facebook, and LinkedIn are loaded through the automated social-data API.</p>
+          <p>Upload Reddit, X, or Stocktwits CSV files. Each upload replaces the existing dataset for the detected platform only.</p>
         </div>
         <button className="ops-primary-button" type="button" disabled={status === 'uploading'} onClick={uploadFiles}>
           {status === 'uploading' ? 'Uploading...' : `Upload ${readyCount || ''}`.trim()}
@@ -269,21 +281,29 @@ export function NarrativeSocialUploadClient() {
 
       <OperationsDevelopmentData
         title="Social Data API Responses"
-        description="Current per-platform GET /social-data payloads and the Stocktwits POST /social-data upload state."
+        description="Current per-platform GET /social-data payloads and retained Reddit, X, or Stocktwits POST /social-data responses."
         rows={cards.map(platform => {
           const current = data[platform.key];
           const pendingFile = files[platform.key];
+          const uploadResponse = uploadResponses[platform.key];
           return {
-            endpoint: platform.key === 'stocktwits' && (status === 'uploading' || pendingFile)
+            endpoint: platform.uploadable && (status === 'uploading' || pendingFile || uploadResponse)
               ? `POST /social-data?ticker=${developmentTicker}`
               : current?.source || `GET /social-data?ticker=${developmentTicker}`,
             source: 'Centralized Social Data API',
-            state: status === 'error' && message ? `error: ${message}` : pendingFile ? `${status} · file selected` : status,
+            state: status === 'error' && message
+              ? `error: ${message}`
+              : pendingFile
+                ? `${status} · file selected`
+                : uploadResponse
+                  ? 'upload completed'
+                  : status,
             recordCount: current?.recordCount,
             updatedAt: current?.updatedAt,
-            payload: current === undefined && !pendingFile ? undefined : {
+            payload: current === undefined && !pendingFile && !uploadResponse ? undefined : {
               platform: platform.label,
-              response: current,
+              currentResponse: current,
+              uploadResponse,
               pendingFile: pendingFile ? {
                 name: pendingFile.name,
                 size: pendingFile.size,

@@ -14,6 +14,7 @@ const workflowItems = [
   ['Market Data', '/operations/market-data', 'market', 'Maintain daily market and broker inputs.'],
   ['SEC Filings', '/operations/sec-filings', 'filings', 'Create and correct SEC filing records.'],
   ['Ownership Data', '/operations/ownership', 'ownership', 'Manage strategic and management holdings.'],
+  ['Data Import', '/operations/data-import', 'import', 'Replace operations datasets from validated CSV files.'],
   ['Social Data Upload', '/operations/narrative-social', 'social', 'Upload operations-managed social datasets.'],
   ['Notification Routing', '/operations/hotkeys', 'hotkeys', 'Map notification hotkeys to portal platforms.'],
 ] as const;
@@ -39,6 +40,9 @@ function OperationsNavIcon({ icon }: { icon: string }) {
   }
   if (icon === 'social') {
     return <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h16v11H8l-4 4V5Z" /><path d="M8 9h8M8 12h5" /></svg>;
+  }
+  if (icon === 'import') {
+    return <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12m0 0 4-4m-4 4-4-4M4 15v5h16v-5" /></svg>;
   }
   return <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20h16M6 17V9m4 8V9m4 8V9m4 8V9M3 7h18L12 3 3 7Z" /></svg>;
 }

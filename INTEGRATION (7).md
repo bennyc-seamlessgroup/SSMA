@@ -46,6 +46,7 @@
     - [PUT /manual-input/{category}](#put-manual-inputcategory)
     - [DELETE /manual-input/{category}](#delete-manual-inputcategory)
     - [POST/PUT /manual-input/consolidate](#postput-manual-inputconsolidate)
+    - [POST /manual-input/import](#post-manual-inputimport)
   - [GET /hotkeys](#get-hotkeys)
   - [POST /hotkeys](#post-hotkeys)
   - [DELETE /hotkeys/{ticker}/{kwatchHotkey}](#delete-hotkeystickerkwatchhotkey)
@@ -1127,7 +1128,7 @@ Returns a paginated list of social posts sorted in descending chronological orde
 
 ### POST /social-data
 
-Upload a CSV file containing Stocktwits posts. The API parses the CSV, deletes all existing JSON records under `kwatch/{ticker}/Stocktwits/` in the S3 bucket, converts each row to an individual JSON record, and uploads them in parallel.
+Upload a CSV file containing social sentiment posts (Stocktwits, Reddit, or Twitter). The API parses the CSV, dynamically detects the platform from the CSV content, deletes all existing JSON records under the corresponding S3 prefix `kwatch/{ticker}/{platform}/`, converts each row to an individual JSON record, and uploads them in parallel.
 
 ```
 POST /social-data?ticker=CURR
@@ -1135,7 +1136,7 @@ Authorization: <id_token>
 Content-Type: multipart/form-data; boundary=----WebKitFormBoundary7MA4YWxkTrZu0gW
 
 ------WebKitFormBoundary7MA4YWxkTrZu0gW
-Content-Disposition: form-data; name="file"; filename="stocktwits.csv"
+Content-Disposition: form-data; name="file"; filename="reddit.csv"
 Content-Type: text/csv
 
 <CSV File Bytes>
@@ -1148,14 +1149,15 @@ Content-Type: text/csv
 
 **Parameters**:
 - `ticker` (**Required** / Query Parameter or Form Field): The stock ticker symbol (e.g. `CURR`).
-- `file` (**Required** / Form Field): The multipart CSV file containing the Stocktwits data.
+- `file` (**Required** / Form Field): The multipart CSV file containing the social sentiment data.
 
 **CSV Format Requirements**:
-- Must contain the headers `messages__id` and `datetime`.
-- Other expected headers: `author`, `content`, `user__followers`, `likes`, `Reshares`, `link`, `sentiment_label`, `sentiment_score`, `analysis_catalyst_tag`.
+- **Stocktwits**: Must contain `messages__id` and `datetime`.
+- **Reddit / Twitter**: Must contain `platform` (with value `Reddit` or `Twitter`) and `datetime`.
 
 **Target S3 Location**:
-- Saved as `kwatch/{ticker}/Stocktwits/{date}/{messages__id}.json`.
+- Stocktwits: Saved as `kwatch/{ticker}/Stocktwits/{date}/{messages__id}.json`.
+- Reddit / Twitter: Saved as `kwatch/{ticker}/{platform}/{date}/{platform}_{ticker}_{sanitized_datetime}.json` (where colons in datetime are replaced with underscores).
 - The `{date}` folder is calculated dynamically based on the row's `datetime` value:
   - Before 4:00 AM UTC: `ref_date = datetime - 1 day`
   - At/After 4:00 AM UTC: `ref_date = datetime`
@@ -1163,6 +1165,12 @@ Content-Type: text/csv
   - If `ref_date` is a Sunday: `date = ref_date - 3 days` (Thursday)
   - If `ref_date` is a Saturday: `date = ref_date - 2 days` (Thursday)
   - Otherwise: `date = ref_date - 1 day`
+
+**Existing Data Handling**:
+- **Deletion by Prefix**: Before uploading the new CSV rows, the API retrieves all existing objects in S3 matching the prefix `kwatch/{ticker}/{platform}/` (e.g., `kwatch/CURR/Reddit/`) using a paginator (`list_objects_v2`).
+- **Batch Deletion**: These retrieved keys are deleted in chunks of up to 1000 keys using `delete_objects`.
+- **Platform Separation**: Deletion only affects the specific platform being imported. For example, importing Reddit data will delete and replace existing Reddit files under `kwatch/{ticker}/Reddit/`, but will leave existing Twitter or Stocktwits data untouched.
+- **Transactional Failure Safety**: If the S3 deletion step fails, the API immediately halts, returns `500 Internal Server Error`, and does not proceed to upload the new records.
 
 **Response** `200 OK`:
 ```json
@@ -1696,6 +1704,69 @@ Content-Type: application/json
   }
 }
 ```
+
+---
+
+### POST /manual-input/import
+
+Upload a CSV file containing operations data to import a clean set of manual input records. The API parses the CSV, validates it, translates header columns, casts types, removes formatting commas in numbers, and writes fresh JSON file(s) back to S3. It completely overwrites any existing data for the imported category and ticker.
+
+```
+POST /manual-input/import?ticker=CURR&category=utilization
+Authorization: <id_token>
+Content-Type: multipart/form-data; boundary=----WebKitFormBoundary7MA4YWxkTrZu0gW
+
+------WebKitFormBoundary7MA4YWxkTrZu0gW
+Content-Disposition: form-data; name="file"; filename="utilization.csv"
+Content-Type: text/csv
+
+<CSV File Bytes>
+------WebKitFormBoundary7MA4YWxkTrZu0gW--
+```
+
+**Access Control**:
+* Restricted to Operators/Admins (`OPERATOR` / `ADMIN` role) only.
+* Standard users (`USER` role) are unauthorized and will receive a `403 Forbidden` response.
+
+**Parameters**:
+* `ticker` (**Required** / Query Parameter or Form Field): The stock ticker symbol (e.g. `CURR`).
+* `category` (Optional / Query Parameter or Form Field): Target category. Must be one of: `utilization`, `issued-share`, `manual-availability`, `margins`, `sec-filings`, `institutional-owner`, `short-score`, `internal-float-inputs`, `management-holdings`, `profile`. If omitted, the category is inferred automatically from the uploaded filename (e.g. `utilization.csv` -> `utilization`, `internal-float-input.csv` -> `internal-float-inputs`, `profile.csv` -> `profile`).
+* `file` (**Required** / Form Field): The multipart CSV file containing the data.
+
+**Existing Data Handling**:
+- **Date-Specific Categories** (`utilization`, `margins`, `short-score`, `manual-availability`):
+  - These categories store data in date-partitioned JSON files: `manual-input/{category}/{ticker}/{date}/{category}.json`.
+  - During import, the CSV is grouped by the `tradeDate` of each row.
+  - For each unique date present in the CSV, the API writes/overwrites the corresponding date-specific file in S3.
+  - **Important**: Any existing S3 data/files for dates *not* present in the uploaded CSV will remain intact. Only files for dates that exist in the CSV are replaced.
+- **Single-Record Categories** (`issued-share`, `profile`):
+  - These categories store all data in a single JSON file: `manual-input/{category}/{ticker}/{category}.json`.
+  - The API completely overwrites this file with the top-sorted record from the CSV. All prior existing information in that file is deleted.
+- **Internal Float Inputs Category** (`internal-float-inputs`):
+  - This category stores complex nested structures in a single JSON file: `manual-input/internal-float-inputs/{ticker}/internal-float-inputs.json`.
+  - The API completely replaces the file. Existing holdings, tokenized shares, and collateralized shares records are cleared, and a fresh file with a newly auto-generated `auditLog` list is written.
+- **Record-Array Categories** (`sec-filings`, `institutional-owner`, `management-holdings`, `hotkeys`):
+  - These categories store multiple records under a `"records"` array in a single JSON file (e.g. `manual-input/sec-filings/{ticker}/sec_filings.json`).
+  - The API completely replaces this JSON file. All existing items under the `"records"` array are discarded and replaced by the rows parsed from the CSV.
+
+**Downstream Triggers**:
+* **Manual Consolidation Required**: The consolidator Lambda is *not* triggered automatically by the CSV import to prevent redundant runs during batch operations. The consolidator pipeline must be triggered manually after imports complete.
+
+**Response** `200 OK`:
+```json
+{
+  "message": "Import completed successfully",
+  "category": "utilization",
+  "ticker": "CURR",
+  "recordsCount": 386,
+  "generatedFiles": [
+    "manual-input/utilization/CURR/2026-07-17/utilization.json"
+  ]
+}
+```
+
+**Response** `400 Bad Request`: If category is invalid, CSV is empty/malformed, or headers cannot be normalized.
+**Response** `403 Forbidden`: Ticker access restriction.
 
 ---
 
