@@ -115,26 +115,38 @@ export function marketPublicationRecordForDate(
   const margins = exactDateRecord(manualInputs.margins, date);
   const availableShares = maximum(
     market.availableSharesChartExchange,
+    market.availableSharesIbkr,
+    market.availableSharesFutu,
     availability?.availableSharesIbkr,
     availability?.availableSharesFutu,
   );
-  const initialMargin = maximum(margins?.initialMarginIbkr, margins?.initialMarginFutu);
-  const maintenanceMargin = maximum(margins?.maintenanceMarginIbkr, margins?.maintenanceMarginFutu);
+  const initialMargin = maximum(
+    market.initialMarginIbkr,
+    market.initialMarginFutu,
+    margins?.initialMarginIbkr,
+    margins?.initialMarginFutu,
+  );
+  const maintenanceMargin = maximum(
+    market.maintenanceMarginIbkr,
+    market.maintenanceMarginFutu,
+    margins?.maintenanceMarginIbkr,
+    margins?.maintenanceMarginFutu,
+  );
 
   return {
     ...market,
     tradeDate: date,
     availableShares,
-    availableSharesIbkr: availability?.availableSharesIbkr ?? null,
-    availableSharesFutu: availability?.availableSharesFutu ?? null,
-    utilizationPercent: utilization?.utilizationPercent ?? null,
+    availableSharesIbkr: availability?.availableSharesIbkr ?? market.availableSharesIbkr ?? null,
+    availableSharesFutu: availability?.availableSharesFutu ?? market.availableSharesFutu ?? null,
+    utilizationPercent: utilization?.utilizationPercent ?? market.utilizationPercent ?? null,
     initialMargin,
-    initialMarginIbkr: margins?.initialMarginIbkr ?? null,
-    initialMarginFutu: margins?.initialMarginFutu ?? null,
+    initialMarginIbkr: margins?.initialMarginIbkr ?? market.initialMarginIbkr ?? null,
+    initialMarginFutu: margins?.initialMarginFutu ?? market.initialMarginFutu ?? null,
     maintenanceMargin,
-    maintenanceMarginIbkr: margins?.maintenanceMarginIbkr ?? null,
-    maintenanceMarginFutu: margins?.maintenanceMarginFutu ?? null,
-    averageDurationDays: margins?.averageDurationDays ?? null,
+    maintenanceMarginIbkr: margins?.maintenanceMarginIbkr ?? market.maintenanceMarginIbkr ?? null,
+    maintenanceMarginFutu: margins?.maintenanceMarginFutu ?? market.maintenanceMarginFutu ?? null,
+    averageDurationDays: margins?.averageDurationDays ?? market.averageDurationDays ?? null,
   };
 }
 

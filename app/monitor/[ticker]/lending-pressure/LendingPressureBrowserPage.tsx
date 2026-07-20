@@ -5,7 +5,7 @@ import { InfoTooltip } from '@/components/InfoTooltip';
 import { PortalPageLoading } from '@/components/PortalPageLoading';
 import { PageDisclaimerNotice } from '@/components/PageDisclaimerNotice';
 import { authenticatedFetch } from '@/lib/auth-client';
-import { latestCompleteMarketPublicationRecordFromSources, marketRecordDate, type MarketPublicationRecord } from '@/lib/market-data-publication';
+import { latestCompleteMarketPublicationRecordFromSources, marketPublicationRecordForDate, marketRecordDate, type MarketPublicationRecord } from '@/lib/market-data-publication';
 import { normalizeTicker } from '@/lib/ticker-data';
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
 
@@ -39,7 +39,16 @@ function rows(value: unknown): Row[] {
 }
 
 function asArray<T>(value: unknown): T[] {
-  return Array.isArray(value) ? value as T[] : [];
+  if (Array.isArray(value)) return value as T[];
+  if (!value || typeof value !== 'object') return [];
+  const payload = value as { records?: unknown; data?: unknown | { records?: unknown } };
+  if (Array.isArray(payload.records)) return payload.records as T[];
+  if (Array.isArray(payload.data)) return payload.data as T[];
+  if (payload.data && typeof payload.data === 'object') {
+    const nested = payload.data as { records?: unknown };
+    if (Array.isArray(nested.records)) return nested.records as T[];
+  }
+  return [];
 }
 
 function record(value: unknown): Row {
@@ -127,6 +136,7 @@ function buildLendingPayload(currentPayload: unknown, historyPayload: unknown, m
   const publishedDate = publishedRecord ? marketRecordDate(publishedRecord) : '';
   const sortedHistory = [...history]
     .filter(row => Boolean(publishedDate) && String(row.tradeDate ?? '').slice(0, 10) <= publishedDate)
+    .map(row => marketPublicationRecordForDate(history, manualInputs, marketRecordDate(row)))
     .sort((a, b) => String(a.tradeDate ?? '').localeCompare(String(b.tradeDate ?? '')));
   const latestHistory: MarketPublicationRecord = publishedRecord ?? {};
   const currentBorrowFee = firstNumeric(
@@ -342,7 +352,7 @@ export function LendingPressureBrowserPage({ ticker }: { ticker: string }) {
     const marginsEndpoint = `/manual-input/margins?ticker=${encodeURIComponent(normalizedTicker)}`;
     async function loadEndpoint(endpoint: string) {
       try {
-        const payload = await authenticatedFetch(endpoint);
+        const payload = await authenticatedFetch(endpoint, { cache: 'no-store' });
         return {
           payload,
           debug: {

@@ -298,8 +298,10 @@ function marketHistoryToDashboardData(
   }
 
   const recordTicker = plainText(historyFile?.ticker ?? currentFile?.ticker, 'CURR').toUpperCase();
-  const utilizationInputs = manualUtilizationRecords(manualInputs.utilization, recordTicker).filter(record => Boolean(publishedDate) && record.date <= publishedDate);
-  const marginInputs = manualMarginRecords(manualInputs.margins, recordTicker).filter(record => Boolean(publishedDate) && record.date <= publishedDate);
+  // Historical charts show valid saved observations independently. Publication
+  // readiness only controls the current KPI snapshot above.
+  const utilizationInputs = manualUtilizationRecords(manualInputs.utilization, recordTicker);
+  const marginInputs = manualMarginRecords(manualInputs.margins, recordTicker);
   const utilizationByDate = new Map(utilizationInputs.map(record => [record.date, record.utilization]));
   const averageDurationByDate = new Map(
     marginInputs
@@ -384,12 +386,12 @@ export function DashboardBrowserPage({ ticker }: { ticker: string }) {
       setApiError(null);
       try {
         const [currentFile, historyFile, secFilingsFile, utilizationPayload, availabilityPayload, marginsPayload] = await Promise.all([
-          authenticatedFetch(`/market-data/current?ticker=${encodeURIComponent(normalizedTicker)}&category=market-current`) as Promise<MarketCurrentFile>,
-          authenticatedFetch(`/market-data/history?ticker=${encodeURIComponent(normalizedTicker)}&category=market-history`) as Promise<MarketHistoryFile>,
-          authenticatedFetch(`/manual-input/sec-filings?ticker=${encodeURIComponent(normalizedTicker)}`) as Promise<SecFilingsHistoryFile>,
-          authenticatedFetch(`/manual-input/utilization?ticker=${encodeURIComponent(normalizedTicker)}`),
-          authenticatedFetch(`/manual-input/manual-availability?ticker=${encodeURIComponent(normalizedTicker)}`),
-          authenticatedFetch(`/manual-input/margins?ticker=${encodeURIComponent(normalizedTicker)}`),
+          authenticatedFetch(`/market-data/current?ticker=${encodeURIComponent(normalizedTicker)}&category=market-current`, { cache: 'no-store' }) as Promise<MarketCurrentFile>,
+          authenticatedFetch(`/market-data/history?ticker=${encodeURIComponent(normalizedTicker)}&category=market-history`, { cache: 'no-store' }) as Promise<MarketHistoryFile>,
+          authenticatedFetch(`/manual-input/sec-filings?ticker=${encodeURIComponent(normalizedTicker)}`, { cache: 'no-store' }) as Promise<SecFilingsHistoryFile>,
+          authenticatedFetch(`/manual-input/utilization?ticker=${encodeURIComponent(normalizedTicker)}`, { cache: 'no-store' }),
+          authenticatedFetch(`/manual-input/manual-availability?ticker=${encodeURIComponent(normalizedTicker)}`, { cache: 'no-store' }),
+          authenticatedFetch(`/manual-input/margins?ticker=${encodeURIComponent(normalizedTicker)}`, { cache: 'no-store' }),
         ]);
         const manualInputs: ManualMarketInputs = {
           utilization: asApiArray<ManualUtilizationRecord>(utilizationPayload),

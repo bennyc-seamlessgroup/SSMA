@@ -5,7 +5,7 @@ import { InfoTooltip } from '@/components/InfoTooltip';
 import { PortalPageLoading } from '@/components/PortalPageLoading';
 import { PageDisclaimerNotice } from '@/components/PageDisclaimerNotice';
 import { authenticatedFetch } from '@/lib/auth-client';
-import { latestCompleteMarketPublicationRecordFromSources, marketRecordDate } from '@/lib/market-data-publication';
+import { latestCompleteMarketPublicationRecordFromSources, marketPublicationRecordForDate, marketRecordDate } from '@/lib/market-data-publication';
 import { normalizeTicker } from '@/lib/ticker-data';
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
 
@@ -825,13 +825,13 @@ export function ShortInterestBrowserPage({ ticker }: { ticker: string }) {
     setLoading(true);
     setError('');
     Promise.all([
-      authenticatedFetch(`/market-data/current?ticker=${encodeURIComponent(normalizedTicker)}&category=market-current`) as Promise<ApiFile>,
-      authenticatedFetch(`/market-data/history?ticker=${encodeURIComponent(normalizedTicker)}&category=market-history`) as Promise<ApiFile>,
-      authenticatedFetch(`/market-data/history?ticker=${encodeURIComponent(normalizedTicker)}&category=short-volume-history`) as Promise<ApiFile>,
-      authenticatedFetch(`/market-data/history?ticker=${encodeURIComponent(normalizedTicker)}&category=ftd-history`) as Promise<ApiFile>,
-      authenticatedFetch(`/manual-input/utilization?ticker=${encodeURIComponent(normalizedTicker)}`) as Promise<ApiFile>,
-      authenticatedFetch(`/manual-input/manual-availability?ticker=${encodeURIComponent(normalizedTicker)}`) as Promise<ApiFile>,
-      authenticatedFetch(`/manual-input/margins?ticker=${encodeURIComponent(normalizedTicker)}`) as Promise<ApiFile>,
+      authenticatedFetch(`/market-data/current?ticker=${encodeURIComponent(normalizedTicker)}&category=market-current`, { cache: 'no-store' }) as Promise<ApiFile>,
+      authenticatedFetch(`/market-data/history?ticker=${encodeURIComponent(normalizedTicker)}&category=market-history`, { cache: 'no-store' }) as Promise<ApiFile>,
+      authenticatedFetch(`/market-data/history?ticker=${encodeURIComponent(normalizedTicker)}&category=short-volume-history`, { cache: 'no-store' }) as Promise<ApiFile>,
+      authenticatedFetch(`/market-data/history?ticker=${encodeURIComponent(normalizedTicker)}&category=ftd-history`, { cache: 'no-store' }) as Promise<ApiFile>,
+      authenticatedFetch(`/manual-input/utilization?ticker=${encodeURIComponent(normalizedTicker)}`, { cache: 'no-store' }) as Promise<ApiFile>,
+      authenticatedFetch(`/manual-input/manual-availability?ticker=${encodeURIComponent(normalizedTicker)}`, { cache: 'no-store' }) as Promise<ApiFile>,
+      authenticatedFetch(`/manual-input/margins?ticker=${encodeURIComponent(normalizedTicker)}`, { cache: 'no-store' }) as Promise<ApiFile>,
     ]).then(([current, history, shortVolume, ftd, utilization, availability, margins]) => {
       if (!cancelled) setApiData({ current, history, shortVolume, ftd, utilization, availability, margins });
     }).catch(cause => {
@@ -848,15 +848,17 @@ export function ShortInterestBrowserPage({ ticker }: { ticker: string }) {
   }
 
   const marketHistoryRows = apiRecords(apiData.history, 'market-history');
-  const publishedRecord = latestCompleteMarketPublicationRecordFromSources(marketHistoryRows, {
+  const publicationInputs = {
     utilization: rows(apiData.utilization),
     availability: rows(apiData.availability),
     margins: rows(apiData.margins),
-  });
+  };
+  const publishedRecord = latestCompleteMarketPublicationRecordFromSources(marketHistoryRows, publicationInputs);
   const publishedDate = publishedRecord ? marketRecordDate(publishedRecord) : '';
   const shortCurrent = publishedRecord ? marketCurrentToLegacy(publishedRecord as ApiFile) : {};
   const dailyRows = marketHistoryRows
     .filter(row => Boolean(publishedDate) && String(row.tradeDate ?? row.date ?? '').slice(0, 10) <= publishedDate)
+    .map(row => marketPublicationRecordForDate(marketHistoryRows, publicationInputs, marketRecordDate(row)))
     .map(marketHistoryToLegacy);
   const shortInterestTrendRows = dailyRows
     .sort((a, b) => String(a.date ?? '').localeCompare(String(b.date ?? '')))
