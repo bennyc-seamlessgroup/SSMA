@@ -19,7 +19,6 @@ type InstitutionalOverviewData = {
     insider_ownership_percent?: number;
     public_float_percent?: number;
     institutional_value_thousands_usd?: number;
-    average_portfolio_allocation_percent?: number;
     ownership_structure_total_shares?: number;
   };
   ownership_structure?: Array<{
@@ -199,8 +198,8 @@ export function InstitutionalOverview({
           <strong>${formatNumber(overview.institutional_value_thousands_usd, { maximumFractionDigits: 1 })}K</strong>
         </article>
         <article>
-          <span className="with-info">Avg Portfolio Allocation <InfoTooltip text="Average active portfolio allocation percentage across institutional ownership records." /></span>
-          <strong>{formatPercent(overview.average_portfolio_allocation_percent)}</strong>
+          <span className="with-info">Institutional Holding % <InfoTooltip text="Institutional shares held as a percentage of issued shares, provided by the centralized ownership-current API." /></span>
+          <strong>{formatPercent(overview.institutional_ownership_percent)}</strong>
         </article>
       </div>
 

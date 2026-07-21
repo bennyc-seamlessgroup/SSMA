@@ -2655,6 +2655,13 @@ body { min-height: 100vh; }
   font-weight: 800;
 }
 
+.report-timeline-actions .report-coming-soon {
+  border-color: #d8e0eb;
+  background: #eef2f7;
+  color: #64748b;
+  letter-spacing: .08em;
+}
+
 .report-history-table-panel {
   padding: 16px;
 }

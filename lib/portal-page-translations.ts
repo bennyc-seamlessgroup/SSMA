@@ -122,7 +122,7 @@ const zhHant: Record<string, string> = {
 
   // Reports
   'Report History': '報告歷史', 'History Archive': '歷史存檔', 'Latest Report': '最新報告', 'Reports Available': '可用報告',
-  'Post-Market': '收市後', 'Pre-Market': '開市前', 'Midday': '中午', 'View PDF': '查看 PDF', 'Search report archive': '搜尋報告存檔',
+  'Post-Market': '收市後', 'Pre-Market': '開市前', 'Midday': '中午', 'COMING SOON': '即將推出', 'View PDF': '查看 PDF', 'Search report archive': '搜尋報告存檔',
   'Search reports by title, time, or date': '按標題、時間或日期搜尋報告', 'Filter report type': '篩選報告類型',
   'Filter by report window': '按報告時段篩選', 'No reports match the current search.': '沒有報告符合目前搜尋。',
   'No reports match the selected range.': '沒有報告符合所選範圍。', 'Report approval can require IR Admin review before executive delivery.': '報告可要求投資者關係管理員在發送給管理層前進行審批。',
@@ -220,7 +220,8 @@ const zhHant: Record<string, string> = {
   'Strategic Entities': '策略實體', 'Shares (x1000)': '股數（千股）', 'Shares Changed (%)': '股數變動（%）',
   'Value (x1000)': '價值（千美元）', 'Value Changed (%)': '價值變動（%）',
   'Red rows indicate closed positions.': '紅色列表示已平倉持倉。', 'Green rows indicate new positions.': '綠色列表示新持倉。',
-  'Avg Portfolio Allocation': '平均投資組合配置', 'Institutional Short Concentration': '機構空頭集中度',
+  'Avg Portfolio Allocation': '平均投資組合配置', 'Institutional Holding %': '機構持股比例', 'Institutional Short Concentration': '機構空頭集中度',
+  'Institutional shares held as a percentage of issued shares, provided by the centralized ownership-current API.': '機構持有股份佔已發行股份的比例，由集中式 ownership-current API 提供。',
   'Breakdown of issued shares into institutions, strategic entities, and public float.': '已發行股份在機構、策略實體及公眾流通股之間的分佈。',
   'Details update based on the selected ownership segment.': '詳細資料會根據所選持股分類更新。',
   'Total active institutional shares reported long, excluding closed positions and non-share options records.': '已申報的活躍機構長倉總股數，不包括已平倉持倉及非股份期權記錄。',

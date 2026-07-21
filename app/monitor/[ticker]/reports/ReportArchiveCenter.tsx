@@ -222,6 +222,7 @@ export function ReportArchiveCenter({
           {todayReports.map(item => {
             const isAvailable = Boolean(item.report);
             const isLatest = latestToday?.type === item.type;
+            const isComingSoon = item.type === '8AM' || item.type === '1150AM';
             return (
               <div className={`report-timeline-step${isAvailable ? ' is-complete' : ''}${isLatest ? ' is-latest' : ''}`} key={item.type}>
                 <div className="report-timeline-node">{item.step}</div>
@@ -229,7 +230,9 @@ export function ReportArchiveCenter({
                 <h3>{item.title}</h3>
                 <span className="report-timeline-icon">{iconSvg(item.icon)}</span>
                 <div className="report-timeline-actions">
-                  {item.report ? (
+                  {isComingSoon ? (
+                    <span className="report-coming-soon">COMING SOON</span>
+                  ) : item.report ? (
                     <>
                       <button type="button" onClick={() => openReport(item.report!)} disabled={generatingReportId === item.report.id}>{generatingReportId === item.report.id ? 'Generating...' : 'View PDF'}</button>
                       <button type="button" onClick={() => openReport(item.report!, true)} disabled={generatingReportId === item.report.id}>Download</button>

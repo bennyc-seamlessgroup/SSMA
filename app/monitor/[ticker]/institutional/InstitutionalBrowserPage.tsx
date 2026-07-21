@@ -75,7 +75,6 @@ type OwnershipCurrent = {
   institutionalSharesLong?: number;
   institutionalHoldingPercent?: number;
   institutionalValue?: number;
-  averagePortfolioAllocationPercent?: number;
   strategicEntities?: { shares?: number; percent?: number; records?: ManagementHoldingInputRecord[] };
   publicFloat?: { shares?: number; percent?: number };
   institutionBreakdown?: Array<Record<string, unknown>>;
@@ -174,7 +173,6 @@ export function InstitutionalBrowserPage({ ticker }: { ticker: string }) {
       institutional_shares_long: current.institutionalSharesLong,
       institutional_ownership_percent: current.institutionalHoldingPercent,
       institutional_value_thousands_usd: current.institutionalValue,
-      average_portfolio_allocation_percent: current.averagePortfolioAllocationPercent,
       public_float_shares: current.publicFloat?.shares,
       public_float_percent: current.publicFloat?.percent,
     },
