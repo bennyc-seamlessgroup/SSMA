@@ -5,15 +5,14 @@ import { ApiSourceTags } from '@/components/ApiSourceTags';
 import { InfoTooltip } from '@/components/InfoTooltip';
 import { PortalPageLoading } from '@/components/PortalPageLoading';
 import { usePortalTimeZone } from '@/components/usePortalTimeZone';
-import { aggregateSentimentByBucket, getSentimentBuckets, type SentimentPlatformFilter, type SentimentTimeframe } from '@/lib/sentiment-buckets';
+import { aggregateSentimentByBucket, getSentimentBuckets, type AggregatedSentimentBucket, type SentimentBucket as TimelineBucket, type SentimentPlatformFilter, type SentimentTimeframe } from '@/lib/sentiment-buckets';
 import {
-  getAllSocialData,
+  getSocialDataPage,
   getSentimentCurrent,
-  getSentimentEvents,
-  recordsFromSentimentEvents,
+  normalizeSocialPlatform,
   sentimentPeriod,
   type SentimentCurrentPayload,
-  type SentimentEventsPayload,
+  type SocialDataPagination,
   type SocialMention,
 } from '@/lib/social-data-api';
 import { normalizeTicker } from '@/lib/ticker-data';
@@ -55,6 +54,37 @@ function objectValue(value: unknown): Record<string, unknown> {
   return value && typeof value === 'object' && !Array.isArray(value)
     ? value as Record<string, unknown>
     : {};
+}
+
+function aggregateBackendTimeline(
+  timeline: Record<string, unknown>[],
+  buckets: TimelineBucket[],
+  selectedPlatform: SentimentPlatformFilter,
+): AggregatedSentimentBucket[] {
+  return buckets.map((bucket, index) => {
+    const rows = timeline.filter(item => {
+      const timestampMs = Date.parse(String(item.bucketStart ?? item.date ?? item.timestamp ?? ''));
+      const platform = normalizeSocialPlatform(item.platform);
+      return Number.isFinite(timestampMs)
+        && timestampMs >= bucket.startMs
+        && (index === buckets.length - 1 ? timestampMs <= bucket.endMs : timestampMs < bucket.endMs)
+        && (selectedPlatform === 'All' || platform === selectedPlatform);
+    });
+    const mentions = rows.reduce((sum, item) => sum + (optionalNumeric(item.mentions ?? item.count) ?? 0), 0);
+    const weightedScore = rows.reduce((sum, item) => {
+      const count = optionalNumeric(item.mentions ?? item.count) ?? 0;
+      const score = optionalNumeric(item.sentimentScore ?? item.score) ?? 0;
+      return sum + score * count;
+    }, 0);
+    return {
+      ...bucket,
+      score: mentions ? Math.round(weightedScore / mentions) : null,
+      mentions,
+      positive: rows.reduce((sum, item) => sum + (optionalNumeric(item.positiveCount ?? item.positive) ?? 0), 0),
+      neutral: rows.reduce((sum, item) => sum + (optionalNumeric(item.neutralCount ?? item.neutral) ?? 0), 0),
+      negative: rows.reduce((sum, item) => sum + (optionalNumeric(item.negativeCount ?? item.negative) ?? 0), 0),
+    };
+  });
 }
 
 function sentimentBucketFromLabel(value: unknown): SentimentBucket {
@@ -324,17 +354,14 @@ function DevApiTables({
   mentions,
   socialPages,
   current,
-  events,
   timeZone,
 }: {
   mentions: AdanosMention[];
   socialPages: unknown[];
   current: SentimentCurrentPayload | null;
-  events: SentimentEventsPayload | null;
   timeZone: string;
 }) {
   const mentionRows = mentions.map(row => ({ ...row, timestamp: formatMentionDate(row.timestamp, timeZone) }));
-  const eventRows = recordsFromSentimentEvents(events).map(row => ({ ...row, timestamp: formatMentionDate(row.timestamp, timeZone) }));
 
   return (
     <section className="narrative-feed-panel dev-only import-data-dev-panel">
@@ -346,7 +373,6 @@ function DevApiTables({
       <ApiDevelopmentTabs sources={[
         { id: 'social-data', title: 'Social Records', endpoint: 'GET /social-data', source: `${socialPages.length} API page(s)`, payload: mentionRows },
         { id: 'sentiment-current', title: 'Sentiment Current', endpoint: 'GET /market-data/current?category=sentiment-current', source: 'Market Data API', payload: current },
-        { id: 'sentiment-events', title: 'Sentiment Events', endpoint: 'GET /market-data/history?category=sentiment-events', source: 'Market Data API', payload: eventRows },
       ]} />
     </section>
   );
@@ -362,33 +388,45 @@ export function SentimentBrowserPage({ ticker }: { ticker: string }) {
   const [apiData, setApiData] = useState<{
     mentions: AdanosMention[];
     socialPages: unknown[];
+    socialPagination: SocialDataPagination;
     current: SentimentCurrentPayload | null;
-    events: SentimentEventsPayload | null;
   } | null>(null);
   const [loadError, setLoadError] = useState('');
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
     const load = async () => {
       try {
         setLoadError('');
-        const [social, current, events] = await Promise.all([
-          getAllSocialData(normalizedTicker),
+        const [social, current] = await Promise.all([
+          getSocialDataPage({ ticker: normalizedTicker, page: 1, limit: 10 }),
           getSentimentCurrent(normalizedTicker).catch(() => null),
-          getSentimentEvents(normalizedTicker).catch(() => null),
         ]);
         if (!cancelled) {
           setApiData({
             mentions: social.records,
-            socialPages: social.pages,
+            socialPages: [social.raw],
+            socialPagination: social.pagination,
             current,
-            events,
           });
         }
       } catch (error) {
         if (!cancelled) {
           setLoadError(error instanceof Error ? error.message : 'Unable to load social sentiment data.');
-          setApiData({ mentions: [], socialPages: [], current: null, events: null });
+          setApiData({
+            mentions: [],
+            socialPages: [],
+            socialPagination: {
+              page: 1,
+              limit: 10,
+              totalItems: 0,
+              totalPages: 1,
+              hasNextPage: false,
+              hasPreviousPage: false,
+            },
+            current: null,
+          });
         }
       }
     };
@@ -400,6 +438,28 @@ export function SentimentBrowserPage({ ticker }: { ticker: string }) {
     };
   }, [normalizedTicker]);
 
+  const loadMoreFeeds = async () => {
+    if (!apiData?.socialPagination.hasNextPage || isLoadingMore) return;
+    setIsLoadingMore(true);
+    try {
+      const nextPage = await getSocialDataPage({
+        ticker: normalizedTicker,
+        page: apiData.socialPagination.page + 1,
+        limit: 10,
+      });
+      setApiData(current => current ? {
+        ...current,
+        mentions: [...current.mentions, ...nextPage.records],
+        socialPages: [...current.socialPages, nextPage.raw],
+        socialPagination: nextPage.pagination,
+      } : current);
+    } catch (error) {
+      setLoadError(error instanceof Error ? error.message : 'Unable to load more social feeds.');
+    } finally {
+      setIsLoadingMore(false);
+    }
+  };
+
   if (!apiData) {
     return <PortalPageLoading variant="sentiment" />;
   }
@@ -410,9 +470,11 @@ export function SentimentBrowserPage({ ticker }: { ticker: string }) {
   const facebookMentions = mentions.filter(item => item.platform === 'Facebook');
   const linkedinMentions = mentions.filter(item => item.platform === 'Linkedin');
   const stocktwitsMentions = mentions.filter(item => item.platform === 'Stocktwits');
-  const eventMentions = recordsFromSentimentEvents(apiData.events);
-  const timelineSourceMentions = eventMentions.length ? eventMentions : mentions;
-  const validMentionTimes = [...mentions, ...timelineSourceMentions].map(item => mentionTimestampMs(item.timestamp)).filter(value => value > 0);
+  const backendPeriod = sentimentPeriod(apiData.current, activeRange.label);
+  const backendTimeline = Array.isArray(backendPeriod.timeline) ? backendPeriod.timeline.map(objectValue) : [];
+  const backendPeriodEnd = Date.parse(String(backendPeriod.end ?? ''));
+  const validMentionTimes = mentions.map(item => mentionTimestampMs(item.timestamp)).filter(value => value > 0);
+  if (Number.isFinite(backendPeriodEnd)) validMentionTimes.push(backendPeriodEnd);
   const latestMentionTime = validMentionTimes.length ? Math.max(...validMentionTimes) : Date.now();
   const dayMs = 24 * 60 * 60 * 1000;
   const currentWindowMs = activeRange.days * dayMs;
@@ -433,7 +495,6 @@ export function SentimentBrowserPage({ ticker }: { ticker: string }) {
   const previousLinkedinMentions = filterWindow(linkedinMentions, previousWindowStart, currentWindowStart);
   const previousStocktwitsMentions = filterWindow(stocktwitsMentions, previousWindowStart, currentWindowStart);
 
-  const backendPeriod = sentimentPeriod(apiData.current, activeRange.label);
   const backendDistribution = objectValue(backendPeriod.distribution);
   const backendBreakdown = Array.isArray(backendPeriod.platformBreakdown)
     ? backendPeriod.platformBreakdown.map(objectValue)
@@ -484,7 +545,7 @@ export function SentimentBrowserPage({ ticker }: { ticker: string }) {
     ...feedRows(windowStocktwitsMentions, 'Stocktwits', timeZone),
   ];
   const timelineMentions = [
-    ...timelineSourceMentions.map(item => ({
+    ...mentions.map(item => ({
       timestampMs: mentionTimestampMs(item.timestamp),
       platform: item.platform,
       score: sentimentValue(item),
@@ -492,7 +553,9 @@ export function SentimentBrowserPage({ ticker }: { ticker: string }) {
     })),
   ].filter(item => item.timestampMs > 0);
   const sentimentBuckets = getSentimentBuckets(activeRangeLabel, currentWindowStart, latestMentionTime);
-  const aggregatedBuckets = aggregateSentimentByBucket(timelineMentions, sentimentBuckets, selectedPlatform);
+  const aggregatedBuckets = backendTimeline.length
+    ? aggregateBackendTimeline(backendTimeline, sentimentBuckets, selectedPlatform)
+    : aggregateSentimentByBucket(timelineMentions, sentimentBuckets, selectedPlatform);
   const selectedBucket = selectedBucketId ? aggregatedBuckets.find(bucket => bucket.id === selectedBucketId) ?? null : null;
   const platformRows = selectedPlatform === 'All' ? allRows : allRows.filter(row => row.platform === selectedPlatform);
   const filteredRows = selectedBucket
@@ -545,7 +608,7 @@ export function SentimentBrowserPage({ ticker }: { ticker: string }) {
             <h2 className="panel__title">Sentiment Timeline & Social Feed <InfoTooltip text="Platform and date filters apply to both the timeline and feed list." /></h2>
           </div>
           <ApiSourceTags sources={[
-            { endpoint: 'GET /market-data/history?category=sentiment-events', label: 'Timeline' },
+            { endpoint: 'GET /market-data/current?category=sentiment-current', label: 'Timeline' },
             { endpoint: 'GET /social-data', label: 'Social feed' },
           ]} />
         </div>
@@ -587,6 +650,9 @@ export function SentimentBrowserPage({ ticker }: { ticker: string }) {
             rows={filteredRows}
             hidePlatformFilter
             emptyMessage="No social feeds captured for this platform and time window."
+            hasMore={apiData.socialPagination.hasNextPage}
+            isLoadingMore={isLoadingMore}
+            onLoadMore={loadMoreFeeds}
           />
         </div>
       </section>
@@ -595,7 +661,6 @@ export function SentimentBrowserPage({ ticker }: { ticker: string }) {
         mentions={mentions}
         socialPages={apiData.socialPages}
         current={apiData.current}
-        events={apiData.events}
         timeZone={timeZone}
       />
     </div>

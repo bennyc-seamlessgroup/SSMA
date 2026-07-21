@@ -552,6 +552,8 @@ const dynamicPatterns: Array<[RegExp, string]> = [
   [/^([+-]?[\d,.]+) shares$/, '$1 股'],
   [/^(\d+) reports$/, '$1 份報告'],
   [/^(\d+) feeds in selected timeframe$/, '所選時段內有 $1 則動態'],
+  [/^Showing (\d+) loaded posts$/, '顯示 $1 則已載入帖文'],
+  [/^Loading\.\.\.$/, '正在載入...'],
   [/^Load more$/, '載入更多'],
 ];
 

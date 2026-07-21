@@ -35,10 +35,8 @@ const path = require('path');
   });
   await page.waitForFunction(() => window.__REPORT_READY__ === true);
   await page.emulateMedia({ media: 'print' });
-  const outputDir = path.resolve(__dirname, '../../output/pdf');
-  fs.mkdirSync(outputDir, { recursive: true });
   await page.pdf({
-    path: path.resolve(outputDir, 'currenc-daily-market-close-report-lean-v1.pdf'),
+    path: path.resolve(__dirname, 'currenc-post-market-portal-backed-report-playwright.pdf'),
     format: 'A4',
     printBackground: true,
     preferCSSPageSize: true,

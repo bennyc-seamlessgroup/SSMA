@@ -17,7 +17,6 @@ export type MentionFeedRow = {
   url: string;
 };
 
-const PAGE_SIZE = 6;
 const sentimentFilters = ['All Sentiment', 'Bullish', 'Neutral', 'Bearish'] as const;
 
 function sentimentTone(sentiment: string) {
@@ -85,12 +84,17 @@ export function MentionFeedCards({
   rows,
   hidePlatformFilter = false,
   emptyMessage = 'No social feeds captured for this platform and time window.',
+  hasMore = false,
+  isLoadingMore = false,
+  onLoadMore,
 }: {
   rows: MentionFeedRow[];
   hidePlatformFilter?: boolean;
   emptyMessage?: string;
+  hasMore?: boolean;
+  isLoadingMore?: boolean;
+  onLoadMore?: () => void | Promise<void>;
 }) {
-  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
   const [sentimentFilter, setSentimentFilter] = useState<(typeof sentimentFilters)[number]>('All Sentiment');
   const [sortMode, setSortMode] = useState<'recent' | 'oldest' | 'followers' | 'likes' | 'engagement'>('recent');
   const [search, setSearch] = useState('');
@@ -107,24 +111,15 @@ export function MentionFeedCards({
         return b.timestampMs - a.timestampMs;
       });
   }, [rows, sentimentFilter, sortMode, search]);
-  const visibleRows = useMemo(
-    () => filteredRows.slice(0, visibleCount),
-    [filteredRows, visibleCount],
-  );
-
-  function resetVisibleRows() {
-    setVisibleCount(PAGE_SIZE);
-  }
-
   return (
     <div className="narrative-feed-shell">
       <div className="narrative-command-filters">
         {!hidePlatformFilter && <span className="narrative-feed-filter-label">Feed filters</span>}
         <div className="narrative-filter-selects">
-          <select value={sentimentFilter} onChange={event => { setSentimentFilter(event.target.value as (typeof sentimentFilters)[number]); resetVisibleRows(); }} aria-label="Sentiment filter">
+          <select value={sentimentFilter} onChange={event => setSentimentFilter(event.target.value as (typeof sentimentFilters)[number])} aria-label="Sentiment filter">
             {sentimentFilters.map(type => <option key={type} value={type}>{type}</option>)}
           </select>
-          <select value={sortMode} onChange={event => { setSortMode(event.target.value as 'recent' | 'oldest' | 'followers' | 'likes' | 'engagement'); resetVisibleRows(); }} aria-label="Sort feed">
+          <select value={sortMode} onChange={event => setSortMode(event.target.value as 'recent' | 'oldest' | 'followers' | 'likes' | 'engagement')} aria-label="Sort feed">
             <option value="recent">Newest</option>
             <option value="oldest">Oldest</option>
             <option value="followers">Highest Followers</option>
@@ -133,7 +128,7 @@ export function MentionFeedCards({
           </select>
           <input
             value={search}
-            onChange={event => { setSearch(event.target.value); resetVisibleRows(); }}
+            onChange={event => setSearch(event.target.value)}
             placeholder="Search posts..."
             aria-label="Search social posts"
           />
@@ -141,9 +136,9 @@ export function MentionFeedCards({
       </div>
 
       <div className="narrative-intel-feed">
-        {visibleRows.length === 0 ? (
+        {filteredRows.length === 0 ? (
           <div className="narrative-feed-empty">{emptyMessage}</div>
-        ) : visibleRows.map((row, index) => (
+        ) : filteredRows.map((row, index) => (
           <article className="narrative-intel-card" key={`${row.url}-${row.timestamp}-${index}`}>
             <div className="narrative-source-logo">
               {logoSrc(row) ? <img src={logoSrc(row)} alt="" /> : logoLabel(row)}
@@ -179,8 +174,10 @@ export function MentionFeedCards({
       </div>
 
       <div className="narrative-feed-pagination" aria-label={`${rows[0]?.platform ?? 'Mention'} feed pagination`}>
-        <span>Showing {visibleRows.length} of {filteredRows.length} posts</span>
-        <button type="button" onClick={() => setVisibleCount(current => current + PAGE_SIZE)} disabled={visibleRows.length >= filteredRows.length}>Load more</button>
+        <span>Showing {filteredRows.length} loaded posts</span>
+        <button type="button" onClick={onLoadMore} disabled={!hasMore || isLoadingMore}>
+          {isLoadingMore ? 'Loading...' : 'Load more'}
+        </button>
       </div>
     </div>
   );

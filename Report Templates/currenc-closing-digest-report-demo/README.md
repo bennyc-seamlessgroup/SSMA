@@ -1,6 +1,6 @@
-# CURRENC Daily Market Close Report
+# CURRENC Daily Market Close Report - Lean V1
 
-This folder contains the active browser-rendered template for the management daily-close PDF.
+This folder contains the active browser-rendered daily-close report. Lean V1 deliberately uses only information currently available through implemented portal APIs.
 
 ## Active Files
 
@@ -11,47 +11,35 @@ render.js
 report-data.json
 generate-portal-backed-pdf.js
 REPORT_DATA_CONTRACT.md
-DAILY_REPORT_RULES.md
-report-ai-data-points.csv
 ```
 
-- `template.html` is the fixed HTML shell.
-- `styles.css` defines A4 print layout and all report styling.
-- `render.js` renders supplied values and SVG charts. It does not own business calculations.
-- `report-data.json` is a replaceable sample payload following the v2 contract.
-- `generate-portal-backed-pdf.js` exports the report with Playwright.
-- `REPORT_DATA_CONTRACT.md` defines the complete backend payload.
-- `DAILY_REPORT_RULES.md` defines deterministic alerts and watch thresholds.
-- `report-ai-data-points.csv` lists the proposed AI outputs to add to the central data inventory.
+- `template.html` is the fixed browser shell.
+- `styles.css` defines the four-page A4 layout.
+- `render.js` formats supplied values and draws charts without business calculations.
+- `report-data.json` is a replaceable sample payload.
+- `generate-portal-backed-pdf.js` exports the sample with Playwright.
+- `REPORT_DATA_CONTRACT.md` defines the lean backend payload.
 
 ## Report Structure
 
-1. Cover and reporting scope
-2. Executive close snapshot
-3. Market performance and liquidity
-4. Short interest and lending pressure
-5. Social sentiment, filings, and material events
-6. Next-session outlook and management priorities
-7. Legal disclaimer
+1. Cover
+2. Key closing signals and current risk classifications
+3. Short and lending trends
+4. Social sentiment and latest SEC filings
 
-The report intentionally excludes routine quarterly ownership detail, private internal-float inputs, and long-form raw tables. Those remain in the portal. A material ownership or float event may appear only when a same-day change is detected.
+The active report excludes market context, readiness scoring, material-event interpretation, next-session forecasts, rule-generated watchlists, and AI sections until reliable report fields are available.
 
-## Local PDF Generation
+## Archived Comprehensive Version
 
-Install browser support once:
+The previous seven-page comprehensive v2 report is preserved at:
 
-```bash
-npm install
-npx playwright install chromium
+```text
+Report Templates/archive/comprehensive-daily-close-v2/
 ```
 
-On Linux servers:
+That archive includes its original renderer, styles, payload contract, AI field proposal, rules, and sample data.
 
-```bash
-npx playwright install --with-deps chromium
-```
-
-Generate the sample PDF:
+## Generate the PDF
 
 ```bash
 node "Report Templates/currenc-closing-digest-report-demo/generate-portal-backed-pdf.js"
@@ -60,76 +48,18 @@ node "Report Templates/currenc-closing-digest-report-demo/generate-portal-backed
 Output:
 
 ```text
-Report Templates/currenc-closing-digest-report-demo/currenc-post-market-portal-backed-report-playwright.pdf
+output/pdf/currenc-daily-market-close-report-lean-v1.pdf
 ```
 
-## Production Workflow
+## Backend Workflow
 
-1. Trigger after the agreed market-data cutoff.
-2. Read exact-date market, short, lending, social, filing, event, and approved manual-input records.
-3. Apply backend calculations and deterministic alert rules.
-4. Evaluate report data coverage. Keep missing fields explicit.
-5. Generate all available rule-based sections.
-6. Generate AI sections when the AI pipeline is enabled; otherwise keep `status: "pending"`.
-7. Validate the payload against `REPORT_DATA_CONTRACT.md`.
-8. Serve the four runtime files together: `template.html`, `styles.css`, `render.js`, and the generated `report-data.json`.
-9. Open `template.html` with Playwright and wait for `window.__REPORT_READY__ === true`.
-10. Export A4 PDF using `printBackground: true` and `preferCSSPageSize: true`.
-11. Save the PDF or render it on demand from the immutable report-data snapshot.
-12. Store ticker, report date, payload version/hash, generated time, model/prompt versions, and approval state.
+1. Fetch the dated report snapshot from `GET /market-data/reports`.
+2. Add historical series from `GET /market-data/history` when the report snapshot does not already include them.
+3. Add social distribution and platform totals from the implemented social-data API.
+4. Add latest SEC filing records from the implemented manual-input API.
+5. Populate only verified values. Do not substitute zero for missing observations.
+6. Validate against `REPORT_DATA_CONTRACT.md`.
+7. Store or return the immutable dated payload.
+8. Let the browser renderer produce the PDF on demand.
 
-## Portal Archive Delivery
-
-The Report Archive uses the same template for on-demand browser generation:
-
-1. An archive record supplies `ticker`, `reportDate`, `generatedAt`, and `dataUrl`.
-2. The browser loads `public/report-templates/daily-close/template.html` in an isolated hidden frame.
-3. The template fetches the record payload and applies the archive date metadata.
-4. `html2canvas` captures each A4 page and `jsPDF` assembles the PDF.
-5. View opens the generated PDF in a new tab; Download saves the dated report filename.
-
-The current yesterday entry uses the bundled sample payload. Replace its `dataUrl` with the backend's dated report-data URL when the centralized report endpoint is available; the rendering and archive components do not need to change.
-
-## Responsibility Split
-
-Backend owns:
-
-- API and database reads
-- current/prior-period selection
-- calculations and score labels
-- report readiness
-- deterministic alert triggers and ranking
-- AI prompts and generated output
-- legal disclaimer injection
-- final immutable report payload
-
-Template owns:
-
-- A4 page layout
-- typography and visual hierarchy
-- supplied-value formatting
-- SVG chart rendering
-- explicit pending and missing-data states
-
-## Data and AI Rules
-
-- Do not disclose vendor names in user-facing content.
-- Do not use zero as a fallback for a missing observation.
-- Do not silently carry forward stale values.
-- AI analysis must distinguish verified events from speculation.
-- AI analysis must cite supplied report evidence and state material uncertainty.
-- AI analysis must not create unsupported price targets, trading instructions, or legal conclusions.
-- Approved legal copy must come from the portal legal disclaimer module, never from an AI model.
-
-Read these files together before backend implementation:
-
-```text
-README.md
-REPORT_DATA_CONTRACT.md
-DAILY_REPORT_RULES.md
-report-ai-data-points.csv
-template.html
-styles.css
-render.js
-report-data.json
-```
+The long-term backend target remains one complete dated payload from `GET /market-data/reports?ticker={ticker}&date={YYYY-MM-DD}` so the frontend does not need to compose multiple APIs during PDF generation.
