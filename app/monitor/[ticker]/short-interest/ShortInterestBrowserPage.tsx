@@ -7,7 +7,7 @@ import { InfoTooltip } from '@/components/InfoTooltip';
 import { PortalPageLoading } from '@/components/PortalPageLoading';
 import { PageDisclaimerNotice } from '@/components/PageDisclaimerNotice';
 import { fetchAiReport } from '@/lib/ai-report-api';
-import { authenticatedFetch } from '@/lib/auth-client';
+import { cachedAuthenticatedFetch } from '@/lib/auth-client';
 import { latestCompleteMarketPublicationRecordFromHistory, marketPublicationRecordFromHistoryForDate, marketRecordDate } from '@/lib/market-data-publication';
 import { normalizeTicker } from '@/lib/ticker-data';
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
@@ -885,10 +885,10 @@ export function ShortInterestBrowserPage({ ticker }: { ticker: string }) {
     setLoading(true);
     setError('');
     Promise.all([
-      authenticatedFetch(`/market-data/current?ticker=${encodeURIComponent(normalizedTicker)}&category=market-current`, { cache: 'no-store' }) as Promise<ApiFile>,
-      authenticatedFetch(`/market-data/history?ticker=${encodeURIComponent(normalizedTicker)}&category=market-history`, { cache: 'no-store' }) as Promise<ApiFile>,
-      authenticatedFetch(`/market-data/history?ticker=${encodeURIComponent(normalizedTicker)}&category=short-volume-history`, { cache: 'no-store' }) as Promise<ApiFile>,
-      authenticatedFetch(`/market-data/history?ticker=${encodeURIComponent(normalizedTicker)}&category=ftd-history`, { cache: 'no-store' }) as Promise<ApiFile>,
+      cachedAuthenticatedFetch<ApiFile>(`/market-data/current?ticker=${encodeURIComponent(normalizedTicker)}&category=market-current`),
+      cachedAuthenticatedFetch<ApiFile>(`/market-data/history?ticker=${encodeURIComponent(normalizedTicker)}&category=market-history`),
+      cachedAuthenticatedFetch<ApiFile>(`/market-data/history?ticker=${encodeURIComponent(normalizedTicker)}&category=short-volume-history`),
+      cachedAuthenticatedFetch<ApiFile>(`/market-data/history?ticker=${encodeURIComponent(normalizedTicker)}&category=ftd-history`),
       (fetchAiReport(normalizedTicker) as Promise<ApiFile>)
         .catch(cause => ({
           requestError: cause instanceof Error ? cause.message : 'Unable to load AI report.',

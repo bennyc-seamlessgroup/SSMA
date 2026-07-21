@@ -6,7 +6,7 @@ import { InfoTooltip } from '@/components/InfoTooltip';
 import { PortalPageLoading } from '@/components/PortalPageLoading';
 import { PageDisclaimerNotice } from '@/components/PageDisclaimerNotice';
 import { fetchAiReport } from '@/lib/ai-report-api';
-import { authenticatedFetch } from '@/lib/auth-client';
+import { cachedAuthenticatedFetch } from '@/lib/auth-client';
 import { latestCompleteMarketPublicationRecordFromHistory, marketPublicationRecordFromHistoryForDate, marketRecordDate, type MarketPublicationRecord } from '@/lib/market-data-publication';
 import { normalizeTicker } from '@/lib/ticker-data';
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
@@ -329,7 +329,7 @@ export function LendingPressureBrowserPage({ ticker }: { ticker: string }) {
     const currentEndpoint = `/market-data/current?ticker=${encodeURIComponent(normalizedTicker)}&category=market-current`;
     const historyEndpoint = `/market-data/history?ticker=${encodeURIComponent(normalizedTicker)}&category=market-history`;
     const aiReportEndpoint = `/market-data/ai-report?ticker=${encodeURIComponent(normalizedTicker)}`;
-    async function loadEndpoint(endpoint: string, request: () => Promise<unknown> = () => authenticatedFetch(endpoint, { cache: 'no-store' })) {
+    async function loadEndpoint(endpoint: string, request: () => Promise<unknown> = () => cachedAuthenticatedFetch(endpoint)) {
       try {
         const payload = await request();
         return {

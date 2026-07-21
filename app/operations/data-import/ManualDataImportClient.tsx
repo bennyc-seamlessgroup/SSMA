@@ -171,6 +171,9 @@ function expectedImportPaths(category: ImportCategory, ticker: string, tradeDate
   if (dateSpecificCategories.includes(category)) {
     return tradeDates.map(date => `manual-input/${category}/${ticker}/${date}/${category}.json`);
   }
+  if (category === 'institutional-owner') {
+    return [`manual-input/${category}/${ticker}/security-name.json`];
+  }
   return [`manual-input/${category}/${ticker}/${category}.json`];
 }
 

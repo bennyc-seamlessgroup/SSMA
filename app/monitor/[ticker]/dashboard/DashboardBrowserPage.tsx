@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { PortalPageLoading } from '@/components/PortalPageLoading';
-import { authenticatedFetch } from '@/lib/auth-client';
+import { cachedAuthenticatedFetch } from '@/lib/auth-client';
 import { latestCompleteMarketPublicationRecordFromHistory, marketNumber, marketRecordDate } from '@/lib/market-data-publication';
 import type { DashboardMarginRecord, DashboardUtilizationRecord, OperationsSecFilingRecord } from '@/lib/operations/data-types';
 import { normalizeTicker } from '@/lib/ticker-data';
@@ -311,9 +311,9 @@ export function DashboardBrowserPage({ ticker }: { ticker: string }) {
       setApiError(null);
       try {
         const [currentFile, historyFile, secFilingsFile] = await Promise.all([
-          authenticatedFetch(`/market-data/current?ticker=${encodeURIComponent(normalizedTicker)}&category=market-current`, { cache: 'no-store' }) as Promise<MarketCurrentFile>,
-          authenticatedFetch(`/market-data/history?ticker=${encodeURIComponent(normalizedTicker)}&category=market-history`, { cache: 'no-store' }) as Promise<MarketHistoryFile>,
-          authenticatedFetch(`/manual-input/sec-filings?ticker=${encodeURIComponent(normalizedTicker)}`, { cache: 'no-store' }) as Promise<SecFilingsHistoryFile>,
+          cachedAuthenticatedFetch<MarketCurrentFile>(`/market-data/current?ticker=${encodeURIComponent(normalizedTicker)}&category=market-current`),
+          cachedAuthenticatedFetch<MarketHistoryFile>(`/market-data/history?ticker=${encodeURIComponent(normalizedTicker)}&category=market-history`),
+          cachedAuthenticatedFetch<SecFilingsHistoryFile>(`/manual-input/sec-filings?ticker=${encodeURIComponent(normalizedTicker)}`),
         ]);
         if (!cancelled) setApiData(marketHistoryToDashboardData(currentFile, historyFile, secFilingsFile));
       } catch (err) {

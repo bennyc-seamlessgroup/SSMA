@@ -5,7 +5,7 @@ import { ImportDataTable } from '@/components/ImportDataTable';
 import { ApiSourceTags } from '@/components/ApiSourceTags';
 import { PageDisclaimerNotice } from '@/components/PageDisclaimerNotice';
 import { PortalPageLoading } from '@/components/PortalPageLoading';
-import { authenticatedFetch } from '@/lib/auth-client';
+import { cachedAuthenticatedFetch } from '@/lib/auth-client';
 import { SecFilingsList, type SecFilingRow } from './SecFilingsList';
 
 type ApiSecFilingRecord = {
@@ -84,7 +84,7 @@ export function EventCalendarBrowserPage({ ticker }: { ticker: string }) {
 
   useEffect(() => {
     let cancelled = false;
-    authenticatedFetch(`/manual-input/sec-filings?ticker=${encodeURIComponent(ticker)}`, { cache: 'no-store' })
+    cachedAuthenticatedFetch(`/manual-input/sec-filings?ticker=${encodeURIComponent(ticker)}`)
       .then(payload => {
         if (cancelled) return;
         setRecords(recordsFromPayload(payload));

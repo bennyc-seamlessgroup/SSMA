@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
-import { authenticatedFetch, decodeJWT, getStoredTokens, setCachedAuthenticatedProfile } from '@/lib/auth-client';
+import { authenticatedFetch, cachedAuthenticatedFetch, decodeJWT, getStoredTokens, setCachedAuthenticatedProfile } from '@/lib/auth-client';
 import { PortalPageLoading } from '@/components/PortalPageLoading';
 
 type Profile = {
@@ -59,7 +59,7 @@ export function UserProfileClient() {
       setIsLoading(true);
       setError('');
       try {
-        const data = await authenticatedFetch('/profile') as Profile;
+        const data = await cachedAuthenticatedFetch<Profile>('/profile');
         if (cancelled) return;
         setProfile(data);
         setForm({

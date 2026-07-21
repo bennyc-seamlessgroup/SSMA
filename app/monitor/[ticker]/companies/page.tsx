@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { useEffect, useMemo, useState } from 'react';
 import { useParams } from 'next/navigation';
-import { authenticatedFetch, getAuthenticatedProfile } from '@/lib/auth-client';
+import { cachedAuthenticatedFetch, getAuthenticatedProfile } from '@/lib/auth-client';
 import { companyAccessFromProfile } from '@/lib/ticker-access';
 
 type TickerStatus = {
@@ -26,7 +26,7 @@ export default function CompaniesPage() {
         setAccess(nextAccess);
         const statuses = await Promise.all(nextAccess.map(async entry => {
           try {
-            return await authenticatedFetch(`/tickers/${encodeURIComponent(entry.ticker)}`) as TickerStatus;
+            return await cachedAuthenticatedFetch<TickerStatus>(`/tickers/${encodeURIComponent(entry.ticker)}`);
           } catch {
             return { ticker: entry.ticker, status: 'UNKNOWN', effectiveDate: null };
           }

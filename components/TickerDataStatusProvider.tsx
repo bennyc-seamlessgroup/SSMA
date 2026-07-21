@@ -3,7 +3,7 @@
 import { createContext, useContext, useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { getPublicTickerDataStatus } from '@/lib/public-import-data';
-import { authenticatedFetch } from '@/lib/auth-client';
+import { authenticatedFetch, invalidateAuthenticatedFetchCache } from '@/lib/auth-client';
 
 export type TickerPageDataStatus = {
   version: string;
@@ -21,8 +21,8 @@ export type TickerDataStatus = {
 };
 
 const TickerDataStatusContext = createContext<TickerDataStatus | null>(null);
-const configuredPollSeconds = Number(process.env.NEXT_PUBLIC_IMPORT_DATA_POLL_SECONDS ?? 60);
-const pollIntervalMs = Math.max(30, Number.isFinite(configuredPollSeconds) ? configuredPollSeconds : 60) * 1000;
+const configuredPollSeconds = Number(process.env.NEXT_PUBLIC_IMPORT_DATA_POLL_SECONDS ?? 300);
+const pollIntervalMs = Math.max(30, Number.isFinite(configuredPollSeconds) ? configuredPollSeconds : 300) * 1000;
 
 type ApiDataset = {
   generatedAt?: string;
@@ -143,6 +143,7 @@ export function TickerDataStatusProvider({ ticker, children }: { ticker: string;
         lastVersion.current = next.version;
         setStatus(next);
         if (changed) {
+          invalidateAuthenticatedFetchCache();
           window.dispatchEvent(new CustomEvent('import-data-updated', { detail: next }));
           router.refresh();
         }

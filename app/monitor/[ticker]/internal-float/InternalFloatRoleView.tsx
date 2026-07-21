@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { PortalPageLoading } from '@/components/PortalPageLoading';
 import { ApiDevelopmentTabs } from '@/components/ApiDevelopmentTabs';
 import { ApiSourceTags } from '@/components/ApiSourceTags';
-import { authenticatedFetch, getAuthenticatedProfile } from '@/lib/auth-client';
+import { cachedAuthenticatedFetch, getAuthenticatedProfile } from '@/lib/auth-client';
 import {
   demoInsiderSuggestions,
   demoInstitutionalOverview,
@@ -126,10 +126,10 @@ function LiveInternalFloat({ ticker }: { ticker: string }) {
     let cancelled = false;
     setLoading(true);
     Promise.all([
-      authenticatedFetch(`/market-data/current?ticker=${encodeURIComponent(ticker)}&category=ownership-current`) as Promise<OwnershipCurrent>,
-      authenticatedFetch(`/market-data/current?ticker=${encodeURIComponent(ticker)}&category=internal-float-current`) as Promise<InternalFloatCurrent>,
-      authenticatedFetch(`/manual-input/internal-float-inputs?ticker=${encodeURIComponent(ticker)}`) as Promise<InternalFloatInputs>,
-      authenticatedFetch(`/manual-input/management-holdings?ticker=${encodeURIComponent(ticker)}`, { cache: 'no-store' }) as Promise<ManagementHoldingsResponse>,
+      cachedAuthenticatedFetch<OwnershipCurrent>(`/market-data/current?ticker=${encodeURIComponent(ticker)}&category=ownership-current`),
+      cachedAuthenticatedFetch<InternalFloatCurrent>(`/market-data/current?ticker=${encodeURIComponent(ticker)}&category=internal-float-current`),
+      cachedAuthenticatedFetch<InternalFloatInputs>(`/manual-input/internal-float-inputs?ticker=${encodeURIComponent(ticker)}`),
+      cachedAuthenticatedFetch<ManagementHoldingsResponse>(`/manual-input/management-holdings?ticker=${encodeURIComponent(ticker)}`),
     ]).then(([ownership, current, inputs, managementHoldings]) => {
       if (!cancelled) setPayloads({ ownership, current, inputs, managementHoldings: managementHoldingRecords(managementHoldings) });
     }).catch(cause => {

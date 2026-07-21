@@ -2,7 +2,7 @@
 
 import { PortalPageLoading } from '@/components/PortalPageLoading';
 import { PageDisclaimerNotice } from '@/components/PageDisclaimerNotice';
-import { authenticatedFetch } from '@/lib/auth-client';
+import { cachedAuthenticatedFetch } from '@/lib/auth-client';
 import type { InstitutionalHolding } from '@/lib/types';
 import { normalizeTicker } from '@/lib/ticker-data';
 import { useEffect, useState } from 'react';
@@ -135,9 +135,9 @@ export function InstitutionalBrowserPage({ ticker }: { ticker: string }) {
     setLoading(true);
     setError('');
     Promise.all([
-      authenticatedFetch(`/market-data/current?ticker=${encodeURIComponent(normalizedTicker)}&category=ownership-current`) as Promise<OwnershipCurrent>,
-      authenticatedFetch(`/market-data/history?ticker=${encodeURIComponent(normalizedTicker)}&category=ownership-history`) as Promise<OwnershipHistory>,
-      authenticatedFetch(`/manual-input/management-holdings?ticker=${encodeURIComponent(normalizedTicker)}`, { cache: 'no-store' }) as Promise<ManagementHoldingsResponse>,
+      cachedAuthenticatedFetch<OwnershipCurrent>(`/market-data/current?ticker=${encodeURIComponent(normalizedTicker)}&category=ownership-current`),
+      cachedAuthenticatedFetch<OwnershipHistory>(`/market-data/history?ticker=${encodeURIComponent(normalizedTicker)}&category=ownership-history`),
+      cachedAuthenticatedFetch<ManagementHoldingsResponse>(`/manual-input/management-holdings?ticker=${encodeURIComponent(normalizedTicker)}`),
     ]).then(([nextCurrent, nextHistory, nextManagementHoldings]) => {
       if (cancelled) return;
       setCurrent(nextCurrent);

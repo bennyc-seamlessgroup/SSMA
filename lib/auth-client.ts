@@ -43,7 +43,38 @@ const clientId = process.env.NEXT_PUBLIC_COGNITO_CLIENT_ID ?? '';
 const apiGatewayUrl = process.env.NEXT_PUBLIC_API_GATEWAY_URL ?? '';
 const configuredRedirectUri = process.env.NEXT_PUBLIC_REDIRECT_URI ?? '';
 const configuredLogoutUri = process.env.NEXT_PUBLIC_LOGOUT_URI ?? '';
+const authenticatedGetCacheTtlMs = Math.max(5, Number(process.env.NEXT_PUBLIC_API_CACHE_SECONDS ?? 900)) * 1000;
 let profileRequest: Promise<AuthenticatedProfile> | null = null;
+const authenticatedResponseCache = new Map<string, { expiresAt: number; value: unknown }>();
+const authenticatedRequestsInFlight = new Map<string, Promise<unknown>>();
+
+function clearAuthenticatedResponseCache() {
+  authenticatedResponseCache.clear();
+  authenticatedRequestsInFlight.clear();
+}
+
+function authenticatedCacheKey(path: string) {
+  const user = decodeJWT(sessionStorage.getItem(tokenKeys.idToken));
+  const owner = String(user?.sub ?? user?.email ?? 'anonymous');
+  const [pathname, query = ''] = path.split('?');
+  const params = new URLSearchParams(query);
+  params.sort();
+  return `${owner}:${pathname}${params.size ? `?${params.toString()}` : ''}`;
+}
+
+export function invalidateAuthenticatedFetchCache(path?: string) {
+  if (!path) {
+    clearAuthenticatedResponseCache();
+    return;
+  }
+  const normalizedPath = path.split('?')[0];
+  for (const key of authenticatedResponseCache.keys()) {
+    if (key.includes(`:${normalizedPath}`)) authenticatedResponseCache.delete(key);
+  }
+  for (const key of authenticatedRequestsInFlight.keys()) {
+    if (key.includes(`:${normalizedPath}`)) authenticatedRequestsInFlight.delete(key);
+  }
+}
 
 function browserOrigin() {
   return typeof window === 'undefined' ? '' : window.location.origin;
@@ -124,6 +155,7 @@ export function getStoredTokens(): AuthTokens | null {
 
 export function storeTokens(tokens: AuthTokens) {
   endPublicDemoSession();
+  clearAuthenticatedResponseCache();
   sessionStorage.setItem(tokenKeys.accessToken, tokens.accessToken);
   sessionStorage.setItem(tokenKeys.idToken, tokens.idToken);
   sessionStorage.setItem(tokenKeys.refreshToken, tokens.refreshToken);
@@ -137,6 +169,7 @@ export function clearAuthSession() {
   sessionStorage.removeItem(tokenKeys.codeVerifier);
   sessionStorage.removeItem(tokenKeys.postLoginRedirect);
   profileRequest = null;
+  clearAuthenticatedResponseCache();
 }
 
 export function isTokenValid(idToken: string | null, minimumSeconds = 0) {
@@ -314,7 +347,37 @@ export async function authenticatedFetch(path: string, options: RequestInit = {}
     throw new Error(error.message || 'API request failed.');
   }
 
-  return response.json();
+  const payload = await response.json();
+  const method = String(options.method ?? 'GET').toUpperCase();
+  if (method !== 'GET' && method !== 'HEAD') clearAuthenticatedResponseCache();
+  return payload;
+}
+
+export async function cachedAuthenticatedFetch<T = unknown>(
+  path: string,
+  options: RequestInit = {},
+  ttlMs = authenticatedGetCacheTtlMs,
+): Promise<T> {
+  const method = String(options.method ?? 'GET').toUpperCase();
+  if (method !== 'GET' && method !== 'HEAD') {
+    return authenticatedFetch(path, options) as Promise<T>;
+  }
+
+  const key = authenticatedCacheKey(path);
+  const cached = authenticatedResponseCache.get(key);
+  if (cached && cached.expiresAt > Date.now()) return cached.value as T;
+
+  const pending = authenticatedRequestsInFlight.get(key);
+  if (pending) return pending as Promise<T>;
+
+  const request = authenticatedFetch(path, { ...options, cache: 'no-store' })
+    .then(value => {
+      authenticatedResponseCache.set(key, { expiresAt: Date.now() + ttlMs, value });
+      return value;
+    })
+    .finally(() => authenticatedRequestsInFlight.delete(key));
+  authenticatedRequestsInFlight.set(key, request);
+  return request as Promise<T>;
 }
 
 export function setCachedAuthenticatedProfile(profile: AuthenticatedProfile) {

@@ -1,6 +1,6 @@
 'use client';
 
-import { authenticatedFetch } from '@/lib/auth-client';
+import { cachedAuthenticatedFetch } from '@/lib/auth-client';
 import { normalizeTicker } from '@/lib/ticker-data';
 
 export type AiReport = {
@@ -11,9 +11,8 @@ export type AiReport = {
 
 export async function fetchAiReport(ticker: string): Promise<AiReport> {
   const normalizedTicker = normalizeTicker(ticker);
-  const payload = await authenticatedFetch(
+  const payload = await cachedAuthenticatedFetch(
     `/market-data/ai-report?ticker=${encodeURIComponent(normalizedTicker)}`,
-    { cache: 'no-store' },
   ) as AiReport & { requestError?: unknown };
 
   if (typeof payload.requestError === 'string' && payload.requestError.trim()) {

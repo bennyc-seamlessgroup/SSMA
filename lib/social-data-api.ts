@@ -1,6 +1,6 @@
 'use client';
 
-import { authenticatedFetch } from '@/lib/auth-client';
+import { authenticatedFetch, cachedAuthenticatedFetch } from '@/lib/auth-client';
 
 export type SocialPlatform = 'Reddit' | 'X' | 'Facebook' | 'Linkedin' | 'Stocktwits';
 
@@ -150,7 +150,7 @@ export async function getSocialDataPage({
     limit: String(limit),
   });
   if (platform) params.set('platform', platform === 'X' ? 'Twitter' : platform === 'Linkedin' ? 'LinkedIn' : platform);
-  const raw = await authenticatedFetch(`/social-data?${params.toString()}`);
+  const raw = await cachedAuthenticatedFetch(`/social-data?${params.toString()}`);
   const payload = record(raw);
   const records = Array.isArray(payload.records) ? payload.records.map(normalizeSocialMention) : [];
   return {
@@ -176,16 +176,14 @@ export async function getAllSocialData(ticker: string, maxPages = 50) {
 }
 
 export async function getSentimentCurrent(ticker: string) {
-  return authenticatedFetch(
+  return cachedAuthenticatedFetch(
     `/market-data/current?ticker=${encodeURIComponent(ticker)}&category=sentiment-current`,
-    { cache: 'no-store' },
   ) as Promise<SentimentCurrentPayload>;
 }
 
 export async function getSentimentEvents(ticker: string) {
-  return authenticatedFetch(
+  return cachedAuthenticatedFetch(
     `/market-data/history?ticker=${encodeURIComponent(ticker)}&category=sentiment-events`,
-    { cache: 'no-store' },
   ) as Promise<SentimentEventsPayload>;
 }
 

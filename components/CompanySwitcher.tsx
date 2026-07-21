@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { authenticatedFetch, getAuthenticatedProfile } from '@/lib/auth-client';
+import { cachedAuthenticatedFetch, getAuthenticatedProfile } from '@/lib/auth-client';
 import { companyAccessFromProfile } from '@/lib/ticker-access';
 import { useTickerDataStatus } from './TickerDataStatusProvider';
 import { usePortalLanguage } from './usePortalLanguage';
@@ -40,7 +40,7 @@ async function resolveCompanyName(ticker: string) {
   const cached = companyNameCache.get(ticker);
   if (cached) return cached;
   try {
-    const payload = await authenticatedFetch(
+    const payload = await cachedAuthenticatedFetch(
       `/market-data/current?ticker=${encodeURIComponent(ticker)}&category=company-profile-current`,
     );
     const name = companyNameFromPayload(payload, ticker);
