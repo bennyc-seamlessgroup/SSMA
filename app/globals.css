@@ -20909,6 +20909,22 @@ html[data-design-b-theme="dark"] .monitor-portal .hotkey-empty strong {
   pointer-events: stroke;
 }
 
+.dashboard-data-point {
+  stroke: #fff;
+  stroke-width: 1.5;
+  opacity: .82;
+  pointer-events: none;
+  transition: opacity .18s ease, r .18s ease;
+}
+
+.dashboard-data-point.is-focused {
+  opacity: 1;
+}
+
+.dashboard-data-point.is-dimmed {
+  opacity: .16;
+}
+
 .dashboard-volume-bar {
   opacity: .9;
 }

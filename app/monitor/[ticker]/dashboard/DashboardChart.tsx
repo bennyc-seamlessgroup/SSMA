@@ -624,6 +624,8 @@ export function DashboardChart({
           {enabledKeys.map(key => {
             const isFocused = activeMetric === key;
             const isDimmed = Boolean(hoveredMetric) && !isFocused;
+            const validPoints = (chart.paths[key]?.points ?? []).filter((point): point is { x: number; y: number } => point !== null);
+            const showPointMarkers = validPoints.length > 0 && validPoints.length <= 48;
             return (
               <g key={key}>
                 <path
@@ -637,6 +639,16 @@ export function DashboardChart({
                   onMouseEnter={() => setHoveredMetric(key)}
                   onFocus={() => setHoveredMetric(key)}
                 />
+                {showPointMarkers && validPoints.map((point, index) => (
+                  <circle
+                    className={`dashboard-data-point ${isFocused ? 'is-focused' : ''} ${isDimmed ? 'is-dimmed' : ''}`}
+                    key={`${key}-point-${index}`}
+                    cx={point.x}
+                    cy={point.y}
+                    r={validPoints.length === 1 ? 4.5 : 3}
+                    fill={seriesConfig[key].color}
+                  />
+                ))}
               </g>
             );
           })}
