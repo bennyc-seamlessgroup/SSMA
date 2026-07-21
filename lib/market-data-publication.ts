@@ -161,3 +161,16 @@ export function latestCompleteMarketPublicationRecordFromSources(
   }
   return null;
 }
+
+export function marketPublicationRecordFromHistoryForDate(
+  history: MarketPublicationRecord[],
+  date: string,
+): MarketPublicationRecord {
+  return exactDateRecord(history, date) ?? { tradeDate: date };
+}
+
+export function latestCompleteMarketPublicationRecordFromHistory(
+  history: MarketPublicationRecord[],
+): MarketPublicationRecord | null {
+  return latestCompleteMarketPublicationRecord(history);
+}

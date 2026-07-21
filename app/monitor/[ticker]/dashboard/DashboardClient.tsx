@@ -62,9 +62,7 @@ export function DashboardClient({
         data={data}
         events={[]}
         sourceEndpoints={[
-          { endpoint: 'GET /market-data/history?category=market-history', label: 'Market history' },
-          { endpoint: 'GET /manual-input/utilization', label: 'Utilization' },
-          { endpoint: 'GET /manual-input/margins', label: 'Average duration' },
+          { endpoint: 'GET /market-data/history?category=market-history', label: 'Utilization & duration history' },
         ]}
         period={lendingPeriod}
         onPeriodChange={setLendingPeriod}
@@ -81,8 +79,7 @@ export function DashboardClient({
         data={data}
         events={[]}
         sourceEndpoints={[
-          { endpoint: 'GET /market-data/history?category=market-history', label: 'Borrow history' },
-          { endpoint: 'GET /manual-input/manual-availability', label: 'Shortable shares' },
+          { endpoint: 'GET /market-data/history?category=market-history', label: 'Borrow & shortable-share history' },
         ]}
         period={marketPeriod}
         onPeriodChange={setMarketPeriod}
@@ -93,10 +90,7 @@ export function DashboardClient({
         data={data}
         events={events}
         sourceEndpoints={[
-          { endpoint: 'GET /market-data/history?category=market-history', label: 'Market history' },
-          { endpoint: 'GET /manual-input/utilization', label: 'Utilization' },
-          { endpoint: 'GET /manual-input/manual-availability', label: 'Shortable shares' },
-          { endpoint: 'GET /manual-input/margins', label: 'Duration' },
+          { endpoint: 'GET /market-data/history?category=market-history', label: 'Consolidated market history' },
           { endpoint: 'GET /manual-input/sec-filings', label: 'Chart events' },
         ]}
         period={overviewPeriod}

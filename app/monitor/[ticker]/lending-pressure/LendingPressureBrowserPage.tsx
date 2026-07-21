@@ -7,7 +7,7 @@ import { PortalPageLoading } from '@/components/PortalPageLoading';
 import { PageDisclaimerNotice } from '@/components/PageDisclaimerNotice';
 import { fetchAiReport } from '@/lib/ai-report-api';
 import { authenticatedFetch } from '@/lib/auth-client';
-import { latestCompleteMarketPublicationRecordFromSources, marketPublicationRecordForDate, marketRecordDate, type MarketPublicationRecord } from '@/lib/market-data-publication';
+import { latestCompleteMarketPublicationRecordFromHistory, marketPublicationRecordFromHistoryForDate, marketRecordDate, type MarketPublicationRecord } from '@/lib/market-data-publication';
 import { normalizeTicker } from '@/lib/ticker-data';
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
 
@@ -38,19 +38,6 @@ type DashboardMarginRecord = {
 
 function rows(value: unknown): Row[] {
   return Array.isArray(value) ? value.filter(item => item && typeof item === 'object') as Row[] : [];
-}
-
-function asArray<T>(value: unknown): T[] {
-  if (Array.isArray(value)) return value as T[];
-  if (!value || typeof value !== 'object') return [];
-  const payload = value as { records?: unknown; data?: unknown | { records?: unknown } };
-  if (Array.isArray(payload.records)) return payload.records as T[];
-  if (Array.isArray(payload.data)) return payload.data as T[];
-  if (payload.data && typeof payload.data === 'object') {
-    const nested = payload.data as { records?: unknown };
-    if (Array.isArray(nested.records)) return nested.records as T[];
-  }
-  return [];
 }
 
 function record(value: unknown): Row {
@@ -128,17 +115,13 @@ function historyRecords(payload: unknown): MarketHistoryRecord[] {
   return [];
 }
 
-function buildLendingPayload(currentPayload: unknown, historyPayload: unknown, manualInputs: {
-  utilization: MarketPublicationRecord[];
-  availability: MarketPublicationRecord[];
-  margins: MarketPublicationRecord[];
-}) {
+function buildLendingPayload(historyPayload: unknown) {
   const history = historyRecords(historyPayload);
-  const publishedRecord = latestCompleteMarketPublicationRecordFromSources(history, manualInputs);
+  const publishedRecord = latestCompleteMarketPublicationRecordFromHistory(history);
   const publishedDate = publishedRecord ? marketRecordDate(publishedRecord) : '';
   const sortedHistory = [...history]
     .filter(row => Boolean(publishedDate) && String(row.tradeDate ?? '').slice(0, 10) <= publishedDate)
-    .map(row => marketPublicationRecordForDate(history, manualInputs, marketRecordDate(row)))
+    .map(row => marketPublicationRecordFromHistoryForDate(history, marketRecordDate(row)))
     .sort((a, b) => String(a.tradeDate ?? '').localeCompare(String(b.tradeDate ?? '')));
   const latestHistory: MarketPublicationRecord = publishedRecord ?? {};
   const currentBorrowFee = firstNumeric(
@@ -337,7 +320,6 @@ export function LendingPressureBrowserPage({ ticker }: { ticker: string }) {
   const [currentPayload, setCurrentPayload] = useState<unknown>(null);
   const [historyPayload, setHistoryPayload] = useState<unknown>(null);
   const [aiReportPayload, setAiReportPayload] = useState<unknown>(null);
-  const [manualInputs, setManualInputs] = useState<{ utilization: MarketPublicationRecord[]; availability: MarketPublicationRecord[]; margins: MarketPublicationRecord[] }>({ utilization: [], availability: [], margins: [] });
   const [apiRows, setApiRows] = useState<ApiDebugRow[]>([]);
   const [status, setStatus] = useState<'loading' | 'idle' | 'error'>('loading');
   const [error, setError] = useState('');
@@ -346,9 +328,6 @@ export function LendingPressureBrowserPage({ ticker }: { ticker: string }) {
     let cancelled = false;
     const currentEndpoint = `/market-data/current?ticker=${encodeURIComponent(normalizedTicker)}&category=market-current`;
     const historyEndpoint = `/market-data/history?ticker=${encodeURIComponent(normalizedTicker)}&category=market-history`;
-    const utilizationEndpoint = `/manual-input/utilization?ticker=${encodeURIComponent(normalizedTicker)}`;
-    const availabilityEndpoint = `/manual-input/manual-availability?ticker=${encodeURIComponent(normalizedTicker)}`;
-    const marginsEndpoint = `/manual-input/margins?ticker=${encodeURIComponent(normalizedTicker)}`;
     const aiReportEndpoint = `/market-data/ai-report?ticker=${encodeURIComponent(normalizedTicker)}`;
     async function loadEndpoint(endpoint: string, request: () => Promise<unknown> = () => authenticatedFetch(endpoint, { cache: 'no-store' })) {
       try {
@@ -379,18 +358,13 @@ export function LendingPressureBrowserPage({ ticker }: { ticker: string }) {
       }
     }
 
-    Promise.all([loadEndpoint(currentEndpoint), loadEndpoint(historyEndpoint), loadEndpoint(utilizationEndpoint), loadEndpoint(availabilityEndpoint), loadEndpoint(marginsEndpoint), loadEndpoint(aiReportEndpoint, () => fetchAiReport(normalizedTicker))])
-      .then(([currentResult, historyResult, utilizationResult, availabilityResult, marginsResult, aiReportResult]) => {
+    Promise.all([loadEndpoint(currentEndpoint), loadEndpoint(historyEndpoint), loadEndpoint(aiReportEndpoint, () => fetchAiReport(normalizedTicker))])
+      .then(([currentResult, historyResult, aiReportResult]) => {
         if (cancelled) return;
         setCurrentPayload(currentResult.payload);
         setHistoryPayload(historyResult.payload);
-        setManualInputs({
-          utilization: asArray<MarketPublicationRecord>(utilizationResult.payload),
-          availability: asArray<MarketPublicationRecord>(availabilityResult.payload),
-          margins: asArray<MarketPublicationRecord>(marginsResult.payload),
-        });
         setAiReportPayload(aiReportResult.payload);
-        setApiRows([currentResult.debug, historyResult.debug, utilizationResult.debug, availabilityResult.debug, marginsResult.debug, aiReportResult.debug]);
+        setApiRows([currentResult.debug, historyResult.debug, aiReportResult.debug]);
         if (!currentResult.payload && !historyResult.payload) {
           setStatus('error');
           setError('Unable to load lending pressure API data.');
@@ -414,7 +388,7 @@ export function LendingPressureBrowserPage({ ticker }: { ticker: string }) {
     return <div className="page"><section className="panel"><h2>Lending pressure data unavailable</h2><p>{error}</p></section></div>;
   }
 
-  const { lendingData, marginRecords } = buildLendingPayload(currentPayload, historyPayload, manualInputs);
+  const { lendingData, marginRecords } = buildLendingPayload(historyPayload);
   const sortedMarginRecords = [...marginRecords].filter(row => row.date).sort((a, b) => b.date.localeCompare(a.date));
   const latestMarginRecord = sortedMarginRecords[0];
   const previousMarginRecord = sortedMarginRecords[1];
@@ -477,9 +451,7 @@ export function LendingPressureBrowserPage({ ticker }: { ticker: string }) {
           <div className="terminal-section-actions">
             <ApiSourceTags sources={[
               { endpoint: 'GET /market-data/current?category=market-current', label: 'Snapshot' },
-              { endpoint: 'GET /manual-input/utilization', label: 'Utilization' },
-              { endpoint: 'GET /manual-input/manual-availability', label: 'Broker availability' },
-              { endpoint: 'GET /manual-input/margins', label: 'Duration' },
+              { endpoint: 'GET /market-data/history?category=market-history', label: 'Consolidated lending inputs' },
               { endpoint: 'GET /market-data/ai-report', label: 'AI analysis' },
             ]} />
           </div>
@@ -537,9 +509,7 @@ export function LendingPressureBrowserPage({ ticker }: { ticker: string }) {
           </div>
           <div className="terminal-section-actions">
             <ApiSourceTags sources={[
-              { endpoint: 'GET /market-data/history?category=market-history', label: 'Borrow history' },
-              { endpoint: 'GET /manual-input/utilization', label: 'Utilization history' },
-              { endpoint: 'GET /manual-input/manual-availability', label: 'Availability history' },
+              { endpoint: 'GET /market-data/history?category=market-history', label: 'Borrow, utilization & availability history' },
             ]} />
           </div>
         </div>
@@ -561,10 +531,7 @@ export function LendingPressureBrowserPage({ ticker }: { ticker: string }) {
         <ApiDevelopmentTabs sources={[
           { id: 'market-current', title: 'Market Current', endpoint: 'GET /market-data/current?category=market-current', source: 'Market Data API', payload: currentPayload, status: apiRows[0]?.status },
           { id: 'market-history', title: 'Market History', endpoint: 'GET /market-data/history?category=market-history', source: 'Market Data API', payload: historyPayload, status: apiRows[1]?.status },
-          { id: 'utilization', title: 'Utilization', endpoint: 'GET /manual-input/utilization', source: 'Manual Input V2 API', payload: manualInputs.utilization, status: apiRows[2]?.status },
-          { id: 'availability', title: 'Broker Availability', endpoint: 'GET /manual-input/manual-availability', source: 'Manual Input V2 API', payload: manualInputs.availability, status: apiRows[3]?.status },
-          { id: 'margins', title: 'Broker Margins', endpoint: 'GET /manual-input/margins', source: 'Manual Input V2 API', payload: manualInputs.margins, status: apiRows[4]?.status },
-          { id: 'ai-report', title: 'AI Report', endpoint: 'GET /market-data/ai-report', source: 'Market Data API', payload: aiReportPayload, status: apiRows[5]?.status },
+          { id: 'ai-report', title: 'AI Report', endpoint: 'GET /market-data/ai-report', source: 'Market Data API', payload: aiReportPayload, status: apiRows[2]?.status },
         ]} />
       </section>
     </div>

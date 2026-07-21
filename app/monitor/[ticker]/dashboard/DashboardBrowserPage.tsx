@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { PortalPageLoading } from '@/components/PortalPageLoading';
 import { authenticatedFetch } from '@/lib/auth-client';
-import { latestCompleteMarketPublicationRecordFromSources, marketNumber, marketRecordDate } from '@/lib/market-data-publication';
+import { latestCompleteMarketPublicationRecordFromHistory, marketNumber, marketRecordDate } from '@/lib/market-data-publication';
 import type { DashboardMarginRecord, DashboardUtilizationRecord, OperationsSecFilingRecord } from '@/lib/operations/data-types';
 import { normalizeTicker } from '@/lib/ticker-data';
 import { DashboardClient } from './DashboardClient';
@@ -71,7 +71,11 @@ type MarketHistoryRecord = {
   shortInterestShares?: unknown;
   shortInterestPercent?: unknown;
   initialMargin?: unknown;
+  initialMarginIbkr?: unknown;
+  initialMarginFutu?: unknown;
   maintenanceMargin?: unknown;
+  maintenanceMarginIbkr?: unknown;
+  maintenanceMarginFutu?: unknown;
   averageDurationDays?: unknown;
   shortScore?: unknown;
   valueFormat?: string;
@@ -96,34 +100,6 @@ type SecFilingsHistoryFile = {
   _field_provenance?: Record<string, unknown>;
 };
 
-type ManualDateRecord = {
-  tradeDate?: string;
-  generatedAt?: string;
-  updatedAt?: string;
-  createdAt?: string;
-};
-
-type ManualUtilizationRecord = ManualDateRecord & { utilizationPercent?: unknown };
-type ManualAvailabilityRecord = ManualDateRecord & {
-  availableSharesIbkr?: unknown;
-  availableSharesFutu?: unknown;
-};
-type ManualMarginRecord = ManualDateRecord & {
-  initialMarginIbkr?: unknown;
-  initialMarginFutu?: unknown;
-  maintenanceMarginIbkr?: unknown;
-  maintenanceMarginFutu?: unknown;
-  averageDurationDays?: unknown;
-  valueFormat?: string;
-  displayFormat?: string;
-};
-
-type ManualMarketInputs = {
-  utilization: ManualUtilizationRecord[];
-  availability: ManualAvailabilityRecord[];
-  margins: ManualMarginRecord[];
-};
-
 type DashboardApiData = {
   currentFile: MarketCurrentFile | null;
   historyFile: MarketHistoryFile | null;
@@ -133,7 +109,6 @@ type DashboardApiData = {
   marginInputs: DashboardMarginRecord[];
   events: CompanyEvent[];
   current: Record<string, unknown> | null;
-  manualInputs: ManualMarketInputs;
 };
 
 function plainText(value: unknown, fallback = '') {
@@ -171,45 +146,45 @@ function maxNumeric(...values: unknown[]) {
   return candidates.length ? Math.max(...candidates) : null;
 }
 
-function manualUtilizationRecords(records: ManualUtilizationRecord[], ticker: string): DashboardUtilizationRecord[] {
+function historyUtilizationRecords(records: MarketHistoryRecord[], ticker: string): DashboardUtilizationRecord[] {
   return records
     .map((record, index): DashboardUtilizationRecord | null => {
       const date = plainText(record.tradeDate);
       const utilization = numericOrNull(record.utilizationPercent);
       if (!date || utilization === null) return null;
       return {
-        id: `manual-utilization-${date}-${index}`,
+        id: `market-history-utilization-${date}-${index}`,
         ticker,
         date,
         utilization,
-        updatedAt: plainText(record.updatedAt ?? record.generatedAt ?? record.createdAt),
-        updatedBy: 'manual-input-api',
+        updatedAt: date,
+        updatedBy: 'market-data-history-api',
       };
     })
     .filter((record): record is DashboardUtilizationRecord => Boolean(record))
     .sort((a, b) => a.date.localeCompare(b.date));
 }
 
-function manualMarginRecords(records: ManualMarginRecord[], ticker: string): DashboardMarginRecord[] {
+function historyMarginRecords(records: MarketHistoryRecord[], ticker: string): DashboardMarginRecord[] {
   return records
     .map((record, index): DashboardMarginRecord | null => {
       const date = plainText(record.tradeDate);
       if (!date) return null;
       const valueFormat = record.valueFormat ?? 'decimal_ratio';
       const displayFormat = record.displayFormat ?? 'percent';
-      const initialMargin = normalizeMarginPercent(maxNumeric(record.initialMarginIbkr, record.initialMarginFutu), valueFormat, displayFormat);
-      const maintenanceMargin = normalizeMarginPercent(maxNumeric(record.maintenanceMarginIbkr, record.maintenanceMarginFutu), valueFormat, displayFormat);
+      const initialMargin = normalizeMarginPercent(maxNumeric(record.initialMargin, record.initialMarginIbkr, record.initialMarginFutu), valueFormat, displayFormat);
+      const maintenanceMargin = normalizeMarginPercent(maxNumeric(record.maintenanceMargin, record.maintenanceMarginIbkr, record.maintenanceMarginFutu), valueFormat, displayFormat);
       const averageDurationDays = numericOrNull(record.averageDurationDays);
       if (initialMargin === null && maintenanceMargin === null && averageDurationDays === null) return null;
       return {
-        id: `manual-margin-${date}-${index}`,
+        id: `market-history-margin-${date}-${index}`,
         ticker,
         date,
         initialMargin,
         maintenanceMargin,
         averageDurationDays,
-        updatedAt: plainText(record.updatedAt ?? record.generatedAt ?? record.createdAt),
-        updatedBy: 'manual-input-api',
+        updatedAt: date,
+        updatedBy: 'market-data-history-api',
       };
     })
     .filter((record): record is DashboardMarginRecord => Boolean(record))
@@ -256,10 +231,9 @@ function marketHistoryToDashboardData(
   currentFile: MarketCurrentFile | null,
   historyFile: MarketHistoryFile | null,
   secFilingsFile: SecFilingsHistoryFile | null,
-  manualInputs: ManualMarketInputs,
 ): DashboardApiData {
   const historyRecords = Array.isArray(historyFile?.records) ? historyFile.records : [];
-  const publishedRecord = latestCompleteMarketPublicationRecordFromSources(historyRecords, manualInputs);
+  const publishedRecord = latestCompleteMarketPublicationRecordFromHistory(historyRecords);
   const publishedDate = publishedRecord ? marketRecordDate(publishedRecord) : '';
   const secFilingRows = asApiArray<OperationsSecFilingRecord>(secFilingsFile);
   const marketTrendData = historyRecords
@@ -274,9 +248,9 @@ function marketHistoryToDashboardData(
         tradeVolume: numericOrNull(row.tradeVolume ?? row.volume ?? row.totalVolume),
         shortableShares: numericOrNull(row.availableShares ?? row.availableSharesIbkr ?? row.availableSharesFutu ?? row.availableSharesChartExchange),
         daysToCover: numericOrNull(row.daysToCover),
-        utilization: null,
-        averageDuration: null,
-        margin: null,
+        utilization: numericOrNull(row.utilizationPercent),
+        averageDuration: numericOrNull(row.averageDurationDays),
+        margin: normalizeMarginPercent(row.initialMargin, row.valueFormat, row.displayFormat),
       };
     })
     .filter((row): row is TrendPoint => Boolean(row))
@@ -300,58 +274,9 @@ function marketHistoryToDashboardData(
   const recordTicker = plainText(historyFile?.ticker ?? currentFile?.ticker, 'CURR').toUpperCase();
   // Historical charts show valid saved observations independently. Publication
   // readiness only controls the current KPI snapshot above.
-  const utilizationInputs = manualUtilizationRecords(manualInputs.utilization, recordTicker);
-  const marginInputs = manualMarginRecords(manualInputs.margins, recordTicker);
-  const utilizationByDate = new Map(utilizationInputs.map(record => [record.date, record.utilization]));
-  const averageDurationByDate = new Map(
-    marginInputs
-      .filter(record => record.averageDurationDays !== null)
-      .map(record => [record.date, record.averageDurationDays as number]),
-  );
-  const trendByDate = new Map(marketTrendData.map(point => [point.date, point]));
-  utilizationInputs.forEach(record => {
-    const marketPoint = trendByDate.get(record.date);
-    if (marketPoint) {
-      trendByDate.set(record.date, { ...marketPoint, utilization: record.utilization });
-    } else {
-      trendByDate.set(record.date, {
-        date: record.date,
-        price: null,
-        feeRate: null,
-        tradeVolume: null,
-        shortableShares: null,
-        daysToCover: null,
-        utilization: record.utilization,
-        averageDuration: null,
-        margin: null,
-      });
-    }
-  });
-  averageDurationByDate.forEach((averageDuration, date) => {
-    const existing = trendByDate.get(date);
-    if (existing) {
-      trendByDate.set(date, { ...existing, averageDuration });
-    } else {
-      trendByDate.set(date, {
-        date,
-        price: null,
-        feeRate: null,
-        tradeVolume: null,
-        shortableShares: null,
-        daysToCover: null,
-        utilization: null,
-        averageDuration,
-        margin: null,
-      });
-    }
-  });
-  const trendData = [...trendByDate.values()]
-    .map(point => ({
-      ...point,
-      utilization: utilizationByDate.get(point.date) ?? point.utilization,
-      averageDuration: averageDurationByDate.get(point.date) ?? point.averageDuration,
-    }))
-    .sort((a, b) => a.date.localeCompare(b.date));
+  const utilizationInputs = historyUtilizationRecords(historyRecords, recordTicker);
+  const marginInputs = historyMarginRecords(historyRecords, recordTicker);
+  const trendData = marketTrendData;
 
   const current = publishedRecord ? {
     publishedTradeDate: publishedDate,
@@ -369,7 +294,7 @@ function marketHistoryToDashboardData(
     },
   } : null;
 
-  return { currentFile, historyFile, secFilingsFile, trendData, utilizationInputs, marginInputs, events: secFilingEvents(secFilingRows), current, manualInputs };
+  return { currentFile, historyFile, secFilingsFile, trendData, utilizationInputs, marginInputs, events: secFilingEvents(secFilingRows), current };
 }
 
 export function DashboardBrowserPage({ ticker }: { ticker: string }) {
@@ -385,20 +310,12 @@ export function DashboardBrowserPage({ ticker }: { ticker: string }) {
       setApiLoading(true);
       setApiError(null);
       try {
-        const [currentFile, historyFile, secFilingsFile, utilizationPayload, availabilityPayload, marginsPayload] = await Promise.all([
+        const [currentFile, historyFile, secFilingsFile] = await Promise.all([
           authenticatedFetch(`/market-data/current?ticker=${encodeURIComponent(normalizedTicker)}&category=market-current`, { cache: 'no-store' }) as Promise<MarketCurrentFile>,
           authenticatedFetch(`/market-data/history?ticker=${encodeURIComponent(normalizedTicker)}&category=market-history`, { cache: 'no-store' }) as Promise<MarketHistoryFile>,
           authenticatedFetch(`/manual-input/sec-filings?ticker=${encodeURIComponent(normalizedTicker)}`, { cache: 'no-store' }) as Promise<SecFilingsHistoryFile>,
-          authenticatedFetch(`/manual-input/utilization?ticker=${encodeURIComponent(normalizedTicker)}`, { cache: 'no-store' }),
-          authenticatedFetch(`/manual-input/manual-availability?ticker=${encodeURIComponent(normalizedTicker)}`, { cache: 'no-store' }),
-          authenticatedFetch(`/manual-input/margins?ticker=${encodeURIComponent(normalizedTicker)}`, { cache: 'no-store' }),
         ]);
-        const manualInputs: ManualMarketInputs = {
-          utilization: asApiArray<ManualUtilizationRecord>(utilizationPayload),
-          availability: asApiArray<ManualAvailabilityRecord>(availabilityPayload),
-          margins: asApiArray<ManualMarginRecord>(marginsPayload),
-        };
-        if (!cancelled) setApiData(marketHistoryToDashboardData(currentFile, historyFile, secFilingsFile, manualInputs));
+        if (!cancelled) setApiData(marketHistoryToDashboardData(currentFile, historyFile, secFilingsFile));
       } catch (err) {
         if (!cancelled) {
           setApiData(null);
@@ -438,9 +355,6 @@ export function DashboardBrowserPage({ ticker }: { ticker: string }) {
       <DashboardDevTables
         marketCurrent={apiData.currentFile as Record<string, unknown> | null}
         marketHistory={apiData.historyFile as Record<string, unknown> | null}
-        manualUtilization={apiData.manualInputs.utilization as Array<Record<string, unknown>>}
-        manualAvailability={apiData.manualInputs.availability as Array<Record<string, unknown>>}
-        manualMargins={apiData.manualInputs.margins as Array<Record<string, unknown>>}
         secFilingsHistory={apiData.secFilingsFile as Record<string, unknown> | null}
       />
     </div>

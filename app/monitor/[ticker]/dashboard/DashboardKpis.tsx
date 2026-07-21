@@ -220,10 +220,7 @@ export function DashboardKpis({
         <h2>Market Overview</h2>
         <ApiSourceTags sources={[
           { endpoint: 'GET /market-data/current?category=market-current', label: 'Current KPIs' },
-          { endpoint: 'GET /market-data/history?category=market-history', label: 'Comparisons' },
-          { endpoint: 'GET /manual-input/utilization', label: 'Utilization' },
-          { endpoint: 'GET /manual-input/margins', label: 'Margins & duration' },
-          { endpoint: 'GET /manual-input/manual-availability', label: 'Broker availability' },
+          { endpoint: 'GET /market-data/history?category=market-history', label: 'Comparisons & consolidated inputs' },
         ]} />
         <div className="dashboard-period-control" aria-label="Overview comparison period">
           {dashboardPeriods.map(item => (

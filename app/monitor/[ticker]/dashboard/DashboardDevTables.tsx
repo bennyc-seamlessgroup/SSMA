@@ -13,9 +13,6 @@ type ApiTable = {
 type DashboardDevTablesProps = {
   marketCurrent: Record<string, unknown> | null;
   marketHistory: Record<string, unknown> | null;
-  manualUtilization: Array<Record<string, unknown>>;
-  manualAvailability: Array<Record<string, unknown>>;
-  manualMargins: Array<Record<string, unknown>>;
   secFilingsHistory: Record<string, unknown> | null;
 };
 
@@ -80,9 +77,6 @@ function PayloadTable({ payload }: { payload: unknown }) {
 export function DashboardDevTables({
   marketCurrent,
   marketHistory,
-  manualUtilization,
-  manualAvailability,
-  manualMargins,
   secFilingsHistory,
 }: DashboardDevTablesProps) {
   const apiTables: ApiTable[] = [
@@ -97,24 +91,6 @@ export function DashboardDevTables({
       title: 'Market History',
       endpoint: 'GET /market-data/history?category=market-history',
       payload: marketHistory,
-    },
-    {
-      id: 'manual-utilization',
-      title: 'Manual Utilization',
-      endpoint: 'GET /manual-input/utilization',
-      payload: manualUtilization,
-    },
-    {
-      id: 'manual-availability',
-      title: 'Manual Availability',
-      endpoint: 'GET /manual-input/manual-availability',
-      payload: manualAvailability,
-    },
-    {
-      id: 'manual-margins',
-      title: 'Manual Margins',
-      endpoint: 'GET /manual-input/margins',
-      payload: manualMargins,
     },
     {
       id: 'sec-filings',

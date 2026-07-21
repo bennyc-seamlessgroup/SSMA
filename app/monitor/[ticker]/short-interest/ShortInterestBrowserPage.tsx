@@ -8,7 +8,7 @@ import { PortalPageLoading } from '@/components/PortalPageLoading';
 import { PageDisclaimerNotice } from '@/components/PageDisclaimerNotice';
 import { fetchAiReport } from '@/lib/ai-report-api';
 import { authenticatedFetch } from '@/lib/auth-client';
-import { latestCompleteMarketPublicationRecordFromSources, marketPublicationRecordForDate, marketRecordDate } from '@/lib/market-data-publication';
+import { latestCompleteMarketPublicationRecordFromHistory, marketPublicationRecordFromHistoryForDate, marketRecordDate } from '@/lib/market-data-publication';
 import { normalizeTicker } from '@/lib/ticker-data';
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
 
@@ -876,7 +876,7 @@ function apiFtdRows(payload: ApiFile): FtdRow[] {
 
 export function ShortInterestBrowserPage({ ticker }: { ticker: string }) {
   const normalizedTicker = normalizeTicker(ticker);
-  const [apiData, setApiData] = useState<{ current: ApiFile; history: ApiFile; shortVolume: ApiFile; ftd: ApiFile; utilization: ApiFile; availability: ApiFile; margins: ApiFile; aiReport: ApiFile } | null>(null);
+  const [apiData, setApiData] = useState<{ current: ApiFile; history: ApiFile; shortVolume: ApiFile; ftd: ApiFile; aiReport: ApiFile } | null>(null);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(true);
 
@@ -889,15 +889,12 @@ export function ShortInterestBrowserPage({ ticker }: { ticker: string }) {
       authenticatedFetch(`/market-data/history?ticker=${encodeURIComponent(normalizedTicker)}&category=market-history`, { cache: 'no-store' }) as Promise<ApiFile>,
       authenticatedFetch(`/market-data/history?ticker=${encodeURIComponent(normalizedTicker)}&category=short-volume-history`, { cache: 'no-store' }) as Promise<ApiFile>,
       authenticatedFetch(`/market-data/history?ticker=${encodeURIComponent(normalizedTicker)}&category=ftd-history`, { cache: 'no-store' }) as Promise<ApiFile>,
-      authenticatedFetch(`/manual-input/utilization?ticker=${encodeURIComponent(normalizedTicker)}`, { cache: 'no-store' }) as Promise<ApiFile>,
-      authenticatedFetch(`/manual-input/manual-availability?ticker=${encodeURIComponent(normalizedTicker)}`, { cache: 'no-store' }) as Promise<ApiFile>,
-      authenticatedFetch(`/manual-input/margins?ticker=${encodeURIComponent(normalizedTicker)}`, { cache: 'no-store' }) as Promise<ApiFile>,
       (fetchAiReport(normalizedTicker) as Promise<ApiFile>)
         .catch(cause => ({
           requestError: cause instanceof Error ? cause.message : 'Unable to load AI report.',
         })),
-    ]).then(([current, history, shortVolume, ftd, utilization, availability, margins, aiReport]) => {
-      if (!cancelled) setApiData({ current, history, shortVolume, ftd, utilization, availability, margins, aiReport });
+    ]).then(([current, history, shortVolume, ftd, aiReport]) => {
+      if (!cancelled) setApiData({ current, history, shortVolume, ftd, aiReport });
     }).catch(cause => {
       if (!cancelled) setError(cause instanceof Error ? cause.message : 'Unable to load short-interest API data.');
     }).finally(() => {
@@ -912,17 +909,12 @@ export function ShortInterestBrowserPage({ ticker }: { ticker: string }) {
   }
 
   const marketHistoryRows = apiRecords(apiData.history, 'market-history');
-  const publicationInputs = {
-    utilization: rows(apiData.utilization),
-    availability: rows(apiData.availability),
-    margins: rows(apiData.margins),
-  };
-  const publishedRecord = latestCompleteMarketPublicationRecordFromSources(marketHistoryRows, publicationInputs);
+  const publishedRecord = latestCompleteMarketPublicationRecordFromHistory(marketHistoryRows);
   const publishedDate = publishedRecord ? marketRecordDate(publishedRecord) : '';
   const shortCurrent = publishedRecord ? marketCurrentToLegacy(publishedRecord as ApiFile) : {};
   const dailyRows = marketHistoryRows
     .filter(row => Boolean(publishedDate) && String(row.tradeDate ?? row.date ?? '').slice(0, 10) <= publishedDate)
-    .map(row => marketPublicationRecordForDate(marketHistoryRows, publicationInputs, marketRecordDate(row)))
+    .map(row => marketPublicationRecordFromHistoryForDate(marketHistoryRows, marketRecordDate(row)))
     .map(marketHistoryToLegacy);
   const shortInterestTrendRows = dailyRows
     .sort((a, b) => String(a.date ?? '').localeCompare(String(b.date ?? '')))
@@ -1007,9 +999,8 @@ export function ShortInterestBrowserPage({ ticker }: { ticker: string }) {
           <div className="terminal-section-actions">
             <ApiSourceTags sources={[
               { endpoint: 'GET /market-data/current?category=market-current', label: 'Snapshot' },
+              { endpoint: 'GET /market-data/history?category=market-history', label: 'Consolidated market inputs' },
               { endpoint: 'GET /market-data/ai-report', label: 'AI analysis' },
-              { endpoint: 'GET /manual-input/utilization', label: 'Utilization' },
-              { endpoint: 'GET /manual-input/manual-availability', label: 'Broker availability' },
             ]} />
           </div>
         </div>
@@ -1155,9 +1146,6 @@ export function ShortInterestBrowserPage({ ticker }: { ticker: string }) {
           { id: 'market-history', title: 'Market History', endpoint: 'GET /market-data/history?category=market-history', source: 'Market Data API', payload: apiData.history },
           { id: 'short-volume', title: 'Short Volume', endpoint: 'GET /market-data/history?category=short-volume-history', source: 'Market Data API', payload: apiData.shortVolume },
           { id: 'ftd', title: 'Fails to Deliver', endpoint: 'GET /market-data/history?category=ftd-history', source: 'Market Data API', payload: apiData.ftd },
-          { id: 'utilization', title: 'Utilization', endpoint: 'GET /manual-input/utilization', source: 'Manual Input V2 API', payload: apiData.utilization },
-          { id: 'availability', title: 'Broker Availability', endpoint: 'GET /manual-input/manual-availability', source: 'Manual Input V2 API', payload: apiData.availability },
-          { id: 'margins', title: 'Broker Margins', endpoint: 'GET /manual-input/margins', source: 'Manual Input V2 API', payload: apiData.margins },
           { id: 'ai-report', title: 'AI Report', endpoint: 'GET /market-data/ai-report', source: 'Market Data API', payload: apiData.aiReport, status: apiData.aiReport.requestError ? 'error' : 'Connected' },
         ]} />
       </section>
