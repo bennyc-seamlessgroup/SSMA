@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { InfoTooltip } from '@/components/InfoTooltip';
+import { ApiSourceTags } from '@/components/ApiSourceTags';
 import { signedRecordDifference } from '@/lib/operations/ownership-entry.js';
 
 type OwnershipKey = 'institutions' | 'public_float' | 'strategic_entities';
@@ -176,6 +177,10 @@ export function InstitutionalOverview({
 
   return (
     <section className="institutional-overview">
+      <ApiSourceTags sources={[
+        { endpoint: 'GET /market-data/current?category=ownership-current', label: 'Ownership snapshot' },
+        { endpoint: 'GET /manual-input/management-holdings', label: 'Strategic entities' },
+      ]} />
       <div className="institutional-overview__kpis">
         <article>
           <span className="with-info">Issued Share <InfoTooltip text="Total issued shares used as the base for ownership and public float calculations." /></span>

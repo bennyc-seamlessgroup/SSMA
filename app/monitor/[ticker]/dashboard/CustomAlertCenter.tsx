@@ -1,5 +1,6 @@
 'use client';
 
+import { ApiSourceTags } from '@/components/ApiSourceTags';
 import Link from 'next/link';
 import { useEffect, useMemo, useState } from 'react';
 import {
@@ -161,6 +162,10 @@ export function CustomAlertCenter({
             </div>
           ) : null}
         </div>
+        <ApiSourceTags sources={[
+          { endpoint: 'GET /market-data/current?category=market-current', label: 'Current alert values' },
+          { endpoint: 'GET /market-data/history?category=market-history', label: 'Threshold context' },
+        ]} />
         <Link className="custom-alert-configure" href={settingsHref as any}>
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h10M18 7h2M14 4v6M4 17h2M10 17h10M6 14v6" /></svg>
           Configure Alerts

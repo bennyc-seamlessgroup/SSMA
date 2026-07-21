@@ -1,6 +1,7 @@
 'use client';
 
-import { ImportDataTable } from '@/components/ImportDataTable';
+import { ApiDevelopmentTabs } from '@/components/ApiDevelopmentTabs';
+import { ApiSourceTags } from '@/components/ApiSourceTags';
 import { InfoTooltip } from '@/components/InfoTooltip';
 import { PortalPageLoading } from '@/components/PortalPageLoading';
 import { usePortalTimeZone } from '@/components/usePortalTimeZone';
@@ -332,25 +333,8 @@ function DevApiTables({
   events: SentimentEventsPayload | null;
   timeZone: string;
 }) {
-  const mentionRows = mentions.map(row => ({
-    timestamp: formatMentionDate(row.timestamp, timeZone),
-    platform: row.platform,
-    author: row.author || 'N/A',
-    sentiment: row.sentiment_label || 'N/A',
-    catalystTag: row.catalyst_tag || 'N/A',
-    text: row.text,
-  }));
-  const currentRows = Object.entries(current ?? {}).map(([field, value]) => ({
-    field,
-    value: typeof value === 'object' ? JSON.stringify(value) : String(value ?? 'null'),
-  }));
-  const eventRows = recordsFromSentimentEvents(events).map(row => ({
-    timestamp: formatMentionDate(row.timestamp, timeZone),
-    platform: row.platform,
-    sentiment: row.sentiment_label || 'N/A',
-    author: row.author || 'N/A',
-    text: row.text,
-  }));
+  const mentionRows = mentions.map(row => ({ ...row, timestamp: formatMentionDate(row.timestamp, timeZone) }));
+  const eventRows = recordsFromSentimentEvents(events).map(row => ({ ...row, timestamp: formatMentionDate(row.timestamp, timeZone) }));
 
   return (
     <section className="narrative-feed-panel dev-only import-data-dev-panel">
@@ -359,21 +343,11 @@ function DevApiTables({
           <h2>Development Data</h2>
         </div>
       </div>
-      <div className="import-render-stack">
-        <div className="import-subsection">
-          <h4>GET /social-data</h4>
-          <p>{socialPages.length.toLocaleString('en-US')} API page(s) loaded.</p>
-          <ImportDataTable columns={['timestamp', 'platform', 'author', 'sentiment', 'catalystTag', 'text']} rows={mentionRows} pageSize={10} />
-        </div>
-        <div className="import-subsection">
-          <h4>GET /market-data/current?category=sentiment-current</h4>
-          <ImportDataTable columns={['field', 'value']} rows={currentRows} pageSize={10} />
-        </div>
-        <div className="import-subsection">
-          <h4>GET /market-data/history?category=sentiment-events</h4>
-          <ImportDataTable columns={['timestamp', 'platform', 'sentiment', 'author', 'text']} rows={eventRows} pageSize={10} />
-        </div>
-      </div>
+      <ApiDevelopmentTabs sources={[
+        { id: 'social-data', title: 'Social Records', endpoint: 'GET /social-data', source: `${socialPages.length} API page(s)`, payload: mentionRows },
+        { id: 'sentiment-current', title: 'Sentiment Current', endpoint: 'GET /market-data/current?category=sentiment-current', source: 'Market Data API', payload: current },
+        { id: 'sentiment-events', title: 'Sentiment Events', endpoint: 'GET /market-data/history?category=sentiment-events', source: 'Market Data API', payload: eventRows },
+      ]} />
     </section>
   );
 }
@@ -537,6 +511,10 @@ export function SentimentBrowserPage({ ticker }: { ticker: string }) {
           <div>
             <h2>Social Sentiment Overview</h2>
           </div>
+          <ApiSourceTags sources={[
+            { endpoint: 'GET /market-data/current?category=sentiment-current', label: 'Overview' },
+            { endpoint: 'GET /social-data', label: 'Platform records' },
+          ]} />
           <NarrativeRangeSelector activeRange={activeRange.label} ranges={rangeOptions} />
         </div>
 
@@ -566,6 +544,10 @@ export function SentimentBrowserPage({ ticker }: { ticker: string }) {
           <div>
             <h2 className="panel__title">Sentiment Timeline & Social Feed <InfoTooltip text="Platform and date filters apply to both the timeline and feed list." /></h2>
           </div>
+          <ApiSourceTags sources={[
+            { endpoint: 'GET /market-data/history?category=sentiment-events', label: 'Timeline' },
+            { endpoint: 'GET /social-data', label: 'Social feed' },
+          ]} />
         </div>
         <div className="narrative-platform-filter-row">
           <div className="narrative-filter-group narrative-platform-filter" aria-label="Platform filter">

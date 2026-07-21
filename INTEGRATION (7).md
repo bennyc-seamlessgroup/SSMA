@@ -41,6 +41,7 @@
   - [GET /market-data/reports](#get-market-datareports)
   - [GET /social-data](#get-social-data)
   - [POST /social-data](#post-social-data)
+  - [GET /social-data/progress](#get-social-dataprogress)
   - [Manual Input V2 APIs](#manual-input-v2-apis)
     - [GET /manual-input/{category}](#get-manual-inputcategory)
     - [POST /manual-input/{category}](#post-manual-inputcategory)
@@ -1135,6 +1136,39 @@ Returns the paginated list of available dates.
 
 ---
 
+### GET /market-data/ai-report
+
+Retrieve daily AI report data for a stock ticker from the centralized v2 data platform (`data-sync-platform-centralized-v2` S3 bucket, `ai-report/` prefix). The API dynamically calculates the target consolidation date (using the same logic as the consolidation handler) and retrieves that day's report.
+
+```
+GET /market-data/ai-report?ticker=CURR
+Authorization: <id_token>
+```
+
+**Access Control**:
+- Standard users (`USER` role) may only query tickers present in their user profile's `tickers` list. Requests for unauthorized tickers return `403 Forbidden`.
+- Operators and Admins (`OPERATOR` / `ADMIN` role) have unrestricted access to all tickers.
+
+**Parameters**:
+- `ticker` (**Required** / Query Parameter): The stock ticker symbol (case-insensitive, e.g. `CURR`).
+
+**Response** `200 OK` — Fetch AI report:
+Returns the raw JSON content of the S3 file at `ai-report/{ticker}/{calculated_date}/ai-report.json`.
+
+```json
+{
+  "created_at_utc": "2026-07-20T10:51:41Z",
+  "lending_pressure_analysis": "**Massive short volume spike on July 13 (9.5M shares) with borrow fees peaking at 464% and near-zero shares available indicates extreme lending pressure and high squeeze risk.**\n\nOver the past week, borrow fees surged from 143% to 464%, available shares collapsed to 2,000, and utilization hit 98.84%. The July 13 anomaly (60% short volume) signals aggressive shorting. Pending insider holdings of ~11.8M shares would dramatically shrink the true float. Conditions are primed for a significant short squeeze.",
+  "short_interest_current_interpretation": "**Borrow Fee Drops but Supply Crunch Persists with Critically Low Shares**\n\nThe 19.8% decline in borrow fee to 280% offers temporary relief, yet the underlying supply squeeze remains acute. Only 7,000 shares are available to borrow, and extreme utilization signals relentless short-side demand. Combined with moderate short interest and one-day cover, the risk of an explosive squeeze is elevated. Management should monitor inventory closely and prepare for rapid price dislocations."
+}
+```
+
+**Response** `400 Bad Request`: If `ticker` is missing.
+**Response** `403 Forbidden`: If the user is unauthorized to view AI reports for the specified ticker.
+**Response** `404 Not Found`: If the AI report for the calculated date does not exist in S3.
+
+---
+
 ### GET /social-data
 
 Retrieve social media posts and sentiment data from the centralized v2 data platform (`data-sync-platform-centralized-v2` S3 bucket, `kwatch/` prefix). This API supports listing all posts (with platform filtering and page-based pagination) and retrieving individual posts by S3 key.
@@ -1207,7 +1241,7 @@ Returns a paginated list of social posts sorted in descending chronological orde
 
 ### POST /social-data
 
-Upload a CSV file containing social sentiment posts (Stocktwits, Reddit, or Twitter). The API parses the CSV, dynamically detects the platform from the CSV content, deletes all existing JSON records under the corresponding S3 prefix `kwatch/{ticker}/{platform}/`, converts each row to an individual JSON record, and uploads them in parallel.
+Upload a CSV file containing social sentiment posts (Stocktwits, Reddit, or Twitter). The API parses the CSV, validates its structure, and immediately queues a background job for processing. The background worker deletes all existing JSON records under the corresponding S3 prefix `kwatch/{ticker}/{platform}/`, converts each CSV row to an individual JSON record, and uploads them to S3 in parallel.
 
 ```
 POST /social-data?ticker=CURR
@@ -1245,23 +1279,88 @@ Content-Type: text/csv
   - If `ref_date` is a Saturday: `date = ref_date - 2 days` (Thursday)
   - Otherwise: `date = ref_date - 1 day`
 
-**Existing Data Handling**:
-- **Deletion by Prefix**: Before uploading the new CSV rows, the API retrieves all existing objects in S3 matching the prefix `kwatch/{ticker}/{platform}/` (e.g., `kwatch/CURR/Reddit/`) using a paginator (`list_objects_v2`).
+**Background Data Handling**:
+- **Deletion by Prefix**: Before uploading the new CSV rows, the background processor retrieves all existing objects in S3 matching the prefix `kwatch/{ticker}/{platform}/` (e.g., `kwatch/CURR/Reddit/`) using a paginator (`list_objects_v2`).
 - **Batch Deletion**: These retrieved keys are deleted in chunks of up to 1000 keys using `delete_objects`.
 - **Platform Separation**: Deletion only affects the specific platform being imported. For example, importing Reddit data will delete and replace existing Reddit files under `kwatch/{ticker}/Reddit/`, but will leave existing Twitter or Stocktwits data untouched.
-- **Transactional Failure Safety**: If the S3 deletion step fails, the API immediately halts, returns `500 Internal Server Error`, and does not proceed to upload the new records.
+- **Transactional Failure Safety**: If the S3 deletion step fails, the task processor halts, marks the job status as `FAILED`, and does not proceed to upload the new records.
 
-**Response** `200 OK`:
+**Response** `202 Accepted`:
+Returns a `jobId` immediately so the client can poll the progress asynchronously.
 ```json
 {
-  "message": "Successfully uploaded all records to S3.",
-  "uploadedCount": 150
+  "jobId": "a1b2c3d4-e5f6-7a8b-9c0d-e1f2a3b4c5d6",
+  "status": "PENDING",
+  "message": "Successfully queued CSV file for processing."
 }
 ```
 
 **Response** `400 Bad Request`: If `ticker` is missing, the CSV file is missing, or the CSV structure is invalid.
 **Response** `403 Forbidden`: If the user is unauthorized for the ticker.
-**Response** `500 Internal Server Error`: If S3 delete or upload fails.
+**Response** `500 Internal Server Error`: If task initialization or background worker triggering fails.
+
+---
+
+### GET /social-data/progress
+
+Poll the progress/status of a specific background CSV import job (using the `jobId` parameter), or list all currently active (`PENDING` or `PROCESSING`) jobs.
+
+```
+GET /social-data/progress?jobId=a1b2c3d4-e5f6-7a8b-9c0d-e1f2a3b4c5d6
+GET /social-data/progress
+GET /social-data/progress?ticker=CURR
+Authorization: <id_token>
+```
+
+**Access Control**:
+- **Single Job**: Only users authorized for the ticker associated with the job (or `ADMIN` / `OPERATOR` roles) can query its progress. Others receive `403 Forbidden`.
+- **List Jobs**: Users with `USER` role will only see active jobs for tickers present in their profile's allowed tickers list. Admins and operators see all active jobs.
+- **Ticker Filter**: If `ticker` query parameter is provided, standard users must be authorized for it, or they will receive a `403 Forbidden` response.
+
+**Parameters**:
+- `jobId` (Optional / Query Parameter): The unique task identifier returned by the upload API.
+- `ticker` (Optional / Query Parameter): Filter active jobs by ticker. Ignored if `jobId` is specified.
+
+**Response** `200 OK` — Single Job (when `jobId` is provided):
+Returns the current status of the background task.
+```json
+{
+  "jobId": "a1b2c3d4-e5f6-7a8b-9c0d-e1f2a3b4c5d6",
+  "status": "COMPLETED",
+  "ticker": "CURR",
+  "platform": "Reddit",
+  "filename": "reddit.csv",
+  "uploadedCount": 150,
+  "totalRows": 150,
+  "error": null,
+  "timestamp": "2026-07-21T04:00:00Z"
+}
+```
+*Note: Statuses can be `PENDING`, `PROCESSING`, `COMPLETED`, or `FAILED`.*
+
+**Response** `200 OK` — Active Jobs List (when `jobId` is omitted):
+Returns a list of all active (`PENDING` or `PROCESSING`) jobs, sorted by timestamp descending.
+```json
+{
+  "jobs": [
+    {
+      "jobId": "a1b2c3d4-e5f6-7a8b-9c0d-e1f2a3b4c5d6",
+      "status": "PROCESSING",
+      "ticker": "CURR",
+      "platform": "Reddit",
+      "filename": "reddit.csv",
+      "uploadedCount": 50,
+      "totalRows": 150,
+      "error": null,
+      "timestamp": "2026-07-21T04:00:00Z"
+    }
+  ]
+}
+```
+
+**Response** `403 Forbidden`: If the user is unauthorized to access the ticker of the requested job, or if filtering by an unauthorized ticker.
+**Response** `404 Not Found`: If a specific `jobId` is queried but no job file exists.
+**Response** `500 Internal Server Error`: If retrieving the status information from S3 fails.
 
 ---
 

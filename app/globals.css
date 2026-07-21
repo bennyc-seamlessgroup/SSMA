@@ -5722,6 +5722,91 @@ html[data-design-b-theme="dark"] .ops-import-refreshed {
   font-weight: 800;
 }
 
+.ops-social-progress {
+  display: grid;
+  gap: 12px;
+}
+
+.ops-social-progress > .ops-panel-head {
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--ci-border-soft, #e7edf5);
+}
+
+.ops-social-progress > .ops-panel-head > strong {
+  color: var(--ci-accent, #2563eb);
+  font-size: 11px;
+}
+
+.ops-social-progress__list {
+  display: grid;
+  gap: 8px;
+}
+
+.ops-social-progress__list article {
+  display: grid;
+  grid-template-columns: minmax(160px, .8fr) minmax(180px, 1.6fr) minmax(130px, auto);
+  align-items: center;
+  gap: 14px;
+  padding: 10px 12px;
+  border: 1px solid var(--ci-border, #dbe3ee);
+  border-radius: 6px;
+  background: var(--ci-surface-muted, #f8fafc);
+}
+
+.ops-social-progress__list article > div:first-child {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.ops-social-progress__list article strong,
+.ops-social-progress__list article span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ops-social-progress__list article strong {
+  color: var(--ci-text, #0f172a);
+  font-size: 12px;
+}
+
+.ops-social-progress__list article span,
+.ops-social-progress__list article small {
+  color: var(--ci-muted, #64748b);
+  font-size: 10px;
+}
+
+.ops-social-progress__bar {
+  height: 7px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: var(--ci-border-soft, #e7edf5);
+}
+
+.ops-social-progress__bar i {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--ci-accent, #2563eb);
+  transition: width .25s ease;
+}
+
+.ops-social-progress__list article.is-completed .ops-social-progress__bar i {
+  background: var(--ci-success, #059669);
+}
+
+.ops-social-progress__list article.is-failed .ops-social-progress__bar i {
+  background: var(--ci-danger, #dc2626);
+}
+
+@media (max-width: 760px) {
+  .ops-social-progress__list article {
+    grid-template-columns: 1fr;
+    gap: 7px;
+  }
+}
+
 .ops-market-data-page {
   display: grid;
   gap: 16px;
@@ -9137,6 +9222,94 @@ html[data-portal-design="b"] .monitor-portal .lending-page-overview .lending-man
   min-height: 0;
 }
 
+html[data-portal-design="b"] .monitor-portal .lending-risk-factor-card {
+  display: flex;
+  flex-direction: column;
+}
+
+html[data-portal-design="b"] .monitor-portal .lending-risk-factor {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  justify-content: center;
+  gap: 18px;
+  min-width: 0;
+}
+
+html[data-portal-design="b"] .monitor-portal .lending-risk-factor__status {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+html[data-portal-design="b"] .monitor-portal .lending-risk-factor__status > i {
+  width: 12px;
+  height: 48px;
+  flex: 0 0 auto;
+  border-radius: 4px;
+  background: var(--short-score-accent);
+  box-shadow: 0 0 0 5px color-mix(in srgb, var(--short-score-accent) 10%, transparent);
+}
+
+html[data-portal-design="b"] .monitor-portal .lending-risk-factor__status div {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+
+html[data-portal-design="b"] .monitor-portal .lending-risk-factor__status small {
+  color: #8290a5;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+
+html[data-portal-design="b"] .monitor-portal .lending-risk-factor__status strong {
+  color: #10233c;
+  font-size: clamp(25px, 2.3vw, 34px);
+  font-weight: 700;
+  line-height: 1.08;
+}
+
+html[data-portal-design="b"] .monitor-portal .lending-risk-factor > p {
+  max-width: 620px;
+  margin: 0;
+  color: #5f718a;
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+html[data-portal-design="b"] .monitor-portal .lending-risk-spectrum {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 7px;
+}
+
+html[data-portal-design="b"] .monitor-portal .lending-risk-spectrum span {
+  display: grid;
+  gap: 6px;
+  color: #8a98ab;
+  font-size: 9.5px;
+  font-weight: 700;
+  text-align: center;
+}
+
+html[data-portal-design="b"] .monitor-portal .lending-risk-spectrum span > i {
+  width: 100%;
+  height: 5px;
+  border-radius: 999px;
+  background: #e7edf5;
+}
+
+html[data-portal-design="b"] .monitor-portal .lending-risk-spectrum span.active {
+  color: var(--short-score-accent);
+}
+
+html[data-portal-design="b"] .monitor-portal .lending-risk-spectrum span.active > i {
+  background: var(--short-score-accent);
+}
+
 html[data-portal-design="b"] .monitor-portal .lending-page-overview .lending-score-layout {
   display: grid;
   grid-template-columns: minmax(225px, 1fr) minmax(230px, 1fr);
@@ -9840,6 +10013,108 @@ html:not([data-dev-mode="true"]) .import-file-tag,
 html:not([data-dev-mode="true"]) .import-source-meta,
 html:not([data-dev-mode="true"]) .dev-source-inline {
   display: none !important;
+}
+
+.api-source-tags {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 6px;
+}
+
+.api-source-tag {
+  gap: 6px;
+  max-width: 100%;
+  text-transform: none;
+}
+
+.api-source-tag code {
+  overflow: hidden;
+  color: inherit;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 9px;
+  letter-spacing: 0;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.api-source-tag em {
+  padding-left: 6px;
+  border-left: 1px solid currentColor;
+  font-size: 9px;
+  font-style: normal;
+  opacity: .72;
+}
+
+.api-development-panel {
+  display: grid;
+  gap: 12px;
+}
+
+.api-development-panel__meta {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 9px 11px;
+  border: 1px solid var(--ci-border, #dce4ee);
+  border-radius: 6px;
+  background: var(--ci-surface-muted, #f7f9fc);
+  color: var(--ci-muted, #64748b);
+  font-size: 10px;
+}
+
+.api-development-panel__meta code {
+  color: var(--ci-text, #10233c);
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.api-development-status {
+  margin-left: auto;
+  color: #16805f;
+  font-weight: 700;
+}
+
+.api-development-status.error {
+  color: #c84646;
+}
+
+html[data-dev-mode="true"] .dashboard-chart-head > h2 {
+  grid-column: 1;
+  grid-row: 1;
+}
+
+html[data-dev-mode="true"] .dashboard-chart-head > .dashboard-legend {
+  grid-column: 2;
+  grid-row: 1;
+}
+
+html[data-dev-mode="true"] .dashboard-chart-head > .dashboard-period-control {
+  grid-column: 3;
+  grid-row: 1;
+}
+
+html[data-dev-mode="true"] .dashboard-chart-head > .api-source-tags {
+  grid-column: 1 / -1;
+  grid-row: 2;
+  justify-content: flex-start;
+}
+
+html[data-dev-mode="true"] .dashboard-kpi-toolbar {
+  flex-wrap: wrap;
+}
+
+html[data-dev-mode="true"] .dashboard-kpi-toolbar > .api-source-tags {
+  order: 3;
+  width: 100%;
+  justify-content: flex-start;
+}
+
+html[data-dev-mode="true"] .institutional-overview > .api-source-tags,
+html[data-dev-mode="true"] .institutional-page > .panel > .api-source-tags,
+html[data-dev-mode="true"] .internal-float-api-sources {
+  justify-content: flex-start;
 }
 
 .dev-mode-toggle-row {
@@ -23752,6 +24027,7 @@ html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .short-
 }
 
 html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .short-score-radial strong,
+html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .lending-risk-factor__status strong,
 html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .short-executive-metric strong,
 html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .short-signal-pill strong,
 html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .short-watch-card h3,
@@ -23761,6 +24037,7 @@ html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .lendin
 }
 
 html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .short-score-compact__copy p,
+html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .lending-risk-factor > p,
 html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .short-executive-metric span,
 html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .short-management-guide li,
 html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .short-signal-pill span,
@@ -23770,6 +24047,14 @@ html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .lendin
 html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .lending-contribution-list small,
 html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .lending-pressure-breakdown > p {
   color: #a9b9ce;
+}
+
+html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .lending-risk-spectrum span > i {
+  background: #26384f;
+}
+
+html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .lending-risk-spectrum span.active > i {
+  background: var(--short-score-accent);
 }
 
 html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .short-executive-metric,

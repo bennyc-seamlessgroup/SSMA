@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import type { MouseEvent } from 'react';
 import { dashboardPeriods, type PeriodKey } from './DashboardKpis';
+import { ApiSourceTags, type ApiSourceDescriptor } from '@/components/ApiSourceTags';
 
 export type DashboardSeriesKey = 'price' | 'feeRate' | 'tradeVolume' | 'shortableShares' | 'daysToCover' | 'utilization' | 'averageDuration';
 type SeriesKey = DashboardSeriesKey;
@@ -205,6 +206,7 @@ export function DashboardChart({
   fixedAxes,
   data: sourceData,
   events: sourceEvents,
+  sourceEndpoints = [],
   period,
   onPeriodChange,
 }: {
@@ -213,6 +215,7 @@ export function DashboardChart({
   fixedAxes?: DashboardFixedAxis[];
   data: DataPoint[];
   events: CompanyEvent[];
+  sourceEndpoints?: ApiSourceDescriptor[];
   period: PeriodKey;
   onPeriodChange: (period: PeriodKey) => void;
 }) {
@@ -439,6 +442,7 @@ export function DashboardChart({
     <section className="dashboard-chart-card">
       <div className="dashboard-chart-head">
         <h2>{title}</h2>
+        <ApiSourceTags sources={sourceEndpoints} />
         <div className="dashboard-legend" aria-label="Chart series toggles">
           {seriesOrder.map(key => (
             !availableMetrics.includes(key) ? null : (

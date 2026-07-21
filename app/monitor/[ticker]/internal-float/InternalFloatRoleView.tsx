@@ -2,7 +2,8 @@
 
 import { useEffect, useState } from 'react';
 import { PortalPageLoading } from '@/components/PortalPageLoading';
-import { ImportDataTable } from '@/components/ImportDataTable';
+import { ApiDevelopmentTabs } from '@/components/ApiDevelopmentTabs';
+import { ApiSourceTags } from '@/components/ApiSourceTags';
 import { authenticatedFetch, getAuthenticatedProfile } from '@/lib/auth-client';
 import {
   demoInsiderSuggestions,
@@ -175,6 +176,12 @@ function LiveInternalFloat({ ticker }: { ticker: string }) {
 
   return (
     <>
+      <ApiSourceTags sources={[
+        { endpoint: 'GET /market-data/current?category=ownership-current', label: 'Issued shares & ownership' },
+        { endpoint: 'GET /market-data/current?category=internal-float-current', label: 'Calculated float' },
+        { endpoint: 'GET /manual-input/internal-float-inputs', label: 'Private inputs' },
+        { endpoint: 'GET /manual-input/management-holdings', label: 'Strategic holdings' },
+      ]} />
       <InternalFloatClient
         key={`live-${ticker}`}
         ticker={ticker}
@@ -195,17 +202,12 @@ function LiveInternalFloat({ ticker }: { ticker: string }) {
       />
       <section className="terminal-section import-data-dev-panel">
         <div className="terminal-section__head"><div><span>Development Data</span><h2>Internal Float API Data</h2><p className="section-subtitle">Live API payloads only. No local or S3 JSON fallback is used.</p></div></div>
-        <ImportDataTable
-          columns={['endpoint', 'records', 'payload']}
-          rows={[
-            { endpoint: 'GET /market-data/current?category=ownership-current', records: '1', payload: JSON.stringify(payloads.ownership) },
-            { endpoint: 'GET /market-data/current?category=internal-float-current', records: '1', payload: JSON.stringify(payloads.current) },
-            { endpoint: 'GET /manual-input/internal-float-inputs', records: String(privateRecords.length + tokenRecords.length + collateralRecords.length), payload: JSON.stringify(payloads.inputs) },
-            { endpoint: 'GET /manual-input/management-holdings', records: String(payloads.managementHoldings.length), payload: JSON.stringify(payloads.managementHoldings) },
-          ]}
-          pageSize={10}
-          expandableColumns={['payload']}
-        />
+        <ApiDevelopmentTabs sources={[
+          { id: 'ownership-current', title: 'Ownership Current', endpoint: 'GET /market-data/current?category=ownership-current', source: 'Market Data API', payload: payloads.ownership },
+          { id: 'internal-float-current', title: 'Internal Float Current', endpoint: 'GET /market-data/current?category=internal-float-current', source: 'Market Data API', payload: payloads.current },
+          { id: 'internal-float-inputs', title: 'Internal Float Inputs', endpoint: 'GET /manual-input/internal-float-inputs', source: 'Manual Input V2 API', payload: payloads.inputs },
+          { id: 'management-holdings', title: 'Management Holdings', endpoint: 'GET /manual-input/management-holdings', source: 'Manual Input V2 API', payload: payloads.managementHoldings },
+        ]} />
       </section>
     </>
   );

@@ -1,9 +1,12 @@
 'use client';
 
 import { ImportDataTable } from '@/components/ImportDataTable';
+import { ApiDevelopmentTabs } from '@/components/ApiDevelopmentTabs';
+import { ApiSourceTags } from '@/components/ApiSourceTags';
 import { InfoTooltip } from '@/components/InfoTooltip';
 import { PortalPageLoading } from '@/components/PortalPageLoading';
 import { PageDisclaimerNotice } from '@/components/PageDisclaimerNotice';
+import { fetchAiReport } from '@/lib/ai-report-api';
 import { authenticatedFetch } from '@/lib/auth-client';
 import { latestCompleteMarketPublicationRecordFromSources, marketPublicationRecordForDate, marketRecordDate } from '@/lib/market-data-publication';
 import { normalizeTicker } from '@/lib/ticker-data';
@@ -133,10 +136,6 @@ function biweeklyRows(items: Row[], maximumPoints = 8) {
     cursor = rowAtOrBeforeDaysAgo(sorted, cursor.date, 14);
   }
   return selected.reverse();
-}
-
-function sourceChip(source: string) {
-  return <span className="source-chip ready">Source: {source}</span>;
 }
 
 function InfoTitle({ children, text }: { children: ReactNode; text: string }) {
@@ -877,7 +876,7 @@ function apiFtdRows(payload: ApiFile): FtdRow[] {
 
 export function ShortInterestBrowserPage({ ticker }: { ticker: string }) {
   const normalizedTicker = normalizeTicker(ticker);
-  const [apiData, setApiData] = useState<{ current: ApiFile; history: ApiFile; shortVolume: ApiFile; ftd: ApiFile; utilization: ApiFile; availability: ApiFile; margins: ApiFile } | null>(null);
+  const [apiData, setApiData] = useState<{ current: ApiFile; history: ApiFile; shortVolume: ApiFile; ftd: ApiFile; utilization: ApiFile; availability: ApiFile; margins: ApiFile; aiReport: ApiFile } | null>(null);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(true);
 
@@ -893,8 +892,12 @@ export function ShortInterestBrowserPage({ ticker }: { ticker: string }) {
       authenticatedFetch(`/manual-input/utilization?ticker=${encodeURIComponent(normalizedTicker)}`, { cache: 'no-store' }) as Promise<ApiFile>,
       authenticatedFetch(`/manual-input/manual-availability?ticker=${encodeURIComponent(normalizedTicker)}`, { cache: 'no-store' }) as Promise<ApiFile>,
       authenticatedFetch(`/manual-input/margins?ticker=${encodeURIComponent(normalizedTicker)}`, { cache: 'no-store' }) as Promise<ApiFile>,
-    ]).then(([current, history, shortVolume, ftd, utilization, availability, margins]) => {
-      if (!cancelled) setApiData({ current, history, shortVolume, ftd, utilization, availability, margins });
+      (fetchAiReport(normalizedTicker) as Promise<ApiFile>)
+        .catch(cause => ({
+          requestError: cause instanceof Error ? cause.message : 'Unable to load AI report.',
+        })),
+    ]).then(([current, history, shortVolume, ftd, utilization, availability, margins, aiReport]) => {
+      if (!cancelled) setApiData({ current, history, shortVolume, ftd, utilization, availability, margins, aiReport });
     }).catch(cause => {
       if (!cancelled) setError(cause instanceof Error ? cause.message : 'Unable to load short-interest API data.');
     }).finally(() => {
@@ -980,7 +983,10 @@ export function ShortInterestBrowserPage({ ticker }: { ticker: string }) {
   const shortInterestChangePercent = numeric(shortInterestCard.changePercent) ?? shortInterestDelta?.percent;
   const borrowFeeChangePercent = numeric(borrowFeeCard.changePercent) ?? borrowFeeDelta?.percent;
   const sharesAvailableChangePercent = numeric(sharesAvailableCard.changePercent) ?? sharesAvailableDelta?.percent;
-  const aiSummary = 'AI analysis is not available from the current API.';
+  const aiSummary = text(
+    apiData.aiReport.short_interest_current_interpretation,
+    'AI analysis is not available for the current consolidation date.',
+  );
   const scoreRanges = [
     { range: '0-39', level: 'Low', description: 'Short-side pressure is relatively contained.', active: shortScore < 40 },
     { range: '40-64', level: 'Moderate', description: 'Pressure is developing and should be monitored.', active: shortScore >= 40 && shortScore < 65 },
@@ -999,7 +1005,12 @@ export function ShortInterestBrowserPage({ ticker }: { ticker: string }) {
             <p className="section-subtitle">Executive view of short exposure, borrow pressure, available inventory, and squeeze-risk inputs.</p>
           </div>
           <div className="terminal-section-actions">
-            {sourceChip('Market Data API')}
+            <ApiSourceTags sources={[
+              { endpoint: 'GET /market-data/current?category=market-current', label: 'Snapshot' },
+              { endpoint: 'GET /market-data/ai-report', label: 'AI analysis' },
+              { endpoint: 'GET /manual-input/utilization', label: 'Utilization' },
+              { endpoint: 'GET /manual-input/manual-availability', label: 'Broker availability' },
+            ]} />
           </div>
         </div>
 
@@ -1062,7 +1073,11 @@ export function ShortInterestBrowserPage({ ticker }: { ticker: string }) {
             <p className="section-subtitle">Daily market trends are grouped in the 2×2 view. Reported short interest appears separately below because it updates bi-weekly.</p>
           </div>
           <div className="terminal-section-actions">
-            {sourceChip('Market Data API')}
+            <ApiSourceTags sources={[
+              { endpoint: 'GET /market-data/history?category=market-history', label: 'Market trends' },
+              { endpoint: 'GET /market-data/history?category=short-volume-history', label: 'Short volume' },
+              { endpoint: 'GET /market-data/history?category=ftd-history', label: 'Fails to deliver' },
+            ]} />
           </div>
         </div>
         <div className="short-interest-trend-grid">
@@ -1120,6 +1135,12 @@ export function ShortInterestBrowserPage({ ticker }: { ticker: string }) {
             <h2>Short Volume & Fails-to-Deliver</h2>
             <p className="section-subtitle">Placeholder tables for future API data. Each table shows 7 records per page for readability.</p>
           </div>
+          <div className="terminal-section-actions">
+            <ApiSourceTags sources={[
+              { endpoint: 'GET /market-data/history?category=short-volume-history', label: 'Short volume table' },
+              { endpoint: 'GET /market-data/history?category=ftd-history', label: 'FTD table' },
+            ]} />
+          </div>
         </div>
         <div className="short-market-data-grid">
           <PagedShortVolumeTable rows={apiShortVolumeRows(apiData.shortVolume)} />
@@ -1129,19 +1150,16 @@ export function ShortInterestBrowserPage({ ticker }: { ticker: string }) {
       <PageDisclaimerNotice noticeKey="shortInterest" disclaimerKey="regulatoryFiling" />
       <section className="terminal-section import-data-dev-panel">
         <div className="terminal-section__head"><div><span>Development Data</span><h2>Short Interest API Data</h2><p className="section-subtitle">Live API payloads only. No local or S3 JSON fallback is used.</p></div></div>
-        <ImportDataTable
-          columns={['endpoint', 'generatedAt', 'records', 'payload']}
-          rows={[
-            { endpoint: 'GET /market-data/current?category=market-current', generatedAt: String(apiData.current.generatedAt ?? 'N/A'), records: '1', payload: JSON.stringify(apiData.current) },
-            { endpoint: 'GET /market-data/history?category=market-history', generatedAt: String(apiData.history.generatedAt ?? 'N/A'), records: String(rows(apiData.history.records).length), payload: JSON.stringify(apiData.history) },
-            { endpoint: 'GET /market-data/history?category=short-volume-history', generatedAt: String(apiData.shortVolume.generatedAt ?? 'N/A'), records: String(rows(apiData.shortVolume.records).length), payload: JSON.stringify(apiData.shortVolume) },
-            { endpoint: 'GET /market-data/history?category=ftd-history', generatedAt: String(apiData.ftd.generatedAt ?? 'N/A'), records: String(rows(apiData.ftd.records).length), payload: JSON.stringify(apiData.ftd) },
-            { endpoint: 'GET /manual-input/utilization', generatedAt: 'N/A', records: String(rows(apiData.utilization).length), payload: JSON.stringify(apiData.utilization) },
-            { endpoint: 'GET /manual-input/manual-availability', generatedAt: 'N/A', records: String(rows(apiData.availability).length), payload: JSON.stringify(apiData.availability) },
-            { endpoint: 'GET /manual-input/margins', generatedAt: 'N/A', records: String(rows(apiData.margins).length), payload: JSON.stringify(apiData.margins) },
-          ]}
-          pageSize={10}
-        />
+        <ApiDevelopmentTabs sources={[
+          { id: 'market-current', title: 'Market Current', endpoint: 'GET /market-data/current?category=market-current', source: 'Market Data API', payload: apiData.current },
+          { id: 'market-history', title: 'Market History', endpoint: 'GET /market-data/history?category=market-history', source: 'Market Data API', payload: apiData.history },
+          { id: 'short-volume', title: 'Short Volume', endpoint: 'GET /market-data/history?category=short-volume-history', source: 'Market Data API', payload: apiData.shortVolume },
+          { id: 'ftd', title: 'Fails to Deliver', endpoint: 'GET /market-data/history?category=ftd-history', source: 'Market Data API', payload: apiData.ftd },
+          { id: 'utilization', title: 'Utilization', endpoint: 'GET /manual-input/utilization', source: 'Manual Input V2 API', payload: apiData.utilization },
+          { id: 'availability', title: 'Broker Availability', endpoint: 'GET /manual-input/manual-availability', source: 'Manual Input V2 API', payload: apiData.availability },
+          { id: 'margins', title: 'Broker Margins', endpoint: 'GET /manual-input/margins', source: 'Manual Input V2 API', payload: apiData.margins },
+          { id: 'ai-report', title: 'AI Report', endpoint: 'GET /market-data/ai-report', source: 'Market Data API', payload: apiData.aiReport, status: apiData.aiReport.requestError ? 'error' : 'Connected' },
+        ]} />
       </section>
     </div>
   );

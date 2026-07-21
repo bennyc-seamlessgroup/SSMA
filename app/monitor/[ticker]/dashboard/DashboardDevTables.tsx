@@ -127,7 +127,7 @@ export function DashboardDevTables({
     id: table.id,
     title: table.title,
     file: table.endpoint,
-    sourcePlatform: table.id.startsWith('manual-') || table.id === 'sec-filings' ? 'Manual Input V2 API' : 'Market Data API',
+    sourcePlatform: table.endpoint,
     recordCount: recordCount(table.payload),
     status: 'api',
   }));

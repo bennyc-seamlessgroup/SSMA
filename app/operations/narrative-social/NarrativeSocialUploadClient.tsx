@@ -5,9 +5,12 @@ import { OperationsDevelopmentData } from '@/components/OperationsDevelopmentDat
 import { getOperationsTicker, setOperationsTicker } from '@/lib/operations/ticker-client';
 import {
   getSocialDataPage,
+  getSocialImportProgress,
   uploadSocialCsv,
+  type SocialImportJob,
   type SocialMention,
   type SocialPlatform,
+  type SocialUploadResponse,
 } from '@/lib/social-data-api';
 
 type PlatformKey = 'x' | 'reddit' | 'facebook' | 'linkedin' | 'stocktwits';
@@ -22,10 +25,7 @@ type SocialMentionFile = {
 };
 
 type UploadState = Record<PlatformKey, SocialMentionFile>;
-type UploadResponseState = Partial<Record<PlatformKey, {
-  message?: string;
-  uploadedCount?: number;
-}>>;
+type UploadResponseState = Partial<Record<PlatformKey, SocialUploadResponse>>;
 
 function platformCards(ticker: string): Array<{
   key: PlatformKey;
@@ -70,9 +70,12 @@ export function NarrativeSocialUploadClient() {
   const [data, setData] = useState<Partial<UploadState>>({});
   const [developmentData, setDevelopmentData] = useState<Partial<UploadState>>();
   const [uploadResponses, setUploadResponses] = useState<UploadResponseState>({});
-  const [status, setStatus] = useState<'idle' | 'loading' | 'uploading' | 'done' | 'error'>('loading');
+  const [jobs, setJobs] = useState<Record<string, SocialImportJob>>({});
+  const [progressPayload, setProgressPayload] = useState<unknown>();
+  const [status, setStatus] = useState<'idle' | 'loading' | 'uploading' | 'processing' | 'done' | 'error'>('loading');
   const [message, setMessage] = useState('');
   const [developmentTicker, setDevelopmentTicker] = useState('CURR');
+  const finishingJobs = useRef(false);
   const inputRefs = useRef<Record<PlatformKey, HTMLInputElement | null>>({
     x: null,
     reddit: null,
@@ -119,8 +122,17 @@ export function NarrativeSocialUploadClient() {
       setData(payload);
       setDevelopmentData(payload);
       setFiles({});
-      setStatus('idle');
-      setMessage('');
+      try {
+        const progress = await getSocialImportProgress({ ticker: normalizedTicker });
+        setProgressPayload(progress.raw);
+        setJobs(Object.fromEntries(progress.jobs.map(job => [job.jobId, job])));
+        setStatus(progress.jobs.length ? 'processing' : 'idle');
+        setMessage(progress.jobs.length ? `${progress.jobs.length} social import job${progress.jobs.length === 1 ? '' : 's'} in progress.` : '');
+      } catch {
+        setJobs({});
+        setStatus('idle');
+        setMessage('');
+      }
     } catch (error) {
       setStatus('error');
       setMessage(error instanceof Error ? error.message : 'Unable to load current social data.');
@@ -132,6 +144,63 @@ export function NarrativeSocialUploadClient() {
     // Initial operations workspace load only.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  const activeJobIds = useMemo(() => Object.values(jobs)
+    .filter(job => job.status === 'PENDING' || job.status === 'PROCESSING')
+    .map(job => job.jobId)
+    .sort(), [jobs]);
+  const activeJobKey = activeJobIds.join('|');
+
+  useEffect(() => {
+    if (!activeJobIds.length || finishingJobs.current) return undefined;
+    let cancelled = false;
+    let timer: ReturnType<typeof setTimeout> | undefined;
+
+    const poll = async () => {
+      try {
+        const results = await Promise.all(activeJobIds.map(jobId => getSocialImportProgress({ jobId })));
+        if (cancelled) return;
+        const nextJobs = results.flatMap(result => result.jobs);
+        const mergedJobs = { ...jobs, ...Object.fromEntries(nextJobs.map(job => [job.jobId, job])) };
+        setProgressPayload(results.map(result => result.raw));
+        setJobs(mergedJobs);
+        const complete = nextJobs.length === activeJobIds.length && nextJobs.every(job => job.status === 'COMPLETED' || job.status === 'FAILED');
+        if (complete) {
+          finishingJobs.current = true;
+          const completedBatch = Object.values(mergedJobs);
+          const failures = completedBatch.filter(job => job.status === 'FAILED');
+          if (failures.length) {
+            setStatus('error');
+            setMessage(failures.map(job => `${job.platform || job.filename}: ${job.error || 'Import failed.'}`).join(' '));
+          } else {
+            const uploadedCount = completedBatch.reduce((sum, job) => sum + job.uploadedCount, 0);
+            await load(selectedTicker);
+            if (!cancelled) {
+              setStatus('done');
+              setMessage(`Processed ${uploadedCount.toLocaleString('en-US')} records across ${completedBatch.length} platform${completedBatch.length === 1 ? '' : 's'}.`);
+            }
+          }
+          finishingJobs.current = false;
+          return;
+        }
+      } catch (error) {
+        if (!cancelled) {
+          setStatus('error');
+          setMessage(error instanceof Error ? error.message : 'Unable to check social import progress.');
+        }
+        return;
+      }
+      timer = setTimeout(poll, 1500);
+    };
+
+    void poll();
+    return () => {
+      cancelled = true;
+      if (timer) clearTimeout(timer);
+    };
+    // The stable job key intentionally controls polling restarts.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeJobKey, selectedTicker]);
 
   const readyCount = useMemo(() => Object.values(files).filter(Boolean).length, [files]);
   const cards = useMemo(() => platformCards(selectedTicker), [selectedTicker]);
@@ -176,11 +245,22 @@ export function NarrativeSocialUploadClient() {
         ...current,
         ...Object.fromEntries(responses.map(item => [item.platform, item.response])),
       }));
-      const uploadedCount = responses.reduce((total, item) => total + (item.response.uploadedCount ?? 0), 0);
-      await load(selectedTicker);
+      const queuedJobs = responses.map(({ platform, response }) => ({
+        jobId: response.jobId,
+        status: response.status,
+        ticker: selectedTicker,
+        platform: cards.find(card => card.key === platform)?.label ?? platform,
+        filename: files[platform]?.name ?? '',
+        uploadedCount: 0,
+        totalRows: 0,
+        error: null,
+        timestamp: new Date().toISOString(),
+        raw: response,
+      } satisfies SocialImportJob));
+      setJobs(Object.fromEntries(queuedJobs.map(job => [job.jobId, job])));
       setFiles({});
-      setStatus('done');
-      setMessage(`Uploaded ${uploadedCount.toLocaleString('en-US')} records across ${responses.length} platform${responses.length === 1 ? '' : 's'}.`);
+      setStatus('processing');
+      setMessage(`Queued ${responses.length} social import job${responses.length === 1 ? '' : 's'}. Processing continues in the background.`);
     } catch (error) {
       setStatus('error');
       setMessage(error instanceof Error ? error.message : 'Upload failed.');
@@ -202,12 +282,33 @@ export function NarrativeSocialUploadClient() {
           <h2>Drop CSV files here</h2>
           <p>Upload Reddit, X, or Stocktwits CSV files. Each upload replaces the existing dataset for the detected platform only.</p>
         </div>
-        <button className="ops-primary-button" type="button" disabled={status === 'uploading'} onClick={uploadFiles}>
-          {status === 'uploading' ? 'Uploading...' : `Upload ${readyCount || ''}`.trim()}
+        <button className="ops-primary-button" type="button" disabled={status === 'uploading' || status === 'processing'} onClick={uploadFiles}>
+          {status === 'uploading' ? 'Uploading...' : status === 'processing' ? 'Processing...' : `Upload ${readyCount || ''}`.trim()}
         </button>
       </section>
 
       {message && <p className={`ops-form-message ${status === 'error' ? 'bad' : 'good'}`}>{message}</p>}
+
+      {Object.keys(jobs).length > 0 && (
+        <section className="ops-panel ops-social-progress" aria-label="Social import progress">
+          <div className="ops-panel-head">
+            <div><span className="ops-eyebrow">Background Processing</span><h2>Import progress</h2></div>
+            <strong>{activeJobIds.length ? `${activeJobIds.length} active` : 'Complete'}</strong>
+          </div>
+          <div className="ops-social-progress__list">
+            {Object.values(jobs).sort((a, b) => b.timestamp.localeCompare(a.timestamp)).map(job => {
+              const progress = job.totalRows > 0 ? Math.min(100, Math.round((job.uploadedCount / job.totalRows) * 100)) : job.status === 'COMPLETED' ? 100 : 0;
+              return (
+                <article key={job.jobId} className={`is-${job.status.toLowerCase()}`}>
+                  <div><strong>{job.platform || 'Social data'}</strong><span>{job.filename || job.jobId}</span></div>
+                  <div className="ops-social-progress__bar"><i style={{ width: `${progress}%` }} /></div>
+                  <small>{job.status} · {job.uploadedCount.toLocaleString('en-US')} / {job.totalRows ? job.totalRows.toLocaleString('en-US') : '—'}</small>
+                </article>
+              );
+            })}
+          </div>
+        </section>
+      )}
 
       <div className="ops-upload-grid">
         {cards.map(platform => {
@@ -281,8 +382,8 @@ export function NarrativeSocialUploadClient() {
 
       <OperationsDevelopmentData
         title="Social Data API Responses"
-        description="Current per-platform GET /social-data payloads and retained Reddit, X, or Stocktwits POST /social-data responses."
-        rows={cards.map(platform => {
+        description="Current social records, queued upload responses, and background processing progress are kept as separate API responses."
+        rows={[...cards.map(platform => {
           const current = data[platform.key];
           const pendingFile = files[platform.key];
           const uploadResponse = uploadResponses[platform.key];
@@ -312,7 +413,13 @@ export function NarrativeSocialUploadClient() {
               } : null,
             },
           };
-        })}
+        }), {
+          endpoint: `GET /social-data/progress?ticker=${developmentTicker}`,
+          source: 'Centralized Social Data API',
+          state: activeJobIds.length ? `${activeJobIds.length} active` : 'idle',
+          recordCount: Object.keys(jobs).length,
+          payload: progressPayload ?? Object.values(jobs),
+        }]}
       />
     </div>
   );

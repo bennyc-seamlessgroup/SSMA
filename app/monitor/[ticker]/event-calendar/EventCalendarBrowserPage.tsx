@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { ImportDataTable } from '@/components/ImportDataTable';
+import { ApiSourceTags } from '@/components/ApiSourceTags';
 import { PageDisclaimerNotice } from '@/components/PageDisclaimerNotice';
 import { PortalPageLoading } from '@/components/PortalPageLoading';
 import { authenticatedFetch } from '@/lib/auth-client';
@@ -108,6 +109,7 @@ export function EventCalendarBrowserPage({ ticker }: { ticker: string }) {
 
   return (
     <div className="page catalysts-page">
+      <ApiSourceTags sources={[{ endpoint: 'GET /manual-input/sec-filings', label: 'Filing records' }]} />
       {status === 'error' ? <section className="panel"><h2>SEC filings unavailable</h2><p>{error}</p></section> : <SecFilingsList filings={filings} />}
       <PageDisclaimerNotice noticeKey="insider" disclaimerKey="regulatoryFiling" />
 

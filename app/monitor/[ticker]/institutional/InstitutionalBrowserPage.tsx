@@ -10,6 +10,7 @@ import { InstitutionalTabs } from './InstitutionalTabs';
 import type { ActivistFiling } from './ActivistFilingsTable';
 import { InstitutionalDevTables } from './InstitutionalDevTables';
 import { InstitutionalOverview, type InstitutionalOverviewData } from './InstitutionalOverview';
+import { ApiSourceTags } from '@/components/ApiSourceTags';
 
 type SecurityOwnershipRow = {
   name?: string | null;
@@ -217,6 +218,10 @@ export function InstitutionalBrowserPage({ ticker }: { ticker: string }) {
     <div className="page institutional-page">
       <InstitutionalOverview data={overviewData} ticker={normalizedTicker} managementRecords={managementRecords} />
       <section className="panel">
+        <ApiSourceTags sources={[
+          { endpoint: 'GET /market-data/history?category=ownership-history', label: 'Ownership filings' },
+          { endpoint: 'GET /manual-input/management-holdings', label: 'Strategic entities' },
+        ]} />
         <InstitutionalTabs holdings={holdings} activistFilings={activistFilings} ticker={normalizedTicker} companyName={normalizedTicker} />
       </section>
       <PageDisclaimerNotice noticeKey="ownership" disclaimerKey="regulatoryFiling" />

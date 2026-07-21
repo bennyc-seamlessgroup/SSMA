@@ -43,6 +43,26 @@ export type SocialDataPage = {
 
 export type SentimentCurrentPayload = Record<string, unknown>;
 export type SentimentEventsPayload = Record<string, unknown>;
+export type SocialImportJobStatus = 'PENDING' | 'PROCESSING' | 'COMPLETED' | 'FAILED';
+
+export type SocialImportJob = {
+  jobId: string;
+  status: SocialImportJobStatus;
+  ticker: string;
+  platform: string;
+  filename: string;
+  uploadedCount: number;
+  totalRows: number;
+  error: string | null;
+  timestamp: string;
+  raw: unknown;
+};
+
+export type SocialUploadResponse = {
+  jobId: string;
+  status: SocialImportJobStatus;
+  message: string;
+};
 
 function record(value: unknown): Record<string, unknown> {
   return value && typeof value === 'object' && !Array.isArray(value)
@@ -176,7 +196,37 @@ export async function uploadSocialCsv(ticker: string, file: File) {
   return authenticatedFetch(`/social-data?ticker=${encodeURIComponent(ticker)}`, {
     method: 'POST',
     body: formData,
-  }) as Promise<{ message?: string; uploadedCount?: number }>;
+  }) as Promise<SocialUploadResponse>;
+}
+
+function normalizeImportJob(value: unknown): SocialImportJob {
+  const row = record(value);
+  const status = text(row.status).toUpperCase();
+  return {
+    jobId: text(row.jobId ?? row.job_id),
+    status: (['PENDING', 'PROCESSING', 'COMPLETED', 'FAILED'].includes(status) ? status : 'PENDING') as SocialImportJobStatus,
+    ticker: text(row.ticker).toUpperCase(),
+    platform: text(row.platform),
+    filename: text(row.filename),
+    uploadedCount: numberOrNull(row.uploadedCount ?? row.uploaded_count) ?? 0,
+    totalRows: numberOrNull(row.totalRows ?? row.total_rows) ?? 0,
+    error: row.error == null ? null : text(row.error),
+    timestamp: text(row.timestamp),
+    raw: value,
+  };
+}
+
+export async function getSocialImportProgress({ jobId, ticker }: { jobId?: string; ticker?: string } = {}) {
+  const params = new URLSearchParams();
+  if (jobId) params.set('jobId', jobId);
+  else if (ticker) params.set('ticker', ticker);
+  const suffix = params.size ? `?${params.toString()}` : '';
+  const raw = await authenticatedFetch(`/social-data/progress${suffix}`, { cache: 'no-store' });
+  const payload = record(raw);
+  const jobs = Array.isArray(payload.jobs)
+    ? payload.jobs.map(normalizeImportJob)
+    : [normalizeImportJob(raw)].filter(job => job.jobId);
+  return { jobs, raw };
 }
 
 export function recordsFromSentimentEvents(payload: unknown): SocialMention[] {

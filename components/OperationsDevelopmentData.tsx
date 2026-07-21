@@ -1,6 +1,6 @@
 'use client';
 
-import { ImportDataTable } from '@/components/ImportDataTable';
+import { ApiDevelopmentTabs } from '@/components/ApiDevelopmentTabs';
 
 export type OperationsDevelopmentDatum = {
   endpoint: string;
@@ -17,30 +17,7 @@ type OperationsDevelopmentDataProps = {
   rows: OperationsDevelopmentDatum[];
 };
 
-function serializePayload(payload: unknown) {
-  if (payload === undefined) return 'Not available';
-  if (payload === null) return 'null';
-  if (typeof payload === 'string') return payload || 'Empty string';
-
-  try {
-    const serialized = JSON.stringify(payload, null, 2);
-    if (!serialized) return String(payload);
-    return serialized;
-  } catch {
-    return String(payload);
-  }
-}
-
 export function OperationsDevelopmentData({ title, description, rows }: OperationsDevelopmentDataProps) {
-  const tableRows = rows.map(row => ({
-    endpoint: row.endpoint,
-    source: row.source,
-    state: row.state,
-    recordCount: row.recordCount === undefined ? 'N/A' : String(row.recordCount),
-    updatedAt: row.updatedAt || 'N/A',
-    payload: serializePayload(row.payload),
-  }));
-
   return (
     <section className="ops-panel ops-wide-panel operations-development-data import-data-dev-panel" aria-label={`${title} development data`}>
       <div className="ops-panel-head">
@@ -50,12 +27,14 @@ export function OperationsDevelopmentData({ title, description, rows }: Operatio
           <p>{description}</p>
         </div>
       </div>
-      <ImportDataTable
-        columns={['endpoint', 'source', 'state', 'recordCount', 'updatedAt', 'payload']}
-        rows={tableRows}
-        pageSize={10}
-        expandableColumns={['payload']}
-      />
+      <ApiDevelopmentTabs sources={rows.map((row, index) => ({
+        id: `operations-api-${index}`,
+        title: row.endpoint.replace(/^\w+\s+/, '').split('?')[0].split('/').filter(Boolean).slice(-2).join(' / ') || `API ${index + 1}`,
+        endpoint: row.endpoint,
+        source: row.source,
+        payload: row.payload,
+        status: [row.state, row.recordCount === undefined ? '' : `${row.recordCount} records`, row.updatedAt || ''].filter(Boolean).join(' · '),
+      }))} />
     </section>
   );
 }

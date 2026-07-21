@@ -1,9 +1,11 @@
 'use client';
 
-import { ImportDataTable } from '@/components/ImportDataTable';
+import { ApiDevelopmentTabs } from '@/components/ApiDevelopmentTabs';
+import { ApiSourceTags } from '@/components/ApiSourceTags';
 import { InfoTooltip } from '@/components/InfoTooltip';
 import { PortalPageLoading } from '@/components/PortalPageLoading';
 import { PageDisclaimerNotice } from '@/components/PageDisclaimerNotice';
+import { fetchAiReport } from '@/lib/ai-report-api';
 import { authenticatedFetch } from '@/lib/auth-client';
 import { latestCompleteMarketPublicationRecordFromSources, marketPublicationRecordForDate, marketRecordDate, type MarketPublicationRecord } from '@/lib/market-data-publication';
 import { normalizeTicker } from '@/lib/ticker-data';
@@ -97,7 +99,7 @@ function payloadRecordCount(value: unknown) {
 function payloadGeneratedAt(value: unknown) {
   if (value && typeof value === 'object' && !Array.isArray(value)) {
     const row = value as Row;
-    return String(row.generatedAt ?? row.updatedAt ?? row.createdAt ?? '');
+    return String(row.generatedAt ?? row.updatedAt ?? row.createdAt ?? row.created_at_utc ?? '');
   }
   if (Array.isArray(value)) {
     return value
@@ -221,10 +223,6 @@ function shortDateLabel(value: unknown) {
   return `${month}/${day}`;
 }
 
-function sourceChip(source: string) {
-  return <span className="source-chip ready">Source: {source}</span>;
-}
-
 function InfoTitle({ children, text }: { children: ReactNode; text: string }) {
   return <span className="with-info">{children} <InfoTooltip text={text} /></span>;
 }
@@ -338,6 +336,7 @@ export function LendingPressureBrowserPage({ ticker }: { ticker: string }) {
   const normalizedTicker = normalizeTicker(ticker);
   const [currentPayload, setCurrentPayload] = useState<unknown>(null);
   const [historyPayload, setHistoryPayload] = useState<unknown>(null);
+  const [aiReportPayload, setAiReportPayload] = useState<unknown>(null);
   const [manualInputs, setManualInputs] = useState<{ utilization: MarketPublicationRecord[]; availability: MarketPublicationRecord[]; margins: MarketPublicationRecord[] }>({ utilization: [], availability: [], margins: [] });
   const [apiRows, setApiRows] = useState<ApiDebugRow[]>([]);
   const [status, setStatus] = useState<'loading' | 'idle' | 'error'>('loading');
@@ -350,9 +349,10 @@ export function LendingPressureBrowserPage({ ticker }: { ticker: string }) {
     const utilizationEndpoint = `/manual-input/utilization?ticker=${encodeURIComponent(normalizedTicker)}`;
     const availabilityEndpoint = `/manual-input/manual-availability?ticker=${encodeURIComponent(normalizedTicker)}`;
     const marginsEndpoint = `/manual-input/margins?ticker=${encodeURIComponent(normalizedTicker)}`;
-    async function loadEndpoint(endpoint: string) {
+    const aiReportEndpoint = `/market-data/ai-report?ticker=${encodeURIComponent(normalizedTicker)}`;
+    async function loadEndpoint(endpoint: string, request: () => Promise<unknown> = () => authenticatedFetch(endpoint, { cache: 'no-store' })) {
       try {
-        const payload = await authenticatedFetch(endpoint, { cache: 'no-store' });
+        const payload = await request();
         return {
           payload,
           debug: {
@@ -379,8 +379,8 @@ export function LendingPressureBrowserPage({ ticker }: { ticker: string }) {
       }
     }
 
-    Promise.all([loadEndpoint(currentEndpoint), loadEndpoint(historyEndpoint), loadEndpoint(utilizationEndpoint), loadEndpoint(availabilityEndpoint), loadEndpoint(marginsEndpoint)])
-      .then(([currentResult, historyResult, utilizationResult, availabilityResult, marginsResult]) => {
+    Promise.all([loadEndpoint(currentEndpoint), loadEndpoint(historyEndpoint), loadEndpoint(utilizationEndpoint), loadEndpoint(availabilityEndpoint), loadEndpoint(marginsEndpoint), loadEndpoint(aiReportEndpoint, () => fetchAiReport(normalizedTicker))])
+      .then(([currentResult, historyResult, utilizationResult, availabilityResult, marginsResult, aiReportResult]) => {
         if (cancelled) return;
         setCurrentPayload(currentResult.payload);
         setHistoryPayload(historyResult.payload);
@@ -389,7 +389,8 @@ export function LendingPressureBrowserPage({ ticker }: { ticker: string }) {
           availability: asArray<MarketPublicationRecord>(availabilityResult.payload),
           margins: asArray<MarketPublicationRecord>(marginsResult.payload),
         });
-        setApiRows([currentResult.debug, historyResult.debug, utilizationResult.debug, availabilityResult.debug, marginsResult.debug]);
+        setAiReportPayload(aiReportResult.payload);
+        setApiRows([currentResult.debug, historyResult.debug, utilizationResult.debug, availabilityResult.debug, marginsResult.debug, aiReportResult.debug]);
         if (!currentResult.payload && !historyResult.payload) {
           setStatus('error');
           setError('Unable to load lending pressure API data.');
@@ -458,14 +459,11 @@ export function LendingPressureBrowserPage({ ticker }: { ticker: string }) {
   const averageDurationDays = optionalNumeric(latestMarginRecord?.averageDurationDays);
   const previousAverageDurationDays = optionalNumeric(previousMarginRecord?.averageDurationDays);
   const averageDurationChangePercent = percentageChange(averageDurationDays, previousAverageDurationDays);
-  const aiSummary = 'AI analysis is not available from the current API.';
-  const scoreProgress = Math.min(100, Math.max(0, displayPressureScore));
-  const scoreRanges = [
-    { range: '0-30', level: 'Low', description: 'Borrow-market pressure is relatively contained.', active: displayPressureScore <= 30 },
-    { range: '31-60', level: 'Moderate', description: 'Conditions warrant monitoring but are not uniformly stressed.', active: displayPressureScore >= 31 && displayPressureScore <= 60 },
-    { range: '61-80', level: 'High', description: 'Tightening supply or cost may pressure short sellers.', active: displayPressureScore >= 61 && displayPressureScore <= 80 },
-    { range: '81-100', level: 'Extreme', description: 'Severe lending pressure warrants close review.', active: displayPressureScore >= 81 },
-  ];
+  const aiSummary = text(
+    record(aiReportPayload).lending_pressure_analysis,
+    'AI analysis is not available for the current consolidation date.',
+  );
+  const pressureLevels = ['Low', 'Moderate', 'High', 'Extreme'];
 
   return (
     <div className="page lending-pressure-page">
@@ -477,33 +475,34 @@ export function LendingPressureBrowserPage({ ticker }: { ticker: string }) {
             <p className="section-subtitle">Executive view of share availability, borrowing conditions, inventory utilization, and lending pressure.</p>
           </div>
           <div className="terminal-section-actions">
-            {sourceChip('Market Data API')}
-            {sourceChip('Manual Input V2 API')}
+            <ApiSourceTags sources={[
+              { endpoint: 'GET /market-data/current?category=market-current', label: 'Snapshot' },
+              { endpoint: 'GET /manual-input/utilization', label: 'Utilization' },
+              { endpoint: 'GET /manual-input/manual-availability', label: 'Broker availability' },
+              { endpoint: 'GET /manual-input/margins', label: 'Duration' },
+              { endpoint: 'GET /market-data/ai-report', label: 'AI analysis' },
+            ]} />
           </div>
         </div>
 
         <div className="short-executive-grid lending-executive-grid">
-          <article className={`terminal-card short-executive-card short-executive-score lending-executive-score ${displayLevel.toLowerCase()}`}>
-            <span>Lending Pressure Score</span>
-            <div className="lending-score-layout">
-              <div className="short-score-compact">
-                <div
-                  className="short-score-radial"
-                  style={{ background: `conic-gradient(var(--short-score-accent) ${scoreProgress}%, var(--short-score-track) ${scoreProgress}% 100%)` }}
-                >
-                  <div><strong>{displayPressureScore}</strong><small>/ 100</small></div>
-                </div>
-                <div className="short-score-compact__copy">
-                  <em>{displayLevel} Pressure</em>
-                  <p>{lendingScoreSummary(displayPressureScore, displayLevel)}</p>
+          <article className={`terminal-card short-executive-card short-executive-score lending-executive-score lending-risk-factor-card ${displayLevel.toLowerCase()}`}>
+            <span>Lending Pressure Risk Factor</span>
+            <div className="lending-risk-factor">
+              <div className="lending-risk-factor__status">
+                <i aria-hidden="true" />
+                <div>
+                  <small>Current Condition</small>
+                  <strong>{displayLevel} Pressure</strong>
                 </div>
               </div>
-              <div className="short-score-card-ranges" aria-label="Lending Pressure Score interpretation ranges">
-                {scoreRanges.map(row => (
-                  <div className={row.active ? 'active' : ''} key={row.range}>
-                    <strong>{row.range}</strong>
-                    <span><b>{row.level}</b>{row.description}</span>
-                  </div>
+              <p>{lendingScoreSummary(displayPressureScore, displayLevel)}</p>
+              <div className="lending-risk-spectrum" aria-label={`Current lending pressure: ${displayLevel}`}>
+                {pressureLevels.map(levelName => (
+                  <span className={levelName === displayLevel ? 'active' : ''} key={levelName}>
+                    <i aria-hidden="true" />
+                    {levelName}
+                  </span>
                 ))}
               </div>
             </div>
@@ -536,6 +535,13 @@ export function LendingPressureBrowserPage({ ticker }: { ticker: string }) {
             <h2>Lending Market Movement</h2>
             <p className="section-subtitle">Recent borrow availability, utilization, and borrow-fee trends.</p>
           </div>
+          <div className="terminal-section-actions">
+            <ApiSourceTags sources={[
+              { endpoint: 'GET /market-data/history?category=market-history', label: 'Borrow history' },
+              { endpoint: 'GET /manual-input/utilization', label: 'Utilization history' },
+              { endpoint: 'GET /manual-input/manual-availability', label: 'Availability history' },
+            ]} />
+          </div>
         </div>
         <div className="lending-trend-grid">
           <div className="terminal-card chart-card"><h3><InfoTitle text="Trend of shares available to borrow. Declining availability can indicate tightening borrow supply.">Shortable Shares Trend</InfoTitle></h3><TrendLine label="Available" labels={availabilityTrendRows.map(row => shortDateLabel(row.date))} values={availabilityTrendRows.map(row => optionalNumeric(record(row.availability).shortAvailabilityShares) as number)} /></div>
@@ -552,7 +558,14 @@ export function LendingPressureBrowserPage({ ticker }: { ticker: string }) {
             <p className="section-subtitle">This page reads lending pressure inputs from Market Data APIs only. No consolidated lending-pressure JSON fallback is used.</p>
           </div>
         </div>
-        <ImportDataTable columns={['endpoint', 'source', 'status', 'recordCount', 'generatedAt', 'payload']} rows={apiRows} pageSize={10} />
+        <ApiDevelopmentTabs sources={[
+          { id: 'market-current', title: 'Market Current', endpoint: 'GET /market-data/current?category=market-current', source: 'Market Data API', payload: currentPayload, status: apiRows[0]?.status },
+          { id: 'market-history', title: 'Market History', endpoint: 'GET /market-data/history?category=market-history', source: 'Market Data API', payload: historyPayload, status: apiRows[1]?.status },
+          { id: 'utilization', title: 'Utilization', endpoint: 'GET /manual-input/utilization', source: 'Manual Input V2 API', payload: manualInputs.utilization, status: apiRows[2]?.status },
+          { id: 'availability', title: 'Broker Availability', endpoint: 'GET /manual-input/manual-availability', source: 'Manual Input V2 API', payload: manualInputs.availability, status: apiRows[3]?.status },
+          { id: 'margins', title: 'Broker Margins', endpoint: 'GET /manual-input/margins', source: 'Manual Input V2 API', payload: manualInputs.margins, status: apiRows[4]?.status },
+          { id: 'ai-report', title: 'AI Report', endpoint: 'GET /market-data/ai-report', source: 'Market Data API', payload: aiReportPayload, status: apiRows[5]?.status },
+        ]} />
       </section>
     </div>
   );
