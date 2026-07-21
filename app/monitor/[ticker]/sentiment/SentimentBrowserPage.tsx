@@ -20,7 +20,7 @@ import {
 import { normalizeTicker } from '@/lib/ticker-data';
 import { formatPortalDateTime } from '@/lib/timezone';
 import { useSearchParams } from 'next/navigation';
-import { useEffect, useState, type ReactNode } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { MentionFeedCards, type MentionFeedRow } from './MentionFeedCards';
 import { NarrativeRangeSelector } from './NarrativeRangeSelector';
 import { sentimentPlatformColors, SentimentTimeline } from './SentimentTimeline';
@@ -399,19 +399,29 @@ export function SentimentBrowserPage({ ticker }: { ticker: string }) {
     timelineMentions: AdanosMention[];
   } | null>(null);
   const [loadError, setLoadError] = useState('');
+  const [isLoadingFeeds, setIsLoadingFeeds] = useState(false);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const selectedPlatformRef = useRef<SentimentPlatformFilter>('All');
+  const feedRequestId = useRef(0);
 
   useEffect(() => {
     let cancelled = false;
     const load = async () => {
+      const requestId = ++feedRequestId.current;
+      const platform = selectedPlatformRef.current;
       try {
         setLoadError('');
         const [social, current, sentimentEvents] = await Promise.all([
-          getSocialDataPage({ ticker: normalizedTicker, page: 1, limit: 10 }),
+          getSocialDataPage({
+            ticker: normalizedTicker,
+            platform: platform === 'All' ? undefined : platform,
+            page: 1,
+            limit: 10,
+          }),
           getSentimentCurrent(normalizedTicker).catch(() => null),
           getSentimentEvents(normalizedTicker).catch(() => null),
         ]);
-        if (!cancelled) {
+        if (!cancelled && requestId === feedRequestId.current) {
           setApiData({
             mentions: social.records,
             socialPages: [social.raw],
@@ -422,7 +432,7 @@ export function SentimentBrowserPage({ ticker }: { ticker: string }) {
           });
         }
       } catch (error) {
-        if (!cancelled) {
+        if (!cancelled && requestId === feedRequestId.current) {
           setLoadError(error instanceof Error ? error.message : 'Unable to load social sentiment data.');
           setApiData({
             mentions: [],
@@ -451,14 +461,18 @@ export function SentimentBrowserPage({ ticker }: { ticker: string }) {
   }, [normalizedTicker]);
 
   const loadMoreFeeds = async () => {
-    if (!apiData?.socialPagination.hasNextPage || isLoadingMore) return;
+    if (!apiData?.socialPagination.hasNextPage || isLoadingMore || isLoadingFeeds) return;
+    const requestId = ++feedRequestId.current;
+    const platform = selectedPlatformRef.current;
     setIsLoadingMore(true);
     try {
       const nextPage = await getSocialDataPage({
         ticker: normalizedTicker,
+        platform: platform === 'All' ? undefined : platform,
         page: apiData.socialPagination.page + 1,
         limit: 10,
       });
+      if (requestId !== feedRequestId.current || platform !== selectedPlatformRef.current) return;
       setApiData(current => current ? {
         ...current,
         mentions: [...current.mentions, ...nextPage.records],
@@ -466,9 +480,42 @@ export function SentimentBrowserPage({ ticker }: { ticker: string }) {
         socialPagination: nextPage.pagination,
       } : current);
     } catch (error) {
-      setLoadError(error instanceof Error ? error.message : 'Unable to load more social feeds.');
+      if (requestId === feedRequestId.current) {
+        setLoadError(error instanceof Error ? error.message : 'Unable to load more social feeds.');
+      }
     } finally {
-      setIsLoadingMore(false);
+      if (requestId === feedRequestId.current) setIsLoadingMore(false);
+    }
+  };
+
+  const selectPlatformFeeds = async (platform: SentimentPlatformFilter) => {
+    setSelectedPlatform(platform);
+    selectedPlatformRef.current = platform;
+    setSelectedBucketId(null);
+    setLoadError('');
+    setIsLoadingMore(false);
+    const requestId = ++feedRequestId.current;
+    setIsLoadingFeeds(true);
+    try {
+      const social = await getSocialDataPage({
+        ticker: normalizedTicker,
+        platform: platform === 'All' ? undefined : platform,
+        page: 1,
+        limit: 10,
+      });
+      if (requestId !== feedRequestId.current || platform !== selectedPlatformRef.current) return;
+      setApiData(current => current ? {
+        ...current,
+        mentions: social.records,
+        socialPages: [social.raw],
+        socialPagination: social.pagination,
+      } : current);
+    } catch (error) {
+      if (requestId === feedRequestId.current) {
+        setLoadError(error instanceof Error ? error.message : `Unable to load ${platformDisplayLabel(platform)} feeds.`);
+      }
+    } finally {
+      if (requestId === feedRequestId.current) setIsLoadingFeeds(false);
     }
   };
 
@@ -635,10 +682,7 @@ export function SentimentBrowserPage({ ticker }: { ticker: string }) {
                 key={platform}
                 type="button"
                 className={selectedPlatform === platform ? 'active' : ''}
-                onClick={() => {
-                  setSelectedPlatform(platform);
-                  setSelectedBucketId(null);
-                }}
+                onClick={() => void selectPlatformFeeds(platform)}
               >
                 {platformDisplayLabel(platform)} ({platformCounts[platform].toLocaleString('en-US')})
               </button>
@@ -665,8 +709,8 @@ export function SentimentBrowserPage({ ticker }: { ticker: string }) {
           <MentionFeedCards
             rows={filteredRows}
             hidePlatformFilter
-            emptyMessage="No social feeds captured for this platform and time window."
-            hasMore={apiData.socialPagination.hasNextPage}
+            emptyMessage={isLoadingFeeds ? 'Loading social feeds...' : 'No social feeds captured for this platform and time window.'}
+            hasMore={!isLoadingFeeds && apiData.socialPagination.hasNextPage}
             isLoadingMore={isLoadingMore}
             onLoadMore={loadMoreFeeds}
           />
