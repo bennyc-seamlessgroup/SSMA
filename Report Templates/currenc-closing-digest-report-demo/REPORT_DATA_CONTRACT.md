@@ -17,8 +17,7 @@ Lean V1 renders only fields supported by currently implemented APIs. Missing sec
   "status": "Moderate Lending Pressure",
   "legalDisclaimers": {},
   "snapshotKpis": [],
-  "riskSignals": [],
-  "dataAsOf": [],
+  "shortInterestScore": {},
   "shortLending": {},
   "sentiment": {},
   "secFilings": []
@@ -29,13 +28,14 @@ Lean V1 renders only fields supported by currently implemented APIs. Missing sec
 
 `snapshotKpis` supports these currently available values:
 
-1. Short Interest
-2. SI / Float
-3. Borrow Fee
-4. Shortable Shares
-5. Utilization
-6. Days to Cover
-7. Short Score
+1. Short Interest %
+2. Borrow Fee
+3. Initial Margin
+4. Maintenance Margin
+5. Shortable Shares
+6. Utilization
+7. Average Duration
+8. Days to Cover
 
 Each item is already formatted by the backend:
 
@@ -43,36 +43,33 @@ Each item is already formatted by the backend:
 {
   "label": "Borrow Fee",
   "value": "29.15%",
-  "delta": "Daily borrow cost",
-  "tone": "warning"
+  "changeValue": "-2.05 pts",
+  "changePercent": "-6.57%",
+  "tone": "positive"
 }
 ```
 
-Supported tones are `positive`, `negative`, `warning`, or an empty string.
+Both changes compare with the immediately preceding trading-day record. Supported tones are `positive`, `negative`, `warning`, or an empty string.
 
-## Risk Signals
+## Short Interest Score and AI Analysis
 
-`riskSignals` contains backend-provided classifications without frontend scoring:
+The score is the same consolidated `shortScore` displayed on the Short Interest page. The AI text must come from `GET /market-data/ai-report?ticker={ticker}` field `short_interest_current_interpretation`:
 
 ```json
 {
-  "label": "Utilization risk",
-  "value": "Moderate",
-  "tone": "warning"
+  "score": 78,
+  "scoreDisplay": "78",
+  "level": "High",
+  "tone": "high",
+  "changeDisplay": "+2 (+2.63%)",
+  "deltaTone": "negative",
+  "summary": "Elevated short-side pressure may increase squeeze sensitivity.",
+  "ranges": [],
+  "aiAnalysis": "**Current Interpretation**\n\nDaily AI interpretation text."
 }
 ```
 
-Expected signals are short-interest risk, borrow-fee risk, availability risk, utilization risk, and lending-pressure risk.
-
-## Data Timestamps
-
-`dataAsOf` gives human-readable timing for the data shown in the report:
-
-```json
-{ "label": "Short interest", "value": "21 Jul 2026" }
-```
-
-Do not expose vendor names, internal object paths, or API implementation details.
+Use the same score ranges as the portal: `0-39 Low`, `40-64 Moderate`, `65-79 High`, and `80-100 Extreme`. Do not generate or split the AI text in the frontend.
 
 ## Short and Lending
 
@@ -109,15 +106,23 @@ Each chart uses aligned date and value arrays:
 - Use `null` for missing observations.
 - Do not convert missing values to zero.
 - `dates[index]` and `values[index]` must represent the same observation.
-- Maximum rendered history is the latest 60 valid observations.
+- Every chart must contain only the latest seven valid daily observations.
 
 ## Sentiment
 
 ```json
 {
   "sentiment": {
+    "window": "1D",
     "mentions": 104,
     "mentionsDisplay": "104",
+    "overall": {
+      "score": 64,
+      "scoreDisplay": "64",
+      "label": "Bullish",
+      "changeDisplay": "+5",
+      "deltaTone": "positive"
+    },
     "distribution": {
       "scoreDisplay": "64",
       "label": "Bullish",
@@ -138,7 +143,7 @@ Each chart uses aligned date and value arrays:
 }
 ```
 
-Percentages should total approximately 100 after rounding. Platform mentions should reconcile to total mentions.
+All sentiment fields must be filtered to the report's latest 24-hour window. Percentages should total approximately 100 after rounding. Platform mentions should reconcile to total mentions.
 
 ## SEC Filings
 
@@ -160,7 +165,7 @@ Return filings newest first. The renderer shows at most five records.
 - Material-event monitor
 - Rule-generated alerts and next-session watchlists
 - Scheduled-event forecasts
-- AI executive, market, narrative, catalyst, and management sections
+- AI sections other than the implemented Short Interest `short_interest_current_interpretation`
 - Routine ownership breakdowns and internal-float details
 
 These remain available in the archived comprehensive v2 specification for possible future restoration.

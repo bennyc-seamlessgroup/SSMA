@@ -6,6 +6,7 @@ import { usePortalTimeZone } from '@/components/usePortalTimeZone';
 import { formatPortalDate } from '@/lib/timezone';
 import type { ReportArchiveRecord } from '@/lib/report-archive';
 import { generateClientReportPdf, reportFileName } from './client-report-pdf';
+import { buildDailyReportData } from './daily-report-data';
 
 const reportWindows = [
   { type: '8AM', step: 1, time: '8:00 AM', title: 'Pre-Market Brief', shortTitle: 'Pre-Market', icon: 'sunrise' },
@@ -168,7 +169,8 @@ export function ReportArchiveCenter({
     setGeneratingReportId(report.id);
     setGenerationError('');
     try {
-      const blob = await generateClientReportPdf(report);
+      const reportData = await buildDailyReportData(report);
+      const blob = await generateClientReportPdf(report, reportData);
       const objectUrl = URL.createObjectURL(blob);
       if (download) {
         const link = document.createElement('a');

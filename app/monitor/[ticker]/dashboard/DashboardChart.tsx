@@ -160,13 +160,30 @@ function dataCountForPeriod(period: PeriodKey, allData: DataPoint[]) {
   if (period === '5D') return 6;
   if (period === '1M') return 30;
   if (period === '3M') return 90;
-  if (period === 'YTD') {
-    const latest = allData[allData.length - 1];
-    if (!latest) return allData.length;
-    const year = latest.date.slice(0, 4);
-    return allData.filter(point => point.date.slice(0, 4) === year).length || allData.length;
-  }
   return allData.length;
+}
+
+function dateMs(value: string) {
+  return new Date(`${value}T00:00:00Z`).getTime();
+}
+
+function dataForPeriod(period: PeriodKey, allData: DataPoint[]) {
+  const latest = allData[allData.length - 1];
+  if (!latest) return [];
+
+  if (period === '1Y') {
+    const start = new Date(`${latest.date}T00:00:00Z`);
+    start.setUTCFullYear(start.getUTCFullYear() - 1);
+    const startMs = start.getTime();
+    return allData.filter(point => dateMs(point.date) >= startMs);
+  }
+
+  if (period === 'YTD') {
+    const startMs = Date.UTC(Number(latest.date.slice(0, 4)), 0, 1);
+    return allData.filter(point => dateMs(point.date) >= startMs);
+  }
+
+  return allData.slice(-dataCountForPeriod(period, allData));
 }
 
 function numericOrNull(value: unknown) {
@@ -264,8 +281,7 @@ export function DashboardChart({
     return fillMissingPrice(clean);
   }, [sourceData]);
   const data = useMemo(() => {
-    const count = dataCountForPeriod(period, allData);
-    return allData.slice(-count);
+    return dataForPeriod(period, allData);
   }, [allData, period]);
   const visibleEvents = useMemo(() => {
     const firstDate = data[0]?.date;
@@ -313,22 +329,11 @@ export function DashboardChart({
     const bottomPanelTop = 366;
     const bottomPanelBottom = 488;
     const plotWidth = width - left - right;
-    const xFor = (index: number) => left + (data.length === 1 ? 0 : (index / (data.length - 1)) * plotWidth);
-    const indexForDate = (date: string) => {
-      const exact = data.findIndex(point => point.date === date);
-      if (exact >= 0) return exact;
-      const target = new Date(`${date}T00:00:00Z`).getTime();
-      let nearest = 0;
-      let nearestDistance = Number.POSITIVE_INFINITY;
-      data.forEach((point, index) => {
-        const distance = Math.abs(new Date(`${point.date}T00:00:00Z`).getTime() - target);
-        if (distance < nearestDistance) {
-          nearest = index;
-          nearestDistance = distance;
-        }
-      });
-      return nearest;
-    };
+    const firstTime = dateMs(data[0]?.date ?? '');
+    const lastTime = dateMs(data[data.length - 1]?.date ?? '');
+    const timeSpan = Math.max(1, lastTime - firstTime);
+    const xForTime = (timestamp: number) => left + ((timestamp - firstTime) / timeSpan) * plotWidth;
+    const xFor = (index: number) => xForTime(dateMs(data[index]?.date ?? ''));
     const domains = Object.fromEntries(availableMetrics.map(key => {
       const values = data.map(point => point[key]).filter((value): value is number => value !== null);
       return [key, domainFor(values.length ? values : [0])];
@@ -349,38 +354,40 @@ export function DashboardChart({
       return [key, { path: pathFor(visiblePoints), points }];
     })) as Partial<Record<SeriesKey, { path: string; points: Array<{ x: number; y: number } | null> }>>;
 
-    const rawXTicks = data
-      .map((point, index) => ({ point, index }))
-      .filter(({ point, index }) => {
-        if (index === 0 || index === data.length - 1) return true;
-        if (period === '1D' || period === '5D') return true;
-        if (period === '1M') return index % 7 === 0;
-        if (period === '3M') return index % 14 === 0;
-        return point.date.slice(5, 7) !== data[index - 1]?.date.slice(5, 7);
-      })
-      .map(({ point, index }, tickIndex) => ({
-        x: xFor(index),
-        label: period === '1Y' || period === 'YTD'
-          ? formatMonth(point.date)
-          : point.date.slice(5),
-      }));
-    const xTicks = rawXTicks
-      .filter((tick, index, ticks) => {
-        const next = ticks[index + 1];
-        const isPenultimate = index === ticks.length - 2;
-        return !(isPenultimate && next && next.x - tick.x < 72);
-      })
-      .map((tick, index, ticks) => {
-        const next = ticks[index + 1];
-        const nextAfter = ticks[index + 2];
-        const monthSpacing = next && nextAfter ? nextAfter.x - next.x : 72;
-        const shouldRepositionFirst = (period === '1Y' || period === 'YTD') && index === 0 && next && next.x - tick.x < monthSpacing * 0.8;
-        return {
-          ...tick,
-          x: shouldRepositionFirst ? Math.max(12, next.x - monthSpacing) : tick.x,
-          textAnchor: (index === ticks.length - 1 ? 'end' : 'middle') as 'start' | 'middle' | 'end',
-        };
-      });
+    const isMonthlyPeriod = period === '1Y' || period === 'YTD';
+    const monthlyTicks = (() => {
+      if (!isMonthlyPeriod || !data.length) return [];
+      const firstDate = new Date(firstTime);
+      const lastDate = new Date(lastTime);
+      const cursor = new Date(Date.UTC(
+        firstDate.getUTCFullYear(),
+        firstDate.getUTCMonth() + (firstDate.getUTCDate() > 1 ? 1 : 0),
+        1,
+      ));
+      const lastMonth = Date.UTC(lastDate.getUTCFullYear(), lastDate.getUTCMonth(), 1);
+      const ticks: Array<{ x: number; label: string }> = [];
+      while (cursor.getTime() <= lastMonth) {
+        const key = cursor.toISOString().slice(0, 10);
+        ticks.push({ x: xForTime(cursor.getTime()), label: formatMonth(key) });
+        cursor.setUTCMonth(cursor.getUTCMonth() + 1);
+      }
+      return ticks;
+    })();
+    const rawXTicks = isMonthlyPeriod
+      ? monthlyTicks
+      : data
+        .map((point, index) => ({ point, index }))
+        .filter(({ index }) => {
+          if (index === 0 || index === data.length - 1) return true;
+          if (period === '1D' || period === '5D') return true;
+          if (period === '1M') return index % 7 === 0;
+          return index % 14 === 0;
+        })
+        .map(({ point, index }) => ({ x: xFor(index), label: point.date.slice(5) }));
+    const xTicks = rawXTicks.map((tick, index, ticks) => ({
+      ...tick,
+      textAnchor: (index === 0 ? 'start' : index === ticks.length - 1 ? 'end' : 'middle') as 'start' | 'middle' | 'end',
+    }));
 
     return {
       width,
@@ -398,7 +405,7 @@ export function DashboardChart({
       xTicks,
       eventMarkers: visibleEventGroups.map((eventGroup, eventIndex) => {
         const sameDateIndex = visibleEventGroups.slice(0, eventIndex).filter(item => item.date === eventGroup.date).length;
-        const x = xFor(indexForDate(eventGroup.date));
+        const x = xForTime(dateMs(eventGroup.date));
         const y = topPanelBottom + 18 + (sameDateIndex % 3) * 16;
         return {
           eventGroup: { ...eventGroup, x, y },
@@ -424,8 +431,16 @@ export function DashboardChart({
   const setHoverPosition = (event: MouseEvent<SVGSVGElement>) => {
     const rect = event.currentTarget.getBoundingClientRect();
     const x = ((event.clientX - rect.left) / rect.width) * chart.width;
-    const rawIndex = Math.round(((x - chart.left) / chart.plotWidth) * (data.length - 1));
-    setHoverIndex(Math.max(0, Math.min(data.length - 1, rawIndex)));
+    const closestIndex = data.reduce((closest, point, index) => {
+      const pointTime = dateMs(point.date);
+      const firstTime = dateMs(data[0]?.date ?? '');
+      const lastTime = dateMs(data[data.length - 1]?.date ?? '');
+      const pointX = chart.left + ((pointTime - firstTime) / Math.max(1, lastTime - firstTime)) * chart.plotWidth;
+      const closestTime = dateMs(data[closest]?.date ?? '');
+      const closestX = chart.left + ((closestTime - firstTime) / Math.max(1, lastTime - firstTime)) * chart.plotWidth;
+      return Math.abs(pointX - x) < Math.abs(closestX - x) ? index : closest;
+    }, 0);
+    setHoverIndex(closestIndex);
   };
 
   const clearHover = () => {

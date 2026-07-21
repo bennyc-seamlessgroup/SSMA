@@ -229,8 +229,15 @@ export async function getSocialImportProgress({ jobId, ticker }: { jobId?: strin
 
 export function recordsFromSentimentEvents(payload: unknown): SocialMention[] {
   const root = record(payload);
-  const row = Object.keys(record(root.data)).length ? record(root.data) : root;
-  const records = Array.isArray(row.records) ? row.records : [];
+  const data = root.data;
+  const dataRecord = record(data);
+  const records = Array.isArray(data)
+    ? data
+    : Array.isArray(dataRecord.records)
+      ? dataRecord.records
+      : Array.isArray(root.records)
+        ? root.records
+        : [];
   return records.map(normalizeSocialMention);
 }
 

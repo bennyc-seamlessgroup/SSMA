@@ -10,28 +10,32 @@
     "footer": "For informational purposes only. Not investment advice. Market data may be delayed or incomplete."
   },
   "snapshotKpis": [
-    { "label": "Short Interest", "value": "906.5K", "delta": "Latest reported shares" },
-    { "label": "SI / Float", "value": "8.58%", "delta": "Latest reported ratio" },
-    { "label": "Borrow Fee", "value": "29.15%", "delta": "Daily borrow cost", "tone": "warning" },
-    { "label": "Shortable Shares", "value": "2.5M", "delta": "Available inventory" },
-    { "label": "Utilization", "value": "85.50%", "delta": "Lending pool usage", "tone": "warning" },
-    { "label": "Days to Cover", "value": "2.84d", "delta": "Current covering ratio" },
-    { "label": "Short Score", "value": "78 / 100", "delta": "High short pressure", "tone": "negative" }
+    { "label": "Short Interest %", "value": "8.58%", "changeValue": "+0.16 pts", "changePercent": "+1.90%", "tone": "negative" },
+    { "label": "Borrow Fee", "value": "29.15%", "changeValue": "-2.05 pts", "changePercent": "-6.57%", "tone": "positive" },
+    { "label": "Initial Margin", "value": "150.00%", "changeValue": "0.00 pts", "changePercent": "0.00%" },
+    { "label": "Maintenance Margin", "value": "140.00%", "changeValue": "0.00 pts", "changePercent": "0.00%" },
+    { "label": "Shortable Shares", "value": "2.50M", "changeValue": "+8,000 shares", "changePercent": "+0.32%", "tone": "positive" },
+    { "label": "Utilization", "value": "85.50%", "changeValue": "+9.01 pts", "changePercent": "+11.78%", "tone": "negative" },
+    { "label": "Average Duration", "value": "169.9d", "changeValue": "+2.4d", "changePercent": "+1.43%", "tone": "negative" },
+    { "label": "Days to Cover", "value": "2.84d", "changeValue": "-1.97d", "changePercent": "-40.96%", "tone": "positive" }
   ],
-  "riskSignals": [
-    { "label": "Short interest risk", "value": "High", "tone": "negative" },
-    { "label": "Borrow fee risk", "value": "Moderate", "tone": "warning" },
-    { "label": "Availability risk", "value": "Moderate", "tone": "warning" },
-    { "label": "Utilization risk", "value": "Moderate", "tone": "warning" },
-    { "label": "Lending pressure", "value": "Moderate", "tone": "warning" }
-  ],
-  "dataAsOf": [
-    { "label": "Short interest", "value": "12 Jun 2026" },
-    { "label": "Borrow and availability", "value": "12 Jun 2026" },
-    { "label": "Utilization and duration", "value": "12 Jun 2026" },
-    { "label": "Social sentiment", "value": "Latest 24-hour window" },
-    { "label": "SEC filings", "value": "Latest available records" }
-  ],
+  "shortInterestScore": {
+    "score": 78,
+    "scoreDisplay": "78",
+    "level": "High",
+    "tone": "high",
+    "color": "#cf3e4f",
+    "changeDisplay": "+2 (+2.63%)",
+    "deltaTone": "negative",
+    "summary": "Elevated short-side pressure may increase squeeze sensitivity. Management should monitor borrow conditions, available inventory, and covering activity closely.",
+    "ranges": [
+      { "range": "0-39", "level": "Low", "description": "Pressure is relatively contained.", "active": false },
+      { "range": "40-64", "level": "Moderate", "description": "Pressure is developing.", "active": false },
+      { "range": "65-79", "level": "High", "description": "Elevated squeeze sensitivity.", "active": true },
+      { "range": "80-100", "level": "Extreme", "description": "Severe pressure warrants review.", "active": false }
+    ],
+    "aiAnalysis": "**Current Interpretation**\n\nShort interest remains elevated while lending utilization and borrow costs indicate continued pressure on short sellers. The latest daily movement should be assessed alongside shortable inventory and days-to-cover conditions before drawing conclusions."
+  },
   "shortLending": {
     "posture": "Moderate Lending Pressure",
     "borrowFeeChart": {
@@ -41,8 +45,8 @@
       "color": "#cf3e4f",
       "unit": "percent",
       "minValid": 0,
-      "dates": ["2026-05-15", "2026-05-18", "2026-05-19", "2026-05-20", "2026-05-21", "2026-05-22", "2026-05-25", "2026-05-26", "2026-05-27", "2026-05-28", "2026-05-29", "2026-06-01", "2026-06-02", "2026-06-03", "2026-06-04", "2026-06-05", "2026-06-08", "2026-06-09", "2026-06-10", "2026-06-11", "2026-06-12"],
-      "values": [31.07, 30.97, 31.04, 31.02, 31.31, 31.26, 31.22, 31.21, 31.23, 31.1, 31.13, 31.14, 31.16, 31.38, 31.36, 31.31, 31.33, 31.24, 31.4, 31.2, 29.153],
+      "dates": ["2026-06-04", "2026-06-05", "2026-06-08", "2026-06-09", "2026-06-10", "2026-06-11", "2026-06-12"],
+      "values": [31.36, 31.31, 31.33, 31.24, 31.4, 31.2, 29.153],
       "latestDisplay": "29.15%"
     },
     "shortableSharesChart": {
@@ -52,8 +56,8 @@
       "color": "#e19713",
       "unit": "shares",
       "minValid": 0,
-      "dates": ["2026-05-15", "2026-05-18", "2026-05-19", "2026-05-20", "2026-05-21", "2026-05-22", "2026-05-25", "2026-05-26", "2026-05-27", "2026-05-28", "2026-05-29", "2026-06-01", "2026-06-02", "2026-06-03", "2026-06-04", "2026-06-05", "2026-06-08", "2026-06-09", "2026-06-10", "2026-06-11", "2026-06-12"],
-      "values": [2447700, 2548423, 3157778, 2561824, 2368937, 2429420, 2468908, 2439567, 2466930, 2604947, 2518253, 2552741, 2522799, 2393008, 2431493, 2433471, 2484134, 2448317, 2450377, 2491973, 2500000],
+      "dates": ["2026-06-04", "2026-06-05", "2026-06-08", "2026-06-09", "2026-06-10", "2026-06-11", "2026-06-12"],
+      "values": [2431493, 2433471, 2484134, 2448317, 2450377, 2491973, 2500000],
       "latestDisplay": "2.5M"
     },
     "utilizationChart": {
@@ -64,8 +68,8 @@
       "unit": "percent",
       "minValid": 0,
       "maxValid": 100,
-      "dates": ["2026-05-15", "2026-05-18", "2026-05-19", "2026-05-20", "2026-05-21", "2026-05-22", "2026-05-25", "2026-05-26", "2026-05-27", "2026-05-28", "2026-05-29", "2026-06-01", "2026-06-02", "2026-06-03", "2026-06-04", "2026-06-05", "2026-06-08", "2026-06-09", "2026-06-10", "2026-06-11", "2026-06-12"],
-      "values": [77.61, 86.35, 129.75, 83.18, 67.25, 72.94, 75.23, 72.43, 74.1, 83.43, 77.8, 80.54, 76.68, 67.59, 69.11, 72.21, 75.88, 73.56, 69.58, 76.49, 85.5],
+      "dates": ["2026-06-04", "2026-06-05", "2026-06-08", "2026-06-09", "2026-06-10", "2026-06-11", "2026-06-12"],
+      "values": [69.11, 72.21, 75.88, 73.56, 69.58, 76.49, 85.5],
       "latestDisplay": "85.50%"
     },
     "daysToCoverChart": {
@@ -75,30 +79,33 @@
       "color": "#6757d8",
       "unit": "days",
       "minValid": 0,
-      "dates": ["2026-05-15", "2026-05-18", "2026-05-19", "2026-05-20", "2026-05-21", "2026-05-22", "2026-05-25", "2026-05-26", "2026-05-27", "2026-05-28", "2026-05-29", "2026-06-01", "2026-06-02", "2026-06-03", "2026-06-04", "2026-06-05", "2026-06-08", "2026-06-09", "2026-06-10", "2026-06-11", "2026-06-12"],
-      "values": [4.967, 4.7721, 4.8033, 4.8598, 4.8715, 4.8501, 4.9095, 4.9076, 5.1896, 5.2027, 5.2366, 5.2817, 5.3345, 5.3431, 5.2979, 5.2148, 5.1638, 4.808, 4.8383, 4.8079, 2.84],
+      "dates": ["2026-06-04", "2026-06-05", "2026-06-08", "2026-06-09", "2026-06-10", "2026-06-11", "2026-06-12"],
+      "values": [5.2979, 5.2148, 5.1638, 4.808, 4.8383, 4.8079, 2.84],
       "latestDisplay": "2.84d"
-    },
-    "signalGuide": [
-      { "label": "Borrow Fee", "value": "29.15%", "description": "The current cost to borrow shares for short selling." },
-      { "label": "Utilization", "value": "85.50%", "description": "The proportion of available lending supply currently in use." },
-      { "label": "Days to Cover", "value": "2.84d", "description": "Estimated sessions required to cover reported short interest at typical volume." }
-    ]
+    }
   },
   "sentiment": {
-    "mentions": 104,
-    "mentionsDisplay": "104",
-    "distribution": {
-      "scoreDisplay": "64",
+    "window": "1D",
+    "mentions": 12,
+    "mentionsDisplay": "12",
+    "overall": {
+      "score": 67,
+      "scoreDisplay": "67",
       "label": "Bullish",
-      "bullishPercent": 33,
-      "neutralPercent": 62,
-      "bearishPercent": 5
+      "changeDisplay": "+5",
+      "deltaTone": "positive"
+    },
+    "distribution": {
+      "scoreDisplay": "12",
+      "label": "Mentions",
+      "bullishPercent": 42,
+      "neutralPercent": 50,
+      "bearishPercent": 8
     },
     "platforms": [
-      { "name": "X", "mentions": 48, "mentionsDisplay": "48", "sharePercent": 46.2, "sentimentLabel": "Bullish" },
-      { "name": "Stocktwits", "mentions": 36, "mentionsDisplay": "36", "sharePercent": 34.6, "sentimentLabel": "Neutral" },
-      { "name": "Reddit", "mentions": 20, "mentionsDisplay": "20", "sharePercent": 19.2, "sentimentLabel": "Neutral" }
+      { "name": "X", "mentions": 6, "mentionsDisplay": "6", "sharePercent": 50, "sentimentLabel": "Bullish" },
+      { "name": "Stocktwits", "mentions": 4, "mentionsDisplay": "4", "sharePercent": 33.3, "sentimentLabel": "Neutral" },
+      { "name": "Reddit", "mentions": 2, "mentionsDisplay": "2", "sharePercent": 16.7, "sentimentLabel": "Neutral" }
     ]
   },
   "secFilings": [

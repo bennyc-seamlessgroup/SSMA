@@ -2,6 +2,8 @@
 
 This folder contains the active browser-rendered daily-close report. Lean V1 deliberately uses only information currently available through implemented portal APIs.
 
+When a signed-in user opens or downloads a report, the portal composes a fresh payload from the authenticated market, sentiment, SEC filing, and AI-report APIs. `report-data.json` remains a standalone sample and backend contract fixture; it is not used as live portal fallback data.
+
 ## Active Files
 
 ```text
@@ -23,9 +25,9 @@ REPORT_DATA_CONTRACT.md
 ## Report Structure
 
 1. Cover
-2. Key closing signals and current risk classifications
-3. Short and lending trends
-4. Social sentiment and latest SEC filings
+2. Eight daily closing KPIs, Short Interest Score, and AI Analysis
+3. Seven-day short and lending trends
+4. One-day social sentiment overview and latest SEC filings
 
 The active report excludes market context, readiness scoring, material-event interpretation, next-session forecasts, rule-generated watchlists, and AI sections until reliable report fields are available.
 
@@ -53,13 +55,15 @@ output/pdf/currenc-daily-market-close-report-lean-v1.pdf
 
 ## Backend Workflow
 
-1. Fetch the dated report snapshot from `GET /market-data/reports`.
-2. Add historical series from `GET /market-data/history` when the report snapshot does not already include them.
-3. Add social distribution and platform totals from the implemented social-data API.
-4. Add latest SEC filing records from the implemented manual-input API.
-5. Populate only verified values. Do not substitute zero for missing observations.
-6. Validate against `REPORT_DATA_CONTRACT.md`.
-7. Store or return the immutable dated payload.
-8. Let the browser renderer produce the PDF on demand.
+1. Fetch the dated market snapshot from `GET /market-data/current?category=market-current` and its prior daily record from `GET /market-data/history?category=market-history`.
+2. Calculate the eight KPI comparisons against the immediately preceding trading-day record.
+3. Read Short Interest Score from consolidated market data and AI Analysis from `GET /market-data/ai-report` using `short_interest_current_interpretation`.
+4. Build each report chart from the latest seven valid daily observations returned by `GET /market-data/history?category=market-history`.
+5. Add the one-day sentiment overview from `GET /market-data/current?category=sentiment-current` and `GET /social-data`.
+6. Add latest SEC filing records from `GET /manual-input/sec-filings`.
+7. Populate only verified values. Do not substitute zero for missing observations.
+8. Validate against `REPORT_DATA_CONTRACT.md`.
+9. Store or return the immutable dated payload.
+10. Let the browser renderer produce the PDF on demand.
 
 The long-term backend target remains one complete dated payload from `GET /market-data/reports?ticker={ticker}&date={YYYY-MM-DD}` so the frontend does not need to compose multiple APIs during PDF generation.

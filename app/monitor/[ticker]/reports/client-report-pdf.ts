@@ -30,14 +30,17 @@ function waitForReport(iframe: HTMLIFrameElement) {
   });
 }
 
-export async function generateClientReportPdf(report: ReportArchiveRecord) {
+export async function generateClientReportPdf(report: ReportArchiveRecord, reportData?: unknown) {
   const [{ default: html2canvas }, { jsPDF }] = await Promise.all([
     import('html2canvas'),
     import('jspdf'),
   ]);
 
+  const reportDataUrl = reportData === undefined
+    ? report.dataUrl
+    : URL.createObjectURL(new Blob([JSON.stringify(reportData)], { type: 'application/json' }));
   const params = new URLSearchParams({
-    data: report.dataUrl,
+    data: reportDataUrl,
     ticker: report.ticker,
     reportDate: report.reportDate,
     generatedAt: report.generatedAt,
@@ -85,6 +88,7 @@ export async function generateClientReportPdf(report: ReportArchiveRecord) {
     return pdf.output('blob');
   } finally {
     iframe.remove();
+    if (reportData !== undefined) URL.revokeObjectURL(reportDataUrl);
   }
 }
 

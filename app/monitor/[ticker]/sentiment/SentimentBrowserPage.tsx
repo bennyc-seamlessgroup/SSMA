@@ -9,7 +9,9 @@ import { aggregateSentimentByBucket, getSentimentBuckets, type AggregatedSentime
 import {
   getSocialDataPage,
   getSentimentCurrent,
+  getSentimentEvents,
   normalizeSocialPlatform,
+  recordsFromSentimentEvents,
   sentimentPeriod,
   type SentimentCurrentPayload,
   type SocialDataPagination,
@@ -354,11 +356,13 @@ function DevApiTables({
   mentions,
   socialPages,
   current,
+  events,
   timeZone,
 }: {
   mentions: AdanosMention[];
   socialPages: unknown[];
   current: SentimentCurrentPayload | null;
+  events: unknown;
   timeZone: string;
 }) {
   const mentionRows = mentions.map(row => ({ ...row, timestamp: formatMentionDate(row.timestamp, timeZone) }));
@@ -373,6 +377,7 @@ function DevApiTables({
       <ApiDevelopmentTabs sources={[
         { id: 'social-data', title: 'Social Records', endpoint: 'GET /social-data', source: `${socialPages.length} API page(s)`, payload: mentionRows },
         { id: 'sentiment-current', title: 'Sentiment Current', endpoint: 'GET /market-data/current?category=sentiment-current', source: 'Market Data API', payload: current },
+        { id: 'sentiment-events', title: 'Sentiment Timeline', endpoint: 'GET /market-data/history?category=sentiment-events', source: 'Market Data API', payload: events },
       ]} />
     </section>
   );
@@ -390,6 +395,8 @@ export function SentimentBrowserPage({ ticker }: { ticker: string }) {
     socialPages: unknown[];
     socialPagination: SocialDataPagination;
     current: SentimentCurrentPayload | null;
+    sentimentEvents: unknown;
+    timelineMentions: AdanosMention[];
   } | null>(null);
   const [loadError, setLoadError] = useState('');
   const [isLoadingMore, setIsLoadingMore] = useState(false);
@@ -399,9 +406,10 @@ export function SentimentBrowserPage({ ticker }: { ticker: string }) {
     const load = async () => {
       try {
         setLoadError('');
-        const [social, current] = await Promise.all([
+        const [social, current, sentimentEvents] = await Promise.all([
           getSocialDataPage({ ticker: normalizedTicker, page: 1, limit: 10 }),
           getSentimentCurrent(normalizedTicker).catch(() => null),
+          getSentimentEvents(normalizedTicker).catch(() => null),
         ]);
         if (!cancelled) {
           setApiData({
@@ -409,6 +417,8 @@ export function SentimentBrowserPage({ ticker }: { ticker: string }) {
             socialPages: [social.raw],
             socialPagination: social.pagination,
             current,
+            sentimentEvents,
+            timelineMentions: recordsFromSentimentEvents(sentimentEvents),
           });
         }
       } catch (error) {
@@ -426,6 +436,8 @@ export function SentimentBrowserPage({ ticker }: { ticker: string }) {
               hasPreviousPage: false,
             },
             current: null,
+            sentimentEvents: null,
+            timelineMentions: [],
           });
         }
       }
@@ -465,15 +477,16 @@ export function SentimentBrowserPage({ ticker }: { ticker: string }) {
   }
 
   const mentions = apiData.mentions;
-  const redditMentions = mentions.filter(item => item.platform === 'Reddit');
-  const xMentions = mentions.filter(item => item.platform === 'X');
-  const facebookMentions = mentions.filter(item => item.platform === 'Facebook');
-  const linkedinMentions = mentions.filter(item => item.platform === 'Linkedin');
-  const stocktwitsMentions = mentions.filter(item => item.platform === 'Stocktwits');
+  const timelineSourceMentions = apiData.timelineMentions.length ? apiData.timelineMentions : mentions;
+  const redditMentions = timelineSourceMentions.filter(item => item.platform === 'Reddit');
+  const xMentions = timelineSourceMentions.filter(item => item.platform === 'X');
+  const facebookMentions = timelineSourceMentions.filter(item => item.platform === 'Facebook');
+  const linkedinMentions = timelineSourceMentions.filter(item => item.platform === 'Linkedin');
+  const stocktwitsMentions = timelineSourceMentions.filter(item => item.platform === 'Stocktwits');
   const backendPeriod = sentimentPeriod(apiData.current, activeRange.label);
   const backendTimeline = Array.isArray(backendPeriod.timeline) ? backendPeriod.timeline.map(objectValue) : [];
   const backendPeriodEnd = Date.parse(String(backendPeriod.end ?? ''));
-  const validMentionTimes = mentions.map(item => mentionTimestampMs(item.timestamp)).filter(value => value > 0);
+  const validMentionTimes = timelineSourceMentions.map(item => mentionTimestampMs(item.timestamp)).filter(value => value > 0);
   if (Number.isFinite(backendPeriodEnd)) validMentionTimes.push(backendPeriodEnd);
   const latestMentionTime = validMentionTimes.length ? Math.max(...validMentionTimes) : Date.now();
   const dayMs = 24 * 60 * 60 * 1000;
@@ -482,8 +495,9 @@ export function SentimentBrowserPage({ ticker }: { ticker: string }) {
   const previousWindowStart = latestMentionTime - currentWindowMs * 2;
   const activeRangeLabel = activeRange.label as SentimentTimeframe;
 
-  const windowMentions = filterWindow(mentions, currentWindowStart, latestMentionTime);
-  const previousWindowMentions = filterWindow(mentions, previousWindowStart, currentWindowStart);
+  const windowMentions = filterWindow(timelineSourceMentions, currentWindowStart, latestMentionTime);
+  const previousWindowMentions = filterWindow(timelineSourceMentions, previousWindowStart, currentWindowStart);
+  const windowFeedMentions = filterWindow(mentions, currentWindowStart, latestMentionTime);
   const windowRedditMentions = filterWindow(redditMentions, currentWindowStart, latestMentionTime);
   const windowXMentions = filterWindow(xMentions, currentWindowStart, latestMentionTime);
   const windowFacebookMentions = filterWindow(facebookMentions, currentWindowStart, latestMentionTime);
@@ -538,24 +552,24 @@ export function SentimentBrowserPage({ ticker }: { ticker: string }) {
     { label: 'Stocktwits' as const, score: stocktwitsScore, previousScore: previousStocktwitsMentions.length ? averageScoreFor(previousStocktwitsMentions) : null, count: countForPlatform('Stocktwits', windowStocktwitsMentions) },
   ];
   const allRows = [
-    ...feedRows(windowRedditMentions, 'Reddit', timeZone),
-    ...feedRows(windowXMentions, 'X', timeZone),
-    ...feedRows(windowFacebookMentions, 'Facebook', timeZone),
-    ...feedRows(windowLinkedinMentions, 'Linkedin', timeZone),
-    ...feedRows(windowStocktwitsMentions, 'Stocktwits', timeZone),
+    ...feedRows(windowFeedMentions.filter(item => item.platform === 'Reddit'), 'Reddit', timeZone),
+    ...feedRows(windowFeedMentions.filter(item => item.platform === 'X'), 'X', timeZone),
+    ...feedRows(windowFeedMentions.filter(item => item.platform === 'Facebook'), 'Facebook', timeZone),
+    ...feedRows(windowFeedMentions.filter(item => item.platform === 'Linkedin'), 'Linkedin', timeZone),
+    ...feedRows(windowFeedMentions.filter(item => item.platform === 'Stocktwits'), 'Stocktwits', timeZone),
   ];
-  const timelineMentions = [
-    ...mentions.map(item => ({
+  const timelineMentions = timelineSourceMentions.map(item => ({
       timestampMs: mentionTimestampMs(item.timestamp),
       platform: item.platform,
       score: sentimentValue(item),
       sentiment: mentionSentiment(item),
-    })),
-  ].filter(item => item.timestampMs > 0);
+    })).filter(item => item.timestampMs > 0);
   const sentimentBuckets = getSentimentBuckets(activeRangeLabel, currentWindowStart, latestMentionTime);
-  const aggregatedBuckets = backendTimeline.length
-    ? aggregateBackendTimeline(backendTimeline, sentimentBuckets, selectedPlatform)
-    : aggregateSentimentByBucket(timelineMentions, sentimentBuckets, selectedPlatform);
+  const aggregatedBuckets = apiData.timelineMentions.length
+    ? aggregateSentimentByBucket(timelineMentions, sentimentBuckets, selectedPlatform)
+    : backendTimeline.length
+      ? aggregateBackendTimeline(backendTimeline, sentimentBuckets, selectedPlatform)
+      : aggregateSentimentByBucket(timelineMentions, sentimentBuckets, selectedPlatform);
   const selectedBucket = selectedBucketId ? aggregatedBuckets.find(bucket => bucket.id === selectedBucketId) ?? null : null;
   const platformRows = selectedPlatform === 'All' ? allRows : allRows.filter(row => row.platform === selectedPlatform);
   const filteredRows = selectedBucket
@@ -563,7 +577,9 @@ export function SentimentBrowserPage({ ticker }: { ticker: string }) {
     : platformRows;
   const platformCounts = Object.fromEntries(platformFilters.map(platform => [
     platform,
-    platform === 'All' ? allRows.length : allRows.filter(row => row.platform === platform).length,
+    platform === 'All'
+      ? totalMentions
+      : platformSentiments.find(item => item.label === platform)?.count ?? 0,
   ])) as Record<SentimentPlatformFilter, number>;
 
   return (
@@ -661,6 +677,7 @@ export function SentimentBrowserPage({ ticker }: { ticker: string }) {
         mentions={mentions}
         socialPages={apiData.socialPages}
         current={apiData.current}
+        events={apiData.sentimentEvents}
         timeZone={timeZone}
       />
     </div>

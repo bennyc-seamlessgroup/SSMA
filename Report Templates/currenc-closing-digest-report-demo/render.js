@@ -83,12 +83,50 @@ function kpiCards(items) {
   return (items || []).map(item => `<div class="metric-card">
     <div class="metric-label">${esc(item.label)}</div>
     <div class="metric-value">${esc(item.value)}</div>
-    <div class="metric-delta ${esc(item.tone || '')}">${esc(item.delta || '')}</div>
+    <div class="metric-delta ${esc(item.tone || '')}">
+      <strong>${esc(item.changeValue || '--')}</strong>
+      <span>${esc(item.changePercent || '--')} vs yesterday</span>
+    </div>
   </div>`).join('');
 }
 
-function riskRows(items) {
-  return (items || []).map(item => `<div class="risk-row"><span>${esc(item.label)}</span><b class="${esc(item.tone || '')}">${esc(item.value)}</b></div>`).join('');
+function richText(value) {
+  return esc(value || 'AI analysis is not available for this report date.')
+    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+    .split(/\n{2,}/)
+    .map(paragraph => `<p>${paragraph.replace(/\n/g, '<br/>')}</p>`)
+    .join('');
+}
+
+function shortScorePanel(scoreData) {
+  const score = Math.max(0, Math.min(100, Number(scoreData?.score || 0)));
+  return `<div class="score-analysis-grid">
+    <div class="card short-score-card">
+      <div class="card-head"><h3>Short Interest Score</h3><span class="risk-pill ${esc(scoreData?.tone || '')}">${esc(scoreData?.level || 'Unavailable')} Risk</span></div>
+      <div class="score-card-content">
+        <div class="short-score-ring" style="background:conic-gradient(${esc(scoreData?.color || '#cf3e4f')} ${score}%, #e7edf5 ${score}% 100%)"><div><b>${esc(scoreData?.scoreDisplay || 'N/A')}</b><small>/ 100</small></div></div>
+        <div class="score-copy"><div class="score-change ${esc(scoreData?.deltaTone || '')}">${esc(scoreData?.changeDisplay || '--')} <span>vs yesterday</span></div><p>${esc(scoreData?.summary || '')}</p></div>
+      </div>
+      <div class="score-ranges">${(scoreData?.ranges || []).map(row => `<div class="${row.active ? 'active' : ''}"><b>${esc(row.range)}</b><span><strong>${esc(row.level)}</strong>${esc(row.description)}</span></div>`).join('')}</div>
+    </div>
+    <div class="card ai-analysis-card"><div class="card-head"><h3>AI Analysis</h3><span class="count-badge">Daily</span></div><div class="ai-copy">${richText(scoreData?.aiAnalysis)}</div><small>AI-assisted interpretation. Review the underlying market data before making decisions.</small></div>
+  </div>`;
+}
+
+function sentimentGauge(sentiment) {
+  const score = Math.max(0, Math.min(100, Number(sentiment?.score || 0)));
+  const angle = (180 - score * 1.8) * Math.PI / 180;
+  const needleX = 90 + Math.cos(angle) * 48;
+  const needleY = 85 - Math.sin(angle) * 48;
+  return `<svg class="report-sentiment-gauge" viewBox="0 0 180 105" role="img" aria-label="Overall sentiment ${esc(sentiment?.scoreDisplay)} ${esc(sentiment?.label)}">
+    <path d="M20 85 A70 70 0 0 1 55 24.4" fill="none" stroke="#16a34a" stroke-width="18"/>
+    <path d="M55 24.4 A70 70 0 0 1 125 24.4" fill="none" stroke="#f2be22" stroke-width="18"/>
+    <path d="M125 24.4 A70 70 0 0 1 160 85" fill="none" stroke="#ef4444" stroke-width="18"/>
+    <line x1="90" y1="85" x2="${needleX.toFixed(1)}" y2="${needleY.toFixed(1)}" stroke="#10233d" stroke-width="2.5"/>
+    <circle cx="90" cy="85" r="4" fill="#10233d"/>
+    <text x="90" y="65" text-anchor="middle" class="gauge-score">${esc(sentiment?.scoreDisplay || 'N/A')}</text>
+    <text x="90" y="77" text-anchor="middle" class="gauge-label">${esc(sentiment?.label || '')}</text>
+  </svg>`;
 }
 
 function sentimentDistribution(distribution) {
@@ -144,30 +182,30 @@ function renderReport(data) {
 
 <section class="page">
   ${pageHeader('Daily Snapshot', 'Key Closing Signals', data.status)}
-  <div class="metric-grid metric-grid-7">${kpiCards(data.snapshotKpis)}</div>
-  <div class="two-column snapshot-grid">
-    <div class="card"><h3>Risk Classification</h3><div class="risk-list">${riskRows(data.riskSignals)}</div></div>
-    <div class="card"><h3>Data As Of</h3><div class="as-of-list">${(data.dataAsOf || []).map(item => `<div><span>${esc(item.label)}</span><b>${esc(item.value)}</b></div>`).join('')}</div></div>
-  </div>
-  <div class="two-column chart-grid"><div class="card chart-card">${chartSvg(shortLending.borrowFeeChart)}</div><div class="card chart-card">${chartSvg(shortLending.shortableSharesChart)}</div></div>
+  <div class="metric-grid metric-grid-8">${kpiCards(data.snapshotKpis)}</div>
+  ${shortScorePanel(data.shortInterestScore)}
   ${reportFooter(2, legal.footer)}
 </section>
 
 <section class="page">
-  ${pageHeader('Short and Lending', 'Capacity and Covering Pressure', shortLending.posture)}
-  <div class="two-column chart-grid primary-charts"><div class="card chart-card">${chartSvg(shortLending.utilizationChart)}</div><div class="card chart-card">${chartSvg(shortLending.daysToCoverChart)}</div></div>
-  <div class="card metric-explanation"><h3>How to Read These Signals</h3><div class="three-column">${(shortLending.signalGuide || []).map(item => `<div><span>${esc(item.label)}</span><b>${esc(item.value)}</b><p>${esc(item.description)}</p></div>`).join('')}</div></div>
+  ${pageHeader('Seven-Day Trends', 'Short and Lending Movement', shortLending.posture)}
+  <div class="two-column chart-grid compact-chart-grid">
+    <div class="card chart-card">${chartSvg(shortLending.borrowFeeChart)}</div>
+    <div class="card chart-card">${chartSvg(shortLending.shortableSharesChart)}</div>
+    <div class="card chart-card">${chartSvg(shortLending.utilizationChart)}</div>
+    <div class="card chart-card">${chartSvg(shortLending.daysToCoverChart)}</div>
+  </div>
   ${reportFooter(3, legal.footer)}
 </section>
 
 <section class="page">
-  ${pageHeader('Market Perception', 'Social Sentiment and Recent Filings', 'Latest Available')}
-  <div class="two-column sentiment-layout">
-    <div class="card"><div class="card-head"><h3>Sentiment Distribution</h3><span class="count-badge">${esc(sentiment.mentionsDisplay)} mentions</span></div>${sentimentDistribution(sentiment.distribution)}</div>
-    <div class="card"><h3>Platform Contribution</h3>${platformRows(sentiment.platforms)}</div>
+  ${pageHeader('Market Perception', 'Social Sentiment and Recent Filings', '1D Window')}
+  <div class="two-column sentiment-primary-grid">
+    <div class="card sentiment-overall-card"><div class="card-head"><h3>Overall Sentiment</h3><span class="count-badge">1D</span></div>${sentimentGauge(sentiment.overall)}<div class="sentiment-delta ${esc(sentiment.overall?.deltaTone || '')}">${esc(sentiment.overall?.changeDisplay || '--')} <span>vs previous 1D</span></div><small>${esc(sentiment.mentionsDisplay)} mentions</small></div>
+    <div class="card sentiment-distribution-card"><div class="card-head"><h3>Sentiment Distribution</h3><span class="count-badge">${esc(sentiment.mentionsDisplay)} mentions</span></div>${sentimentDistribution(sentiment.distribution)}</div>
   </div>
+  <div class="card platform-breakdown-card"><div class="card-head"><h3>Platform Breakdown</h3><span class="count-badge">1D</span></div>${platformRows(sentiment.platforms)}</div>
   <div class="card filings-card"><div class="card-head"><h3>Latest SEC Filings</h3><span class="count-badge">${data.secFilings?.length || 0}</span></div>${filingRows(data.secFilings)}</div>
-  <div class="method-note"><h3>Report Scope</h3><p>This first release reports only verified values currently available to the portal. It excludes unsupported forecasts, incomplete market context, event interpretation, and placeholder analysis.</p></div>
   ${reportFooter(4, legal.footer)}
 </section>`;
 }
