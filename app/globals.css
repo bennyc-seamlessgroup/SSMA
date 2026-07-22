@@ -3907,6 +3907,10 @@ html[data-design-b-theme="dark"] .monitor-portal .report-history-pagination butt
   font-weight: 700;
 }
 
+.ops-form-message {
+  white-space: pre-line;
+}
+
 .ops-form-message.good {
   color: #047857;
 }

@@ -3,9 +3,6 @@ import { NextRequest, NextResponse } from 'next/server';
 const apiGatewayUrl = process.env.NEXT_PUBLIC_API_GATEWAY_URL ?? '';
 
 async function proxyRequest(request: NextRequest, context: { params: Promise<{ path: string[] }> }) {
-  if (process.env.NODE_ENV !== 'development') {
-    return NextResponse.json({ message: 'Not found' }, { status: 404 });
-  }
   if (!apiGatewayUrl) {
     return NextResponse.json({ message: 'NEXT_PUBLIC_API_GATEWAY_URL is not configured.' }, { status: 500 });
   }

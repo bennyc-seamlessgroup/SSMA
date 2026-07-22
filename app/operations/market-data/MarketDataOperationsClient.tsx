@@ -210,15 +210,21 @@ function withoutUndefined<T extends Record<string, unknown>>(input: T) {
 
 async function saveManualInput(endpoint: string, payload: Record<string, unknown>) {
   const body = JSON.stringify(withoutUndefined(payload));
-  try {
-    return await authenticatedFetch(endpoint, { method: 'PUT', body });
-  } catch (error) {
-    try {
-      return await authenticatedFetch(endpoint, { method: 'POST', body });
-    } catch {
-      throw error;
-    }
-  }
+  return authenticatedFetch(endpoint, { method: 'PUT', body });
+}
+
+type NamedRequest = {
+  label: string;
+  request: Promise<unknown>;
+};
+
+async function runNamedRequests(summary: string, requests: NamedRequest[]) {
+  const results = await Promise.allSettled(requests.map(item => item.request));
+  const failures = results.flatMap((result, index) => result.status === 'rejected'
+    ? [`• ${requests[index].label}: ${result.reason instanceof Error ? result.reason.message : String(result.reason)}`]
+    : []);
+  if (failures.length) throw new Error(`${summary}\n${failures.join('\n')}`);
+  return results.map(result => result.status === 'fulfilled' ? result.value : null);
 }
 
 function latestMeta(...records: Array<DateSpecificRecord | undefined>) {
@@ -569,7 +575,7 @@ export function MarketDataOperationsClient() {
 
     const tickerParam = encodeURIComponent(selectedTicker);
     const tradeDateParam = encodeURIComponent(form.tradeDate);
-    const requests: Array<Promise<unknown>> = [];
+    const requests: NamedRequest[] = [];
     const issuedShare = numberOrUndefined(form.issuedShare);
     const utilizationPercent = numberOrUndefined(form.utilizationPercent);
     const availableSharesIbkr = numberOrUndefined(form.availableSharesIbkr);
@@ -582,13 +588,13 @@ export function MarketDataOperationsClient() {
     const shortScore = numberOrUndefined(form.shortScore);
 
     if (issuedShare !== undefined) {
-      requests.push(saveManualInput(`/manual-input/issued-share?ticker=${tickerParam}`, { issuedShare }));
+      requests.push({ label: 'Issued Share', request: saveManualInput(`/manual-input/issued-share?ticker=${tickerParam}`, { issuedShare }) });
     }
     if (utilizationPercent !== undefined) {
-      requests.push(saveManualInput(`/manual-input/utilization?ticker=${tickerParam}&tradeDate=${tradeDateParam}`, { utilizationPercent }));
+      requests.push({ label: 'Utilization', request: saveManualInput(`/manual-input/utilization?ticker=${tickerParam}&tradeDate=${tradeDateParam}`, { utilizationPercent }) });
     }
     if (availableSharesIbkr !== undefined || availableSharesFutu !== undefined) {
-      requests.push(saveManualInput(`/manual-input/manual-availability?ticker=${tickerParam}&tradeDate=${tradeDateParam}`, { availableSharesIbkr, availableSharesFutu }));
+      requests.push({ label: 'Shortable Shares', request: saveManualInput(`/manual-input/manual-availability?ticker=${tickerParam}&tradeDate=${tradeDateParam}`, { availableSharesIbkr, availableSharesFutu }) });
     }
     if (
       initialMarginIbkr !== undefined ||
@@ -597,7 +603,7 @@ export function MarketDataOperationsClient() {
       maintenanceMarginFutu !== undefined ||
       averageDurationDays !== undefined
     ) {
-      requests.push(saveManualInput(`/manual-input/margins?ticker=${tickerParam}&tradeDate=${tradeDateParam}`, {
+      requests.push({ label: 'Margins / Average Duration', request: saveManualInput(`/manual-input/margins?ticker=${tickerParam}&tradeDate=${tradeDateParam}`, {
         initialMarginIbkr,
         initialMarginFutu,
         maintenanceMarginIbkr,
@@ -605,14 +611,14 @@ export function MarketDataOperationsClient() {
         averageDurationDays,
         valueFormat: 'decimal_ratio',
         displayFormat: 'percent',
-      }));
+      }) });
     }
     if (shortScore !== undefined) {
-      requests.push(saveManualInput(`/manual-input/short-score?ticker=${tickerParam}&tradeDate=${tradeDateParam}`, { shortScore }));
+      requests.push({ label: 'Short Score', request: saveManualInput(`/manual-input/short-score?ticker=${tickerParam}&tradeDate=${tradeDateParam}`, { shortScore }) });
     }
 
     try {
-      await Promise.all(requests);
+      await runNamedRequests('One or more market inputs could not be saved:', requests);
       const consolidateEndpoint = `/manual-input/consolidate?ticker=${tickerParam}`;
       let consolidationPayload: unknown;
 
@@ -661,11 +667,11 @@ export function MarketDataOperationsClient() {
     const tradeDateParam = encodeURIComponent(record.tradeDate);
 
     try {
-      await Promise.all([
-        authenticatedFetch(`/manual-input/utilization?ticker=${tickerParam}&tradeDate=${tradeDateParam}`, { method: 'DELETE' }),
-        authenticatedFetch(`/manual-input/manual-availability?ticker=${tickerParam}&tradeDate=${tradeDateParam}`, { method: 'DELETE' }),
-        authenticatedFetch(`/manual-input/margins?ticker=${tickerParam}&tradeDate=${tradeDateParam}`, { method: 'DELETE' }),
-        authenticatedFetch(`/manual-input/short-score?ticker=${tickerParam}&tradeDate=${tradeDateParam}`, { method: 'DELETE' }),
+      await runNamedRequests('One or more market inputs could not be deleted:', [
+        { label: 'Utilization', request: authenticatedFetch(`/manual-input/utilization?ticker=${tickerParam}&tradeDate=${tradeDateParam}`, { method: 'DELETE' }) },
+        { label: 'Shortable Shares', request: authenticatedFetch(`/manual-input/manual-availability?ticker=${tickerParam}&tradeDate=${tradeDateParam}`, { method: 'DELETE' }) },
+        { label: 'Margins / Average Duration', request: authenticatedFetch(`/manual-input/margins?ticker=${tickerParam}&tradeDate=${tradeDateParam}`, { method: 'DELETE' }) },
+        { label: 'Short Score', request: authenticatedFetch(`/manual-input/short-score?ticker=${tickerParam}&tradeDate=${tradeDateParam}`, { method: 'DELETE' }) },
       ]);
       const consolidateEndpoint = `/manual-input/consolidate?ticker=${tickerParam}`;
       let consolidationPayload: unknown;

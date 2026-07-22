@@ -13,6 +13,7 @@ import {
   normalizeSocialPlatform,
   recordsFromSentimentEvents,
   sentimentPeriod,
+  sortSocialMentionsNewestFirst,
   type SentimentCurrentPayload,
   type SocialDataPagination,
   type SocialMention,
@@ -160,6 +161,74 @@ function filterWindow(mentions: AdanosMention[], start: number, end: number) {
     const time = mentionTimestampMs(item.timestamp);
     return time > start && time <= end;
   });
+}
+
+function uniqueMentions(mentions: AdanosMention[]) {
+  const seen = new Set<string>();
+  return mentions.filter(item => {
+    const canonicalUrl = item.url.trim().replace(/[?#].*$/, '').replace(/\/$/, '');
+    const stableIdentity = canonicalUrl
+      || `${item.timestamp}|${item.author.trim().toLowerCase()}|${item.text.trim().replace(/\s+/g, ' ')}`;
+    const identity = `${item.platform}|${stableIdentity}`;
+    if (seen.has(identity)) return false;
+    seen.add(identity);
+    return true;
+  });
+}
+
+async function initialFeedPage(
+  ticker: string,
+  platform: SentimentPlatformFilter,
+  knownTotalItems?: number,
+) {
+  if (platform !== 'Stocktwits') {
+    const page = await getSocialDataPage({
+      ticker,
+      platform: platform === 'All' ? undefined : platform,
+      page: 1,
+      limit: 10,
+    });
+    return {
+      records: uniqueMentions(page.records),
+      pages: [page.raw],
+      pagination: page.pagination,
+      direction: 'forward' as const,
+      nextPage: page.pagination.hasNextPage ? 2 : null,
+      buffer: [] as AdanosMention[],
+    };
+  }
+
+  let totalItems = knownTotalItems;
+  if (totalItems === undefined || totalItems <= 0) {
+    const metadata = await getSocialDataPage({ ticker, platform: 'Stocktwits', page: 1, limit: 1 });
+    totalItems = metadata.pagination.totalItems;
+  }
+  const totalPages = Math.max(1, Math.ceil(totalItems / 10));
+  const lastPage = await getSocialDataPage({ ticker, platform: 'Stocktwits', page: totalPages, limit: 10 });
+  const fetchedPages = [lastPage];
+  if (lastPage.records.length < 10 && totalPages > 1) {
+    fetchedPages.push(await getSocialDataPage({ ticker, platform: 'Stocktwits', page: totalPages - 1, limit: 10 }));
+  }
+  const combined = uniqueMentions(sortSocialMentionsNewestFirst(fetchedPages.flatMap(page => page.records)));
+  const records = combined.slice(0, 10);
+  const buffer = combined.slice(10);
+  const lowestFetchedPage = totalPages - fetchedPages.length + 1;
+  const nextPage = lowestFetchedPage > 1 ? lowestFetchedPage - 1 : null;
+  return {
+    records,
+    pages: fetchedPages.map(page => page.raw),
+    pagination: {
+      page: totalPages,
+      limit: 10,
+      totalItems,
+      totalPages,
+      hasNextPage: buffer.length > 0 || nextPage !== null,
+      hasPreviousPage: false,
+    },
+    direction: 'reverse' as const,
+    nextPage,
+    buffer,
+  };
 }
 
 function rangeFromSearch(value: unknown) {
@@ -394,6 +463,10 @@ export function SentimentBrowserPage({ ticker }: { ticker: string }) {
     mentions: AdanosMention[];
     socialPages: unknown[];
     socialPagination: SocialDataPagination;
+    feedDirection: 'forward' | 'reverse';
+    feedNextPage: number | null;
+    feedBuffer: AdanosMention[];
+    feedTotals: Record<SentimentPlatformFilter, number>;
     current: SentimentCurrentPayload | null;
     sentimentEvents: unknown;
     timelineMentions: AdanosMention[];
@@ -411,21 +484,31 @@ export function SentimentBrowserPage({ ticker }: { ticker: string }) {
       const platform = selectedPlatformRef.current;
       try {
         setLoadError('');
-        const [social, current, sentimentEvents] = await Promise.all([
-          getSocialDataPage({
-            ticker: normalizedTicker,
-            platform: platform === 'All' ? undefined : platform,
-            page: 1,
-            limit: 10,
-          }),
+        const [current, sentimentEvents, platformCountPages] = await Promise.all([
           getSentimentCurrent(normalizedTicker).catch(() => null),
           getSentimentEvents(normalizedTicker).catch(() => null),
+          Promise.all(platformFilters.map(feedPlatform => getSocialDataPage({
+            ticker: normalizedTicker,
+            platform: feedPlatform === 'All' ? undefined : feedPlatform,
+            page: 1,
+            limit: 1,
+          }).catch(() => null))),
         ]);
         if (!cancelled && requestId === feedRequestId.current) {
+          const feedTotals = Object.fromEntries(platformFilters.map((feedPlatform, index) => [
+            feedPlatform,
+            platformCountPages[index]?.pagination.totalItems ?? 0,
+          ])) as Record<SentimentPlatformFilter, number>;
+          const social = await initialFeedPage(normalizedTicker, platform, feedTotals[platform]);
+          if (cancelled || requestId !== feedRequestId.current) return;
           setApiData({
             mentions: social.records,
-            socialPages: [social.raw],
+            socialPages: social.pages,
             socialPagination: social.pagination,
+            feedDirection: social.direction,
+            feedNextPage: social.nextPage,
+            feedBuffer: social.buffer,
+            feedTotals,
             current,
             sentimentEvents,
             timelineMentions: recordsFromSentimentEvents(sentimentEvents),
@@ -445,6 +528,10 @@ export function SentimentBrowserPage({ ticker }: { ticker: string }) {
               hasNextPage: false,
               hasPreviousPage: false,
             },
+            feedDirection: 'forward',
+            feedNextPage: null,
+            feedBuffer: [],
+            feedTotals: { All: 0, X: 0, Reddit: 0, Stocktwits: 0, Facebook: 0, Linkedin: 0 },
             current: null,
             sentimentEvents: null,
             timelineMentions: [],
@@ -461,24 +548,46 @@ export function SentimentBrowserPage({ ticker }: { ticker: string }) {
   }, [normalizedTicker]);
 
   const loadMoreFeeds = async () => {
-    if (!apiData?.socialPagination.hasNextPage || isLoadingMore || isLoadingFeeds) return;
+    if (!apiData || (apiData.feedNextPage === null && apiData.feedBuffer.length === 0) || isLoadingMore || isLoadingFeeds) return;
     const requestId = ++feedRequestId.current;
     const platform = selectedPlatformRef.current;
     setIsLoadingMore(true);
     try {
-      const nextPage = await getSocialDataPage({
+      const requestedPage = apiData.feedNextPage;
+      const nextPage = requestedPage === null ? null : await getSocialDataPage({
         ticker: normalizedTicker,
         platform: platform === 'All' ? undefined : platform,
-        page: apiData.socialPagination.page + 1,
+        page: requestedPage,
         limit: 10,
       });
       if (requestId !== feedRequestId.current || platform !== selectedPlatformRef.current) return;
-      setApiData(current => current ? {
-        ...current,
-        mentions: [...current.mentions, ...nextPage.records],
-        socialPages: [...current.socialPages, nextPage.raw],
-        socialPagination: nextPage.pagination,
-      } : current);
+      setApiData(current => {
+        if (!current) return current;
+        const candidates = uniqueMentions(sortSocialMentionsNewestFirst([
+          ...current.feedBuffer,
+          ...(nextPage?.records ?? []),
+        ]));
+        const recordsToAppend = candidates.slice(0, 10);
+        const feedBuffer = candidates.slice(10);
+        const feedNextPage = requestedPage === null
+          ? null
+          : current.feedDirection === 'reverse'
+            ? (requestedPage > 1 ? requestedPage - 1 : null)
+            : (requestedPage < current.socialPagination.totalPages ? requestedPage + 1 : null);
+        const hasNextPage = feedBuffer.length > 0 || feedNextPage !== null;
+        return {
+          ...current,
+          mentions: uniqueMentions([...current.mentions, ...recordsToAppend]),
+          socialPages: nextPage ? [...current.socialPages, nextPage.raw] : current.socialPages,
+          socialPagination: {
+            ...current.socialPagination,
+            page: requestedPage ?? current.socialPagination.page,
+            hasNextPage,
+          },
+          feedNextPage,
+          feedBuffer,
+        };
+      });
     } catch (error) {
       if (requestId === feedRequestId.current) {
         setLoadError(error instanceof Error ? error.message : 'Unable to load more social feeds.');
@@ -497,18 +606,16 @@ export function SentimentBrowserPage({ ticker }: { ticker: string }) {
     const requestId = ++feedRequestId.current;
     setIsLoadingFeeds(true);
     try {
-      const social = await getSocialDataPage({
-        ticker: normalizedTicker,
-        platform: platform === 'All' ? undefined : platform,
-        page: 1,
-        limit: 10,
-      });
+      const social = await initialFeedPage(normalizedTicker, platform, apiData?.feedTotals[platform]);
       if (requestId !== feedRequestId.current || platform !== selectedPlatformRef.current) return;
       setApiData(current => current ? {
         ...current,
         mentions: social.records,
-        socialPages: [social.raw],
+        socialPages: social.pages,
         socialPagination: social.pagination,
+        feedDirection: social.direction,
+        feedNextPage: social.nextPage,
+        feedBuffer: social.buffer,
       } : current);
     } catch (error) {
       if (requestId === feedRequestId.current) {
@@ -523,8 +630,8 @@ export function SentimentBrowserPage({ ticker }: { ticker: string }) {
     return <PortalPageLoading variant="sentiment" />;
   }
 
-  const mentions = apiData.mentions;
-  const timelineSourceMentions = apiData.timelineMentions.length ? apiData.timelineMentions : mentions;
+  const mentions = uniqueMentions(apiData.mentions);
+  const timelineSourceMentions = uniqueMentions(apiData.timelineMentions.length ? apiData.timelineMentions : mentions);
   const redditMentions = timelineSourceMentions.filter(item => item.platform === 'Reddit');
   const xMentions = timelineSourceMentions.filter(item => item.platform === 'X');
   const facebookMentions = timelineSourceMentions.filter(item => item.platform === 'Facebook');
@@ -533,7 +640,9 @@ export function SentimentBrowserPage({ ticker }: { ticker: string }) {
   const backendPeriod = sentimentPeriod(apiData.current, activeRange.label);
   const backendTimeline = Array.isArray(backendPeriod.timeline) ? backendPeriod.timeline.map(objectValue) : [];
   const backendPeriodEnd = Date.parse(String(backendPeriod.end ?? ''));
-  const validMentionTimes = timelineSourceMentions.map(item => mentionTimestampMs(item.timestamp)).filter(value => value > 0);
+  const validMentionTimes = [...timelineSourceMentions, ...mentions]
+    .map(item => mentionTimestampMs(item.timestamp))
+    .filter(value => value > 0);
   if (Number.isFinite(backendPeriodEnd)) validMentionTimes.push(backendPeriodEnd);
   const latestMentionTime = validMentionTimes.length ? Math.max(...validMentionTimes) : Date.now();
   const dayMs = 24 * 60 * 60 * 1000;
@@ -567,9 +676,9 @@ export function SentimentBrowserPage({ ticker }: { ticker: string }) {
   });
   const computedSentimentCounts = countBySentiment(windowMentions);
   const sentimentCounts = {
-    positive: optionalNumeric(backendDistribution.positiveCount ?? backendDistribution.positive) ?? computedSentimentCounts.positive,
-    neutral: optionalNumeric(backendDistribution.neutralCount ?? backendDistribution.neutral) ?? computedSentimentCounts.neutral,
-    negative: optionalNumeric(backendDistribution.negativeCount ?? backendDistribution.negative) ?? computedSentimentCounts.negative,
+    positive: apiData.timelineMentions.length ? computedSentimentCounts.positive : optionalNumeric(backendDistribution.positiveCount ?? backendDistribution.positive) ?? computedSentimentCounts.positive,
+    neutral: apiData.timelineMentions.length ? computedSentimentCounts.neutral : optionalNumeric(backendDistribution.neutralCount ?? backendDistribution.neutral) ?? computedSentimentCounts.neutral,
+    negative: apiData.timelineMentions.length ? computedSentimentCounts.negative : optionalNumeric(backendDistribution.negativeCount ?? backendDistribution.negative) ?? computedSentimentCounts.negative,
   };
   const averageScore = optionalNumeric(backendPeriod.overallSentimentScore ?? backendPeriod.sentimentScore) ?? averageScoreFor(windowMentions);
   const previousAverageScore = optionalNumeric(
@@ -577,12 +686,15 @@ export function SentimentBrowserPage({ ticker }: { ticker: string }) {
     ?? backendPeriod.previousSentimentScore
     ?? objectValue(backendPeriod.comparison).previousScore,
   ) ?? averageScoreFor(previousWindowMentions);
-  const totalMentions = optionalNumeric(backendPeriod.totalMentions ?? backendPeriod.mentionCount) ?? windowMentions.length;
+  const totalMentions = apiData.timelineMentions.length
+    ? windowMentions.length
+    : optionalNumeric(backendPeriod.totalMentions ?? backendPeriod.mentionCount) ?? windowMentions.length;
   const scoreForPlatform = (platform: Exclude<SentimentPlatformFilter, 'All'>, rows: AdanosMention[]) => {
     const item = backendPlatform(platform);
     return optionalNumeric(item?.sentimentScore ?? item?.score) ?? averageScoreFor(rows);
   };
   const countForPlatform = (platform: Exclude<SentimentPlatformFilter, 'All'>, rows: AdanosMention[]) => {
+    if (apiData.timelineMentions.length) return uniqueMentions(rows).length;
     const item = backendPlatform(platform);
     return optionalNumeric(item?.count ?? item?.mentions ?? item?.mentionCount) ?? rows.length;
   };
@@ -622,12 +734,7 @@ export function SentimentBrowserPage({ ticker }: { ticker: string }) {
   const filteredRows = selectedBucket
     ? platformRows.filter(row => row.timestampMs >= selectedBucket.startMs && row.timestampMs < selectedBucket.endMs)
     : platformRows;
-  const platformCounts = Object.fromEntries(platformFilters.map(platform => [
-    platform,
-    platform === 'All'
-      ? totalMentions
-      : platformSentiments.find(item => item.label === platform)?.count ?? 0,
-  ])) as Record<SentimentPlatformFilter, number>;
+  const platformCounts = apiData.feedTotals;
 
   return (
     <div className="page narrative-page">
@@ -710,7 +817,7 @@ export function SentimentBrowserPage({ ticker }: { ticker: string }) {
             rows={filteredRows}
             hidePlatformFilter
             emptyMessage={isLoadingFeeds ? 'Loading social feeds...' : 'No social feeds captured for this platform and time window.'}
-            hasMore={!isLoadingFeeds && apiData.socialPagination.hasNextPage}
+            hasMore={!isLoadingFeeds && (apiData.feedNextPage !== null || apiData.feedBuffer.length > 0)}
             isLoadingMore={isLoadingMore}
             onLoadMore={loadMoreFeeds}
           />

@@ -305,18 +305,31 @@ export async function authenticatedFetch(path: string, options: RequestInit = {}
   const tokens = getStoredTokens();
   if (!tokens?.idToken) throw new Error('Not authenticated');
   const isMultipart = typeof FormData !== 'undefined' && options.body instanceof FormData;
-  const requestUrl = typeof window !== 'undefined' && ['localhost', '127.0.0.1'].includes(window.location.hostname)
+  const method = String(options.method ?? 'GET').toUpperCase();
+  const isMutation = !['GET', 'HEAD'].includes(method);
+  const useSameOriginProxy = typeof window !== 'undefined'
+    && (isMutation || ['localhost', '127.0.0.1'].includes(window.location.hostname));
+  const requestUrl = useSameOriginProxy
     ? `/api/dev-api${path}`
     : `${apiGatewayUrl}${path}`;
 
-  const doFetch = (idToken: string) => fetch(requestUrl, {
-    ...options,
-    headers: {
-      Authorization: idToken,
-      ...(isMultipart ? {} : { 'Content-Type': 'application/json' }),
-      ...(options.headers ?? {}),
-    },
-  });
+  const doFetch = async (idToken: string) => {
+    try {
+      return await fetch(requestUrl, {
+        ...options,
+        headers: {
+          Authorization: idToken,
+          ...(isMultipart ? {} : { 'Content-Type': 'application/json' }),
+          ...(options.headers ?? {}),
+        },
+      });
+    } catch (error) {
+      const reason = error instanceof Error && error.message && error.message !== 'Failed to fetch'
+        ? ` Browser reason: ${error.message}`
+        : '';
+      throw new Error(`${method} ${path} could not reach the API. The request failed before the server returned a response.${reason}`);
+    }
+  };
 
   let response = await doFetch(tokens.idToken);
   if (response.status === 401) {
@@ -343,12 +356,46 @@ export async function authenticatedFetch(path: string, options: RequestInit = {}
   }
 
   if (!response.ok) {
-    const error = await response.json().catch(() => ({ message: 'API request failed.' })) as { message?: string };
-    throw new Error(error.message || 'API request failed.');
+    const responseText = await response.text().catch(() => '');
+    let errorPayload: unknown = responseText;
+    try {
+      errorPayload = responseText ? JSON.parse(responseText) : null;
+    } catch {
+      // Preserve a non-JSON backend response as plain text.
+    }
+    const errorRecord = errorPayload && typeof errorPayload === 'object' && !Array.isArray(errorPayload)
+      ? errorPayload as Record<string, unknown>
+      : null;
+    const validation = errorRecord?.validationErrors ?? errorRecord?.errors ?? errorRecord?.details;
+    const validationText = validation == null
+      ? ''
+      : typeof validation === 'string'
+        ? validation
+        : JSON.stringify(validation);
+    const reasons = [
+      errorRecord?.message,
+      errorRecord?.error,
+      errorRecord?.reason,
+      errorRecord?.detail,
+      validationText,
+      typeof errorPayload === 'string' ? errorPayload : '',
+    ].map(value => {
+      if (value == null) return '';
+      if (typeof value === 'object') {
+        try {
+          return JSON.stringify(value);
+        } catch {
+          return String(value);
+        }
+      }
+      return String(value).trim();
+    }).filter(Boolean);
+    const reason = [...new Set(reasons)].join(' — ') || 'The API did not provide an error reason.';
+    const status = `${response.status}${response.statusText ? ` ${response.statusText}` : ''}`;
+    throw new Error(`${method} ${path} failed (${status}): ${reason}`);
   }
 
   const payload = await response.json();
-  const method = String(options.method ?? 'GET').toUpperCase();
   if (method !== 'GET' && method !== 'HEAD') clearAuthenticatedResponseCache();
   return payload;
 }

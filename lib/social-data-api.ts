@@ -91,15 +91,29 @@ export function normalizeSocialPlatform(value: unknown): SocialPlatform {
 
 export function normalizeSocialMention(value: unknown): SocialMention {
   const row = record(value);
+  const sourceRow = record(row.source_row ?? row.sourceRow);
   const key = text(row.key);
-  const id = text(row.id ?? row.messages__id ?? key);
+  const id = text(row.id ?? row.messages__id ?? sourceRow.messages__id ?? key);
 
   return {
     id,
     key,
     platform: normalizeSocialPlatform(row.platform),
     query: text(row.query),
-    timestamp: text(row.datetime ?? row.timestamp ?? row.date ?? row.eventDate ?? row.event_date ?? row.createdAt ?? row.created_at),
+    timestamp: text(
+      row.datetime
+      ?? row.timestamp
+      ?? row.date
+      ?? row.eventDate
+      ?? row.event_date
+      ?? row.createdAt
+      ?? row.created_at
+      ?? row.created_utc
+      ?? row.messages__created_at
+      ?? sourceRow.datetime
+      ?? sourceRow.timestamp
+      ?? sourceRow.created_utc,
+    ),
     url: text(row.link ?? row.url),
     author: text(row.author ?? row.username ?? row.user__username),
     text: text(row.content ?? row.text ?? row.message ?? row.summary),
@@ -115,6 +129,15 @@ export function normalizeSocialMention(value: unknown): SocialMention {
     subreddit: text(row.subreddit),
     raw: row,
   };
+}
+
+function socialTimestamp(value: SocialMention) {
+  const timestamp = Date.parse(value.timestamp);
+  return Number.isFinite(timestamp) ? timestamp : 0;
+}
+
+export function sortSocialMentionsNewestFirst(records: SocialMention[]) {
+  return [...records].sort((a, b) => socialTimestamp(b) - socialTimestamp(a));
 }
 
 function pagination(value: unknown, fallbackPage: number, fallbackLimit: number, recordCount: number): SocialDataPagination {
@@ -150,9 +173,11 @@ export async function getSocialDataPage({
     limit: String(limit),
   });
   if (platform) params.set('platform', platform === 'X' ? 'Twitter' : platform === 'Linkedin' ? 'LinkedIn' : platform);
-  const raw = await cachedAuthenticatedFetch(`/social-data?${params.toString()}`);
+  const raw = await authenticatedFetch(`/social-data?${params.toString()}`, { cache: 'no-store' });
   const payload = record(raw);
-  const records = Array.isArray(payload.records) ? payload.records.map(normalizeSocialMention) : [];
+  const records = Array.isArray(payload.records)
+    ? sortSocialMentionsNewestFirst(payload.records.map(normalizeSocialMention))
+    : [];
   return {
     records,
     pagination: pagination(payload.pagination, page, limit, records.length),
