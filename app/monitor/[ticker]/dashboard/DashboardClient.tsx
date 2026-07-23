@@ -34,14 +34,12 @@ export function DashboardClient({
   events,
   utilizationRecords,
   marginRecords,
-  current,
 }: {
   ticker: string;
   data: TrendPoint[];
   events: CompanyEvent[];
   utilizationRecords: DashboardUtilizationRecord[];
   marginRecords: DashboardMarginRecord[];
-  current: Record<string, unknown> | null;
 }) {
   const [kpiPeriod, setKpiPeriod] = useState<PeriodKey>('1Y');
   const [lendingPeriod, setLendingPeriod] = useState<PeriodKey>('1Y');
@@ -51,7 +49,7 @@ export function DashboardClient({
   return (
     <>
       <DashboardKpis data={data} period={kpiPeriod} onPeriodChange={setKpiPeriod} utilizationRecords={utilizationRecords} marginRecords={marginRecords} />
-      <CustomAlertCenter ticker={ticker} data={data} current={current} />
+      <CustomAlertCenter ticker={ticker} />
       <DashboardChart
         title="Borrow Utilization & Duration History"
         series={['utilization', 'averageDuration']}

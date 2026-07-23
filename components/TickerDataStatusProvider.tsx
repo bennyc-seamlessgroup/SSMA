@@ -2,7 +2,6 @@
 
 import { createContext, useContext, useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { getPublicTickerDataStatus } from '@/lib/public-import-data';
 import { authenticatedFetch, invalidateAuthenticatedFetchCache } from '@/lib/auth-client';
 
 export type TickerPageDataStatus = {
@@ -21,7 +20,7 @@ export type TickerDataStatus = {
 };
 
 const TickerDataStatusContext = createContext<TickerDataStatus | null>(null);
-const configuredPollSeconds = Number(process.env.NEXT_PUBLIC_IMPORT_DATA_POLL_SECONDS ?? 300);
+const configuredPollSeconds = Number(process.env.NEXT_PUBLIC_DATA_STATUS_POLL_SECONDS ?? 300);
 const pollIntervalMs = Math.max(30, Number.isFinite(configuredPollSeconds) ? configuredPollSeconds : 300) * 1000;
 
 type ApiDataset = {
@@ -125,17 +124,13 @@ export function TickerDataStatusProvider({ ticker, children }: { ticker: string;
       if (document.visibilityState === 'hidden' || requestInFlight) return;
       requestInFlight = true;
       try {
-        const [publicStatus, apiStatusResult] = await Promise.all([
-          getPublicTickerDataStatus(ticker, controller.signal),
-          getApiTickerDataStatus(ticker),
-        ]);
-        const pages = { ...publicStatus.pages, ...apiStatusResult.pages };
-        const updatedAt = [publicStatus.updatedAt, apiStatusResult.updatedAt].filter((value): value is string => Boolean(value)).sort((a, b) => b.localeCompare(a))[0] ?? null;
+        const apiStatusResult = await getApiTickerDataStatus(ticker);
+        const pages = apiStatusResult.pages;
         const next: TickerDataStatus = {
           ticker,
           companyName: apiStatusResult.companyName,
           pages,
-          updatedAt,
+          updatedAt: apiStatusResult.updatedAt,
           version: Object.entries(pages).map(([slug, page]) => `${slug}:${page.version}`).join('|'),
         };
         if (cancelled) return;

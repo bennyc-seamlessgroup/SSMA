@@ -1,1 +1,0 @@
-export function NarrativeTags({ tags }: { tags: string[] }) { return <div style={{ display:'flex', flexWrap:'wrap', gap: 8 }}>{tags.map(tag => <span key={tag} className="badge ai">{tag}</span>)}</div>; }

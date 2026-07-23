@@ -348,10 +348,9 @@ export function DashboardBrowserPage({ ticker }: { ticker: string }) {
   const utilizationInputs = apiData.utilizationInputs;
   const marginInputs = apiData.marginInputs;
   const events = apiData.events;
-  const current = apiData.current;
   return (
     <div className="page dashboard-page">
-      <DashboardClient ticker={normalizedTicker} data={trendData} events={events} utilizationRecords={utilizationInputs} marginRecords={marginInputs} current={current} />
+      <DashboardClient ticker={normalizedTicker} data={trendData} events={events} utilizationRecords={utilizationInputs} marginRecords={marginInputs} />
       <DashboardDevTables
         marketCurrent={apiData.currentFile as Record<string, unknown> | null}
         marketHistory={apiData.historyFile as Record<string, unknown> | null}

@@ -1,88 +1,15 @@
 'use client';
 
 import { ApiSourceTags } from '@/components/ApiSourceTags';
+import {
+  evaluateAlertRule,
+  loadAlertRuleSettings,
+  type AlertSeverity,
+  type AlertUnit,
+  type TriggeredApiAlert,
+} from '@/lib/alerts/ruleCatalogApi';
 import Link from 'next/link';
 import { useEffect, useMemo, useState } from 'react';
-import {
-  customAlertStorageKey,
-  customAlertUpdatedEvent,
-  evaluateCustomAlerts,
-  loadCustomAlertThresholds,
-  type AlertUnit,
-  type AlertSeverity,
-  type CustomAlertThreshold,
-  type CustomAlertValues,
-} from '@/lib/alerts/customAlertRules';
-
-type TrendPoint = {
-  date: string;
-  price: number | null;
-  feeRate: number | null;
-  tradeVolume: number | null;
-  shortableShares: number | null;
-  daysToCover: number | null;
-  utilization: number | null;
-};
-
-function record(value: unknown): Record<string, unknown> {
-  return value && typeof value === 'object' && !Array.isArray(value) ? value as Record<string, unknown> : {};
-}
-
-function numeric(...values: unknown[]) {
-  for (const value of values) {
-    if (value === null || value === undefined || value === '') continue;
-    const parsed = typeof value === 'number' ? value : Number(String(value).replace(/[$,%x,]/gi, ''));
-    if (Number.isFinite(parsed)) return parsed;
-  }
-  return undefined;
-}
-
-function latestValue<T>(rows: TrendPoint[], pick: (row: TrendPoint) => T | null) {
-  for (let index = rows.length - 1; index >= 0; index -= 1) {
-    const value = pick(rows[index]);
-    if (value !== null && value !== undefined) return value;
-  }
-  return undefined;
-}
-
-function dashboardAlertValues(data: TrendPoint[], current: Record<string, unknown> | null): CustomAlertValues {
-  const currentRow = current ?? {};
-  const sourceRecords = record(currentRow.sourceRecords);
-  const shortInterest = record(sourceRecords.shortInterest);
-  const shortScore = record(sourceRecords.shortScore);
-  const closingPrices = record(sourceRecords.closingPrices);
-  const ftd = record(sourceRecords.ftd);
-  const validPrices = data.filter(row => typeof row.price === 'number' && Number.isFinite(row.price));
-  const latestPrice = validPrices.at(-1)?.price;
-  const previousPrice = validPrices.at(-2)?.price;
-  const priceDrawdown = typeof latestPrice === 'number' && typeof previousPrice === 'number' && previousPrice !== 0
-    ? ((latestPrice - previousPrice) / previousPrice) * 100
-    : undefined;
-  const validVolumes = data.filter(row => typeof row.tradeVolume === 'number' && row.tradeVolume > 0);
-  const latestVolume = validVolumes.at(-1)?.tradeVolume;
-  const comparisonVolumes = validVolumes.slice(-21, -1).map(row => row.tradeVolume as number);
-  const averageVolume = comparisonVolumes.length
-    ? comparisonVolumes.reduce((sum, value) => sum + value, 0) / comparisonVolumes.length
-    : undefined;
-  const volumeSpike = typeof latestVolume === 'number' && averageVolume ? latestVolume / averageVolume : undefined;
-  const open = numeric(closingPrices.open, currentRow.open);
-  const high = numeric(closingPrices.high, currentRow.high);
-  const intradayPriceSpike = open && high !== undefined ? ((high - open) / open) * 100 : undefined;
-
-  return {
-    shortInterestFloatPercent: numeric(currentRow.shortInterestPcFreeFloat, shortInterest.shortInterestPcFreeFloat),
-    dailyShortVolumeRatio: numeric(currentRow.dailyShortVolumeRatio, currentRow.shortVolumeRatio, sourceRecords.shortVolumeRatio),
-    shortScore: numeric(currentRow.shortScore, shortScore.score),
-    borrowFeeRate: numeric(currentRow.borrowFee, currentRow.feeRate, latestValue(data, row => row.feeRate)),
-    utilization: numeric(currentRow.utilization, latestValue(data, row => row.utilization)),
-    availableShares: numeric(currentRow.availableShares, currentRow.shortAvailabilityShares, latestValue(data, row => row.shortableShares)),
-    ftdCount: numeric(currentRow.ftdCount, currentRow.ftdShares, ftd.ftdShares),
-    ftdValue: numeric(currentRow.ftdValue, currentRow.ftdValueUsd, ftd.ftdValue),
-    priceDrawdown,
-    volumeSpike,
-    intradayPriceSpike: numeric(currentRow.intradayPriceSpike, intradayPriceSpike),
-  };
-}
 
 function compact(value: number) {
   return new Intl.NumberFormat('en-US', { notation: 'compact', maximumFractionDigits: 2 }).format(value);
@@ -96,6 +23,13 @@ function formatAlertValue(value: number, unit: AlertUnit) {
   return value.toLocaleString('en-US', { maximumFractionDigits: 1 });
 }
 
+const severityRank: Record<AlertSeverity, number> = {
+  critical: 4,
+  high: 3,
+  medium: 2,
+  low: 1,
+};
+
 const alertSeverities: Array<{ severity: AlertSeverity; label: string }> = [
   { severity: 'critical', label: 'Critical' },
   { severity: 'high', label: 'High' },
@@ -103,35 +37,46 @@ const alertSeverities: Array<{ severity: AlertSeverity; label: string }> = [
   { severity: 'low', label: 'Low' },
 ];
 
-export function CustomAlertCenter({
-  ticker,
-  data,
-  current,
-}: {
-  ticker: string;
-  data: TrendPoint[];
-  current: Record<string, unknown> | null;
-}) {
-  const [thresholds, setThresholds] = useState<CustomAlertThreshold[]>([]);
+export function CustomAlertCenter({ ticker }: { ticker: string }) {
+  const [triggered, setTriggered] = useState<TriggeredApiAlert[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState('');
 
   useEffect(() => {
-    const load = () => {
-      setThresholds(loadCustomAlertThresholds(ticker));
-    };
-    const handleStorage = (event: StorageEvent) => {
-      if (event.key === customAlertStorageKey(ticker)) load();
-    };
-    load();
-    window.addEventListener(customAlertUpdatedEvent, load);
-    window.addEventListener('storage', handleStorage);
+    let cancelled = false;
+    async function load() {
+      setLoading(true);
+      setLoadError('');
+      try {
+        const rules = await loadAlertRuleSettings(ticker);
+        const results = await Promise.allSettled(
+          rules.filter(rule => rule.enabled).map(rule => evaluateAlertRule(rule)),
+        );
+        if (cancelled) return;
+        const alerts = results
+          .filter((result): result is PromiseFulfilledResult<TriggeredApiAlert | null> => result.status === 'fulfilled')
+          .map(result => result.value)
+          .filter((alert): alert is TriggeredApiAlert => Boolean(alert))
+          .sort((left, right) => severityRank[right.severity] - severityRank[left.severity]);
+        setTriggered(alerts);
+        if (results.some(result => result.status === 'rejected')) {
+          setLoadError('Some alert rules could not be evaluated.');
+        }
+      } catch (error) {
+        if (!cancelled) {
+          setTriggered([]);
+          setLoadError(error instanceof Error ? error.message : 'Unable to evaluate alert rules.');
+        }
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    }
+    void load();
     return () => {
-      window.removeEventListener(customAlertUpdatedEvent, load);
-      window.removeEventListener('storage', handleStorage);
+      cancelled = true;
     };
   }, [ticker]);
 
-  const values = useMemo(() => dashboardAlertValues(data, current), [current, data]);
-  const triggered = useMemo(() => evaluateCustomAlerts(values, thresholds), [thresholds, values]);
   const severityCounts = useMemo(
     () => triggered.reduce<Record<AlertSeverity, number>>(
       (counts, alert) => {
@@ -163,8 +108,9 @@ export function CustomAlertCenter({
           ) : null}
         </div>
         <ApiSourceTags sources={[
-          { endpoint: 'GET /market-data/current?category=market-current', label: 'Current alert values' },
-          { endpoint: 'GET /market-data/history?category=market-history', label: 'Threshold context' },
+          { endpoint: 'GET /rule-catalog', label: 'Alert definitions' },
+          { endpoint: 'GET /rule-catalog/user-settings', label: 'Configured alert rules' },
+          { endpoint: 'POST /rule-engine/check', label: 'Backend rule evaluation' },
         ]} />
         <Link className="custom-alert-configure" href={settingsHref as any}>
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h10M18 7h2M14 4v6M4 17h2M10 17h10M6 14v6" /></svg>
@@ -172,7 +118,16 @@ export function CustomAlertCenter({
         </Link>
       </div>
 
-      {triggered.length ? (
+      {loadError ? <div className="narrative-api-error">{loadError}</div> : null}
+
+      {loading ? (
+        <div className="custom-alert-empty">
+          <div>
+            <strong>Evaluating alert rules…</strong>
+            <p>The backend rule engine is checking your active rules.</p>
+          </div>
+        </div>
+      ) : triggered.length ? (
         <div className="custom-alert-triggered-list">
           {triggered.map(alert => (
             <div className={`custom-alert-row ${alert.severity}`} key={alert.id}>
@@ -181,7 +136,9 @@ export function CustomAlertCenter({
                 <path d="M12 9v5M12 17.2v.1" />
               </svg>
               <strong>{alert.label}</strong>
-              <span className="custom-alert-row__value">{formatAlertValue(alert.currentValue, alert.unit)}</span>
+              <span className="custom-alert-row__value">
+                {alert.currentValue === null ? 'Triggered' : formatAlertValue(alert.currentValue, alert.unit)}
+              </span>
               <span className="custom-alert-row__threshold">
                 Threshold <b>{alert.operator} {formatAlertValue(alert.threshold, alert.unit)}</b>
               </span>
@@ -194,7 +151,7 @@ export function CustomAlertCenter({
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 11a8 8 0 1 1-3-6.2M9 11l2 2 5-6" /></svg>
           <div>
             <strong>No alerts triggered</strong>
-            <p>You are all clear. Alerts will appear here when a configured threshold is breached.</p>
+            <p>The backend rule engine found no active threshold breaches.</p>
           </div>
         </div>
       )}

@@ -241,6 +241,62 @@ html[data-design-b-theme='dark'] {
   color: var(--ci-text-secondary);
 }
 
+/* Alert threshold is one joined control. The global input treatment must not
+   draw a second border inside its unit wrapper. */
+.monitor-portal .custom-alert-threshold-input > div {
+  overflow: hidden;
+  border: 1px solid var(--ci-border);
+  background: var(--ci-surface);
+}
+
+.monitor-portal .custom-alert-threshold-input > div:focus-within {
+  border-color: var(--ci-accent);
+  box-shadow: 0 0 0 2px var(--ci-accent-soft);
+}
+
+.monitor-portal .custom-alert-threshold-input input {
+  min-height: 0;
+  border: 0;
+  border-radius: 0;
+  outline: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.monitor-portal .custom-alert-threshold-input input:focus {
+  border: 0;
+  outline: 0;
+  box-shadow: none;
+}
+
+.monitor-portal .custom-alert-toggle {
+  width: 31px;
+  min-width: 31px;
+  height: 18px;
+  min-height: 18px;
+  border: 0;
+  border-radius: 999px;
+  padding: 0;
+}
+
+.monitor-portal .custom-alert-sticky-actions .button.secondary {
+  border-color: var(--ci-border);
+  background: var(--ci-surface);
+  color: var(--ci-text-secondary);
+  box-shadow: 0 1px 2px rgba(15, 23, 42, .06);
+}
+
+.monitor-portal .custom-alert-sticky-actions .button.secondary:hover {
+  border-color: var(--ci-accent);
+  background: var(--ci-accent-soft);
+  color: var(--ci-accent);
+}
+
+.monitor-portal .custom-alert-sticky-actions .button.secondary:focus-visible {
+  outline: 2px solid var(--ci-accent-soft);
+  outline-offset: 2px;
+}
+
 .monitor-portal :is(table, .settings-table, .institutional-tabs__panel),
 .ops-shell table {
   color: var(--ci-text-secondary);

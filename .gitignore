@@ -1,9 +1,11 @@
 node_modules
 .next
 .next-*
+.pnpm-store
+tmp
+output
 .env
 .env.local
 .DS_Store
 **/.DS_Store
 *.tsbuildinfo
-data/local-db.json
