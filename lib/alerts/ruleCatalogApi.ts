@@ -22,6 +22,7 @@ export type RuleCatalogItem = {
 export type AlertRuleSetting = {
   id: string;
   catalogId: string;
+  persisted: boolean;
   label: string;
   category: string;
   enabled: boolean;
@@ -107,6 +108,7 @@ function text(value: unknown) {
 }
 
 function number(value: unknown, fallback = 0) {
+  if (value === null || value === undefined || String(value).trim() === '') return fallback;
   const parsed = typeof value === 'number' ? value : Number(String(value ?? '').replace(/,/g, ''));
   return Number.isFinite(parsed) ? parsed : fallback;
 }
@@ -219,6 +221,13 @@ function settingByCatalogId(value: unknown) {
   }).filter(([catalogId]) => Boolean(catalogId)));
 }
 
+function catalogIdFromSetting(setting: Record<string, unknown> | undefined) {
+  if (!setting) return '';
+  const ruleId = text(setting.ruleId ?? setting.rule_id);
+  return text(setting.catalogId ?? setting.catalog_id)
+    || (ruleId.startsWith('CATALOG__') ? ruleId.slice('CATALOG__'.length) : '');
+}
+
 function settingEnabled(setting: Record<string, unknown> | undefined): boolean | null {
   if (!setting) return null;
   const value = setting.active
@@ -249,7 +258,6 @@ export async function loadAlertRuleData(ticker: string) {
     .filter((item): item is RuleCatalogItem => Boolean(item));
   const catalog = deduplicateCatalog(catalogCandidates);
   const saved = settingByCatalogId(settingsPayload);
-  const hasSavedSettings = saved.size > 0;
 
   const rules = catalog.map(item => {
     const matchingSettings = [
@@ -262,8 +270,7 @@ export async function loadAlertRuleData(ticker: string) {
       ?? saved.get(item.catalogId)
       ?? matchingSettings[0];
     const enabled = matchingSettings.some(candidate => settingEnabled(candidate) === true)
-      || (matchingSettings.length > 0 && matchingSettings.every(candidate => settingEnabled(candidate) === null))
-      || !hasSavedSettings;
+      || (matchingSettings.length > 0 && matchingSettings.every(candidate => settingEnabled(candidate) === null));
     const activeOperator = operator(setting?.operator, item.defaultOperator);
     const activeThreshold = number(setting?.threshold, item.defaultThreshold);
     const activeSeverity = severity(setting?.severity, item.defaultSeverity);
@@ -273,7 +280,8 @@ export async function loadAlertRuleData(ticker: string) {
       || `${item.jsonPath} ${activeOperator} ${activeThreshold}`;
     return {
       id: item.catalogId,
-      catalogId: item.catalogId,
+      catalogId: catalogIdFromSetting(setting) || item.catalogId,
+      persisted: matchingSettings.length > 0,
       label: item.monitorField,
       category: item.section,
       enabled,
@@ -301,18 +309,22 @@ export async function loadAlertRuleSettings(ticker: string): Promise<AlertRuleSe
 }
 
 export async function saveAlertRuleSettings(ticker: string, rules: AlertRuleSetting[]) {
+  const settings = rules
+    .filter(rule => rule.persisted || rule.enabled)
+    .map(rule => ({
+      catalogId: rule.catalogId,
+      active: rule.enabled,
+      operator: rule.operator,
+      threshold: rule.threshold,
+      severity: rule.severity[0].toUpperCase() + rule.severity.slice(1),
+    }));
+
   return authenticatedFetch(
     `/rule-catalog/user-settings?ticker=${encodeURIComponent(ticker.toUpperCase())}`,
     {
       method: 'POST',
       body: JSON.stringify({
-        settings: rules.map(rule => ({
-          catalogId: rule.catalogId,
-          active: rule.enabled,
-          operator: rule.operator,
-          threshold: rule.threshold,
-          severity: rule.severity[0].toUpperCase() + rule.severity.slice(1),
-        })),
+        settings,
       }),
     },
   );
