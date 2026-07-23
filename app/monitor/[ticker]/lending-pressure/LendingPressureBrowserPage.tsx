@@ -162,7 +162,15 @@ function buildLendingPayload(historyPayload: unknown) {
     },
     marginRecords: sortedHistory
       .filter(row => row.tradeDate)
-      .map(row => ({ date: String(row.tradeDate), averageDurationDays: optionalNumeric(row.averageDurationDays) ?? undefined })),
+      .map(row => {
+        const averageDurationDays = optionalNumeric(row.averageDurationDays);
+        return {
+          date: String(row.tradeDate),
+          averageDurationDays: averageDurationDays !== null && averageDurationDays > 0
+            ? averageDurationDays
+            : undefined,
+        };
+      }),
   };
 }
 
@@ -389,7 +397,9 @@ export function LendingPressureBrowserPage({ ticker }: { ticker: string }) {
   }
 
   const { lendingData, marginRecords } = buildLendingPayload(historyPayload);
-  const sortedMarginRecords = [...marginRecords].filter(row => row.date).sort((a, b) => b.date.localeCompare(a.date));
+  const sortedMarginRecords = [...marginRecords]
+    .filter(row => row.date && optionalNumeric(row.averageDurationDays) !== null)
+    .sort((a, b) => b.date.localeCompare(a.date));
   const latestMarginRecord = sortedMarginRecords[0];
   const previousMarginRecord = sortedMarginRecords[1];
   const current = record(lendingData.current);

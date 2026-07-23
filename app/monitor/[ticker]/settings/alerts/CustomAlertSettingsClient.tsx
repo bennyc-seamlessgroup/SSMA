@@ -157,7 +157,7 @@ export function CustomAlertSettingsClient({ ticker }: { ticker: string }) {
     });
   }
 
-  if (loading) return <PortalPageLoading variant="generic" />;
+  if (loading) return <PortalPageLoading variant="alertRules" />;
 
   return (
     <div className="page custom-alert-settings-page">

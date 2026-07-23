@@ -11,7 +11,7 @@ export type RuleCatalogItem = {
   section: string;
   monitorField: string;
   description: string;
-  s3Path: string;
+  s3Path?: string;
   jsonPath: string;
   unit: AlertUnit;
   defaultOperator: AlertOperator;
@@ -21,8 +21,10 @@ export type RuleCatalogItem = {
 
 export type AlertRuleSetting = {
   id: string;
+  ruleId: string;
   catalogId: string;
   persisted: boolean;
+  ticker: string;
   label: string;
   category: string;
   enabled: boolean;
@@ -258,6 +260,7 @@ export async function loadAlertRuleData(ticker: string) {
     .filter((item): item is RuleCatalogItem => Boolean(item));
   const catalog = deduplicateCatalog(catalogCandidates);
   const saved = settingByCatalogId(settingsPayload);
+  const defaultTargetFile = `s3://data-sync-platform-website-data/${normalizedTicker}_v2_user_inputs.json`;
 
   const rules = catalog.map(item => {
     const matchingSettings = [
@@ -275,13 +278,16 @@ export async function loadAlertRuleData(ticker: string) {
     const activeThreshold = number(setting?.threshold, item.defaultThreshold);
     const activeSeverity = severity(setting?.severity, item.defaultSeverity);
     const targetFile = text(setting?.targetFile ?? setting?.target_file)
-      || item.s3Path.replaceAll('{ticker}', normalizedTicker);
+      || text(item.s3Path).replaceAll('{ticker}', normalizedTicker)
+      || defaultTargetFile;
     const formula = text(setting?.formula)
       || `${item.jsonPath} ${activeOperator} ${activeThreshold}`;
     return {
       id: item.catalogId,
+      ruleId: text(setting?.ruleId ?? setting?.rule_id),
       catalogId: catalogIdFromSetting(setting) || item.catalogId,
       persisted: matchingSettings.length > 0,
+      ticker: normalizedTicker,
       label: item.monitorField,
       category: item.section,
       enabled,
@@ -336,7 +342,7 @@ export async function evaluateAlertRule(rule: AlertRuleSetting): Promise<Trigger
     body: JSON.stringify({
       formula: rule.formula || `${rule.jsonPath} ${rule.operator} ${rule.threshold}`,
       s3_path: rule.targetFile,
-      ruleId: `CATALOG__${rule.catalogId}`,
+      ...(rule.ruleId ? { ruleId: rule.ruleId } : {}),
     }),
   });
   const result = record(payload);

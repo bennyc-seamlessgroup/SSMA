@@ -2076,7 +2076,6 @@ Authorization: <id_token>
     "ticker": "AAPL",
     "status": "ACTIVE",
     "formula": "*.shortInterestFloat > 25",
-    "targetFile": "s3://data-sync-platform-website-data/AAPL_v2_user_inputs.json",
     "description": "Short interest above 25%",
     "createUser": "user@example.com",
     "createDatetime": "2026-07-09T06:39:50Z",
@@ -2100,7 +2099,6 @@ Content-Type: application/json
   "ruleId": "rule-456",
   "ticker": "AAPL",
   "formula": "*.shortInterestFloat > 25",
-  "targetFile": "s3://data-sync-platform-website-data/AAPL_v2_user_inputs.json",
   "status": "ACTIVE",
   "description": "Short interest above 25%"
 }
@@ -2110,7 +2108,6 @@ Content-Type: application/json
 - `ruleId` (string, required): Unique identifier for the rule.
 - `ticker` (string, required): Ticker symbol.
 - `formula` (string, required): Valid Python expression for valuation check (supports jsonpath variables, numbers, operators).
-- `targetFile` (string, required): S3 path to evaluate against.
 - `status` (string, optional): Rule status (`ACTIVE` or `INACTIVE`). Defaults to `ACTIVE`.
 - `description` (string, optional): Brief description of the rule purpose.
 
@@ -2215,7 +2212,6 @@ Authorization: <id_token>
     "section": "Short Selling Pressure",
     "monitorField": "Short Interest Float %",
     "description": "Triggers when short interest relative to free float exceeds your selected limit.",
-    "s3Path": "s3://data-sync-platform-website-data/{ticker}_v2_user_inputs.json",
     "jsonPath": "*.shortInterestFloat",
     "unit": "%",
     "defaultOperator": ">",
@@ -2279,20 +2275,19 @@ Authorization: <id_token>
 **Parameters**:
 - `ticker` (string, optional query parameter): Ticker symbol.
 
-**Response** `200 OK`: Returns user's alert rules (entries starting with `CATALOG__`).
+**Response** `200 OK`: Returns user's alert rules.
 ```json
 [
   {
     "userId": "user-123",
-    "ruleId": "CATALOG__ssp-sif",
+    "ruleId": "a1b2c3d4-e5f6-7a8b-9c0d-e1f2a3b4c5d6",
     "catalogId": "ssp-sif",
     "ticker": "AAPL",
     "operator": ">",
     "threshold": 30.0,
     "severity": "High",
     "status": "ACTIVE",
-    "formula": "*.shortInterestFloat > 30.0",
-    "targetFile": "s3://data-sync-platform-website-data/AAPL_v2_user_inputs.json"
+    "formula": "*.shortInterestFloat > 30.0"
   }
 ]
 ```
@@ -2303,7 +2298,6 @@ Authorization: <id_token>
 
 Save alert rule toggle configurations for the user. 
 * Validates `ticker` against the user's authorized profile tickers.
-* Resolves the `{ticker}` template inside `s3Path` (e.g. replacing it with the actual ticker `AAPL`).
 * Active alert settings are saved with status `ACTIVE`.
 * Disabled settings are kept in the database with status `INACTIVE`.
 

@@ -2,9 +2,9 @@
 
 API documentation:
 
-- [`GET /market-data/current`](./api/INTEGRATION_V7.md#get-market-datacurrent)
-- [`GET /market-data/history`](./api/INTEGRATION_V7.md#get-market-datahistory)
-- [`POST /rule-engine/check`](./api/INTEGRATION_V7.md#post-rule-enginecheck)
+- [`GET /market-data/current`](<./INTEGRATION (7).md#get-market-datacurrent>)
+- [`GET /market-data/history`](<./INTEGRATION (7).md#get-market-datahistory>)
+- [`POST /rule-engine/check`](<./INTEGRATION (7).md#post-rule-enginecheck>)
 
 ## Important
 
@@ -85,4 +85,3 @@ Therefore, the backend must either:
 
 1. populate these rule-engine field names from the source API paths above, or
 2. change the catalog `jsonPath` and formula to evaluate the centralized-v2 paths directly.
-

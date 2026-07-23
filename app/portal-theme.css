@@ -128,6 +128,7 @@ html[data-design-b-theme='dark'] {
   .page-disclaimer-notice,
   .portal-loading-card,
   .portal-loading-panel,
+  .portal-loading-section,
   .short-ai-analysis-card,
   .short-executive-card,
   .short-key-metrics-card,
@@ -563,6 +564,401 @@ html[data-design-b-theme='dark'] {
   .portal-loading-grid .portal-loading-panel--wide { grid-row: auto; }
   .portal-loading-donut-row { grid-template-columns: 1fr; }
   .portal-loading-chart { min-height: 210px; }
+}
+
+/* Page-specific loading geometry. These modifiers intentionally mirror each
+   route's finished composition so content does not jump after data resolves. */
+.portal-loading-section {
+  display: grid;
+  gap: 12px;
+  min-width: 0;
+  padding: 14px;
+}
+
+.portal-loading-block {
+  display: grid;
+  gap: 10px;
+  min-width: 0;
+}
+
+.portal-loading-block__head,
+.portal-loading-settings-head,
+.portal-loading-chart-head {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.portal-loading-block__head > span,
+.portal-loading-settings-head > span,
+.portal-loading-metric-tiles span,
+.portal-loading-metric-tiles strong,
+.portal-loading-metric-tiles small,
+.portal-loading-pagination > span,
+.portal-loading-count,
+.portal-loading-filing-list span {
+  display: block;
+  border-radius: 5px;
+  background: linear-gradient(90deg, var(--ci-surface-muted) 20%, var(--ci-border-soft) 42%, var(--ci-surface-muted) 64%);
+  background-size: 220% 100%;
+  animation: ci-loading-shimmer 1.35s linear infinite;
+}
+
+.portal-loading-block__head > span,
+.portal-loading-settings-head > span {
+  width: 154px;
+  height: 10px;
+}
+
+.portal-loading-chart-head > .portal-loading-panel__head {
+  width: min(310px, 35%);
+  margin: 0;
+}
+
+.portal-loading-chart-head > .portal-loading-toolbar {
+  margin: 0;
+}
+
+.portal-loading-kpis.is-dashboard {
+  grid-template-columns: repeat(12, minmax(0, 1fr));
+}
+
+.portal-loading-kpis.is-dashboard .portal-loading-card {
+  grid-column: span 3;
+  grid-template-rows: auto auto auto 38px;
+  min-height: 128px;
+  padding-bottom: 0;
+}
+
+.portal-loading-kpis.is-dashboard .portal-loading-card:nth-child(n + 5) {
+  grid-column: span 4;
+}
+
+.portal-loading-kpis.is-dashboard .portal-loading-chart.is-spark {
+  align-self: end;
+}
+
+.portal-loading-kpis.is-compact .portal-loading-card {
+  min-height: 104px;
+}
+
+.portal-loading-chart.is-spark {
+  min-height: 38px;
+  margin: 0 -14px;
+  border: 0;
+  background: color-mix(in srgb, var(--ci-accent-soft) 35%, transparent);
+}
+
+.portal-loading-chart.is-spark svg {
+  inset: 5px 0 0;
+  height: 32px;
+}
+
+.portal-loading-chart.is-spark path {
+  stroke-width: 3;
+}
+
+.portal-loading-chart.is-tall {
+  min-height: 400px;
+}
+
+.portal-loading-chart-panel {
+  padding: 14px;
+}
+
+.portal-loading-alert-panel {
+  min-height: 112px;
+}
+
+.portal-loading-alert-panel .portal-loading-list {
+  padding: 8px 0 0;
+}
+
+.portal-loading-ownership-charts {
+  display: grid;
+  grid-template-columns: minmax(320px, .9fr) minmax(380px, 1.1fr);
+  gap: 12px;
+  min-width: 0;
+}
+
+.portal-loading-ownership-charts > .portal-loading-panel {
+  min-height: 360px;
+}
+
+.portal-loading-donut-stack {
+  display: grid;
+  justify-items: center;
+  gap: 10px;
+}
+
+.portal-loading-donut-stack .portal-loading-list {
+  width: 100%;
+}
+
+.portal-loading-executive-grid {
+  display: grid;
+  grid-template-columns: minmax(280px, .72fr) minmax(420px, 1.28fr);
+  gap: 10px;
+  min-width: 0;
+}
+
+.portal-loading-executive-grid > .portal-loading-panel {
+  min-height: 230px;
+}
+
+.portal-loading-score-card > div {
+  display: grid;
+  grid-template-columns: 120px minmax(0, 1fr);
+  align-items: center;
+  gap: 18px;
+}
+
+.portal-loading-metric-tiles {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.portal-loading-metric-tiles > div {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+  min-height: 76px;
+  align-content: center;
+  padding: 10px;
+  border: 1px solid var(--ci-border-soft);
+  border-radius: 7px;
+  background: var(--ci-surface-muted);
+}
+
+.portal-loading-metric-tiles span { width: 58%; height: 7px; }
+.portal-loading-metric-tiles strong { width: 78%; height: 19px; }
+.portal-loading-metric-tiles small { width: 45%; height: 6px; }
+
+.portal-loading-ai-panel {
+  min-height: 104px;
+}
+
+.portal-loading-lending-charts {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  min-width: 0;
+}
+
+.portal-loading-lending-charts .portal-loading-panel {
+  min-height: 244px;
+}
+
+.portal-loading-status-panel {
+  min-height: 150px;
+}
+
+.portal-loading-float-summary-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.45fr) minmax(280px, .55fr);
+  gap: 10px;
+  min-width: 0;
+}
+
+.portal-loading-float-summary-grid .portal-loading-kpis {
+  grid-template-columns: minmax(300px, 1.45fr) minmax(160px, .75fr);
+}
+
+.portal-loading-float-summary-grid > .portal-loading-panel {
+  min-height: 104px;
+}
+
+.portal-loading-waterfall-section .portal-loading-chart {
+  min-height: 190px;
+}
+
+.portal-loading-activity-section {
+  min-height: 430px;
+}
+
+.portal-loading-sentiment-section {
+  gap: 12px;
+}
+
+.portal-loading-sentiment-feed .portal-loading-chart {
+  min-height: 260px;
+}
+
+.portal-loading-sentiment-feed .portal-loading-list > b {
+  height: 64px;
+}
+
+.portal-loading-sec-filings {
+  display: grid;
+  gap: 16px;
+  padding: 20px;
+}
+
+.portal-loading-count {
+  width: 120px;
+  height: 8px;
+}
+
+.portal-loading-filing-list {
+  display: grid;
+  border-top: 1px solid var(--ci-border-soft);
+}
+
+.portal-loading-filing-list > div {
+  display: grid;
+  grid-template-columns: minmax(100px, .18fr) minmax(82px, .12fr) minmax(0, 1fr);
+  gap: 22px;
+  padding: 14px 4px;
+  border-bottom: 1px solid var(--ci-border-soft);
+}
+
+.portal-loading-filing-list span {
+  height: 10px;
+}
+
+.portal-loading-filing-list span:last-child {
+  height: 30px;
+}
+
+.portal-loading-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 7px;
+  padding: 12px 14px;
+}
+
+.portal-loading-pagination > span {
+  width: 30px;
+  height: 28px;
+}
+
+.portal-loading-table > .portal-loading-toolbar {
+  padding: 0 14px 10px;
+}
+
+.portal-loading-profile-grid {
+  display: grid;
+  grid-template-columns: minmax(360px, 1.15fr) minmax(300px, .85fr);
+  gap: 12px;
+  min-width: 0;
+}
+
+.portal-loading-rule-group {
+  padding: 0;
+}
+
+.portal-loading-rule-group > .portal-loading-panel__head {
+  margin: 0;
+  padding: 14px;
+  border-bottom: 1px solid var(--ci-border-soft);
+}
+
+.portal-loading-rule-group > .portal-loading-list {
+  padding: 12px 14px 14px;
+}
+
+.portal-loading-generic {
+  min-height: 320px;
+}
+
+@media (max-width: 1180px) {
+  .portal-loading-kpis.is-dashboard {
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+  }
+
+  .portal-loading-kpis.is-dashboard .portal-loading-card {
+    grid-column: span 2;
+  }
+
+  .portal-loading-kpis.is-dashboard .portal-loading-card:nth-child(n + 4) {
+    grid-column: span 3;
+  }
+
+  .portal-loading-chart-head {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .portal-loading-chart-head > .portal-loading-panel__head {
+    width: 100%;
+  }
+
+  .portal-loading-chart-head > .portal-loading-toolbar {
+    justify-content: flex-start;
+  }
+
+  .portal-loading-lending-charts {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .portal-loading-lending-charts > :last-child {
+    grid-column: 1 / -1;
+  }
+}
+
+@media (max-width: 900px) {
+  .portal-loading-ownership-charts,
+  .portal-loading-executive-grid,
+  .portal-loading-float-summary-grid,
+  .portal-loading-profile-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .portal-loading-sentiment-overview {
+    grid-template-columns: 1fr;
+  }
+
+  .portal-loading-sentiment-overview .portal-loading-panel {
+    min-height: 210px;
+  }
+}
+
+@media (max-width: 720px) {
+  .portal-loading-block__head,
+  .portal-loading-settings-head {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .portal-loading-kpis.is-dashboard {
+    grid-template-columns: 1fr;
+  }
+
+  .portal-loading-kpis.is-dashboard .portal-loading-card,
+  .portal-loading-kpis.is-dashboard .portal-loading-card:nth-child(n + 4),
+  .portal-loading-kpis.is-dashboard .portal-loading-card:nth-child(n + 5) {
+    grid-column: auto;
+  }
+
+  .portal-loading-score-card > div,
+  .portal-loading-donut-row,
+  .portal-loading-lending-charts,
+  .portal-loading-metric-tiles,
+  .portal-loading-float-summary-grid .portal-loading-kpis {
+    grid-template-columns: 1fr;
+  }
+
+  .portal-loading-lending-charts > :last-child {
+    grid-column: auto;
+  }
+
+  .portal-loading-toolbar {
+    max-width: 100%;
+    overflow: hidden;
+  }
+
+  .portal-loading-filing-list > div {
+    grid-template-columns: 80px 65px minmax(0, 1fr);
+    gap: 10px;
+  }
+
+  .portal-loading-chart.is-tall {
+    min-height: 280px;
+  }
 }
 
 /* Compact shell controls */

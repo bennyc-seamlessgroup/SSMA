@@ -5969,6 +5969,11 @@ html[data-design-b-theme="dark"] .ops-import-refreshed {
   background: #fffaf0;
 }
 
+.ops-readiness-row.is-optional {
+  border-color: #dbe5f1;
+  background: #f8fafc;
+}
+
 .ops-readiness-check {
   display: grid;
   width: 24px;
@@ -5982,6 +5987,11 @@ html[data-design-b-theme="dark"] .ops-import-refreshed {
 .ops-readiness-list .is-missing .ops-readiness-check {
   background: #fef3c7;
   color: #b45309;
+}
+
+.ops-readiness-list .is-optional .ops-readiness-check {
+  background: #e8f1ff;
+  color: #2563eb;
 }
 
 .ops-readiness-list span strong,
@@ -6106,6 +6116,74 @@ html[data-design-b-theme="dark"] .ops-import-refreshed {
 
 .ops-market-table {
   min-width: 1220px;
+}
+
+.ops-history-toolbar {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 12px;
+}
+
+.ops-history-toolbar > span {
+  flex: 0 0 auto;
+  color: #6a7d94;
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.ops-history-date-range {
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+}
+
+.ops-history-date-range label {
+  display: grid;
+  gap: 5px;
+  color: #52677f;
+  font-size: 10px;
+  font-weight: 850;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+}
+
+.ops-history-date-range input {
+  width: 158px;
+  min-height: 36px;
+  border: 1px solid #d9e2ee;
+  border-radius: 8px;
+  background: #ffffff;
+  color: #0f172a;
+  font: inherit;
+  font-size: 12px;
+  padding: 0 10px;
+}
+
+.ops-history-date-arrow {
+  min-height: 36px;
+  display: inline-flex;
+  align-items: center;
+  color: #7c8da3;
+  font-size: 11px;
+  font-weight: 750;
+}
+
+@media (max-width: 720px) {
+  .ops-history-toolbar,
+  .ops-history-date-range {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .ops-history-date-range input {
+    width: 100%;
+  }
+
+  .ops-history-date-arrow {
+    display: none;
+  }
 }
 
 .internal-float-demo-banner {
@@ -27998,6 +28076,43 @@ html[data-design-b-theme="dark"] .ops-record-count,
 html[data-design-b-theme="dark"] .ops-log-list span {
   background: #26364b;
   color: #a9c8f5;
+}
+
+html[data-design-b-theme="dark"] .ops-history-toolbar > span,
+html[data-design-b-theme="dark"] .ops-history-date-range label,
+html[data-design-b-theme="dark"] .ops-history-date-arrow {
+  color: #9fb0c5;
+}
+
+html[data-design-b-theme="dark"] .ops-history-date-range input {
+  border-color: #3b4b61;
+  background: #172235;
+  color: #e8eff8;
+  color-scheme: dark;
+}
+
+html[data-design-b-theme="dark"] .ops-readiness-row {
+  border-color: #3b4b61;
+  background: #1e293b;
+}
+
+html[data-design-b-theme="dark"] .ops-readiness-row.is-missing {
+  border-color: #745321;
+  background: #2d281f;
+}
+
+html[data-design-b-theme="dark"] .ops-readiness-row.is-optional {
+  border-color: #3b4b61;
+  background: #172235;
+}
+
+html[data-design-b-theme="dark"] .ops-readiness-list span strong,
+html[data-design-b-theme="dark"] .ops-readiness-row b {
+  color: #e8eff8;
+}
+
+html[data-design-b-theme="dark"] .ops-readiness-list span small {
+  color: #9fb0c5;
 }
 
 /* Dashboard dark surfaces must override the legacy light chart primitives below. */

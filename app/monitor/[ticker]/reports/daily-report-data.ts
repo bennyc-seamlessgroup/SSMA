@@ -180,7 +180,11 @@ export async function buildDailyReportData(report: ReportArchiveRecord) {
   const maintenanceMargin = metric('maintenanceMargin', true);
   const shortableShares = metric('availableShares');
   const utilization = metric('utilizationPercent');
-  const averageDuration = metric('averageDurationDays');
+  const averageDurationValues = eligibleRecords
+    .map(row => numberOrNull(row.averageDurationDays))
+    .filter((value): value is number => value !== null && value > 0);
+  const averageDuration = averageDurationValues[0] ?? null;
+  const priorAverageDuration = averageDurationValues[1] ?? null;
   const daysToCover = metric('daysToCover');
   const shortScore = metric('shortScore');
   const previousShortScore = priorMetric('shortScore');
@@ -236,7 +240,7 @@ export async function buildDailyReportData(report: ReportArchiveRecord) {
       { label: 'Maintenance Margin', value: maintenanceMargin === null ? 'N/A' : `${formatNumber(maintenanceMargin)}%`, ...comparison(maintenanceMargin, priorMetric('maintenanceMargin', true), 'percent') },
       { label: 'Shortable Shares', value: compactNumber(shortableShares), ...comparison(shortableShares, priorMetric('availableShares'), 'shares', true) },
       { label: 'Utilization', value: utilization === null ? 'N/A' : `${formatNumber(utilization)}%`, ...comparison(utilization, priorMetric('utilizationPercent'), 'percent') },
-      { label: 'Average Duration', value: averageDuration === null ? 'N/A' : `${formatNumber(averageDuration)}d`, ...comparison(averageDuration, priorMetric('averageDurationDays'), 'days') },
+      { label: 'Average Duration', value: averageDuration === null ? 'N/A' : `${formatNumber(averageDuration)}d`, ...comparison(averageDuration, priorAverageDuration, 'days') },
       { label: 'Days to Cover', value: daysToCover === null ? 'N/A' : `${formatNumber(daysToCover)}d`, ...comparison(daysToCover, priorMetric('daysToCover'), 'days') },
     ],
     shortInterestScore: {

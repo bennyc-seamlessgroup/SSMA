@@ -121,6 +121,11 @@ function numericOrNull(value: unknown) {
   return Number.isFinite(parsed) ? parsed : null;
 }
 
+function positiveNumericOrNull(value: unknown) {
+  const numeric = numericOrNull(value);
+  return numeric !== null && numeric > 0 ? numeric : null;
+}
+
 function normalizeMarginPercent(value: unknown, valueFormat?: string, displayFormat?: string) {
   const numeric = numericOrNull(value);
   if (numeric === null) return null;
@@ -174,7 +179,7 @@ function historyMarginRecords(records: MarketHistoryRecord[], ticker: string): D
       const displayFormat = record.displayFormat ?? 'percent';
       const initialMargin = normalizeMarginPercent(maxNumeric(record.initialMargin, record.initialMarginIbkr, record.initialMarginFutu), valueFormat, displayFormat);
       const maintenanceMargin = normalizeMarginPercent(maxNumeric(record.maintenanceMargin, record.maintenanceMarginIbkr, record.maintenanceMarginFutu), valueFormat, displayFormat);
-      const averageDurationDays = numericOrNull(record.averageDurationDays);
+      const averageDurationDays = positiveNumericOrNull(record.averageDurationDays);
       if (initialMargin === null && maintenanceMargin === null && averageDurationDays === null) return null;
       return {
         id: `market-history-margin-${date}-${index}`,
@@ -249,7 +254,7 @@ function marketHistoryToDashboardData(
         shortableShares: numericOrNull(row.availableShares ?? row.availableSharesIbkr ?? row.availableSharesFutu ?? row.availableSharesChartExchange),
         daysToCover: numericOrNull(row.daysToCover),
         utilization: numericOrNull(row.utilizationPercent),
-        averageDuration: numericOrNull(row.averageDurationDays),
+        averageDuration: positiveNumericOrNull(row.averageDurationDays),
         margin: normalizeMarginPercent(row.initialMargin, row.valueFormat, row.displayFormat),
       };
     })

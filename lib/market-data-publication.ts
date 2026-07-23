@@ -91,7 +91,10 @@ export function marketPublicationFields(record: MarketPublicationRecord | null |
 }
 
 export function isCompleteMarketPublicationRecord(record: MarketPublicationRecord | null | undefined) {
-  return Boolean(marketRecordDate(record ?? {})) && marketPublicationFields(record).every(field => field.value !== null);
+  return Boolean(marketRecordDate(record ?? {}))
+    && marketPublicationFields(record)
+      .filter(field => !['utilizationPercent', 'averageDurationDays'].includes(field.key))
+      .every(field => field.value !== null);
 }
 
 export function latestCompleteMarketPublicationRecord<T extends MarketPublicationRecord>(records: T[]) {
@@ -146,7 +149,9 @@ export function marketPublicationRecordForDate(
     maintenanceMargin,
     maintenanceMarginIbkr: margins?.maintenanceMarginIbkr ?? market.maintenanceMarginIbkr ?? null,
     maintenanceMarginFutu: margins?.maintenanceMarginFutu ?? market.maintenanceMarginFutu ?? null,
-    averageDurationDays: margins?.averageDurationDays ?? market.averageDurationDays ?? null,
+    averageDurationDays: margins && Object.prototype.hasOwnProperty.call(margins, 'averageDurationDays')
+      ? margins.averageDurationDays
+      : market.averageDurationDays ?? null,
   };
 }
 

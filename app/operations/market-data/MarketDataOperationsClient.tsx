@@ -6,6 +6,7 @@ import { authenticatedFetch } from '@/lib/auth-client';
 import {
   isCompleteMarketPublicationRecord,
   latestCompleteMarketPublicationRecordFromSources,
+  marketNumber,
   marketPublicationFields,
   marketPublicationRecordForDate,
   marketRecordDate,
@@ -24,7 +25,7 @@ type DateSpecificRecord = {
 };
 
 type UtilizationRecord = DateSpecificRecord & {
-  utilizationPercent?: number;
+  utilizationPercent?: number | null;
 };
 
 type AvailabilityRecord = DateSpecificRecord & {
@@ -37,7 +38,7 @@ type MarginRecord = DateSpecificRecord & {
   initialMarginFutu?: number;
   maintenanceMarginIbkr?: number;
   maintenanceMarginFutu?: number;
-  averageDurationDays?: number;
+  averageDurationDays?: number | null;
   valueFormat?: string;
   displayFormat?: string;
 };
@@ -56,7 +57,7 @@ type MarketInputRow = {
   initialMarginFutu?: number;
   maintenanceMarginIbkr?: number;
   maintenanceMarginFutu?: number;
-  averageDurationDays?: number;
+  averageDurationDays?: number | null;
   shortScore?: number;
   updatedAt?: string;
   updatedBy?: string;
@@ -77,6 +78,7 @@ type FormState = {
 };
 
 const dateSpecificCategories = ['utilization', 'manual-availability', 'margins', 'short-score'] as const;
+const historyPageSize = 10;
 
 function emptyForm(): FormState {
   return {
@@ -102,6 +104,21 @@ function numberOrUndefined(value: string) {
   if (!value.trim()) return undefined;
   const parsed = Number(value.replace(/[%,$,]/g, ''));
   return Number.isFinite(parsed) ? parsed : undefined;
+}
+
+function latestPriorMetric(
+  records: MarketPublicationRecord[],
+  selectedDate: string,
+  key: 'utilizationPercent' | 'averageDurationDays',
+) {
+  return [...records]
+    .filter(record => marketRecordDate(record) < selectedDate)
+    .sort((a, b) => marketRecordDate(b).localeCompare(marketRecordDate(a)))
+    .map(record => ({
+      date: marketRecordDate(record),
+      value: marketNumber(record[key]),
+    }))
+    .find(item => item.value !== null && (key !== 'averageDurationDays' || item.value > 0)) ?? null;
 }
 
 function formatShareInput(value: unknown) {
@@ -156,24 +173,24 @@ function formatReadinessValue(field: ReturnType<typeof marketPublicationFields>[
   return formatPercent(field.value);
 }
 
-function formatDateTime(value?: string) {
-  if (!value) return 'N/A';
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return 'N/A';
-  return new Intl.DateTimeFormat('en-US', {
-    month: 'short',
-    day: 'numeric',
-    year: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-  }).format(date);
-}
-
 function recordsFromPayload<T>(value: unknown): T[] {
   if (Array.isArray(value)) return value as T[];
   if (isRecord(value) && Array.isArray(value.records)) return value.records as T[];
   if (isRecord(value) && Array.isArray(value.data)) return value.data as T[];
   if (isRecord(value) && isRecord(value.data) && Array.isArray(value.data.records)) return value.data.records as T[];
+  return [];
+}
+
+function exactDateRecordsFromPayload<T extends DateSpecificRecord>(value: unknown, tradeDate: string): T[] {
+  const records = recordsFromPayload<T>(value);
+  if (records.length) {
+    return records.filter(record => !record.tradeDate || record.tradeDate.slice(0, 10) === tradeDate);
+  }
+  if (isRecord(value)) {
+    const returnedDate = String(value.tradeDate ?? value.date ?? '').slice(0, 10);
+    if (returnedDate && returnedDate !== tradeDate) return [];
+    return [{ ...value, tradeDate } as T];
+  }
   return [];
 }
 
@@ -253,7 +270,7 @@ function mergeRows(
   utilization.forEach(record => {
     if (!record.tradeDate) return;
     const target = row(record.tradeDate);
-    target.utilizationPercent = record.utilizationPercent;
+    target.utilizationPercent = record.utilizationPercent ?? undefined;
     const meta = latestMeta(target as DateSpecificRecord, record);
     target.updatedAt = meta?.updatedAt ?? meta?.createdAt;
     target.updatedBy = meta?.updatedBy ?? meta?.createdBy;
@@ -291,6 +308,29 @@ function mergeRows(
   return [...rows.values()].sort((a, b) => b.tradeDate.localeCompare(a.tradeDate));
 }
 
+function marketHistoryInputRows(history: MarketPublicationRecord[]): MarketInputRow[] {
+  const rows: MarketInputRow[] = [];
+  history.forEach(record => {
+    const tradeDate = marketRecordDate(record);
+    if (tradeDate) {
+      rows.push({
+        tradeDate,
+        issuedShare: marketNumber(record.issuedShare) ?? undefined,
+        utilizationPercent: marketNumber(record.utilizationPercent) ?? undefined,
+        availableSharesIbkr: marketNumber(record.availableSharesIbkr) ?? undefined,
+        availableSharesFutu: marketNumber(record.availableSharesFutu) ?? undefined,
+        initialMarginIbkr: marketNumber(record.initialMarginIbkr) ?? undefined,
+        initialMarginFutu: marketNumber(record.initialMarginFutu) ?? undefined,
+        maintenanceMarginIbkr: marketNumber(record.maintenanceMarginIbkr) ?? undefined,
+        maintenanceMarginFutu: marketNumber(record.maintenanceMarginFutu) ?? undefined,
+        averageDurationDays: marketNumber(record.averageDurationDays),
+        shortScore: marketNumber(record.shortScore) ?? undefined,
+      });
+    }
+  });
+  return rows.sort((a, b) => b.tradeDate.localeCompare(a.tradeDate));
+}
+
 function formFromDailyRecord(tradeDate: string, record: MarketInputRow | undefined, issuedShare: number | undefined): FormState {
   return {
     ...emptyForm(),
@@ -303,7 +343,7 @@ function formFromDailyRecord(tradeDate: string, record: MarketInputRow | undefin
     initialMarginFutu: ratioToPercent(record?.initialMarginFutu),
     maintenanceMarginIbkr: ratioToPercent(record?.maintenanceMarginIbkr),
     maintenanceMarginFutu: ratioToPercent(record?.maintenanceMarginFutu),
-    averageDurationDays: record?.averageDurationDays === undefined ? '' : String(record.averageDurationDays),
+    averageDurationDays: record?.averageDurationDays == null ? '' : String(record.averageDurationDays),
     shortScore: record?.shortScore === undefined ? '' : String(record.shortScore),
   };
 }
@@ -312,17 +352,23 @@ export function MarketDataOperationsClient() {
   const [selectedTicker, setSelectedTicker] = useState('CURR');
   const [form, setForm] = useState<FormState>(() => emptyForm());
   const [rows, setRows] = useState<MarketInputRow[]>([]);
+  const [loadedManualRecord, setLoadedManualRecord] = useState<MarketInputRow | null>(null);
   const [marketHistory, setMarketHistory] = useState<MarketPublicationRecord[]>([]);
   const [apiDebugRows, setApiDebugRows] = useState<OperationsDevelopmentDatum[]>([]);
   const [status, setStatus] = useState<'checking' | 'loading' | 'idle' | 'saving' | 'success' | 'error' | 'forbidden'>('checking');
   const [message, setMessage] = useState('');
   const [deletingDate, setDeletingDate] = useState('');
   const [editingDate, setEditingDate] = useState('');
+  const [historyStartDate, setHistoryStartDate] = useState('');
+  const [historyEndDate, setHistoryEndDate] = useState('');
+  const [historyPage, setHistoryPage] = useState(1);
+  const [historyRefreshing, setHistoryRefreshing] = useState(false);
+  const [historyRefreshMessage, setHistoryRefreshMessage] = useState('');
   const [nowMs, setNowMs] = useState(() => Date.now());
 
   async function loadApi(endpoint: string) {
     try {
-      const payload = await authenticatedFetch(endpoint);
+      const payload = await authenticatedFetch(endpoint, { cache: 'no-store' });
       return {
         payload,
         debug: {
@@ -353,6 +399,8 @@ export function MarketDataOperationsClient() {
     additionalDebugRows: OperationsDevelopmentDatum[] = [],
   ) {
     const normalized = normalizeTicker(ticker);
+    const selectedTradeDate = form.tradeDate || latestClosedUsMarketDate();
+    const selectedTradeDateParam = encodeURIComponent(selectedTradeDate);
     setStatus('loading');
     if (!preserveFeedback) setMessage('');
     try {
@@ -360,10 +408,10 @@ export function MarketDataOperationsClient() {
         `/market-data/current?ticker=${encodeURIComponent(normalized)}&category=market-current`,
         `/market-data/history?ticker=${encodeURIComponent(normalized)}&category=market-history`,
         `/manual-input/issued-share?ticker=${encodeURIComponent(normalized)}`,
-        `/manual-input/utilization?ticker=${encodeURIComponent(normalized)}`,
-        `/manual-input/manual-availability?ticker=${encodeURIComponent(normalized)}`,
-        `/manual-input/margins?ticker=${encodeURIComponent(normalized)}`,
-        `/manual-input/short-score?ticker=${encodeURIComponent(normalized)}`,
+        `/manual-input/utilization?ticker=${encodeURIComponent(normalized)}&tradeDate=${selectedTradeDateParam}`,
+        `/manual-input/manual-availability?ticker=${encodeURIComponent(normalized)}&tradeDate=${selectedTradeDateParam}`,
+        `/manual-input/margins?ticker=${encodeURIComponent(normalized)}&tradeDate=${selectedTradeDateParam}`,
+        `/manual-input/short-score?ticker=${encodeURIComponent(normalized)}&tradeDate=${selectedTradeDateParam}`,
       ];
       const [marketCurrentResult, marketHistoryResult, issuedShareResult, utilizationResult, availabilityResult, marginsResult, shortScoreResult] = await Promise.all([
         loadApi(endpoints[0]),
@@ -378,28 +426,108 @@ export function MarketDataOperationsClient() {
         ...[marketCurrentResult, marketHistoryResult, issuedShareResult, utilizationResult, availabilityResult, marginsResult, shortScoreResult].map(result => result.debug),
         ...additionalDebugRows,
       ]);
-      setMarketHistory(recordsFromPayload<MarketPublicationRecord>(marketHistoryResult.payload));
+      const historyRecords = recordsFromPayload<MarketPublicationRecord>(marketHistoryResult.payload);
+      setMarketHistory(historyRecords);
       const issuedShare = numberOrUndefined(String((issuedShareResult.payload as { issuedShare?: unknown } | null)?.issuedShare ?? ''));
-      const mergedRows = mergeRows(
+      const selectedManualRows = mergeRows(
         issuedShare,
-        recordsFromPayload<UtilizationRecord>(utilizationResult.payload),
-        recordsFromPayload<AvailabilityRecord>(availabilityResult.payload),
-        recordsFromPayload<MarginRecord>(marginsResult.payload),
-        recordsFromPayload<ShortScoreRecord>(shortScoreResult.payload),
+        exactDateRecordsFromPayload<UtilizationRecord>(utilizationResult.payload, selectedTradeDate),
+        exactDateRecordsFromPayload<AvailabilityRecord>(availabilityResult.payload, selectedTradeDate),
+        exactDateRecordsFromPayload<MarginRecord>(marginsResult.payload, selectedTradeDate),
+        exactDateRecordsFromPayload<ShortScoreRecord>(shortScoreResult.payload, selectedTradeDate),
       );
+      const selectedManualRecord = selectedManualRows.find(record => record.tradeDate === selectedTradeDate);
+      const historyRows = marketHistoryInputRows(historyRecords);
       setSelectedTicker(normalized);
       setOperationsTicker(normalized);
-      setForm(current => {
-        const tradeDate = current.tradeDate || latestClosedUsMarketDate();
-        return formFromDailyRecord(tradeDate, mergedRows.find(record => record.tradeDate === tradeDate), issuedShare);
-      });
-      setRows(mergedRows);
+      setForm(formFromDailyRecord(
+        selectedTradeDate,
+        selectedManualRecord,
+        issuedShare,
+      ));
+      setLoadedManualRecord(selectedManualRecord ?? null);
+      setRows(historyRows);
       setEditingDate('');
       setStatus(preserveFeedback ? 'success' : 'idle');
     } catch (error) {
       setStatus('error');
       setMessage(error instanceof Error ? error.message : 'Unable to load Manual Input V2 records.');
     }
+  }
+
+  async function loadManualInputsForDate(tradeDate: string, editAfterLoad = false) {
+    if (!tradeDate) return;
+    const availability = marketEntryAvailability(tradeDate, new Date());
+    const issuedShare = numberOrUndefined(form.issuedShare);
+
+    setForm(formFromDailyRecord(tradeDate, undefined, issuedShare));
+    setLoadedManualRecord(null);
+    setEditingDate('');
+    setMessage('');
+
+    if (!availability.isOpen) {
+      setStatus('idle');
+      return;
+    }
+
+    const tickerParam = encodeURIComponent(selectedTicker);
+    const tradeDateParam = encodeURIComponent(tradeDate);
+    const endpoints = [
+      `/manual-input/utilization?ticker=${tickerParam}&tradeDate=${tradeDateParam}`,
+      `/manual-input/manual-availability?ticker=${tickerParam}&tradeDate=${tradeDateParam}`,
+      `/manual-input/margins?ticker=${tickerParam}&tradeDate=${tradeDateParam}`,
+      `/manual-input/short-score?ticker=${tickerParam}&tradeDate=${tradeDateParam}`,
+    ];
+
+    setStatus('loading');
+
+    const [utilizationResult, availabilityResult, marginsResult, shortScoreResult] = await Promise.all(
+      endpoints.map(endpoint => loadApi(endpoint)),
+    );
+    const exactRows = mergeRows(
+      issuedShare,
+      exactDateRecordsFromPayload<UtilizationRecord>(utilizationResult.payload, tradeDate),
+      exactDateRecordsFromPayload<AvailabilityRecord>(availabilityResult.payload, tradeDate),
+      exactDateRecordsFromPayload<MarginRecord>(marginsResult.payload, tradeDate),
+      exactDateRecordsFromPayload<ShortScoreRecord>(shortScoreResult.payload, tradeDate),
+    );
+
+    setApiDebugRows(current => [
+      ...current.filter(row => !endpoints.some(endpoint => row.endpoint === `GET ${endpoint}`)),
+      utilizationResult.debug,
+      availabilityResult.debug,
+      marginsResult.debug,
+      shortScoreResult.debug,
+    ]);
+    const exactRecord = exactRows.find(record => record.tradeDate === tradeDate);
+    setForm(formFromDailyRecord(tradeDate, exactRecord, issuedShare));
+    setLoadedManualRecord(exactRecord ?? null);
+    setEditingDate(editAfterLoad ? tradeDate : '');
+    setStatus('idle');
+  }
+
+  async function refreshConsolidatedHistory() {
+    const endpoint = `/market-data/history?ticker=${encodeURIComponent(selectedTicker)}&category=market-history`;
+    setHistoryRefreshing(true);
+    setHistoryRefreshMessage('');
+    const result = await loadApi(endpoint);
+    setApiDebugRows(current => [
+      ...current.filter(row => row.endpoint !== `GET ${endpoint}`),
+      result.debug,
+    ]);
+
+    if (result.debug.state.startsWith('error')) {
+      setHistoryRefreshMessage('Unable to refresh consolidated history.');
+      setHistoryRefreshing(false);
+      return;
+    }
+
+    const historyRecords = recordsFromPayload<MarketPublicationRecord>(result.payload);
+    setMarketHistory(historyRecords);
+    setRows(marketHistoryInputRows(historyRecords));
+    setHistoryPage(1);
+    setHistoryRefreshMessage(`Refreshed ${historyRecords.length.toLocaleString()} consolidated records.`);
+    setHistoryRefreshing(false);
   }
 
   useEffect(() => {
@@ -490,7 +618,20 @@ export function MarketDataOperationsClient() {
     const shortableShares = selectedReadiness.find(field => field.key === 'availableShares');
     const chartExchange = shortableShares?.children?.find(field => field.key === 'availableSharesChartExchange');
     const daysToCover = selectedReadiness.find(field => field.key === 'daysToCover');
-    const manualFields = selectedReadiness.filter(field => field.source === 'Manual Input');
+    const utilization = selectedReadiness.find(field => field.key === 'utilizationPercent');
+    const averageDuration = selectedReadiness.find(field => field.key === 'averageDurationDays');
+    const exactUtilization = numberOrUndefined(form.utilizationPercent);
+    const exactAverageDuration = numberOrUndefined(form.averageDurationDays);
+    const priorUtilization = exactUtilization === undefined
+      ? latestPriorMetric(marketHistory, form.tradeDate, 'utilizationPercent')
+      : null;
+    const priorAverageDuration = exactAverageDuration === undefined || exactAverageDuration <= 0
+      ? latestPriorMetric(marketHistory, form.tradeDate, 'averageDurationDays')
+      : null;
+    const manualFields = selectedReadiness.filter(
+      field => field.source === 'Manual Input'
+        && !['utilizationPercent', 'averageDurationDays'].includes(field.key),
+    );
     const manualComplete = manualFields.length > 0
       && manualFields.every(field => field.value !== null)
       && shortableShares?.children?.filter(field => field.source === 'Manual Input').every(field => field.value !== null);
@@ -501,12 +642,28 @@ export function MarketDataOperationsClient() {
       daysToCover ? { ...daysToCover, label: 'Days to Cover' } : null,
       {
         key: 'manualInputData',
-        label: 'Manual Input Data',
+        label: 'IBKR + FUTU Data',
         source: 'Manual Input' as const,
         value: manualComplete ? 1 : null,
       },
+      utilization ? {
+        ...utilization,
+        value: exactUtilization ?? priorUtilization?.value ?? null,
+        optional: true,
+        optionalSourceDate: exactUtilization !== undefined ? form.tradeDate : priorUtilization?.date ?? '',
+      } : null,
+      averageDuration ? {
+        ...averageDuration,
+        value: exactAverageDuration !== undefined && exactAverageDuration > 0
+          ? exactAverageDuration
+          : priorAverageDuration?.value ?? null,
+        optional: true,
+        optionalSourceDate: exactAverageDuration !== undefined && exactAverageDuration > 0
+          ? form.tradeDate
+          : priorAverageDuration?.date ?? '',
+      } : null,
     ].filter((field): field is NonNullable<typeof field> => Boolean(field));
-  }, [selectedReadiness]);
+  }, [form.averageDurationDays, form.tradeDate, form.utilizationPercent, marketHistory, selectedReadiness]);
   const selectedOutputReady = useMemo(() => isCompleteMarketPublicationRecord(selectedReadinessRecord), [selectedReadinessRecord]);
   const publishedRecord = useMemo(
     () => latestCompleteMarketPublicationRecordFromSources(marketHistory, manualPublicationInputs),
@@ -520,38 +677,44 @@ export function MarketDataOperationsClient() {
   );
   const isEditingSavedRecord = Boolean(selectedSavedRecord && editingDate === form.tradeDate);
   const inputFieldsDisabled = !entryAvailability.isOpen || Boolean(selectedSavedRecord && !isEditingSavedRecord);
+  const filteredHistoryRows = useMemo(
+    () => rows.filter(record => (
+      (!historyStartDate || record.tradeDate >= historyStartDate)
+      && (!historyEndDate || record.tradeDate <= historyEndDate)
+    )),
+    [historyEndDate, historyStartDate, rows],
+  );
+  const historyPageCount = Math.max(1, Math.ceil(filteredHistoryRows.length / historyPageSize));
+  const safeHistoryPage = Math.min(historyPage, historyPageCount);
+  const visibleHistoryRows = useMemo(
+    () => filteredHistoryRows.slice(
+      (safeHistoryPage - 1) * historyPageSize,
+      safeHistoryPage * historyPageSize,
+    ),
+    [filteredHistoryRows, safeHistoryPage],
+  );
 
   function updateField(field: keyof FormState, value: string) {
     setForm(current => ({ ...current, [field]: value }));
   }
 
   function selectTradeDate(tradeDate: string) {
-    const record = rows.find(row => row.tradeDate === tradeDate);
-    const issuedShare = numberOrUndefined(form.issuedShare);
-    setForm(formFromDailyRecord(tradeDate, record, issuedShare));
-    setEditingDate('');
-    setMessage('');
+    void loadManualInputsForDate(tradeDate);
   }
 
   function editRecord(record: MarketInputRow) {
-    setForm(formFromDailyRecord(record.tradeDate, record, record.issuedShare));
-    setEditingDate(record.tradeDate);
-    setMessage('');
+    void loadManualInputsForDate(record.tradeDate, true);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
   function beginEditingSelectedRecord() {
     if (!selectedSavedRecord) return;
-    setForm(formFromDailyRecord(selectedSavedRecord.tradeDate, selectedSavedRecord, selectedSavedRecord.issuedShare));
-    setEditingDate(selectedSavedRecord.tradeDate);
-    setMessage('');
+    void loadManualInputsForDate(selectedSavedRecord.tradeDate, true);
   }
 
   function cancelEditingSelectedRecord() {
     if (!selectedSavedRecord) return;
-    setForm(formFromDailyRecord(selectedSavedRecord.tradeDate, selectedSavedRecord, selectedSavedRecord.issuedShare));
-    setEditingDate('');
-    setMessage('');
+    void loadManualInputsForDate(selectedSavedRecord.tradeDate);
   }
 
   async function saveRecord(event: React.FormEvent<HTMLFormElement>) {
@@ -565,11 +728,6 @@ export function MarketDataOperationsClient() {
         : 'This date is not a regular US market trading day. Select a valid trading date.');
       return;
     }
-    if (!selectedOutputReady) {
-      setStatus('error');
-      setMessage('Publication Readiness is incomplete. Resolve every missing vendor and manual input before saving and publishing this trade date.');
-      return;
-    }
     setStatus('saving');
     setMessage('');
 
@@ -578,6 +736,11 @@ export function MarketDataOperationsClient() {
     const requests: NamedRequest[] = [];
     const issuedShare = numberOrUndefined(form.issuedShare);
     const utilizationPercent = numberOrUndefined(form.utilizationPercent);
+    const clearsSavedUtilization = Boolean(
+      loadedManualRecord?.tradeDate === form.tradeDate
+      && loadedManualRecord.utilizationPercent != null
+      && utilizationPercent === undefined,
+    );
     const availableSharesIbkr = numberOrUndefined(form.availableSharesIbkr);
     const availableSharesFutu = numberOrUndefined(form.availableSharesFutu);
     const initialMarginIbkr = percentInputToRatio(form.initialMarginIbkr);
@@ -585,13 +748,24 @@ export function MarketDataOperationsClient() {
     const maintenanceMarginIbkr = percentInputToRatio(form.maintenanceMarginIbkr);
     const maintenanceMarginFutu = percentInputToRatio(form.maintenanceMarginFutu);
     const averageDurationDays = numberOrUndefined(form.averageDurationDays);
+    const clearsSavedAverageDuration = Boolean(
+      isEditingSavedRecord
+      && selectedSavedRecord?.averageDurationDays != null
+      && averageDurationDays === undefined,
+    );
     const shortScore = numberOrUndefined(form.shortScore);
 
     if (issuedShare !== undefined) {
       requests.push({ label: 'Issued Share', request: saveManualInput(`/manual-input/issued-share?ticker=${tickerParam}`, { issuedShare }) });
     }
-    if (utilizationPercent !== undefined) {
-      requests.push({ label: 'Utilization', request: saveManualInput(`/manual-input/utilization?ticker=${tickerParam}&tradeDate=${tradeDateParam}`, { utilizationPercent }) });
+    if (utilizationPercent !== undefined || clearsSavedUtilization) {
+      requests.push({
+        label: 'Utilization',
+        request: saveManualInput(
+          `/manual-input/utilization?ticker=${tickerParam}&tradeDate=${tradeDateParam}`,
+          { utilizationPercent: utilizationPercent ?? null },
+        ),
+      });
     }
     if (availableSharesIbkr !== undefined || availableSharesFutu !== undefined) {
       requests.push({ label: 'Shortable Shares', request: saveManualInput(`/manual-input/manual-availability?ticker=${tickerParam}&tradeDate=${tradeDateParam}`, { availableSharesIbkr, availableSharesFutu }) });
@@ -601,14 +775,15 @@ export function MarketDataOperationsClient() {
       initialMarginFutu !== undefined ||
       maintenanceMarginIbkr !== undefined ||
       maintenanceMarginFutu !== undefined ||
-      averageDurationDays !== undefined
+      averageDurationDays !== undefined ||
+      clearsSavedAverageDuration
     ) {
       requests.push({ label: 'Margins / Average Duration', request: saveManualInput(`/manual-input/margins?ticker=${tickerParam}&tradeDate=${tradeDateParam}`, {
         initialMarginIbkr,
         initialMarginFutu,
         maintenanceMarginIbkr,
         maintenanceMarginFutu,
-        averageDurationDays,
+        averageDurationDays: averageDurationDays ?? null,
         valueFormat: 'decimal_ratio',
         displayFormat: 'percent',
       }) });
@@ -781,8 +956,16 @@ export function MarketDataOperationsClient() {
               ? 'Enter the required values to prepare this trade date.'
               : selectedOutputReady
                 ? 'Publication Readiness is complete. Saving will publish the consolidated data to the user portal.'
-                : 'Complete every Publication Readiness requirement before saving.'}</span>
-            <button className="ops-primary-button" type="submit" disabled={!form.tradeDate || !formHasAnyData || !entryAvailability.isOpen || !selectedOutputReady || Boolean(selectedSavedRecord && !isEditingSavedRecord) || busy}>{status === 'saving' ? 'Publishing...' : 'Save Inputs & Publish'}</button>
+                : 'Inputs can be saved now. The user portal will remain on the latest complete date until Publication Readiness is complete.'}</span>
+            <button
+              className="ops-primary-button"
+              type="submit"
+              disabled={!form.tradeDate || !formHasAnyData || !entryAvailability.isOpen || Boolean(selectedSavedRecord && !isEditingSavedRecord) || busy}
+            >
+              {status === 'saving'
+                ? 'Saving...'
+                : selectedOutputReady ? 'Save Inputs & Publish' : 'Save Inputs'}
+            </button>
           </div>
           {message ? <p className={`ops-form-message ${status === 'error' ? 'bad' : 'good'}`}>{message}</p> : null}
         </form>
@@ -800,14 +983,33 @@ export function MarketDataOperationsClient() {
         <div className="ops-readiness-list">
           {selectedReadinessSummary.map(field => {
             const complete = field.value !== null;
+            const optional = 'optional' in field && field.optional;
+            const optionalSourceDate = 'optionalSourceDate' in field ? field.optionalSourceDate : '';
             return (
               <div className="ops-readiness-group" key={field.key}>
-                <div className={complete ? 'ops-readiness-row is-complete' : 'ops-readiness-row is-missing'}>
+                <div className={optional ? 'ops-readiness-row is-optional' : complete ? 'ops-readiness-row is-complete' : 'ops-readiness-row is-missing'}>
                   <span className="ops-readiness-check" aria-hidden="true">
-                    {complete ? <svg viewBox="0 0 24 24"><path d="m5 12 4 4 10-10" /></svg> : <svg viewBox="0 0 24 24"><path d="M12 7v6m0 4h.01" /><circle cx="12" cy="12" r="9" /></svg>}
+                    {complete
+                      ? <svg viewBox="0 0 24 24"><path d="m5 12 4 4 10-10" /></svg>
+                      : optional
+                        ? <svg viewBox="0 0 24 24"><path d="M12 11v6m0-10h.01" /><circle cx="12" cy="12" r="9" /></svg>
+                        : <svg viewBox="0 0 24 24"><path d="M12 7v6m0 4h.01" /><circle cx="12" cy="12" r="9" /></svg>}
                   </span>
-                  <span><strong>{field.label}</strong><small>{field.source}</small></span>
-                  <b>{field.key === 'manualInputData' ? (complete ? 'Complete' : 'Missing') : formatReadinessValue(field)}</b>
+                  <span>
+                    <strong>{field.label}</strong>
+                    <small>
+                      {optional
+                        ? `${optionalSourceDate ? `Optional - latest available: ${optionalSourceDate}` : 'Optional'} - does not affect publication readiness`
+                        : field.source}
+                    </small>
+                  </span>
+                  <b>
+                    {field.key === 'manualInputData'
+                      ? (complete ? 'Complete' : 'Missing')
+                      : optional && !complete
+                        ? 'Not provided'
+                        : formatReadinessValue(field)}
+                  </b>
                 </div>
               </div>
             );
@@ -815,8 +1017,8 @@ export function MarketDataOperationsClient() {
         </div>
         <p className="ops-readiness-note">
           {selectedOutputReady
-            ? 'The vendor record and every required manual input are present. Save Inputs & Publish to update the user portal and its Last Update time.'
-            : 'The user portal remains on the latest earlier complete date until every required vendor and exact-date manual value is available.'}
+            ? 'Every required vendor and manual value is present. Utilization and Average Duration may be added later without delaying publication.'
+            : 'The user portal remains on the latest earlier complete date until every required value is available. Utilization and Average Duration do not affect readiness.'}
         </p>
       </section>
       </div>
@@ -848,7 +1050,61 @@ export function MarketDataOperationsClient() {
             <span className="ops-eyebrow">{dateSpecificCategories.join(' / ')}</span>
             <h2>Saved Daily Inputs</h2>
           </div>
-          <span className="ops-record-count">{rows.length.toLocaleString()} dates</span>
+          <div className="ops-market-form-head-actions">
+            <span className="ops-record-count">{filteredHistoryRows.length.toLocaleString()} dates</span>
+            <button
+              className="ops-secondary-button"
+              type="button"
+              disabled={historyRefreshing}
+              onClick={() => void refreshConsolidatedHistory()}
+            >
+              {historyRefreshing ? 'Refreshing...' : 'Refresh'}
+            </button>
+          </div>
+        </div>
+        <div className="ops-history-toolbar">
+          <div className="ops-history-date-range" aria-label="Filter saved inputs by trade date">
+            <label>
+              <span>Start date</span>
+              <input
+                type="date"
+                value={historyStartDate}
+                max={historyEndDate || undefined}
+                suppressHydrationWarning
+                onChange={event => {
+                  setHistoryStartDate(event.target.value);
+                  setHistoryPage(1);
+                }}
+              />
+            </label>
+            <span className="ops-history-date-arrow" aria-hidden="true">to</span>
+            <label>
+              <span>End date</span>
+              <input
+                type="date"
+                value={historyEndDate}
+                min={historyStartDate || undefined}
+                suppressHydrationWarning
+                onChange={event => {
+                  setHistoryEndDate(event.target.value);
+                  setHistoryPage(1);
+                }}
+              />
+            </label>
+            <button
+              className="ops-secondary-button"
+              type="button"
+              disabled={!historyStartDate && !historyEndDate}
+              onClick={() => {
+                setHistoryStartDate('');
+                setHistoryEndDate('');
+                setHistoryPage(1);
+              }}
+            >
+              Clear
+            </button>
+          </div>
+          <span>{historyRefreshMessage || '10 records per page'}</span>
         </div>
         <div className="ops-table-wrap">
           <table className="ops-table ops-market-table">
@@ -865,12 +1121,11 @@ export function MarketDataOperationsClient() {
                 <th>Futu Maint.</th>
                 <th>Avg Duration</th>
                 <th>Score</th>
-                <th>Updated</th>
                 <th>Action</th>
               </tr>
             </thead>
             <tbody>
-              {rows.map(record => (
+              {visibleHistoryRows.map(record => (
                 <tr key={record.tradeDate}>
                   <td>{record.tradeDate}</td>
                   <td>{formatNumber(record.issuedShare)}</td>
@@ -883,7 +1138,6 @@ export function MarketDataOperationsClient() {
                   <td>{formatPercentFromRatio(record.maintenanceMarginFutu)}</td>
                   <td>{formatDays(record.averageDurationDays)}</td>
                   <td>{formatNumber(record.shortScore, 1)}</td>
-                  <td>{formatDateTime(record.updatedAt)}{record.updatedBy ? ` · ${record.updatedBy}` : ''}</td>
                   <td>
                     <div className="ops-row-actions">
                       <button className="ops-secondary-button" type="button" onClick={() => editRecord(record)}>Edit</button>
@@ -899,9 +1153,16 @@ export function MarketDataOperationsClient() {
                   </td>
                 </tr>
               ))}
-              {!rows.length && <tr><td colSpan={13}>{busy ? 'Loading Manual Input V2 records...' : 'No Manual Input V2 records found for this ticker.'}</td></tr>}
+              {!visibleHistoryRows.length && <tr><td colSpan={12}>{busy ? 'Loading consolidated market history...' : 'No consolidated records match the selected date range.'}</td></tr>}
             </tbody>
           </table>
+        </div>
+        <div className="ops-pagination" aria-label="Saved daily inputs pagination">
+          <button type="button" disabled={safeHistoryPage <= 1} onClick={() => setHistoryPage(1)}>First</button>
+          <button type="button" disabled={safeHistoryPage <= 1} onClick={() => setHistoryPage(page => Math.max(1, page - 1))}>Previous</button>
+          <span>Page {safeHistoryPage} of {historyPageCount}</span>
+          <button type="button" disabled={safeHistoryPage >= historyPageCount} onClick={() => setHistoryPage(page => Math.min(historyPageCount, page + 1))}>Next</button>
+          <button type="button" disabled={safeHistoryPage >= historyPageCount} onClick={() => setHistoryPage(historyPageCount)}>Last</button>
         </div>
       </section>
 
