@@ -38,6 +38,16 @@ type ImportResponse = {
   errors?: unknown[];
 };
 
+type ConsolidationResponse = {
+  message?: string;
+  ticker?: string;
+  detail?: {
+    rebuild_from_date?: string;
+    force_rebuild?: boolean;
+    input_type?: string;
+  };
+};
+
 const categories: CategoryDefinition[] = [
   {
     key: 'utilization', label: 'Utilization history', description: 'Daily utilization percentages.',
@@ -348,13 +358,36 @@ export function ManualDataImportClient() {
     setStatus('consolidating');
     setMessage('');
     try {
+      const importedDates = [...(fileDetails?.tradeDates ?? [])].sort();
+      const requestedRebuildFromDate = importedDates[0];
+      const requestBody = {
+        ticker,
+        force_rebuild: true,
+        ...(requestedRebuildFromDate ? { rebuild_from_date: requestedRebuildFromDate } : {}),
+      };
       const result = await authenticatedFetch(`/manual-input/consolidate?ticker=${encodeURIComponent(ticker)}`, {
         method: 'POST',
-        body: JSON.stringify({ ticker }),
-      });
-      setConsolidationResult(result);
-      setStatus('idle');
-      setMessage('Consolidation pipeline triggered successfully.');
+        body: JSON.stringify(requestBody),
+      }) as ConsolidationResponse;
+      setConsolidationResult({ request: requestBody, response: result });
+      const rebuildFromDate = result.detail?.rebuild_from_date;
+      const backendUsedLaterCutoff = Boolean(
+        requestedRebuildFromDate
+        && rebuildFromDate
+        && rebuildFromDate > requestedRebuildFromDate,
+      );
+
+      if (backendUsedLaterCutoff) {
+        setStatus('error');
+        setMessage(
+          `Full rebuild was requested from ${requestedRebuildFromDate}, but the backend queued consolidation from ${rebuildFromDate}. Dates before the backend cutoff will not update in consolidated portal history.`,
+        );
+      } else {
+        setStatus('idle');
+        setMessage(
+          `Forced consolidation was queued${requestedRebuildFromDate ? ` from the earliest imported date, ${requestedRebuildFromDate}` : ''}. The API returns before processing finishes, so consolidated portal data may take a few minutes to update.`,
+        );
+      }
     } catch (error) {
       setStatus('error');
       setMessage(error instanceof Error ? error.message : 'Unable to trigger consolidation.');
