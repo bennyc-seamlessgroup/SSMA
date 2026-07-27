@@ -25,7 +25,9 @@ async function proxyRequest(request: NextRequest, context: { params: Promise<{ p
     });
     const responseHeaders = new Headers();
     const responseContentType = response.headers.get('content-type');
+    const responseContentDisposition = response.headers.get('content-disposition');
     if (responseContentType) responseHeaders.set('content-type', responseContentType);
+    if (responseContentDisposition) responseHeaders.set('content-disposition', responseContentDisposition);
 
     return new NextResponse(await response.arrayBuffer(), {
       status: response.status,

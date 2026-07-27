@@ -24,6 +24,15 @@ export type MarketPublicationManualInputs = {
   margins: MarketPublicationRecord[];
 };
 
+export type MarketCurrentSnapshot = {
+  snapshotDate?: unknown;
+  otherDateData?: Array<{
+    field?: unknown;
+    date?: unknown;
+  }>;
+  [key: string]: unknown;
+};
+
 export type MarketPublicationField = {
   key: string;
   label: string;
@@ -45,6 +54,26 @@ function maximum(...values: unknown[]) {
 
 export function marketRecordDate(record: MarketPublicationRecord) {
   return String(record.tradeDate ?? record.date ?? '').slice(0, 10);
+}
+
+export function marketCurrentMetricObservation(
+  current: MarketCurrentSnapshot | null | undefined,
+  field: string,
+): { date: string; value: number } | null {
+  if (!current) return null;
+  const path = field.split('.').filter(Boolean);
+  let cursor: unknown = current;
+  for (const key of path) {
+    if (!cursor || typeof cursor !== 'object' || Array.isArray(cursor)) return null;
+    cursor = (cursor as Record<string, unknown>)[key];
+  }
+  const value = marketNumber(cursor);
+  if (value === null) return null;
+  const datedField = Array.isArray(current.otherDateData)
+    ? current.otherDateData.find(item => String(item?.field ?? '').trim() === field)
+    : undefined;
+  const date = String(datedField?.date ?? current.snapshotDate ?? '').slice(0, 10);
+  return date ? { date, value } : null;
 }
 
 export function marketPublicationFields(record: MarketPublicationRecord | null | undefined): MarketPublicationField[] {

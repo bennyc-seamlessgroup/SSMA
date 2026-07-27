@@ -3,7 +3,12 @@
 import { useEffect, useState } from 'react';
 import { PortalPageLoading } from '@/components/PortalPageLoading';
 import { cachedAuthenticatedFetch } from '@/lib/auth-client';
-import { latestCompleteMarketPublicationRecordFromHistory, marketNumber, marketRecordDate } from '@/lib/market-data-publication';
+import {
+  latestCompleteMarketPublicationRecordFromHistory,
+  marketCurrentMetricObservation,
+  marketNumber,
+  marketRecordDate,
+} from '@/lib/market-data-publication';
 import type { DashboardMarginRecord, DashboardUtilizationRecord, OperationsSecFilingRecord } from '@/lib/operations/data-types';
 import { normalizeTicker } from '@/lib/ticker-data';
 import { DashboardClient } from './DashboardClient';
@@ -50,6 +55,7 @@ type MarketCurrentFile = {
     valueFormat?: string;
     displayFormat?: string;
   };
+  otherDateData?: Array<{ field?: unknown; date?: unknown }>;
   scores?: { shortScore?: { value?: unknown } };
   sourceWatermarks?: Record<string, unknown>;
   _field_provenance?: Record<string, unknown>;
@@ -242,6 +248,8 @@ function marketHistoryToDashboardData(
   const historyRecords = Array.isArray(historyFile?.records) ? historyFile.records : [];
   const publishedRecord = latestCompleteMarketPublicationRecordFromHistory(historyRecords);
   const publishedDate = publishedRecord ? marketRecordDate(publishedRecord) : '';
+  const currentUtilization = marketCurrentMetricObservation(currentFile, 'utilization.percent');
+  const currentAverageDuration = marketCurrentMetricObservation(currentFile, 'margins.averageDurationDays');
   const secFilingRows = asApiArray<OperationsSecFilingRecord>(secFilingsFile);
   const marketTrendData = historyRecords
     .filter(row => Boolean(publishedDate) && plainText(row.tradeDate ?? row.date) <= publishedDate)
@@ -278,11 +286,69 @@ function marketHistoryToDashboardData(
     marketTrendData.sort((a, b) => a.date.localeCompare(b.date));
   }
 
+  function applyCurrentObservation(
+    observation: { date: string; value: number } | null,
+    key: 'utilization' | 'averageDuration',
+  ) {
+    if (!observation || observation.date > publishedDate) return;
+    const existing = marketTrendData.find(row => row.date === observation.date);
+    if (existing) {
+      existing[key] = observation.value;
+      return;
+    }
+    marketTrendData.push({
+      date: observation.date,
+      price: null,
+      feeRate: null,
+      tradeVolume: null,
+      shortableShares: null,
+      daysToCover: null,
+      utilization: key === 'utilization' ? observation.value : null,
+      averageDuration: key === 'averageDuration' ? observation.value : null,
+      margin: null,
+    });
+  }
+  applyCurrentObservation(currentUtilization, 'utilization');
+  applyCurrentObservation(currentAverageDuration, 'averageDuration');
+  marketTrendData.sort((a, b) => a.date.localeCompare(b.date));
+
   const recordTicker = plainText(historyFile?.ticker ?? currentFile?.ticker, 'CURR').toUpperCase();
   // Historical charts show valid saved observations independently. Publication
   // readiness only controls the current KPI snapshot above.
   const utilizationInputs = historyUtilizationRecords(historyRecords, recordTicker);
+  if (currentUtilization && currentUtilization.date <= publishedDate) {
+    const existing = utilizationInputs.find(row => row.date === currentUtilization.date);
+    if (existing) existing.utilization = currentUtilization.value;
+    else {
+      utilizationInputs.push({
+        id: `market-current-utilization-${currentUtilization.date}`,
+        ticker: recordTicker,
+        date: currentUtilization.date,
+        utilization: currentUtilization.value,
+        updatedAt: currentUtilization.date,
+        updatedBy: 'market-data-current-api',
+      });
+    }
+    utilizationInputs.sort((a, b) => a.date.localeCompare(b.date));
+  }
   const marginInputs = historyMarginRecords(historyRecords, recordTicker);
+  if (currentAverageDuration && currentAverageDuration.date <= publishedDate && currentAverageDuration.value > 0) {
+    const existing = marginInputs.find(row => row.date === currentAverageDuration.date);
+    if (existing) existing.averageDurationDays = currentAverageDuration.value;
+    else {
+      marginInputs.push({
+        id: `market-current-average-duration-${currentAverageDuration.date}`,
+        ticker: recordTicker,
+        date: currentAverageDuration.date,
+        initialMargin: null,
+        maintenanceMargin: null,
+        averageDurationDays: currentAverageDuration.value,
+        updatedAt: currentAverageDuration.date,
+        updatedBy: 'market-data-current-api',
+      });
+    }
+    marginInputs.sort((a, b) => a.date.localeCompare(b.date));
+  }
   const trendData = marketTrendData;
 
   const current = publishedRecord ? {
@@ -292,7 +358,7 @@ function marketHistoryToDashboardData(
     shortScore: marketNumber(publishedRecord.shortScore),
     borrowFee: marketNumber(publishedRecord.borrowFeePercent),
     feeRate: marketNumber(publishedRecord.borrowFeePercent),
-    utilization: marketNumber(publishedRecord.utilizationPercent),
+    utilization: currentUtilization?.value ?? marketNumber(publishedRecord.utilizationPercent),
     availableShares: marketNumber(publishedRecord.availableShares),
     daysToCover: marketNumber(publishedRecord.daysToCover),
     price: marketNumber(publishedRecord.price),
@@ -305,7 +371,7 @@ function marketHistoryToDashboardData(
     shortInterestFloatPercent: publishedRecord ? marketNumber(publishedRecord.shortInterestPercent) : null,
     shortScore: publishedRecord ? marketNumber(publishedRecord.shortScore) : null,
     borrowFeeRate: publishedRecord ? marketNumber(publishedRecord.borrowFeePercent) : null,
-    utilization: publishedRecord ? marketNumber(publishedRecord.utilizationPercent) : null,
+    utilization: currentUtilization?.value ?? (publishedRecord ? marketNumber(publishedRecord.utilizationPercent) : null),
     availableShares: publishedRecord ? marketNumber(publishedRecord.availableShares) : null,
   };
 

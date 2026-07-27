@@ -1,6 +1,7 @@
 'use client';
 
 import { getStoredTokens } from '@/lib/auth-client';
+import { fetchAlertHistory } from '@/lib/alerts/alertHistoryApi';
 import { ymdInPortalTimeZone } from '@/lib/timezone';
 import { usePortalTimeZone } from '@/components/usePortalTimeZone';
 import {
@@ -61,6 +62,15 @@ function alertId(alert: Omit<LiveAlertNotification, 'id'>) {
   ].join('|');
 }
 
+function alertFingerprint(alert: Pick<LiveAlertNotification, 'ticker' | 'formula' | 'triggeredValue' | 'createDatetime'>) {
+  return [
+    alert.ticker.trim().toUpperCase(),
+    alert.formula.trim(),
+    alert.triggeredValue.trim(),
+    new Date(alert.createDatetime).toISOString(),
+  ].join('|');
+}
+
 function normalizeAlertPayload(value: unknown): LiveAlertNotification | null {
   if (!value || typeof value !== 'object' || Array.isArray(value)) return null;
   const row = value as Record<string, unknown>;
@@ -111,6 +121,17 @@ function normalizeStoredAlert(value: unknown): LiveAlertNotification | null {
   return { ...alert, id: text(row.id) || alertId(alert) };
 }
 
+function normalizeHistoryAlert(value: Awaited<ReturnType<typeof fetchAlertHistory>>[number]): LiveAlertNotification {
+  const alert = {
+    ticker: value.ticker,
+    formula: value.formula,
+    triggeredValue: text(value.triggeredValue),
+    severity: normalizeSeverity(value.severity),
+    createDatetime: value.createDatetime,
+  };
+  return { ...alert, id: value.alertId || alertId(alert) };
+}
+
 function sortAlerts(alerts: LiveAlertNotification[]) {
   return [...alerts].sort(
     (left, right) => new Date(right.createDatetime).getTime() - new Date(left.createDatetime).getTime(),
@@ -154,13 +175,41 @@ export function AlertNotificationProvider({
 
   useEffect(() => {
     if (!dayKey) return;
+    let cancelled = false;
     storageKeyRef.current = storageKey;
     timeZoneRef.current = timeZone;
     const storedAlerts = readStoredAlerts(storageKey);
     alertsRef.current = storedAlerts;
     setAlerts(storedAlerts);
     setUnreadCount(0);
-  }, [dayKey, storageKey, timeZone]);
+    fetchAlertHistory(normalizedTicker)
+      .then(history => {
+        if (cancelled) return;
+        const todaysHistory = history
+          .map(normalizeHistoryAlert)
+          .filter(alert => ymdInPortalTimeZone(new Date(alert.createDatetime), timeZone) === dayKey);
+        const merged = sortAlerts(
+          [...todaysHistory, ...storedAlerts].filter(
+            (alert, index, source) => source.findIndex(
+              item => alertFingerprint(item) === alertFingerprint(alert),
+            ) === index,
+          ),
+        ).slice(0, maxDailyAlerts);
+        alertsRef.current = merged;
+        setAlerts(merged);
+        try {
+          window.localStorage.setItem(storageKey, JSON.stringify(merged));
+        } catch {
+          // Persisted history remains available from the API on the next load.
+        }
+      })
+      .catch(() => {
+        // WebSocket alerts remain available if history cannot be loaded.
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [dayKey, normalizedTicker, storageKey, timeZone]);
 
   useEffect(() => {
     if (!toast) return undefined;
@@ -237,7 +286,7 @@ export function AlertNotificationProvider({
         const currentDay = ymdInPortalTimeZone(new Date(), timeZoneRef.current);
         if (alertDay !== currentDay) return;
 
-        if (alertsRef.current.some(item => item.id === alert.id)) return;
+        if (alertsRef.current.some(item => alertFingerprint(item) === alertFingerprint(alert))) return;
         const next = sortAlerts([alert, ...alertsRef.current]).slice(0, maxDailyAlerts);
         alertsRef.current = next;
         setAlerts(next);

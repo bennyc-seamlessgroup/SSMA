@@ -64,6 +64,10 @@
     - [GET/PUT/DELETE /rule-catalog/{catalogId}](#getputdelete-rule-catalogcatalogid)
     - [GET /rule-catalog/user-settings](#get-rule-cataloguser-settings)
     - [POST /rule-catalog/user-settings](#post-rule-cataloguser-settings)
+  - [User Alert History APIs](#user-alert-history-apis)
+    - [GET /alerts](#get-alerts)
+  - [CSV Export APIs](#csv-export-apis)
+    - [GET /export/csv](#get-exportcsv)
 - [Making Authenticated API Calls](#making-authenticated-api-calls)
 - [CORS Configuration](#cors-configuration)
 - [User Profile Data Model](#user-profile-data-model)
@@ -2348,6 +2352,156 @@ Content-Type: application/json
   "deleted": 0
 }
 ```
+
+---
+
+## User Alert History APIs
+
+Retrieve triggered user alert records stored in DynamoDB table `ssma-portal-alerts-${environment}`.
+
+### GET /alerts
+
+Query alert history records for the authenticated user (or any target user if called by an `OPERATOR` or `ADMIN`).
+
+```
+GET /alerts
+Authorization: <id_token>
+```
+
+**Query Parameters** (all optional):
+
+| Parameter | Type | Description |
+|---|---|---|
+| `ticker` | String | Case-insensitive exact match ticker filter (e.g. `?ticker=CURR` or `?ticker=AAPL`). |
+| `severity` | String | Exact severity filter (`Critical`, `High`, `Medium`, `Low`). |
+| `startDate` | String | ISO 8601 UTC lower bound timestamp filter on `createDatetime` (e.g. `2026-07-27T00:00:00Z`). |
+| `endDate` | String | ISO 8601 UTC upper bound timestamp filter on `createDatetime` (e.g. `2026-07-27T23:59:59Z`). |
+| `limit` | Integer | Maximum alert records to return (default `50`, maximum capped at `100`). |
+| `userId` | String | *(Operators/Admins only)* Target user `sub` ID to query alerts for another user. Ignored for non-operator callers. |
+
+**Access Control**:
+- **Regular Users (`USER` role)**: Query results are strictly isolated to the caller's Cognito JWT `sub` ID.
+- **Operators & Admins (`OPERATOR` / `ADMIN` role)**: Can query any user's alerts by supplying `?userId=<target_sub>`. If omitted, defaults to the caller's `sub`.
+
+**Response** `200 OK`: Results are sorted by `createDatetime` descending (newest first) and enclosed in a standard envelope object `{ "alerts": [...], "count": N }`.
+
+```json
+{
+  "alerts": [
+    {
+      "alertId": "f6558db6-342d-44cf-82bd-eacb1cf49bdb",
+      "userId": "7478a4f8-4081-70d0-bc61-57db57b56b3b",
+      "ruleId": "a40322eb-03b5-4961-a254-d74eee498f59",
+      "catalogId": "lending-borrowing-pressure-shortable-shares",
+      "ticker": "CURR",
+      "formula": "availableShares.value < 6000000",
+      "severity": "High",
+      "triggeredValue": 5725448,
+      "createDatetime": "2026-07-27T05:51:36.540412+00:00"
+    },
+    {
+      "alertId": "e881e2b1-dbc9-45f4-9397-4b96d8b7ba9c",
+      "userId": "7478a4f8-4081-70d0-bc61-57db57b56b3b",
+      "ruleId": "a40322eb-03b5-4961-a254-d74eee498f59",
+      "catalogId": "lending-borrowing-pressure-shortable-shares",
+      "ticker": "CURR",
+      "formula": "availableShares.value < 6000000",
+      "severity": "High",
+      "triggeredValue": 5725448,
+      "createDatetime": "2026-07-27T05:50:16.361205+00:00"
+    }
+  ],
+  "count": 2
+}
+```
+
+When no alerts match the criteria, returns `200 OK` with an empty array:
+```json
+{
+  "alerts": [],
+  "count": 0
+}
+```
+
+**Response** `401 Unauthorized`: Returned when the `Authorization` header is missing or unauthenticated.
+
+---
+
+## CSV Export APIs
+
+Export dataset records in CSV format from S3 bucket `data-sync-platform-centralized-v2` for datasets `chartexchange`, `fintel`, `history`, `manual-input`, and `kwatch`.
+
+### GET /export/csv
+
+Retrieve raw dataset entries transformed into CSV format with direct file attachment delivery (`Content-Type: text/csv`).
+
+```
+GET /export/csv?dataset=manual-input&ticker=CURR&category=profile&startDate=2026-06-01&endDate=2026-06-30
+Authorization: <id_token>
+```
+
+**Query Parameters**:
+
+| Parameter | Type | Required | Description |
+|---|---|---|---|
+| `dataset` | String | Yes | Target dataset name: `chartexchange` \| `fintel` \| `history` \| `manual-input` \| `kwatch`. |
+| `ticker` | String | Yes | Stock ticker symbol (e.g. `CURR`). Case-insensitive. |
+| `category` | String | Conditional | Category name or template name (required for `manual-input` and `kwatch`). Examples: `profile`, `issued-share`, `short-score`, `institutional-owner`, `management-holdings`, `internal-float-inputs`, `manual-availability`, `utilization`, `sec-filings`, `margins`, `market-history`, `ftd-history`, `reddit`, `twitter`, `stocktwits`, etc. |
+| `startDate` | String | No | Date filter lower bound in `YYYY-MM-DD` format. |
+| `endDate` | String | No | Date filter upper bound in `YYYY-MM-DD` format. |
+
+**Access Control & Security**:
+- **Cognito JWT Validation**: Secured via API Gateway Cognito User Pools Authorizer (`Authorization` header containing valid ID Token).
+- **RBAC Ticker Verification**:
+  - `USER` role is restricted to tickers in their authorized profile `tickers` list. Returns `403 Forbidden` if requesting an unauthorized ticker.
+  - `ADMIN` and `OPERATOR` roles bypass ticker restrictions and can export any stock ticker symbol.
+
+**Template Schema Alignment (Manual Input & KWatch)**:
+For `manual-input` and `kwatch` exports, CSV column headers strictly align with `manual-input-template/*.csv` and `kwatch-template/*.csv` template definitions for full re-import compatibility:
+
+| Dataset | Category / Platform | Target Output Header Columns |
+|---|---|---|
+| `manual-input` | `profile` | `tradeDate,companyName,stockCode` |
+| `manual-input` | `issued-share` | `tradeDate,issuedShare` |
+| `manual-input` | `short-score` | `tradeDate,shortScore` |
+| `manual-input` | `institutional-owner` / `security-name` | `tradeDate,id,institutionalOwnerSecurityName` |
+| `manual-input` | `management-holdings` | `tradeDate,id,holderName,category,action,shares,percentOfShares,fileDate,effectiveDate,form,showInOwnership,showAsSuggestion,autoApply,status,source,notes` |
+| `manual-input` | `internal-float-inputs` | `tradeDate,section,id,holderName,category,chain,provider,protocol,shares,ratio,includeInDeduction,notes` |
+| `manual-input` | `manual-availability` | `tradeDate,availableSharesIbkr,availableSharesFutu` |
+| `manual-input` | `utilization` | `tradeDate,utilizationPercent` |
+| `manual-input` | `sec-filings` | `tradeDate,id,recordTicker,companyName,formType,formDescription,filingDate,reportingDate,act,filmNumber,fileNumber,accessionNumber,filingsUrl,notes` |
+| `manual-input` | `margins` | `tradeDate,initialMarginIbkr,initialMarginFutu,maintenanceMarginIbkr,maintenanceMarginFutu,averageDurationDays,valueFormat,displayFormat` |
+| `kwatch` | `reddit` | `platform,query,datetime,link,author,content,sentiment` |
+| `kwatch` | `twitter` | `platform,query,datetime,link,author,content,sentiment` |
+| `kwatch` | `stocktwits` | `messages__id,author,datetime,user__followers,content,Reshares,likes,link,sentiment_label,sentiment_score,analysis_catalyst_tag,platform` |
+
+> **Note**: Auto-generated system metadata fields (`schemaVersion`, `createdAt`, `updatedAt`, `createdBy`, `updatedBy`, `deletedAt`, `_field_provenance`, `generatedAt`) are automatically stripped from CSV exports to ensure exported CSVs can be directly edited and re-imported via conversion scripts or `/manual-input/import`.
+
+**Response** `200 OK`:
+- **Headers**:
+  - `Content-Type: text/csv`
+  - `Content-Disposition: attachment; filename="{dataset}_{ticker}_{category}.csv"`
+  - `Access-Control-Allow-Origin: *`
+- **Body**: Raw CSV payload string.
+
+*Example Response Body (`dataset=manual-input&category=profile&ticker=CURR`)*:
+```csv
+tradeDate,companyName,stockCode
+2026-06-12,CURRENC Group Inc.,CURR
+```
+
+*Example Response Body (`dataset=history&category=market-history&ticker=CURR&startDate=2026-06-01&endDate=2026-06-05`)*:
+```csv
+tradeDate,open,high,low,close,volume
+2026-06-01,15.20,15.80,15.10,15.50,1250000
+2026-06-02,15.50,16.10,15.40,16.00,1400000
+```
+
+**Error Responses**:
+- `400 Bad Request`: Missing required query parameters (`dataset` or `ticker`), missing category for `manual-input`, or invalid date format.
+- `401 Unauthorized`: Missing or invalid Cognito JWT `Authorization` header.
+- `403 Forbidden`: Authenticated user role is `USER` and requested ticker is not in user's authorized tickers list.
+- `404 Not Found`: Requested dataset or S3 object does not exist for the specified ticker/category.
 
 ---
 

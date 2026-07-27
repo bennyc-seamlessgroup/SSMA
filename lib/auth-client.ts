@@ -400,6 +400,58 @@ export async function authenticatedFetch(path: string, options: RequestInit = {}
   return payload;
 }
 
+export async function authenticatedFileDownload(path: string) {
+  const tokens = getStoredTokens();
+  if (!tokens?.idToken) throw new Error('Not authenticated');
+  const useSameOriginProxy = typeof window !== 'undefined'
+    && ['localhost', '127.0.0.1'].includes(window.location.hostname);
+  const requestUrl = useSameOriginProxy ? `/api/dev-api${path}` : `${apiGatewayUrl}${path}`;
+
+  const request = (idToken: string) => fetch(requestUrl, {
+    method: 'GET',
+    headers: { Authorization: idToken },
+    cache: 'no-store',
+  });
+
+  let response: Response;
+  try {
+    response = await request(tokens.idToken);
+  } catch (error) {
+    const reason = error instanceof Error && error.message && error.message !== 'Failed to fetch'
+      ? ` Browser reason: ${error.message}`
+      : '';
+    throw new Error(`GET ${path} could not reach the API.${reason}`);
+  }
+
+  if (response.status === 401) {
+    try {
+      const refreshed = await refreshTokens(tokens.refreshToken);
+      response = await request(refreshed.idToken);
+    } catch {
+      clearAuthSession();
+      throw new Error('Your session has expired. Please sign in again.');
+    }
+  }
+
+  if (!response.ok) {
+    const reason = (await response.text().catch(() => '')).trim() || 'The API did not provide an error reason.';
+    throw new Error(`GET ${path} failed (${response.status}${response.statusText ? ` ${response.statusText}` : ''}): ${reason}`);
+  }
+
+  const disposition = response.headers.get('content-disposition') ?? '';
+  const encodedName = disposition.match(/filename\*=UTF-8''([^;]+)/i)?.[1];
+  const plainName = disposition.match(/filename="?([^";]+)"?/i)?.[1];
+  const filename = encodedName
+    ? decodeURIComponent(encodedName)
+    : plainName || 'export.csv';
+
+  return {
+    blob: await response.blob(),
+    filename,
+    contentType: response.headers.get('content-type') ?? 'text/csv',
+  };
+}
+
 export async function cachedAuthenticatedFetch<T = unknown>(
   path: string,
   options: RequestInit = {},

@@ -142,6 +142,7 @@ export function CustomAlertCenter({
           { endpoint: 'GET /rule-catalog/user-settings', label: 'Configured alert rules' },
           { endpoint: 'GET /market-data/history?category=market-history', label: 'Published current metric evaluation' },
           { endpoint: 'POST /rule-engine/check', label: 'Backend rule evaluation' },
+          { endpoint: 'GET /alerts', label: 'Persisted user alert history' },
           { endpoint: 'WebSocket /dev', label: `Live alerts · ${connectionStatus}` },
         ]} />
         <Link className="custom-alert-configure" href={settingsHref as any}>

@@ -4,8 +4,10 @@ import { fetchAiReport } from '@/lib/ai-report-api';
 import { cachedAuthenticatedFetch } from '@/lib/auth-client';
 import {
   latestCompleteMarketPublicationRecord,
+  marketCurrentMetricObservation,
   marketNumber,
   marketRecordDate,
+  type MarketCurrentSnapshot,
   type MarketPublicationRecord,
 } from '@/lib/market-data-publication';
 import { getSentimentCurrent, sentimentPeriod } from '@/lib/social-data-api';
@@ -173,17 +175,28 @@ export async function buildDailyReportData(report: ReportArchiveRecord) {
   const prior = eligibleRecords.find(row => marketRecordDate(row) < latestDate) ?? {};
   const metric = (field: string, isPercent = false) => isPercent ? percentValue(latest[field], latest) : numberOrNull(latest[field]);
   const priorMetric = (field: string, isPercent = false) => isPercent ? percentValue(prior[field], prior) : numberOrNull(prior[field]);
+  const currentMarket = category(current, 'market-current') as MarketCurrentSnapshot;
+  const currentUtilization = marketCurrentMetricObservation(currentMarket, 'utilization.percent');
+  const currentAverageDuration = marketCurrentMetricObservation(currentMarket, 'margins.averageDurationDays');
+  const reportUtilization = currentUtilization && currentUtilization.date <= report.reportDate
+    ? currentUtilization.value
+    : null;
+  const reportAverageDuration = currentAverageDuration
+    && currentAverageDuration.date <= report.reportDate
+    && currentAverageDuration.value > 0
+    ? currentAverageDuration.value
+    : null;
 
   const shortInterestPercent = metric('shortInterestPercent');
   const borrowFee = metric('borrowFeePercent');
   const initialMargin = metric('initialMargin', true);
   const maintenanceMargin = metric('maintenanceMargin', true);
   const shortableShares = metric('availableShares');
-  const utilization = metric('utilizationPercent');
+  const utilization = reportUtilization ?? metric('utilizationPercent');
   const averageDurationValues = eligibleRecords
     .map(row => numberOrNull(row.averageDurationDays))
     .filter((value): value is number => value !== null && value > 0);
-  const averageDuration = averageDurationValues[0] ?? null;
+  const averageDuration = reportAverageDuration ?? averageDurationValues[0] ?? null;
   const priorAverageDuration = averageDurationValues[1] ?? null;
   const daysToCover = metric('daysToCover');
   const shortScore = metric('shortScore');

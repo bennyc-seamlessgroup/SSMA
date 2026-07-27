@@ -3615,6 +3615,58 @@ html[data-design-b-theme="dark"] .monitor-portal .report-history-pagination butt
   grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 
+.ops-export-form {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr)) auto;
+  gap: 12px;
+  align-items: end;
+}
+
+.ops-export-form label {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+  color: #334155;
+  font-size: 12px;
+  font-weight: 750;
+}
+
+.ops-export-form input,
+.ops-export-form select {
+  box-sizing: border-box;
+  width: 100%;
+  min-height: 36px;
+  border: 1px solid #d9e2ee;
+  border-radius: 8px;
+  background: #fff;
+  color: #0f172a;
+  padding: 0 11px;
+  font: inherit;
+}
+
+.ops-export-form__action {
+  display: flex;
+}
+
+.ops-export-form__action button {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  white-space: nowrap;
+}
+
+.ops-export-form__action svg {
+  width: 16px;
+  height: 16px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+}
+
+.ops-export-panel + .operations-development-data {
+  margin-top: 14px;
+}
+
 .ops-broker-input-grid {
   display: grid;
   grid-template-columns: minmax(0, 1.15fr) minmax(0, .85fr);
@@ -28535,5 +28587,42 @@ html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .intern
 @media (max-width: 560px) {
   html[data-portal-design="b"] .monitor-portal .internal-float-waterfall {
     grid-template-columns: 1fr;
+  }
+}
+
+html[data-design-b-theme="dark"] .ops-export-form label {
+  color: #cbd5e1;
+}
+
+html[data-design-b-theme="dark"] .ops-export-form input,
+html[data-design-b-theme="dark"] .ops-export-form select {
+  border-color: #334155;
+  background: #0f1c2d;
+  color: #e2e8f0;
+  color-scheme: dark;
+}
+
+@media (max-width: 1100px) {
+  .ops-export-form {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .ops-export-form__action {
+    grid-column: 1 / -1;
+  }
+}
+
+@media (max-width: 640px) {
+  .ops-export-form {
+    grid-template-columns: 1fr;
+  }
+
+  .ops-export-form__action {
+    grid-column: auto;
+  }
+
+  .ops-export-form__action button {
+    justify-content: center;
+    width: 100%;
   }
 }

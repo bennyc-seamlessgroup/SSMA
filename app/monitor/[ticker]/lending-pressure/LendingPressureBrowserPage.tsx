@@ -7,7 +7,14 @@ import { PortalPageLoading } from '@/components/PortalPageLoading';
 import { PageDisclaimerNotice } from '@/components/PageDisclaimerNotice';
 import { fetchAiReport } from '@/lib/ai-report-api';
 import { cachedAuthenticatedFetch } from '@/lib/auth-client';
-import { latestCompleteMarketPublicationRecordFromHistory, marketPublicationRecordFromHistoryForDate, marketRecordDate, type MarketPublicationRecord } from '@/lib/market-data-publication';
+import {
+  latestCompleteMarketPublicationRecordFromHistory,
+  marketCurrentMetricObservation,
+  marketPublicationRecordFromHistoryForDate,
+  marketRecordDate,
+  type MarketCurrentSnapshot,
+  type MarketPublicationRecord,
+} from '@/lib/market-data-publication';
 import { normalizeTicker } from '@/lib/ticker-data';
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
 
@@ -115,10 +122,13 @@ function historyRecords(payload: unknown): MarketHistoryRecord[] {
   return [];
 }
 
-function buildLendingPayload(historyPayload: unknown) {
+function buildLendingPayload(historyPayload: unknown, currentPayload: unknown) {
   const history = historyRecords(historyPayload);
   const publishedRecord = latestCompleteMarketPublicationRecordFromHistory(history);
   const publishedDate = publishedRecord ? marketRecordDate(publishedRecord) : '';
+  const current = record(currentPayload) as MarketCurrentSnapshot;
+  const currentUtilizationObservation = marketCurrentMetricObservation(current, 'utilization.percent');
+  const currentAverageDuration = marketCurrentMetricObservation(current, 'margins.averageDurationDays');
   const utilizationHistory = history
     .map(row => ({
       date: marketRecordDate(row),
@@ -126,6 +136,12 @@ function buildLendingPayload(historyPayload: unknown) {
     }))
     .filter((row): row is { date: string; value: number } => Boolean(row.date) && row.value !== null)
     .sort((a, b) => a.date.localeCompare(b.date));
+  if (currentUtilizationObservation && currentUtilizationObservation.date <= publishedDate) {
+    const existing = utilizationHistory.find(row => row.date === currentUtilizationObservation.date);
+    if (existing) existing.value = currentUtilizationObservation.value;
+    else utilizationHistory.push(currentUtilizationObservation);
+    utilizationHistory.sort((a, b) => a.date.localeCompare(b.date));
+  }
   const sortedHistory = [...history]
     .filter(row => Boolean(publishedDate) && String(row.tradeDate ?? '').slice(0, 10) <= publishedDate)
     .map(row => marketPublicationRecordFromHistoryForDate(history, marketRecordDate(row)))
@@ -141,6 +157,7 @@ function buildLendingPayload(historyPayload: unknown) {
   );
   const currentUtilization = firstNumeric(
     utilizationHistory.at(-1)?.value,
+    currentUtilizationObservation?.value,
     latestHistory.utilizationPercent,
   );
 
@@ -179,7 +196,18 @@ function buildLendingPayload(historyPayload: unknown) {
             ? averageDurationDays
             : undefined,
         };
-      }),
+      })
+      .map(row => currentAverageDuration?.date === row.date && currentAverageDuration.value > 0
+        ? { ...row, averageDurationDays: currentAverageDuration.value }
+        : row)
+      .concat(
+        currentAverageDuration
+        && currentAverageDuration.value > 0
+        && currentAverageDuration.date <= publishedDate
+        && !sortedHistory.some(row => marketRecordDate(row) === currentAverageDuration.date)
+          ? [{ date: currentAverageDuration.date, averageDurationDays: currentAverageDuration.value }]
+          : [],
+      ),
   };
 }
 
@@ -405,7 +433,7 @@ export function LendingPressureBrowserPage({ ticker }: { ticker: string }) {
     return <div className="page"><section className="panel"><h2>Lending pressure data unavailable</h2><p>{error}</p></section></div>;
   }
 
-  const { lendingData, marginRecords } = buildLendingPayload(historyPayload);
+  const { lendingData, marginRecords } = buildLendingPayload(historyPayload, currentPayload);
   const sortedMarginRecords = [...marginRecords]
     .filter(row => row.date && optionalNumeric(row.averageDurationDays) !== null)
     .sort((a, b) => b.date.localeCompare(a.date));
