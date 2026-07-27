@@ -261,7 +261,7 @@ function marketHistoryToDashboardData(
         price: numericOrNull(row.price),
         feeRate: numericOrNull(row.borrowFeePercent),
         tradeVolume: numericOrNull(row.tradeVolume ?? row.volume ?? row.totalVolume),
-        shortableShares: numericOrNull(row.availableShares ?? row.availableSharesIbkr ?? row.availableSharesFutu ?? row.availableSharesChartExchange),
+        shortableShares: numericOrNull(row.availableShares),
         daysToCover: numericOrNull(row.daysToCover),
         utilization: numericOrNull(row.utilizationPercent),
         averageDuration: positiveNumericOrNull(row.averageDurationDays),
@@ -293,7 +293,7 @@ function marketHistoryToDashboardData(
     if (!observation || observation.date > publishedDate) return;
     const existing = marketTrendData.find(row => row.date === observation.date);
     if (existing) {
-      existing[key] = observation.value;
+      if (existing[key] === null) existing[key] = observation.value;
       return;
     }
     marketTrendData.push({
@@ -318,8 +318,7 @@ function marketHistoryToDashboardData(
   const utilizationInputs = historyUtilizationRecords(historyRecords, recordTicker);
   if (currentUtilization && currentUtilization.date <= publishedDate) {
     const existing = utilizationInputs.find(row => row.date === currentUtilization.date);
-    if (existing) existing.utilization = currentUtilization.value;
-    else {
+    if (!existing) {
       utilizationInputs.push({
         id: `market-current-utilization-${currentUtilization.date}`,
         ticker: recordTicker,
@@ -334,18 +333,21 @@ function marketHistoryToDashboardData(
   const marginInputs = historyMarginRecords(historyRecords, recordTicker);
   if (currentAverageDuration && currentAverageDuration.date <= publishedDate && currentAverageDuration.value > 0) {
     const existing = marginInputs.find(row => row.date === currentAverageDuration.date);
-    if (existing) existing.averageDurationDays = currentAverageDuration.value;
-    else {
-      marginInputs.push({
-        id: `market-current-average-duration-${currentAverageDuration.date}`,
-        ticker: recordTicker,
-        date: currentAverageDuration.date,
-        initialMargin: null,
-        maintenanceMargin: null,
-        averageDurationDays: currentAverageDuration.value,
-        updatedAt: currentAverageDuration.date,
-        updatedBy: 'market-data-current-api',
-      });
+    if (!existing || !(Number(existing.averageDurationDays) > 0)) {
+      if (existing) {
+        existing.averageDurationDays = currentAverageDuration.value;
+      } else {
+        marginInputs.push({
+          id: `market-current-average-duration-${currentAverageDuration.date}`,
+          ticker: recordTicker,
+          date: currentAverageDuration.date,
+          initialMargin: null,
+          maintenanceMargin: null,
+          averageDurationDays: currentAverageDuration.value,
+          updatedAt: currentAverageDuration.date,
+          updatedBy: 'market-data-current-api',
+        });
+      }
     }
     marginInputs.sort((a, b) => a.date.localeCompare(b.date));
   }

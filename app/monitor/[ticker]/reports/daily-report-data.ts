@@ -192,11 +192,11 @@ export async function buildDailyReportData(report: ReportArchiveRecord) {
   const initialMargin = metric('initialMargin', true);
   const maintenanceMargin = metric('maintenanceMargin', true);
   const shortableShares = metric('availableShares');
-  const utilization = reportUtilization ?? metric('utilizationPercent');
+  const utilization = metric('utilizationPercent') ?? reportUtilization;
   const averageDurationValues = eligibleRecords
     .map(row => numberOrNull(row.averageDurationDays))
     .filter((value): value is number => value !== null && value > 0);
-  const averageDuration = reportAverageDuration ?? averageDurationValues[0] ?? null;
+  const averageDuration = averageDurationValues[0] ?? reportAverageDuration ?? null;
   const priorAverageDuration = averageDurationValues[1] ?? null;
   const daysToCover = metric('daysToCover');
   const shortScore = metric('shortScore');

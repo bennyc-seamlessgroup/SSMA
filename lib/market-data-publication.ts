@@ -93,7 +93,7 @@ export function marketPublicationFields(record: MarketPublicationRecord | null |
       label: 'Shortable Shares',
       source: 'Vendor / Manual Input',
       value: allShortableSourcesReady
-        ? marketNumber(source.availableShares) ?? maximum(source.availableSharesChartExchange, source.availableSharesIbkr, source.availableSharesFutu)
+        ? marketNumber(source.availableShares)
         : null,
       children: shortableChildren,
     },
@@ -145,13 +145,7 @@ export function marketPublicationRecordForDate(
   const utilization = exactDateRecord(manualInputs.utilization, date);
   const availability = exactDateRecord(manualInputs.availability, date);
   const margins = exactDateRecord(manualInputs.margins, date);
-  const availableShares = maximum(
-    market.availableSharesChartExchange,
-    market.availableSharesIbkr,
-    market.availableSharesFutu,
-    availability?.availableSharesIbkr,
-    availability?.availableSharesFutu,
-  );
+  const availableShares = market.availableShares ?? null;
   const initialMargin = maximum(
     market.initialMarginIbkr,
     market.initialMarginFutu,

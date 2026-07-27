@@ -138,8 +138,7 @@ function buildLendingPayload(historyPayload: unknown, currentPayload: unknown) {
     .sort((a, b) => a.date.localeCompare(b.date));
   if (currentUtilizationObservation && currentUtilizationObservation.date <= publishedDate) {
     const existing = utilizationHistory.find(row => row.date === currentUtilizationObservation.date);
-    if (existing) existing.value = currentUtilizationObservation.value;
-    else utilizationHistory.push(currentUtilizationObservation);
+    if (!existing) utilizationHistory.push(currentUtilizationObservation);
     utilizationHistory.sort((a, b) => a.date.localeCompare(b.date));
   }
   const sortedHistory = [...history]
@@ -197,14 +196,14 @@ function buildLendingPayload(historyPayload: unknown, currentPayload: unknown) {
             : undefined,
         };
       })
-      .map(row => currentAverageDuration?.date === row.date && currentAverageDuration.value > 0
-        ? { ...row, averageDurationDays: currentAverageDuration.value }
-        : row)
       .concat(
         currentAverageDuration
         && currentAverageDuration.value > 0
         && currentAverageDuration.date <= publishedDate
-        && !sortedHistory.some(row => marketRecordDate(row) === currentAverageDuration.date)
+        && !sortedHistory.some(row => (
+          marketRecordDate(row) === currentAverageDuration.date
+          && (optionalNumeric(row.averageDurationDays) ?? 0) > 0
+        ))
           ? [{ date: currentAverageDuration.date, averageDurationDays: currentAverageDuration.value }]
           : [],
       ),

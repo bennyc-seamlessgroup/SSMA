@@ -403,15 +403,29 @@ export async function authenticatedFetch(path: string, options: RequestInit = {}
 export async function authenticatedFileDownload(path: string) {
   const tokens = getStoredTokens();
   if (!tokens?.idToken) throw new Error('Not authenticated');
-  const useSameOriginProxy = typeof window !== 'undefined'
+  const isLocalBrowser = typeof window !== 'undefined'
     && ['localhost', '127.0.0.1'].includes(window.location.hostname);
-  const requestUrl = useSameOriginProxy ? `/api/dev-api${path}` : `${apiGatewayUrl}${path}`;
+  const directUrl = `${apiGatewayUrl}${path}`;
+  const proxyUrl = `/api/dev-api${path}`;
 
-  const request = (idToken: string) => fetch(requestUrl, {
+  const fetchDownload = (requestUrl: string, idToken: string) => fetch(requestUrl, {
     method: 'GET',
     headers: { Authorization: idToken },
     cache: 'no-store',
   });
+
+  const request = async (idToken: string) => {
+    if (isLocalBrowser) return fetchDownload(proxyUrl, idToken);
+
+    try {
+      return await fetchDownload(directUrl, idToken);
+    } catch {
+      // API Gateway CSV responses can be blocked by browser CORS even when the
+      // authenticated endpoint itself is healthy. Retry through our binary-safe
+      // same-origin route so production exports remain downloadable.
+      return fetchDownload(proxyUrl, idToken);
+    }
+  };
 
   let response: Response;
   try {
