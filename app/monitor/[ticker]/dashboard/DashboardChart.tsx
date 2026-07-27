@@ -158,8 +158,6 @@ function panelForMetric(metric: SeriesKey) {
 function dataCountForPeriod(period: PeriodKey, allData: DataPoint[]) {
   if (period === '1D') return 2;
   if (period === '5D') return 6;
-  if (period === '1M') return 30;
-  if (period === '3M') return 90;
   return allData.length;
 }
 
@@ -171,9 +169,17 @@ function dataForPeriod(period: PeriodKey, allData: DataPoint[]) {
   const latest = allData[allData.length - 1];
   if (!latest) return [];
 
-  if (period === '1Y') {
+  if (period === '1M' || period === '3M' || period === '1Y') {
     const start = new Date(`${latest.date}T00:00:00Z`);
-    start.setUTCFullYear(start.getUTCFullYear() - 1);
+    if (period === '1Y') {
+      start.setUTCFullYear(start.getUTCFullYear() - 1);
+    } else {
+      const originalDay = start.getUTCDate();
+      start.setUTCDate(1);
+      start.setUTCMonth(start.getUTCMonth() - (period === '1M' ? 1 : 3));
+      const finalDay = new Date(Date.UTC(start.getUTCFullYear(), start.getUTCMonth() + 1, 0)).getUTCDate();
+      start.setUTCDate(Math.min(originalDay, finalDay));
+    }
     const startMs = start.getTime();
     return allData.filter(point => dateMs(point.date) >= startMs);
   }
@@ -184,6 +190,21 @@ function dataForPeriod(period: PeriodKey, allData: DataPoint[]) {
   }
 
   return allData.slice(-dataCountForPeriod(period, allData));
+}
+
+function spacedTicks<T extends { x: number }>(ticks: T[], minimumGap = 76) {
+  if (ticks.length <= 2) return ticks;
+  const ordered = [...ticks].sort((left, right) => left.x - right.x);
+  const first = ordered[0];
+  const last = ordered[ordered.length - 1];
+  const result = [first];
+  for (const tick of ordered.slice(1, -1)) {
+    const previous = result[result.length - 1];
+    if (tick.x - previous.x >= minimumGap && last.x - tick.x >= minimumGap) result.push(tick);
+  }
+  if (last.x - result[result.length - 1].x < minimumGap && result.length > 1) result.pop();
+  if (last.x !== result[result.length - 1].x) result.push(last);
+  return result;
 }
 
 function numericOrNull(value: unknown) {
@@ -265,7 +286,7 @@ export function DashboardChart({
   }, [pinnedEventGroup]);
 
   const allData = useMemo(() => {
-    const clean = sourceData
+    const normalized = sourceData
       .filter(point => point && typeof point.date === 'string')
       .map(point => ({
         date: point.date,
@@ -276,8 +297,26 @@ export function DashboardChart({
         daysToCover: numericOrNull(point.daysToCover),
         utilization: numericOrNull(point.utilization),
         averageDuration: numericOrNull(point.averageDuration),
-      }))
-      .sort((a, b) => a.date.localeCompare(b.date));
+      }));
+    const byDate = new Map<string, ChartPoint>();
+    normalized.forEach(point => {
+      const existing = byDate.get(point.date);
+      if (!existing) {
+        byDate.set(point.date, point);
+        return;
+      }
+      byDate.set(point.date, {
+        date: point.date,
+        price: point.price ?? existing.price,
+        feeRate: point.feeRate ?? existing.feeRate,
+        tradeVolume: point.tradeVolume ?? existing.tradeVolume,
+        shortableShares: point.shortableShares ?? existing.shortableShares,
+        daysToCover: point.daysToCover ?? existing.daysToCover,
+        utilization: point.utilization ?? existing.utilization,
+        averageDuration: point.averageDuration ?? existing.averageDuration,
+      });
+    });
+    const clean = Array.from(byDate.values()).sort((a, b) => a.date.localeCompare(b.date));
     return fillMissingPrice(clean);
   }, [sourceData]);
   const data = useMemo(() => {
@@ -384,7 +423,8 @@ export function DashboardChart({
           return index % 14 === 0;
         })
         .map(({ point, index }) => ({ x: xFor(index), label: point.date.slice(5) }));
-    const xTicks = rawXTicks.map((tick, index, ticks) => ({
+    const filteredXTicks = spacedTicks(rawXTicks);
+    const xTicks = filteredXTicks.map((tick, index, ticks) => ({
       ...tick,
       textAnchor: (index === 0 ? 'start' : index === ticks.length - 1 ? 'end' : 'middle') as 'start' | 'middle' | 'end',
     }));
