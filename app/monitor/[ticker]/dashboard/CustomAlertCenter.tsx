@@ -1,13 +1,18 @@
 'use client';
 
 import { ApiSourceTags } from '@/components/ApiSourceTags';
+import { readableAlertMetric, useAlertNotifications } from '@/components/AlertNotificationProvider';
+import { usePortalTimeZone } from '@/components/usePortalTimeZone';
 import {
   evaluateAlertRule,
+  evaluateAlertRuleAgainstCurrentMetrics,
   loadAlertRuleSettings,
   type AlertSeverity,
   type AlertUnit,
+  type CurrentAlertMetricValues,
   type TriggeredApiAlert,
 } from '@/lib/alerts/ruleCatalogApi';
+import { formatPortalDateTime } from '@/lib/timezone';
 import Link from 'next/link';
 import { useEffect, useMemo, useState } from 'react';
 
@@ -37,10 +42,21 @@ const alertSeverities: Array<{ severity: AlertSeverity; label: string }> = [
   { severity: 'low', label: 'Low' },
 ];
 
-export function CustomAlertCenter({ ticker }: { ticker: string }) {
+export function CustomAlertCenter({
+  ticker,
+  currentMetrics,
+}: {
+  ticker: string;
+  currentMetrics: CurrentAlertMetricValues;
+}) {
   const [triggered, setTriggered] = useState<TriggeredApiAlert[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState('');
+  const timeZone = usePortalTimeZone();
+  const {
+    alerts: liveAlerts,
+    connectionStatus,
+  } = useAlertNotifications();
 
   useEffect(() => {
     let cancelled = false;
@@ -50,7 +66,11 @@ export function CustomAlertCenter({ ticker }: { ticker: string }) {
       try {
         const rules = await loadAlertRuleSettings(ticker);
         const results = await Promise.allSettled(
-          rules.filter(rule => rule.enabled).map(rule => evaluateAlertRule(rule)),
+          rules.filter(rule => rule.enabled).map(async rule => {
+            const currentEvaluation = evaluateAlertRuleAgainstCurrentMetrics(rule, currentMetrics);
+            if (currentEvaluation !== undefined) return currentEvaluation;
+            return evaluateAlertRule(rule);
+          }),
         );
         if (cancelled) return;
         const alerts = results
@@ -75,17 +95,27 @@ export function CustomAlertCenter({ ticker }: { ticker: string }) {
     return () => {
       cancelled = true;
     };
-  }, [ticker]);
+  }, [currentMetrics, ticker]);
 
+  const currentTriggered = useMemo(() => {
+    const liveMetricNames = new Set(
+      liveAlerts.map(alert => readableAlertMetric(alert.formula).toLowerCase().replace(/[^a-z0-9]/g, '')),
+    );
+    return triggered.filter(alert => !liveMetricNames.has(alert.label.toLowerCase().replace(/[^a-z0-9]/g, '')));
+  }, [liveAlerts, triggered]);
+  const displayedSeverity = useMemo(
+    () => [...liveAlerts, ...currentTriggered],
+    [currentTriggered, liveAlerts],
+  );
   const severityCounts = useMemo(
-    () => triggered.reduce<Record<AlertSeverity, number>>(
+    () => displayedSeverity.reduce<Record<AlertSeverity, number>>(
       (counts, alert) => {
         counts[alert.severity] += 1;
         return counts;
       },
       { critical: 0, high: 0, medium: 0, low: 0 },
     ),
-    [triggered],
+    [displayedSeverity],
   );
   const settingsHref = `/monitor/${ticker}/alert-rules`;
 
@@ -94,8 +124,8 @@ export function CustomAlertCenter({ ticker }: { ticker: string }) {
       <div className="dashboard-custom-alerts__head">
         <div className="dashboard-custom-alerts__title">
           <h2>Alert Center</h2>
-          {triggered.length ? (
-            <div className="custom-alert-severity-summary" aria-label={`${triggered.length} triggered alerts`}>
+          {displayedSeverity.length ? (
+            <div className="custom-alert-severity-summary" aria-label={`${displayedSeverity.length} triggered alerts`}>
               {alertSeverities
                 .filter(({ severity }) => severityCounts[severity] > 0)
                 .map(({ severity, label }) => (
@@ -110,7 +140,9 @@ export function CustomAlertCenter({ ticker }: { ticker: string }) {
         <ApiSourceTags sources={[
           { endpoint: 'GET /rule-catalog', label: 'Alert definitions' },
           { endpoint: 'GET /rule-catalog/user-settings', label: 'Configured alert rules' },
+          { endpoint: 'GET /market-data/history?category=market-history', label: 'Published current metric evaluation' },
           { endpoint: 'POST /rule-engine/check', label: 'Backend rule evaluation' },
+          { endpoint: 'WebSocket /dev', label: `Live alerts · ${connectionStatus}` },
         ]} />
         <Link className="custom-alert-configure" href={settingsHref as any}>
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h10M18 7h2M14 4v6M4 17h2M10 17h10M6 14v6" /></svg>
@@ -120,16 +152,28 @@ export function CustomAlertCenter({ ticker }: { ticker: string }) {
 
       {loadError ? <div className="narrative-api-error">{loadError}</div> : null}
 
-      {loading ? (
+      {loading && !liveAlerts.length ? (
         <div className="custom-alert-empty">
           <div>
             <strong>Evaluating alert rules…</strong>
             <p>The backend rule engine is checking your active rules.</p>
           </div>
         </div>
-      ) : triggered.length ? (
+      ) : displayedSeverity.length ? (
         <div className="custom-alert-triggered-list">
-          {triggered.map(alert => (
+          {liveAlerts.map(alert => (
+            <div className={`custom-alert-row ${alert.severity}`} key={alert.id}>
+              <svg className="custom-alert-row__icon" viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M12 3 2.8 20h18.4L12 3Z" />
+                <path d="M12 9v5M12 17.2v.1" />
+              </svg>
+              <strong>{readableAlertMetric(alert.formula)}</strong>
+              <span className="custom-alert-row__value">{alert.triggeredValue || 'Triggered'}</span>
+              <span className="custom-alert-row__threshold"><b>{alert.formula}</b></span>
+              <p>Triggered {formatPortalDateTime(alert.createDatetime, timeZone)}</p>
+            </div>
+          ))}
+          {currentTriggered.map(alert => (
             <div className={`custom-alert-row ${alert.severity}`} key={alert.id}>
               <svg className="custom-alert-row__icon" viewBox="0 0 24 24" aria-hidden="true">
                 <path d="M12 3 2.8 20h18.4L12 3Z" />

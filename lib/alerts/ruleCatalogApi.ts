@@ -55,6 +55,21 @@ export type TriggeredApiAlert = {
   message: string;
 };
 
+export type CurrentAlertMetricValues = Partial<Record<
+  | 'shortInterestFloatPercent'
+  | 'shortScore'
+  | 'borrowFeeRate'
+  | 'utilization'
+  | 'availableShares'
+  | 'ftdCount'
+  | 'ftdValue'
+  | 'priceDrawdown'
+  | 'volumeSpike'
+  | 'intradayPriceSpike'
+  | 'dailyShortVolumeRatio',
+  number | null
+>>;
+
 function record(value: unknown): Record<string, unknown> {
   return value && typeof value === 'object' && !Array.isArray(value)
     ? value as Record<string, unknown>
@@ -199,6 +214,65 @@ function catalogMetricKey(item: RuleCatalogItem) {
   const pathKey = catalogMetricAliases[normalizedMetricName(pathLeaf)];
   const labelKey = catalogMetricAliases[normalizedMetricName(item.monitorField)];
   return pathKey || labelKey || item.catalogId;
+}
+
+function currentMetricKey(rule: AlertRuleSetting): keyof CurrentAlertMetricValues | null {
+  const normalizedCandidates = [
+    rule.catalogId,
+    rule.id,
+    rule.jsonPath.split('.').at(-1) ?? '',
+    rule.label,
+  ].map(normalizedMetricName);
+
+  if (normalizedCandidates.some(value => value.includes('shortinterestfloat'))) return 'shortInterestFloatPercent';
+  if (normalizedCandidates.some(value => value.includes('dailyshortvolumeratio'))) return 'dailyShortVolumeRatio';
+  if (normalizedCandidates.some(value => value.includes('shortscore'))) return 'shortScore';
+  if (normalizedCandidates.some(value => value.includes('borrowfee'))) return 'borrowFeeRate';
+  if (normalizedCandidates.some(value => value.includes('utilization'))) return 'utilization';
+  if (normalizedCandidates.some(value => value.includes('availableshares') || value.includes('shortableshares'))) return 'availableShares';
+  if (normalizedCandidates.some(value => value.includes('ftdcount') || value.includes('ftdshares'))) return 'ftdCount';
+  if (normalizedCandidates.some(value => value.includes('ftdvalue'))) return 'ftdValue';
+  if (normalizedCandidates.some(value => value.includes('pricedrawdown'))) return 'priceDrawdown';
+  if (normalizedCandidates.some(value => value.includes('volumespike'))) return 'volumeSpike';
+  if (normalizedCandidates.some(value => value.includes('intradaypricespike'))) return 'intradayPriceSpike';
+  return null;
+}
+
+function comparisonPass(value: number, operatorValue: AlertOperator, threshold: number) {
+  if (operatorValue === '>') return value > threshold;
+  if (operatorValue === '>=') return value >= threshold;
+  if (operatorValue === '<') return value < threshold;
+  return value <= threshold;
+}
+
+/**
+ * Returns undefined when the dashboard snapshot does not contain this rule's
+ * metric, null when it is available but does not breach, and an alert when it
+ * breaches. This lets the caller use the backend rule engine only as a fallback
+ * for metrics outside the current market snapshot.
+ */
+export function evaluateAlertRuleAgainstCurrentMetrics(
+  rule: AlertRuleSetting,
+  metrics: CurrentAlertMetricValues,
+): TriggeredApiAlert | null | undefined {
+  const metricKey = currentMetricKey(rule);
+  if (!metricKey) return undefined;
+  if (!Object.prototype.hasOwnProperty.call(metrics, metricKey)) return undefined;
+  const currentValue = metrics[metricKey];
+  if (currentValue === null || currentValue === undefined || !Number.isFinite(currentValue)) return null;
+  if (!comparisonPass(currentValue, rule.operator, rule.threshold)) return null;
+
+  return {
+    id: rule.id,
+    label: rule.label,
+    category: rule.category,
+    severity: rule.severity,
+    currentValue,
+    threshold: rule.threshold,
+    operator: rule.operator,
+    unit: rule.unit,
+    message: rule.message,
+  };
 }
 
 function deduplicateCatalog(items: RuleCatalogItem[]) {

@@ -6,6 +6,7 @@ import { DisclaimerFooter } from './DisclaimerFooter';
 import { PublicDemoWelcome } from './PublicDemoWelcome';
 import { TickerDataStatusProvider } from './TickerDataStatusProvider';
 import { PortalPageTranslator } from './PortalPageTranslator';
+import { AlertNotificationProvider } from './AlertNotificationProvider';
 
 export function AppShell({
   ticker,
@@ -21,17 +22,19 @@ export function AppShell({
   return (
     <AuthGuard ticker={ticker}>
       <TickerDataStatusProvider ticker={ticker}>
-        <div className="portal-page monitor-portal">
-          <PortalPageTranslator />
-          <Sidebar ticker={ticker} companyName={companyName} importDataVersion={importDataVersion} />
-          <main className="portal-main main-content">
-            <DesignBTopbar ticker={ticker} companyName={companyName} />
-            {children}
-            <DisclaimerFooter />
-          </main>
-          <PublicDemoWelcome />
-          <MonitorExpertChat ticker={ticker} />
-        </div>
+        <AlertNotificationProvider ticker={ticker}>
+          <div className="portal-page monitor-portal">
+            <PortalPageTranslator />
+            <Sidebar ticker={ticker} companyName={companyName} importDataVersion={importDataVersion} />
+            <main className="portal-main main-content">
+              <DesignBTopbar ticker={ticker} companyName={companyName} />
+              {children}
+              <DisclaimerFooter />
+            </main>
+            <PublicDemoWelcome />
+            <MonitorExpertChat ticker={ticker} />
+          </div>
+        </AlertNotificationProvider>
       </TickerDataStatusProvider>
     </AuthGuard>
   );

@@ -308,29 +308,6 @@ function mergeRows(
   return [...rows.values()].sort((a, b) => b.tradeDate.localeCompare(a.tradeDate));
 }
 
-function marketHistoryInputRows(history: MarketPublicationRecord[]): MarketInputRow[] {
-  const rows: MarketInputRow[] = [];
-  history.forEach(record => {
-    const tradeDate = marketRecordDate(record);
-    if (tradeDate) {
-      rows.push({
-        tradeDate,
-        issuedShare: marketNumber(record.issuedShare) ?? undefined,
-        utilizationPercent: marketNumber(record.utilizationPercent) ?? undefined,
-        availableSharesIbkr: marketNumber(record.availableSharesIbkr) ?? undefined,
-        availableSharesFutu: marketNumber(record.availableSharesFutu) ?? undefined,
-        initialMarginIbkr: marketNumber(record.initialMarginIbkr) ?? undefined,
-        initialMarginFutu: marketNumber(record.initialMarginFutu) ?? undefined,
-        maintenanceMarginIbkr: marketNumber(record.maintenanceMarginIbkr) ?? undefined,
-        maintenanceMarginFutu: marketNumber(record.maintenanceMarginFutu) ?? undefined,
-        averageDurationDays: marketNumber(record.averageDurationDays),
-        shortScore: marketNumber(record.shortScore) ?? undefined,
-      });
-    }
-  });
-  return rows.sort((a, b) => b.tradeDate.localeCompare(a.tradeDate));
-}
-
 function formFromDailyRecord(tradeDate: string, record: MarketInputRow | undefined, issuedShare: number | undefined): FormState {
   return {
     ...emptyForm(),
@@ -400,7 +377,6 @@ export function MarketDataOperationsClient() {
   ) {
     const normalized = normalizeTicker(ticker);
     const selectedTradeDate = form.tradeDate || latestClosedUsMarketDate();
-    const selectedTradeDateParam = encodeURIComponent(selectedTradeDate);
     setStatus('loading');
     if (!preserveFeedback) setMessage('');
     try {
@@ -408,10 +384,10 @@ export function MarketDataOperationsClient() {
         `/market-data/current?ticker=${encodeURIComponent(normalized)}&category=market-current`,
         `/market-data/history?ticker=${encodeURIComponent(normalized)}&category=market-history`,
         `/manual-input/issued-share?ticker=${encodeURIComponent(normalized)}`,
-        `/manual-input/utilization?ticker=${encodeURIComponent(normalized)}&tradeDate=${selectedTradeDateParam}`,
-        `/manual-input/manual-availability?ticker=${encodeURIComponent(normalized)}&tradeDate=${selectedTradeDateParam}`,
-        `/manual-input/margins?ticker=${encodeURIComponent(normalized)}&tradeDate=${selectedTradeDateParam}`,
-        `/manual-input/short-score?ticker=${encodeURIComponent(normalized)}&tradeDate=${selectedTradeDateParam}`,
+        `/manual-input/utilization?ticker=${encodeURIComponent(normalized)}`,
+        `/manual-input/manual-availability?ticker=${encodeURIComponent(normalized)}`,
+        `/manual-input/margins?ticker=${encodeURIComponent(normalized)}`,
+        `/manual-input/short-score?ticker=${encodeURIComponent(normalized)}`,
       ];
       const [marketCurrentResult, marketHistoryResult, issuedShareResult, utilizationResult, availabilityResult, marginsResult, shortScoreResult] = await Promise.all([
         loadApi(endpoints[0]),
@@ -429,15 +405,14 @@ export function MarketDataOperationsClient() {
       const historyRecords = recordsFromPayload<MarketPublicationRecord>(marketHistoryResult.payload);
       setMarketHistory(historyRecords);
       const issuedShare = numberOrUndefined(String((issuedShareResult.payload as { issuedShare?: unknown } | null)?.issuedShare ?? ''));
-      const selectedManualRows = mergeRows(
+      const manualRows = mergeRows(
         issuedShare,
-        exactDateRecordsFromPayload<UtilizationRecord>(utilizationResult.payload, selectedTradeDate),
-        exactDateRecordsFromPayload<AvailabilityRecord>(availabilityResult.payload, selectedTradeDate),
-        exactDateRecordsFromPayload<MarginRecord>(marginsResult.payload, selectedTradeDate),
-        exactDateRecordsFromPayload<ShortScoreRecord>(shortScoreResult.payload, selectedTradeDate),
+        recordsFromPayload<UtilizationRecord>(utilizationResult.payload),
+        recordsFromPayload<AvailabilityRecord>(availabilityResult.payload),
+        recordsFromPayload<MarginRecord>(marginsResult.payload),
+        recordsFromPayload<ShortScoreRecord>(shortScoreResult.payload),
       );
-      const selectedManualRecord = selectedManualRows.find(record => record.tradeDate === selectedTradeDate);
-      const historyRows = marketHistoryInputRows(historyRecords);
+      const selectedManualRecord = manualRows.find(record => record.tradeDate === selectedTradeDate);
       setSelectedTicker(normalized);
       setOperationsTicker(normalized);
       setForm(formFromDailyRecord(
@@ -446,7 +421,7 @@ export function MarketDataOperationsClient() {
         issuedShare,
       ));
       setLoadedManualRecord(selectedManualRecord ?? null);
-      setRows(historyRows);
+      setRows(manualRows);
       setEditingDate('');
       setStatus(preserveFeedback ? 'success' : 'idle');
     } catch (error) {
@@ -506,27 +481,51 @@ export function MarketDataOperationsClient() {
     setStatus('idle');
   }
 
-  async function refreshConsolidatedHistory() {
-    const endpoint = `/market-data/history?ticker=${encodeURIComponent(selectedTicker)}&category=market-history`;
+  async function refreshSavedInputs() {
+    const tickerParam = encodeURIComponent(selectedTicker);
+    const endpoints = [
+      `/market-data/history?ticker=${tickerParam}&category=market-history`,
+      `/manual-input/issued-share?ticker=${tickerParam}`,
+      `/manual-input/utilization?ticker=${tickerParam}`,
+      `/manual-input/manual-availability?ticker=${tickerParam}`,
+      `/manual-input/margins?ticker=${tickerParam}`,
+      `/manual-input/short-score?ticker=${tickerParam}`,
+    ];
     setHistoryRefreshing(true);
     setHistoryRefreshMessage('');
-    const result = await loadApi(endpoint);
+    const [marketHistoryResult, issuedShareResult, utilizationResult, availabilityResult, marginsResult, shortScoreResult] = await Promise.all(
+      endpoints.map(endpoint => loadApi(endpoint)),
+    );
     setApiDebugRows(current => [
-      ...current.filter(row => row.endpoint !== `GET ${endpoint}`),
-      result.debug,
+      ...current.filter(row => !endpoints.some(endpoint => row.endpoint === `GET ${endpoint}`)),
+      marketHistoryResult.debug,
+      issuedShareResult.debug,
+      utilizationResult.debug,
+      availabilityResult.debug,
+      marginsResult.debug,
+      shortScoreResult.debug,
     ]);
 
-    if (result.debug.state.startsWith('error')) {
-      setHistoryRefreshMessage('Unable to refresh consolidated history.');
+    const manualResults = [issuedShareResult, utilizationResult, availabilityResult, marginsResult, shortScoreResult];
+    if (manualResults.some(result => result.debug.state.startsWith('error'))) {
+      setHistoryRefreshMessage('Unable to refresh one or more manual-input categories.');
       setHistoryRefreshing(false);
       return;
     }
 
-    const historyRecords = recordsFromPayload<MarketPublicationRecord>(result.payload);
+    const historyRecords = recordsFromPayload<MarketPublicationRecord>(marketHistoryResult.payload);
+    const issuedShare = numberOrUndefined(String((issuedShareResult.payload as { issuedShare?: unknown } | null)?.issuedShare ?? ''));
+    const manualRows = mergeRows(
+      issuedShare,
+      recordsFromPayload<UtilizationRecord>(utilizationResult.payload),
+      recordsFromPayload<AvailabilityRecord>(availabilityResult.payload),
+      recordsFromPayload<MarginRecord>(marginsResult.payload),
+      recordsFromPayload<ShortScoreRecord>(shortScoreResult.payload),
+    );
     setMarketHistory(historyRecords);
-    setRows(marketHistoryInputRows(historyRecords));
+    setRows(manualRows);
     setHistoryPage(1);
-    setHistoryRefreshMessage(`Refreshed ${historyRecords.length.toLocaleString()} consolidated records.`);
+    setHistoryRefreshMessage(`Refreshed ${manualRows.length.toLocaleString()} saved input dates.`);
     setHistoryRefreshing(false);
   }
 
@@ -1056,7 +1055,7 @@ export function MarketDataOperationsClient() {
               className="ops-secondary-button"
               type="button"
               disabled={historyRefreshing}
-              onClick={() => void refreshConsolidatedHistory()}
+              onClick={() => void refreshSavedInputs()}
             >
               {historyRefreshing ? 'Refreshing...' : 'Refresh'}
             </button>
@@ -1153,7 +1152,7 @@ export function MarketDataOperationsClient() {
                   </td>
                 </tr>
               ))}
-              {!visibleHistoryRows.length && <tr><td colSpan={12}>{busy ? 'Loading consolidated market history...' : 'No consolidated records match the selected date range.'}</td></tr>}
+              {!visibleHistoryRows.length && <tr><td colSpan={12}>{busy ? 'Loading saved manual inputs...' : 'No saved inputs match the selected date range.'}</td></tr>}
             </tbody>
           </table>
         </div>

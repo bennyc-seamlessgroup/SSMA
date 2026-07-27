@@ -8,6 +8,7 @@ import type { DashboardMarginRecord, DashboardUtilizationRecord, OperationsSecFi
 import { normalizeTicker } from '@/lib/ticker-data';
 import { DashboardClient } from './DashboardClient';
 import { DashboardDevTables } from './DashboardDevTables';
+import type { CurrentAlertMetricValues } from '@/lib/alerts/ruleCatalogApi';
 
 type TrendPoint = {
   date: string;
@@ -109,6 +110,7 @@ type DashboardApiData = {
   marginInputs: DashboardMarginRecord[];
   events: CompanyEvent[];
   current: Record<string, unknown> | null;
+  currentAlertMetrics: CurrentAlertMetricValues;
 };
 
 function plainText(value: unknown, fallback = '') {
@@ -299,7 +301,25 @@ function marketHistoryToDashboardData(
     },
   } : null;
 
-  return { currentFile, historyFile, secFilingsFile, trendData, utilizationInputs, marginInputs, events: secFilingEvents(secFilingRows), current };
+  const currentAlertMetrics: CurrentAlertMetricValues = {
+    shortInterestFloatPercent: publishedRecord ? marketNumber(publishedRecord.shortInterestPercent) : null,
+    shortScore: publishedRecord ? marketNumber(publishedRecord.shortScore) : null,
+    borrowFeeRate: publishedRecord ? marketNumber(publishedRecord.borrowFeePercent) : null,
+    utilization: publishedRecord ? marketNumber(publishedRecord.utilizationPercent) : null,
+    availableShares: publishedRecord ? marketNumber(publishedRecord.availableShares) : null,
+  };
+
+  return {
+    currentFile,
+    historyFile,
+    secFilingsFile,
+    trendData,
+    utilizationInputs,
+    marginInputs,
+    events: secFilingEvents(secFilingRows),
+    current,
+    currentAlertMetrics,
+  };
 }
 
 export function DashboardBrowserPage({ ticker }: { ticker: string }) {
@@ -355,7 +375,14 @@ export function DashboardBrowserPage({ ticker }: { ticker: string }) {
   const events = apiData.events;
   return (
     <div className="page dashboard-page">
-      <DashboardClient ticker={normalizedTicker} data={trendData} events={events} utilizationRecords={utilizationInputs} marginRecords={marginInputs} />
+      <DashboardClient
+        ticker={normalizedTicker}
+        data={trendData}
+        events={events}
+        utilizationRecords={utilizationInputs}
+        marginRecords={marginInputs}
+        currentAlertMetrics={apiData.currentAlertMetrics}
+      />
       <DashboardDevTables
         marketCurrent={apiData.currentFile as Record<string, unknown> | null}
         marketHistory={apiData.historyFile as Record<string, unknown> | null}

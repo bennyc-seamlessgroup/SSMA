@@ -6,6 +6,7 @@ import { DashboardKpis, type PeriodKey } from './DashboardKpis';
 import type { DashboardMarginRecord, DashboardUtilizationRecord } from '@/lib/operations/data-types';
 import { CustomAlertCenter } from './CustomAlertCenter';
 import { PageDisclaimerNotice } from '@/components/PageDisclaimerNotice';
+import type { CurrentAlertMetricValues } from '@/lib/alerts/ruleCatalogApi';
 
 type TrendPoint = {
   date: string;
@@ -34,12 +35,14 @@ export function DashboardClient({
   events,
   utilizationRecords,
   marginRecords,
+  currentAlertMetrics,
 }: {
   ticker: string;
   data: TrendPoint[];
   events: CompanyEvent[];
   utilizationRecords: DashboardUtilizationRecord[];
   marginRecords: DashboardMarginRecord[];
+  currentAlertMetrics: CurrentAlertMetricValues;
 }) {
   const [kpiPeriod, setKpiPeriod] = useState<PeriodKey>('1Y');
   const [lendingPeriod, setLendingPeriod] = useState<PeriodKey>('1Y');
@@ -49,7 +52,7 @@ export function DashboardClient({
   return (
     <>
       <DashboardKpis data={data} period={kpiPeriod} onPeriodChange={setKpiPeriod} utilizationRecords={utilizationRecords} marginRecords={marginRecords} />
-      <CustomAlertCenter ticker={ticker} />
+      <CustomAlertCenter ticker={ticker} currentMetrics={currentAlertMetrics} />
       <DashboardChart
         title="Borrow Utilization & Duration History"
         series={['utilization', 'averageDuration']}

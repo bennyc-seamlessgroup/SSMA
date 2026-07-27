@@ -73,6 +73,14 @@
 - [Error Handling](#error-handling)
 - [JWT Token Structure](#jwt-token-structure)
 - [PKCE Implementation](#pkce-implementation)
+- [WebSocket Alert Notifications](#websocket-alert-notifications)
+  - [Overview](#overview)
+  - [Connection URL](#connection-url)
+  - [Authentication on Connect](#authentication-on-connect)
+  - [Incoming Message — Alert Payload](#incoming-message--alert-payload)
+  - [Keepalive](#keepalive)
+  - [Reconnection](#reconnection)
+  - [Vanilla JS Example](#vanilla-js-example)
 - [Onboarding Checklist for New Frontends](#onboarding-checklist-for-new-frontends)
 - [Working Code Examples](#working-code-examples)
 
@@ -82,21 +90,23 @@
 
 The SSMA Portal backend is a **serverless authentication service** built on:
 
-| Component               | Technology                         |
-|-------------------------|------------------------------------|
-| Identity Provider       | AWS Cognito User Pool              |
-| OAuth Providers         | Google (Apple planned)             |
-| Token Format            | JWT (stateless, no server sessions)|
-| API Layer               | AWS API Gateway (REST, Regional)   |
-| Profile Storage         | AWS DynamoDB                       |
-| Backend Runtime         | AWS Lambda (Python 3.11)           |
-| Infrastructure          | Terraform                          |
+| Component               | Technology                                   |
+|-------------------------|----------------------------------------------|
+| Identity Provider       | AWS Cognito User Pool                        |
+| OAuth Providers         | Google (Apple planned)                       |
+| Token Format            | JWT (stateless, no server sessions)          |
+| REST API Layer          | AWS API Gateway (REST, Regional)             |
+| WebSocket API Layer     | AWS API Gateway v2 (WebSocket)               |
+| Profile Storage         | AWS DynamoDB                                 |
+| Backend Runtime         | AWS Lambda (Python 3.11)                     |
+| Infrastructure          | Terraform                                    |
 
 The service provides:
 1. **OAuth 2.0 login** via Cognito Hosted UI (Google federation + email/password sign-up)
 2. **JWT-based API authorization** — no sessions, no cookies on the backend
 3. **User profile CRUD** — read, update, and delete user profiles in DynamoDB
 4. **User inputs API** — read and write per-user data sections (privateHoldings, tokenChains, collateralChains) stored in S3, triggering downstream consolidation on every update
+5. **Real-time alert notifications** — WebSocket push when a user's alert rule triggers, delivered simultaneously to all open browser tabs
 
 ---
 
@@ -139,7 +149,7 @@ The service provides:
 
 ## Environment Variables
 
-Your frontend needs these four environment variables. Replace placeholders with actual values obtained from the team or Terraform outputs.
+Your frontend needs these environment variables. Replace placeholders with actual values obtained from the team or Terraform outputs.
 
 ```bash
 # 1. Cognito Hosted UI domain (NO https:// prefix, NO trailing slash)
@@ -155,9 +165,14 @@ NEXT_PUBLIC_COGNITO_CLIENT_ID=<client-id>
 #    Production: https://your-domain.com/callback
 NEXT_PUBLIC_REDIRECT_URI=<callback-url>
 
-# 4. API Gateway base URL (NO trailing slash)
+# 4. REST API Gateway base URL (NO trailing slash)
 #    Example: https://abcdef1234.execute-api.us-east-1.amazonaws.com/dev
 NEXT_PUBLIC_API_GATEWAY_URL=<api-gateway-url>
+
+# 5. WebSocket API URL (wss:// scheme, NO trailing slash)
+#    Example: wss://xyz9876.execute-api.us-east-1.amazonaws.com/dev
+#    Used by useAlertWebSocket to receive real-time alert push notifications
+NEXT_PUBLIC_WS_API_URL=<websocket-api-url>
 ```
 
 > **IMPORTANT**: The `NEXT_PUBLIC_REDIRECT_URI` value must be **identical** to one of the registered `callback_urls` in the Cognito User Pool Client configuration. A mismatch will cause the OAuth flow to fail with a `redirect_mismatch` error. Contact the backend team to register your URL.
@@ -169,7 +184,10 @@ NEXT_PUBLIC_API_GATEWAY_URL=<api-gateway-url>
 terraform -chdir=terraform/envs/dev output cognito_hosted_ui_domain
 terraform -chdir=terraform/envs/dev output cognito_client_id
 terraform -chdir=terraform/envs/dev output api_gateway_url
+terraform -chdir=terraform/envs/dev output websocket_api_url
 ```
+
+> **Note**: All five variables are automatically provisioned as Vercel environment variables by Terraform after `terraform apply`. For local development only, copy the values into your `portal/.env.local` file.
 
 ---
 
@@ -2766,6 +2784,14 @@ Follow this checklist to integrate your frontend with the SSMA Portal backend:
 - [ ] Redirect unauthenticated users to login/landing page
 - [ ] Redirect authenticated users away from landing page to dashboard
 
+### 6. Implement WebSocket Alert Notifications
+- [ ] Set `NEXT_PUBLIC_WS_API_URL` environment variable (from `terraform output websocket_api_url`)
+- [ ] Connect to WebSocket on user login using the Cognito `idToken` as `?token=<idToken>` query param
+- [ ] Handle incoming `alert` messages and display toast/notification in the UI
+- [ ] Implement keepalive ping every 9 minutes (API GW WebSocket idle timeout is 10 minutes)
+- [ ] Implement auto-reconnect on unexpected disconnection
+- [ ] Close WebSocket on logout
+
 ---
 
 ## Working Code Examples
@@ -2976,6 +3002,191 @@ export function useApi() {
 
 ---
 
+## WebSocket Alert Notifications
+
+### Overview
+
+The SSMA Portal pushes real-time alert notifications to the browser via an **AWS API Gateway v2 WebSocket API**. When a user's rule triggers and an alert is written to DynamoDB, the backend simultaneously:
+
+1. Sends an SES email to the user
+2. Pushes a WebSocket message to **all active browser tabs** for that user
+
+The frontend receives the message and displays a toast notification immediately — no polling required.
+
+```
+Browser connects via WebSocket (on login)
+    └── $connect: ws_handler Lambda stores connectionId + userId in DynamoDB
+
+Alert fires (consolidation_listener writes INSERT to DynamoDB alerts table)
+    └── alert_notifier Lambda:
+          ├── sends SES email
+          └── queries DynamoDB for all connectionIds of userId
+                └── post_to_connection() → browser receives message → toast shown
+
+Browser tab closes
+    └── $disconnect: ws_handler Lambda removes connectionId from DynamoDB
+```
+
+---
+
+### Connection URL
+
+```
+wss://<ws-api-id>.execute-api.us-east-1.amazonaws.com/dev?token=<idToken>
+```
+
+| Part | Description |
+|------|-------------|
+| `wss://` | Secure WebSocket (TLS). Never use `ws://` in production. |
+| `<ws-api-id>` | API Gateway WebSocket API ID. Obtained from `NEXT_PUBLIC_WS_API_URL`. |
+| `/dev` | Stage name (matches the environment). |
+| `?token=<idToken>` | **Required.** Cognito `id_token` JWT passed as a query param for authentication on `$connect`. |
+
+---
+
+### Authentication on Connect
+
+Authentication happens at `$connect` time. The backend Lambda (`ws_handler`):
+
+1. Reads `?token=<idToken>` from the query string
+2. Base64-decodes the JWT payload (no signature verification — Cognito already validated it)
+3. Checks the `exp` claim — rejects with **403** if the token is expired
+4. Extracts the `sub` claim as `userId`
+5. Writes `{ connectionId, userId, ttl }` to the `ws-connections` DynamoDB table
+
+> **TTL**: Connections are automatically expired from DynamoDB after **2 hours** via DynamoDB TTL, even if `$disconnect` is never fired (e.g., browser crash).
+
+**Token Refresh**: When the user's `idToken` is silently refreshed (every ~55 minutes), the existing WebSocket connection remains valid until the TTL expires. The connection is re-established on the next page load with the new token.
+
+**Rejected connections** return HTTP 403 with one of:
+- `Missing token` — no `?token` query param
+- `Invalid token` — malformed JWT or missing `sub` claim
+- `Token expired` — JWT `exp` is in the past
+
+---
+
+### Incoming Message — Alert Payload
+
+When an alert is triggered, the WebSocket server pushes a JSON message:
+
+```json
+{
+  "type": "alert",
+  "ticker": "CURR",
+  "formula": "shortInterestFloat > 25",
+  "triggeredValue": "31.4",
+  "severity": "High",
+  "createDatetime": "2026-07-23T10:00:00Z"
+}
+```
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `type` | `"alert"` | Always `"alert"` — use to distinguish from future message types |
+| `ticker` | String | Stock ticker symbol that triggered the alert |
+| `formula` | String | The rule formula that was evaluated (e.g. `shortInterestFloat > 25`) |
+| `triggeredValue` | String | The actual data value that caused the trigger |
+| `severity` | `"Critical"` \| `"High"` \| `"Medium"` \| `"Low"` | Alert severity |
+| `createDatetime` | String (ISO 8601) | Timestamp when the alert was created |
+
+---
+
+### Keepalive
+
+API Gateway WebSocket connections time out after **10 minutes of inactivity**. To keep the connection alive, the client must send a ping at least every 9 minutes:
+
+```js
+// Send a keepalive ping every 9 minutes
+const ping = setInterval(() => {
+  if (ws.readyState === WebSocket.OPEN) {
+    ws.send(JSON.stringify({ action: 'ping' }));
+  }
+}, 9 * 60 * 1000);
+```
+
+The `$default` route handler on the backend returns `200 OK` for any message that doesn't match a known route (including pings).
+
+---
+
+### Reconnection
+
+The connection should be re-established if it drops unexpectedly (e.g., network interruption). Implement with exponential or fixed delay:
+
+```js
+ws.onclose = (event) => {
+  // Code 1000 = intentional close (logout), don't reconnect
+  if (event.code !== 1000) {
+    setTimeout(connect, 5000); // retry after 5 seconds
+  }
+};
+```
+
+Always close the WebSocket cleanly on logout:
+```js
+ws.close(1000); // code 1000 = normal closure
+```
+
+---
+
+### Vanilla JS Example
+
+Minimal integration without any framework:
+
+```js
+let ws = null;
+let pingInterval = null;
+
+function connectAlertWebSocket(idToken) {
+  const wsUrl = process.env.NEXT_PUBLIC_WS_API_URL; // e.g. wss://xyz.execute-api.us-east-1.amazonaws.com/dev
+  if (!wsUrl || !idToken) return;
+
+  ws = new WebSocket(`${wsUrl}?token=${encodeURIComponent(idToken)}`);
+
+  ws.onopen = () => {
+    console.log('Alert WebSocket connected');
+    // Keepalive ping every 9 minutes
+    pingInterval = setInterval(() => {
+      if (ws.readyState === WebSocket.OPEN) {
+        ws.send(JSON.stringify({ action: 'ping' }));
+      }
+    }, 9 * 60 * 1000);
+  };
+
+  ws.onmessage = (event) => {
+    const payload = JSON.parse(event.data);
+    if (payload.type === 'alert') {
+      showToast(payload); // your UI notification function
+    }
+  };
+
+  ws.onerror = (err) => console.error('Alert WebSocket error:', err);
+
+  ws.onclose = (event) => {
+    clearInterval(pingInterval);
+    // Reconnect on unexpected close
+    if (event.code !== 1000) {
+      setTimeout(() => connectAlertWebSocket(idToken), 5000);
+    }
+  };
+}
+
+function disconnectAlertWebSocket() {
+  clearInterval(pingInterval);
+  if (ws) {
+    ws.close(1000);
+    ws = null;
+  }
+}
+
+// On login:
+connectAlertWebSocket(tokens.idToken);
+
+// On logout:
+disconnectAlertWebSocket();
+```
+
+---
+
 ## Quick Reference Card
 
 | What | Value / Format |
@@ -2992,5 +3203,9 @@ export function useApi() {
 | Consolidator Trigger | Async Lambda invoke on every PUT to user-inputs sub-paths |
 | SEC Filings Endpoints | `GET /sec-filings`, `PUT /sec-filings`, `DELETE /sec-filings` |
 | SEC Filings Storage | `news_filings/CURR_sec_filings.json` in `data-sync-platform-website-data` |
+| WebSocket URL | `wss://<ws-api-id>.execute-api.us-east-1.amazonaws.com/dev` |
+| WebSocket Auth | `?token=<idToken>` query param on `$connect` |
+| WebSocket Timeout | 10 min idle; send ping every 9 min to keep alive |
+| Alert Payload | `{ type, ticker, formula, triggeredValue, severity, createDatetime }` |
 | CORS | Origin must be pre-registered in Terraform config |
 | Password Policy | Min 8 chars, uppercase, lowercase, number, symbol |

@@ -27824,6 +27824,283 @@ html[data-portal-design="b"][data-design-b-theme="dark"] .portal-notification-em
   color: #9fb0c5;
 }
 
+/* Real-time alert notifications */
+.portal-notification-inbox > button {
+  position: relative;
+}
+
+.portal-notification-unread {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  display: grid;
+  min-width: 16px;
+  height: 16px;
+  place-items: center;
+  padding: 0 4px;
+  border: 2px solid #fff;
+  border-radius: 9px;
+  background: #dc2626;
+  color: #fff;
+  font-size: 8px;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.portal-notification-panel > header {
+  justify-content: space-between;
+}
+
+.portal-notification-panel > header > span {
+  color: #718096;
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.portal-notification-alerts {
+  max-height: min(480px, calc(100vh - 150px));
+  overflow-y: auto;
+}
+
+.portal-notification-alerts article {
+  display: grid;
+  grid-template-columns: 8px minmax(0, 1fr);
+  gap: 10px;
+  padding: 13px 15px;
+  border-bottom: 1px solid #e8edf3;
+}
+
+.portal-notification-alerts article:last-child {
+  border-bottom: 0;
+}
+
+.portal-notification-alerts__marker {
+  width: 8px;
+  height: 8px;
+  margin-top: 4px;
+  border-radius: 50%;
+  background: #3b82f6;
+}
+
+.portal-notification-alerts article.medium .portal-notification-alerts__marker {
+  background: #eab308;
+}
+
+.portal-notification-alerts article.high .portal-notification-alerts__marker {
+  background: #f97316;
+}
+
+.portal-notification-alerts article.critical .portal-notification-alerts__marker {
+  background: #dc2626;
+}
+
+.portal-notification-alerts article > div {
+  min-width: 0;
+}
+
+.portal-notification-alerts strong,
+.portal-notification-alerts p,
+.portal-notification-alerts small {
+  display: block;
+  overflow-wrap: anywhere;
+}
+
+.portal-notification-alerts strong {
+  color: #22324a;
+  font-size: 12px;
+}
+
+.portal-notification-alerts p {
+  margin: 3px 0 5px;
+  color: #52677f;
+  font-size: 10px;
+  line-height: 1.45;
+}
+
+.portal-notification-alerts small {
+  color: #8291a5;
+  font-size: 9px;
+}
+
+.live-alert-toast {
+  position: fixed;
+  z-index: 220;
+  right: 22px;
+  bottom: 22px;
+  display: grid;
+  grid-template-columns: 22px minmax(0, 1fr) 26px;
+  width: min(390px, calc(100vw - 28px));
+  align-items: start;
+  gap: 10px;
+  padding: 13px;
+  border: 1px solid #cbdcf1;
+  border-left: 4px solid #3b82f6;
+  border-radius: 8px;
+  background: #fff;
+  color: #172033;
+  box-shadow: 0 18px 48px rgba(15, 23, 42, .2);
+}
+
+.live-alert-toast.medium {
+  border-left-color: #eab308;
+}
+
+.live-alert-toast.high {
+  border-left-color: #f97316;
+}
+
+.live-alert-toast.critical {
+  border-left-color: #dc2626;
+}
+
+.live-alert-toast > svg {
+  width: 20px;
+  height: 20px;
+  fill: none;
+  stroke: #3b82f6;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.8;
+}
+
+.live-alert-toast.medium > svg {
+  stroke: #ca8a04;
+}
+
+.live-alert-toast.high > svg {
+  stroke: #ea580c;
+}
+
+.live-alert-toast.critical > svg {
+  stroke: #dc2626;
+}
+
+.live-alert-toast > div {
+  min-width: 0;
+}
+
+.live-alert-toast span {
+  display: block;
+  margin-bottom: 2px;
+  color: #718096;
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+
+.live-alert-toast strong {
+  display: block;
+  color: #172033;
+  font-size: 13px;
+}
+
+.live-alert-toast p {
+  margin: 3px 0 0;
+  color: #52677f;
+  font-size: 10px;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+}
+
+.live-alert-toast > button {
+  display: grid;
+  width: 26px;
+  height: 26px;
+  min-height: 26px;
+  place-items: center;
+  padding: 0;
+  border: 0;
+  border-radius: 5px;
+  background: transparent;
+  color: #718096;
+}
+
+.live-alert-toast > button:hover {
+  background: #f1f5f9;
+  color: #334155;
+}
+
+.live-alert-toast > button svg {
+  width: 14px;
+  height: 14px;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-width: 1.8;
+}
+
+.dashboard-custom-alerts .custom-alert-row__threshold {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+html[data-portal-design="b"][data-design-b-theme="dark"] .portal-notification-unread {
+  border-color: #111827;
+}
+
+html[data-portal-design="b"][data-design-b-theme="dark"] .portal-notification-panel > header > span,
+html[data-portal-design="b"][data-design-b-theme="dark"] .portal-notification-alerts small {
+  color: #93a4ba;
+}
+
+html[data-portal-design="b"][data-design-b-theme="dark"] .portal-notification-alerts article {
+  border-color: #334155;
+}
+
+html[data-portal-design="b"][data-design-b-theme="dark"] .portal-notification-alerts strong {
+  color: #edf4ff;
+}
+
+html[data-portal-design="b"][data-design-b-theme="dark"] .portal-notification-alerts p {
+  color: #aebdd0;
+}
+
+html[data-portal-design="b"][data-design-b-theme="dark"] .live-alert-toast {
+  border-color: #3b4b61;
+  border-left-color: #60a5fa;
+  background: #1e293b;
+  color: #edf4ff;
+  box-shadow: 0 18px 48px rgba(0, 0, 0, .42);
+}
+
+html[data-portal-design="b"][data-design-b-theme="dark"] .live-alert-toast.medium {
+  border-left-color: #eab308;
+}
+
+html[data-portal-design="b"][data-design-b-theme="dark"] .live-alert-toast.high {
+  border-left-color: #fb923c;
+}
+
+html[data-portal-design="b"][data-design-b-theme="dark"] .live-alert-toast.critical {
+  border-left-color: #f87171;
+}
+
+html[data-portal-design="b"][data-design-b-theme="dark"] .live-alert-toast strong {
+  color: #f1f5f9;
+}
+
+html[data-portal-design="b"][data-design-b-theme="dark"] .live-alert-toast span,
+html[data-portal-design="b"][data-design-b-theme="dark"] .live-alert-toast p {
+  color: #aebdd0;
+}
+
+html[data-portal-design="b"][data-design-b-theme="dark"] .live-alert-toast > button {
+  color: #aebdd0;
+}
+
+html[data-portal-design="b"][data-design-b-theme="dark"] .live-alert-toast > button:hover {
+  background: #29384c;
+  color: #fff;
+}
+
+@media (max-width: 620px) {
+  .live-alert-toast {
+    right: 14px;
+    bottom: 14px;
+  }
+}
+
 html[data-portal-design="b"][data-design-b-theme="dark"] .portal-design-b-actions .user-menu__panel {
   border-color: #334155;
   background: #1e293b;
