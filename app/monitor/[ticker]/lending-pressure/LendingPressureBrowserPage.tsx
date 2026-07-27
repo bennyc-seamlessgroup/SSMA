@@ -119,6 +119,13 @@ function buildLendingPayload(historyPayload: unknown) {
   const history = historyRecords(historyPayload);
   const publishedRecord = latestCompleteMarketPublicationRecordFromHistory(history);
   const publishedDate = publishedRecord ? marketRecordDate(publishedRecord) : '';
+  const utilizationHistory = history
+    .map(row => ({
+      date: marketRecordDate(row),
+      value: optionalNumeric(row.utilizationPercent),
+    }))
+    .filter((row): row is { date: string; value: number } => Boolean(row.date) && row.value !== null)
+    .sort((a, b) => a.date.localeCompare(b.date));
   const sortedHistory = [...history]
     .filter(row => Boolean(publishedDate) && String(row.tradeDate ?? '').slice(0, 10) <= publishedDate)
     .map(row => marketPublicationRecordFromHistoryForDate(history, marketRecordDate(row)))
@@ -133,6 +140,7 @@ function buildLendingPayload(historyPayload: unknown) {
     latestHistory.availableSharesFutu,
   );
   const currentUtilization = firstNumeric(
+    utilizationHistory.at(-1)?.value,
     latestHistory.utilizationPercent,
   );
 
@@ -153,6 +161,7 @@ function buildLendingPayload(historyPayload: unknown) {
           costToBorrowAll: row.borrowFeePercent,
         },
       })),
+      utilizationHistory,
       derived: {
         lendingPressurePage: {
           summary: {},
@@ -404,12 +413,14 @@ export function LendingPressureBrowserPage({ ticker }: { ticker: string }) {
   const previousMarginRecord = sortedMarginRecords[1];
   const current = record(lendingData.current);
   const dailyRows = rows(lendingData.daily);
+  const utilizationHistoryRows = rows(lendingData.utilizationHistory)
+    .sort((a, b) => String(b.date ?? '').localeCompare(String(a.date ?? '')));
   const sortedDailyRows = [...dailyRows].sort((a, b) => String(b.date ?? '').localeCompare(String(a.date ?? '')));
   const latestDaily = sortedDailyRows[0] ?? {};
   const previousDaily = sortedDailyRows[1] ?? {};
   const trendRows = [...dailyRows].sort((a, b) => String(a.date ?? '').localeCompare(String(b.date ?? ''))).slice(-7);
   const availabilityTrendRows = trendRows.filter(row => optionalNumeric(record(row.availability).shortAvailabilityShares) !== null);
-  const utilizationTrendRows = trendRows.filter(row => optionalNumeric(record(row.availability).shortAvailabilityPct) !== null);
+  const utilizationTrendRows = [...utilizationHistoryRows].reverse().slice(-7);
   const borrowFeeTrendRows = trendRows.filter(row => optionalNumeric(record(row.borrowFeeAll).costToBorrowAll) !== null);
   const latestAvailability = record(latestDaily.availability);
   const previousAvailability = record(previousDaily.availability);
@@ -422,7 +433,7 @@ export function LendingPressureBrowserPage({ ticker }: { ticker: string }) {
   const borrowFeePressure = Math.min(100, Math.max(0, borrowFee));
   const borrowDemandScore = Math.round((utilizationPressure * .45) + (borrowFeePressure * .35) + (availabilityPressure * .2));
   const previousSharesAvailable = numeric(previousAvailability.shortAvailabilityShares);
-  const previousUtilizationPct = numeric(previousAvailability.shortAvailabilityPct);
+  const previousUtilizationPct = optionalNumeric(utilizationHistoryRows[1]?.value);
   const previousBorrowFee = numeric(previousBorrowFeeRow.costToBorrowAll);
   const pressureScore = Math.round((availabilityPressure * .25) + (utilizationPressure * .3) + (borrowFeePressure * .3) + (borrowDemandScore * .15));
   const level = pressureScore >= 81 ? 'Extreme' : pressureScore >= 61 ? 'High' : pressureScore >= 31 ? 'Moderate' : 'Low';
@@ -525,7 +536,7 @@ export function LendingPressureBrowserPage({ ticker }: { ticker: string }) {
         </div>
         <div className="lending-trend-grid">
           <div className="terminal-card chart-card"><h3><InfoTitle text="Trend of shares available to borrow. Declining availability can indicate tightening borrow supply.">Shortable Shares Trend</InfoTitle></h3><TrendLine label="Available" labels={availabilityTrendRows.map(row => shortDateLabel(row.date))} values={availabilityTrendRows.map(row => optionalNumeric(record(row.availability).shortAvailabilityShares) as number)} /></div>
-          <div className="terminal-card chart-card"><h3><InfoTitle text="Utilization is currently mapped to the availability percentage in the consolidated lending file.">Utilization Trend</InfoTitle></h3><TrendLine label="Utilization" labels={utilizationTrendRows.map(row => shortDateLabel(row.date))} values={utilizationTrendRows.map(row => optionalNumeric(record(row.availability).shortAvailabilityPct) as number)} valueFormatter={value => `${formatNumber(value, { maximumFractionDigits: 2 })}%`} /></div>
+          <div className="terminal-card chart-card"><h3><InfoTitle text="Latest valid lending-pool utilization observations. Dates without a utilization value are skipped.">Utilization Trend</InfoTitle></h3><TrendLine label="Utilization" labels={utilizationTrendRows.map(row => shortDateLabel(row.date))} values={utilizationTrendRows.map(row => optionalNumeric(row.value) as number)} valueFormatter={value => `${formatNumber(value, { maximumFractionDigits: 2 })}%`} /></div>
           <div className="terminal-card chart-card"><h3><InfoTitle text="Borrow fee trend shows whether short sellers are paying more to maintain or open short positions.">Borrow Fee Trend</InfoTitle></h3><TrendLine label="Borrow Fee" labels={borrowFeeTrendRows.map(row => shortDateLabel(row.date))} values={borrowFeeTrendRows.map(row => optionalNumeric(record(row.borrowFeeAll).costToBorrowAll) as number)} valueFormatter={value => `${formatNumber(value, { maximumFractionDigits: 2 })}%`} /></div>
         </div>
       </section>
