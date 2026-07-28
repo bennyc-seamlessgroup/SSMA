@@ -115,18 +115,26 @@ function payloadPreview(value: unknown) {
   }
 }
 
+function categoryRecord(payload: unknown, category: string): Row {
+  const direct = record(payload);
+  const directCategory = record(direct[category]);
+  if (Object.keys(directCategory).length) return directCategory;
+  const data = record(direct.data);
+  const nestedCategory = record(data[category]);
+  if (Object.keys(nestedCategory).length) return nestedCategory;
+  return Object.keys(data).length ? data : direct;
+}
+
 function historyRecords(payload: unknown): MarketHistoryRecord[] {
   if (Array.isArray(payload)) return payload as MarketHistoryRecord[];
-  if (payload && typeof payload === 'object' && Array.isArray((payload as { records?: unknown }).records)) return (payload as { records: MarketHistoryRecord[] }).records;
-  if (payload && typeof payload === 'object' && Array.isArray((payload as { data?: { records?: unknown } }).data?.records)) return (payload as { data: { records: MarketHistoryRecord[] } }).data.records;
+  const normalized = categoryRecord(payload, 'market-history');
+  if (Array.isArray(normalized.records)) return normalized.records as MarketHistoryRecord[];
   return [];
 }
 
 function buildLendingPayload(historyPayload: unknown, currentPayload: unknown) {
   const history = historyRecords(historyPayload);
-  const publishedRecord = latestCompleteMarketPublicationRecordFromHistory(history);
-  const publishedDate = publishedRecord ? marketRecordDate(publishedRecord) : '';
-  const current = record(currentPayload) as MarketCurrentSnapshot;
+  const current = categoryRecord(currentPayload, 'market-current') as MarketCurrentSnapshot;
   const currentUtilizationObservation = marketCurrentMetricObservation(current, 'utilization.percent');
   const currentAverageDuration = marketCurrentMetricObservation(current, 'margins.averageDurationDays');
   const utilizationHistory = history
@@ -136,16 +144,16 @@ function buildLendingPayload(historyPayload: unknown, currentPayload: unknown) {
     }))
     .filter((row): row is { date: string; value: number } => Boolean(row.date) && row.value !== null)
     .sort((a, b) => a.date.localeCompare(b.date));
-  if (currentUtilizationObservation && currentUtilizationObservation.date <= publishedDate) {
+  if (currentUtilizationObservation) {
     const existing = utilizationHistory.find(row => row.date === currentUtilizationObservation.date);
     if (!existing) utilizationHistory.push(currentUtilizationObservation);
     utilizationHistory.sort((a, b) => a.date.localeCompare(b.date));
   }
   const sortedHistory = [...history]
-    .filter(row => Boolean(publishedDate) && String(row.tradeDate ?? '').slice(0, 10) <= publishedDate)
+    .filter(row => Boolean(marketRecordDate(row)))
     .map(row => marketPublicationRecordFromHistoryForDate(history, marketRecordDate(row)))
     .sort((a, b) => String(a.tradeDate ?? '').localeCompare(String(b.tradeDate ?? '')));
-  const latestHistory: MarketPublicationRecord = publishedRecord ?? {};
+  const latestHistory: MarketPublicationRecord = sortedHistory.at(-1) ?? {};
   const currentBorrowFee = firstNumeric(
     latestHistory.borrowFeePercent,
   );
@@ -199,7 +207,6 @@ function buildLendingPayload(historyPayload: unknown, currentPayload: unknown) {
       .concat(
         currentAverageDuration
         && currentAverageDuration.value > 0
-        && currentAverageDuration.date <= publishedDate
         && !sortedHistory.some(row => (
           marketRecordDate(row) === currentAverageDuration.date
           && (optionalNumeric(row.averageDurationDays) ?? 0) > 0
@@ -420,8 +427,16 @@ export function LendingPressureBrowserPage({ ticker }: { ticker: string }) {
 
     Promise.all([loadEndpoint(currentEndpoint), loadEndpoint(historyEndpoint)])
       .then(async ([currentResult, historyResult]) => {
-        const publishedRecord = latestCompleteMarketPublicationRecordFromHistory(historyRecords(historyResult.payload));
-        const reportDate = publishedRecord ? marketRecordDate(publishedRecord) : undefined;
+        const apiHistoryRecords = historyRecords(historyResult.payload);
+        const publishedRecord = latestCompleteMarketPublicationRecordFromHistory(apiHistoryRecords);
+        const latestHistoryRecord = [...apiHistoryRecords]
+          .filter(row => marketRecordDate(row))
+          .sort((a, b) => marketRecordDate(b).localeCompare(marketRecordDate(a)))[0];
+        const reportDate = publishedRecord
+          ? marketRecordDate(publishedRecord)
+          : latestHistoryRecord
+            ? marketRecordDate(latestHistoryRecord)
+            : undefined;
         const aiReportEndpoint = `/market-data/ai-report?ticker=${encodeURIComponent(normalizedTicker)}${reportDate ? `&date=${encodeURIComponent(reportDate)}` : ''}`;
         const aiReportResult = await loadEndpoint(
           aiReportEndpoint,

@@ -913,8 +913,16 @@ export function ShortInterestBrowserPage({ ticker }: { ticker: string }) {
         cachedAuthenticatedFetch<ApiFile>(`/market-data/history?ticker=${encodeURIComponent(normalizedTicker)}&category=short-volume-history`),
         cachedAuthenticatedFetch<ApiFile>(`/market-data/history?ticker=${encodeURIComponent(normalizedTicker)}&category=ftd-history`),
       ]);
-      const publishedRecord = latestCompleteMarketPublicationRecordFromHistory(apiRecords(history, 'market-history'));
-      const reportDate = publishedRecord ? marketRecordDate(publishedRecord) : undefined;
+      const historyRows = apiRecords(history, 'market-history');
+      const publishedRecord = latestCompleteMarketPublicationRecordFromHistory(historyRows);
+      const latestHistoryRecord = [...historyRows]
+        .filter(row => marketRecordDate(row))
+        .sort((a, b) => marketRecordDate(b).localeCompare(marketRecordDate(a)))[0];
+      const reportDate = publishedRecord
+        ? marketRecordDate(publishedRecord)
+        : latestHistoryRecord
+          ? marketRecordDate(latestHistoryRecord)
+          : undefined;
       const aiReport = await (fetchAiReport(normalizedTicker, reportDate) as Promise<ApiFile>)
         .catch(cause => ({
           requestError: cause instanceof Error ? cause.message : 'Unable to load AI report.',
@@ -939,10 +947,9 @@ export function ShortInterestBrowserPage({ ticker }: { ticker: string }) {
 
   const marketHistoryRows = apiRecords(apiData.history, 'market-history');
   const publishedRecord = latestCompleteMarketPublicationRecordFromHistory(marketHistoryRows);
-  const publishedDate = publishedRecord ? marketRecordDate(publishedRecord) : '';
   const shortCurrent = publishedRecord ? marketCurrentToLegacy(publishedRecord as ApiFile) : {};
   const dailyRows = marketHistoryRows
-    .filter(row => Boolean(publishedDate) && String(row.tradeDate ?? row.date ?? '').slice(0, 10) <= publishedDate)
+    .filter(row => Boolean(marketRecordDate(row)))
     .map(row => marketPublicationRecordFromHistoryForDate(marketHistoryRows, marketRecordDate(row)))
     .map(marketHistoryToLegacy);
   const shortInterestTrendRows = dailyRows
@@ -951,11 +958,21 @@ export function ShortInterestBrowserPage({ ticker }: { ticker: string }) {
   const borrowFeeTrendRows = shortInterestTrendRows.filter(row => optionalNumeric(record(row.borrowFeeAll).costToBorrowAll) !== null);
   const availabilityTrendRows = shortInterestTrendRows.filter(row => optionalNumeric(record(row.availability).shortAvailabilityShares) !== null);
   const sortedDailyRows = [...dailyRows].sort((a, b) => String(b.date ?? '').localeCompare(String(a.date ?? '')));
+  const currentReportDate = publishedRecord ? marketRecordDate(publishedRecord) : String(sortedDailyRows[0]?.date ?? '');
+  const shortInterestSnapshotRows = sortedDailyRows.filter(row => {
+    const snapshot = record(row.shortInterest);
+    return optionalNumeric(snapshot.shortInterestShares) !== null
+      || optionalNumeric(snapshot.shortInterestPcFreeFloat) !== null;
+  });
+  const daysToCoverSnapshotRows = sortedDailyRows.filter(row => optionalNumeric(record(row.daysToCover).daysToCover) !== null);
   const borrowFeeSnapshotRows = sortedDailyRows.filter(row => optionalNumeric(record(row.borrowFeeAll).costToBorrowAll) !== null);
+  const availabilitySnapshotRows = sortedDailyRows.filter(row => optionalNumeric(record(row.availability).shortAvailabilityShares) !== null);
   const utilizationSnapshotRows = sortedDailyRows.filter(row => optionalNumeric(record(row.availability).shortAvailabilityPct) !== null);
-  const latestDaily = sortedDailyRows[0] ?? {};
-  const previousDaily = sortedDailyRows[1] ?? {};
-  const twoWeeksAgoDaily = rowAtOrBeforeDaysAgo(dailyRows, latestDaily.date, 14);
+  const shortScoreSnapshotRows = sortedDailyRows.filter(row => optionalNumeric(record(row.shortScore).score) !== null);
+  const latestShortInterestRow = shortInterestSnapshotRows[0] ?? {};
+  const twoWeeksAgoShortInterestRow = rowAtOrBeforeDaysAgo(shortInterestSnapshotRows, latestShortInterestRow.date, 14);
+  const latestDaysToCoverRow = daysToCoverSnapshotRows[0] ?? {};
+  const twoWeeksAgoDaysToCoverRow = rowAtOrBeforeDaysAgo(daysToCoverSnapshotRows, latestDaysToCoverRow.date, 14);
   const biweeklyShortInterestTrendRows = biweeklyRows(
     dailyRows.filter(row => optionalNumeric(record(row.shortInterest).shortInterestShares) !== null),
   );
@@ -966,33 +983,35 @@ export function ShortInterestBrowserPage({ ticker }: { ticker: string }) {
     .sort((a, b) => String(a.tradeDate || a.settlementDate).localeCompare(String(b.tradeDate || b.settlementDate)))
     .slice(-7);
 
-  const shortInterestShares = numeric(shortCurrent.shortInterestShares);
-  const shortInterestPercent = numeric(shortCurrent.shortInterestPcFreeFloat);
-  const borrowFee = numeric(shortCurrent.costToBorrowAll);
-  const sharesAvailable = numeric(shortCurrent.shortAvailabilityShares);
-  const utilization = numeric(shortCurrent.shortAvailabilityPct);
-  const shortScore = Math.round(numeric(shortCurrent.shortScore) ?? 0);
-  const shortScoreLevel = shortScore >= 80 ? 'Extreme' : shortScore >= 65 ? 'High' : shortScore >= 40 ? 'Moderate' : 'Low';
-  const shortScoreTone = shortScore >= 80 ? 'extreme' : shortScore >= 65 ? 'high' : shortScore >= 40 ? 'moderate' : 'low';
-  const daysToCover = numeric(shortCurrent.daysToCoverQuantity);
-  const latestShortInterest = record(latestDaily.shortInterest);
-  const twoWeeksAgoShortInterest = record(twoWeeksAgoDaily.shortInterest);
-  const latestDaysToCover = record(latestDaily.daysToCover);
-  const twoWeeksAgoDaysToCover = record(twoWeeksAgoDaily.daysToCover);
+  const latestShortInterest = record(latestShortInterestRow.shortInterest);
+  const twoWeeksAgoShortInterest = record(twoWeeksAgoShortInterestRow.shortInterest);
+  const latestDaysToCover = record(latestDaysToCoverRow.daysToCover);
+  const twoWeeksAgoDaysToCover = record(twoWeeksAgoDaysToCoverRow.daysToCover);
   const latestBorrowFeeRow = borrowFeeSnapshotRows[0] ?? {};
   const previousBorrowFeeRow = borrowFeeSnapshotRows[1] ?? {};
+  const latestAvailabilityRow = availabilitySnapshotRows[0] ?? {};
+  const previousAvailabilityRow = availabilitySnapshotRows[1] ?? {};
   const latestUtilizationRow = utilizationSnapshotRows[0] ?? {};
   const previousUtilizationRow = utilizationSnapshotRows[1] ?? {};
+  const latestShortScoreRow = shortScoreSnapshotRows[0] ?? {};
+  const previousShortScoreRow = shortScoreSnapshotRows[1] ?? {};
   const latestBorrowFee = record(latestBorrowFeeRow.borrowFeeAll);
   const previousBorrowFee = record(previousBorrowFeeRow.borrowFeeAll);
-  const latestAvailability = record(latestDaily.availability);
-  const previousAvailability = record(previousDaily.availability);
+  const latestAvailability = record(latestAvailabilityRow.availability);
+  const previousAvailability = record(previousAvailabilityRow.availability);
   const latestUtilization = record(latestUtilizationRow.availability);
   const previousUtilization = record(previousUtilizationRow.availability);
-  const latestShortScore = record(latestDaily.shortScore);
-  const previousShortScore = record(previousDaily.shortScore);
-  const latestClosing = record(latestDaily.closingPrices);
-  const previousClosing = record(previousDaily.closingPrices);
+  const latestShortScore = record(latestShortScoreRow.shortScore);
+  const previousShortScore = record(previousShortScoreRow.shortScore);
+  const shortInterestShares = numeric(latestShortInterest.shortInterestShares) ?? numeric(shortCurrent.shortInterestShares);
+  const shortInterestPercent = numeric(latestShortInterest.shortInterestPcFreeFloat) ?? numeric(shortCurrent.shortInterestPcFreeFloat);
+  const borrowFee = numeric(latestBorrowFee.costToBorrowAll) ?? numeric(shortCurrent.costToBorrowAll);
+  const sharesAvailable = numeric(latestAvailability.shortAvailabilityShares) ?? numeric(shortCurrent.shortAvailabilityShares);
+  const utilization = numeric(latestUtilization.shortAvailabilityPct) ?? numeric(shortCurrent.shortAvailabilityPct);
+  const shortScore = Math.round(numeric(latestShortScore.score) ?? numeric(shortCurrent.shortScore) ?? 0);
+  const shortScoreLevel = shortScore >= 80 ? 'Extreme' : shortScore >= 65 ? 'High' : shortScore >= 40 ? 'Moderate' : 'Low';
+  const shortScoreTone = shortScore >= 80 ? 'extreme' : shortScore >= 65 ? 'high' : shortScore >= 40 ? 'moderate' : 'low';
+  const daysToCover = numeric(latestDaysToCover.daysToCover) ?? numeric(shortCurrent.daysToCoverQuantity);
   const shortInterestDelta = delta(numeric(latestShortInterest.shortInterestShares), numeric(twoWeeksAgoShortInterest.shortInterestShares), { maximumFractionDigits: 0 });
   const shortInterestPctDelta = delta(numeric(latestShortInterest.shortInterestPcFreeFloat), numeric(twoWeeksAgoShortInterest.shortInterestPcFreeFloat), { maximumFractionDigits: 2 });
   const daysToCoverDelta = delta(numeric(latestDaysToCover.daysToCover), numeric(twoWeeksAgoDaysToCover.daysToCover), { maximumFractionDigits: 2 });
@@ -1190,7 +1209,7 @@ export function ShortInterestBrowserPage({ ticker }: { ticker: string }) {
             payload: apiData.ftd,
             preferredColumns: ['tradeDate', 'settlementDate'],
           },
-          { id: 'ai-report', title: 'AI Report', endpoint: `GET /market-data/ai-report?date=${publishedDate || 'calculated'}`, source: 'Market Data API', payload: apiData.aiReport, status: apiData.aiReport.requestError ? 'error' : 'Connected' },
+          { id: 'ai-report', title: 'AI Report', endpoint: `GET /market-data/ai-report?date=${currentReportDate || 'calculated'}`, source: 'Market Data API', payload: apiData.aiReport, status: apiData.aiReport.requestError ? 'error' : 'Connected' },
         ]} />
       </section>
     </div>
