@@ -165,7 +165,7 @@ export async function buildDailyReportData(report: ReportArchiveRecord) {
     cachedAuthenticatedFetch<ApiPayload>(`/market-data/history?ticker=${encodeURIComponent(ticker)}&category=market-history`),
     getSentimentCurrent(ticker).catch(() => ({})),
     cachedAuthenticatedFetch<ApiPayload>(`/manual-input/sec-filings?ticker=${encodeURIComponent(ticker)}`).catch(() => ({})),
-    fetchAiReport(ticker).catch(() => ({})),
+    fetchAiReport(ticker, report.reportDate).catch(() => ({})),
   ]);
 
   const historyRecords = apiRecords(history, 'market-history');

@@ -39,6 +39,8 @@ function flattenObject(input: Record<string, unknown>, prefix = ''): Array<{ fie
 function recordCount(payload: unknown) {
   if (Array.isArray(payload)) return payload.length;
   if (isRecord(payload) && Array.isArray(payload.records)) return payload.records.length;
+  if (isRecord(payload) && Array.isArray(payload.data)) return payload.data.length;
+  if (isRecord(payload) && isRecord(payload.data) && Array.isArray(payload.data.records)) return payload.data.records.length;
   return payload ? 1 : 0;
 }
 
@@ -57,8 +59,17 @@ function PayloadTable({ payload }: { payload: unknown }) {
     return <p className="page__desc import-empty">No payload returned by this API.</p>;
   }
 
-  const records = Array.isArray(payload.records) ? payload.records.filter(isRecord) : [];
-  const metadata = Object.fromEntries(Object.entries(payload).filter(([key]) => key !== 'records'));
+  const records = Array.isArray(payload.records)
+    ? payload.records.filter(isRecord)
+    : Array.isArray(payload.data)
+      ? payload.data.filter(isRecord)
+      : isRecord(payload.data) && Array.isArray(payload.data.records)
+        ? payload.data.records.filter(isRecord)
+        : [];
+  const metadata = Object.fromEntries(Object.entries(payload).filter(([key, value]) => (
+    key !== 'records'
+    && !(key === 'data' && (Array.isArray(value) || (isRecord(value) && Array.isArray(value.records))))
+  )));
   const metadataRows = flattenObject(metadata);
 
   return (

@@ -1161,10 +1161,11 @@ Returns the paginated list of available dates.
 
 ### GET /market-data/ai-report
 
-Retrieve daily AI report data for a stock ticker from the centralized v2 data platform (`data-sync-platform-centralized-v2` S3 bucket, `ai-report/` prefix). The API dynamically calculates the target consolidation date (using the same logic as the consolidation handler) and retrieves that day's report.
+Retrieve daily AI report data for a stock ticker from the centralized v2 data platform (`data-sync-platform-centralized-v2` S3 bucket, `ai-report/` prefix). The API performs a two-tier lookup: first attempting to retrieve user-specific report data (`ai-report-user.json`), and falling back to ticker-level report data (`ai-report-ticker.json`) if a user-specific report does not exist. An optional `date` query parameter allows querying a specific date; if omitted, the API dynamically calculates the target consolidation date (using the same logic as the consolidation handler).
 
 ```
 GET /market-data/ai-report?ticker=CURR
+GET /market-data/ai-report?ticker=CURR&date=2026-07-25
 Authorization: <id_token>
 ```
 
@@ -1174,9 +1175,10 @@ Authorization: <id_token>
 
 **Parameters**:
 - `ticker` (**Required** / Query Parameter): The stock ticker symbol (case-insensitive, e.g. `CURR`).
+- `date` (**Optional** / Query Parameter): The report date in `YYYY-MM-DD` format (e.g. `2026-07-25`). If omitted, the target consolidation date is dynamically calculated.
 
 **Response** `200 OK` — Fetch AI report:
-Returns the raw JSON content of the S3 file at `ai-report/{ticker}/{calculated_date}/ai-report.json`.
+Returns the raw JSON content of the primary S3 file at `ai-report/{ticker}/{date}/{user_sub}/ai-report-user.json` (where `{user_sub}` is extracted from Cognito claims `sub`). If the primary file is not found (`NoSuchKey`), it falls back to the secondary S3 file at `ai-report/{ticker}/{date}/ai-report-ticker.json`.
 
 ```json
 {
@@ -1186,9 +1188,9 @@ Returns the raw JSON content of the S3 file at `ai-report/{ticker}/{calculated_d
 }
 ```
 
-**Response** `400 Bad Request`: If `ticker` is missing.
+**Response** `400 Bad Request`: If `ticker` is missing or `date` parameter format is invalid (must match `YYYY-MM-DD`).
 **Response** `403 Forbidden`: If the user is unauthorized to view AI reports for the specified ticker.
-**Response** `404 Not Found`: If the AI report for the calculated date does not exist in S3.
+**Response** `404 Not Found`: If neither user-level nor ticker-level AI report exists in S3 for the specified/calculated date.
 
 ---
 

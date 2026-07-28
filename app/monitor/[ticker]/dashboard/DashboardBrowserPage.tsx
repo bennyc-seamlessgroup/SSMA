@@ -154,6 +154,25 @@ function asApiArray<T>(value: unknown): T[] {
   return [];
 }
 
+function categoryPayload<T extends Record<string, unknown>>(value: unknown, category: string): T | null {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return null;
+  const payload = value as Record<string, unknown>;
+  const directCategory = payload[category];
+  if (directCategory && typeof directCategory === 'object' && !Array.isArray(directCategory)) {
+    return directCategory as T;
+  }
+  const data = payload.data;
+  if (data && typeof data === 'object' && !Array.isArray(data)) {
+    const dataRecord = data as Record<string, unknown>;
+    const nestedCategory = dataRecord[category];
+    if (nestedCategory && typeof nestedCategory === 'object' && !Array.isArray(nestedCategory)) {
+      return nestedCategory as T;
+    }
+    return dataRecord as T;
+  }
+  return payload as T;
+}
+
 function maxNumeric(...values: unknown[]) {
   const candidates = values.map(numericOrNull).filter((value): value is number => value !== null);
   return candidates.length ? Math.max(...candidates) : null;
@@ -252,7 +271,6 @@ function marketHistoryToDashboardData(
   const currentAverageDuration = marketCurrentMetricObservation(currentFile, 'margins.averageDurationDays');
   const secFilingRows = asApiArray<OperationsSecFilingRecord>(secFilingsFile);
   const marketTrendData = historyRecords
-    .filter(row => Boolean(publishedDate) && plainText(row.tradeDate ?? row.date) <= publishedDate)
     .map((row): TrendPoint | null => {
       const date = plainText(row.tradeDate ?? row.date);
       if (!date) return null;
@@ -271,7 +289,7 @@ function marketHistoryToDashboardData(
     .filter((row): row is TrendPoint => Boolean(row))
     .sort((a, b) => a.date.localeCompare(b.date));
 
-  if (currentFile?.snapshotDate && currentFile.snapshotDate <= publishedDate && !marketTrendData.some(row => row.date === currentFile.snapshotDate)) {
+  if (currentFile?.snapshotDate && !marketTrendData.some(row => row.date === currentFile.snapshotDate)) {
     marketTrendData.push({
       date: currentFile.snapshotDate,
       price: numericOrNull(currentFile.price?.value),
@@ -290,7 +308,7 @@ function marketHistoryToDashboardData(
     observation: { date: string; value: number } | null,
     key: 'utilization' | 'averageDuration',
   ) {
-    if (!observation || observation.date > publishedDate) return;
+    if (!observation) return;
     const existing = marketTrendData.find(row => row.date === observation.date);
     if (existing) {
       if (existing[key] === null) existing[key] = observation.value;
@@ -313,10 +331,11 @@ function marketHistoryToDashboardData(
   marketTrendData.sort((a, b) => a.date.localeCompare(b.date));
 
   const recordTicker = plainText(historyFile?.ticker ?? currentFile?.ticker, 'CURR').toUpperCase();
-  // Historical charts show valid saved observations independently. Publication
-  // readiness only controls the current KPI snapshot above.
+  // Dashboard cards and charts use each metric's latest valid observation
+  // independently. Publication readiness only controls the consolidated alert
+  // snapshot below, so sparse rows from a ticker such as MIMI remain visible.
   const utilizationInputs = historyUtilizationRecords(historyRecords, recordTicker);
-  if (currentUtilization && currentUtilization.date <= publishedDate) {
+  if (currentUtilization) {
     const existing = utilizationInputs.find(row => row.date === currentUtilization.date);
     if (!existing) {
       utilizationInputs.push({
@@ -331,7 +350,7 @@ function marketHistoryToDashboardData(
     utilizationInputs.sort((a, b) => a.date.localeCompare(b.date));
   }
   const marginInputs = historyMarginRecords(historyRecords, recordTicker);
-  if (currentAverageDuration && currentAverageDuration.date <= publishedDate && currentAverageDuration.value > 0) {
+  if (currentAverageDuration && currentAverageDuration.value > 0) {
     const existing = marginInputs.find(row => row.date === currentAverageDuration.date);
     if (!existing || !(Number(existing.averageDurationDays) > 0)) {
       if (existing) {
@@ -403,11 +422,14 @@ export function DashboardBrowserPage({ ticker }: { ticker: string }) {
       setApiLoading(true);
       setApiError(null);
       try {
-        const [currentFile, historyFile, secFilingsFile] = await Promise.all([
-          cachedAuthenticatedFetch<MarketCurrentFile>(`/market-data/current?ticker=${encodeURIComponent(normalizedTicker)}&category=market-current`),
-          cachedAuthenticatedFetch<MarketHistoryFile>(`/market-data/history?ticker=${encodeURIComponent(normalizedTicker)}&category=market-history`),
-          cachedAuthenticatedFetch<SecFilingsHistoryFile>(`/manual-input/sec-filings?ticker=${encodeURIComponent(normalizedTicker)}`),
+        const [currentResponse, historyResponse, secFilingsResponse] = await Promise.all([
+          cachedAuthenticatedFetch<Record<string, unknown>>(`/market-data/current?ticker=${encodeURIComponent(normalizedTicker)}&category=market-current`),
+          cachedAuthenticatedFetch<Record<string, unknown>>(`/market-data/history?ticker=${encodeURIComponent(normalizedTicker)}&category=market-history`),
+          cachedAuthenticatedFetch<Record<string, unknown>>(`/manual-input/sec-filings?ticker=${encodeURIComponent(normalizedTicker)}`),
         ]);
+        const currentFile = categoryPayload<MarketCurrentFile>(currentResponse, 'market-current');
+        const historyFile = categoryPayload<MarketHistoryFile>(historyResponse, 'market-history');
+        const secFilingsFile = categoryPayload<SecFilingsHistoryFile>(secFilingsResponse, 'sec-filings');
         if (!cancelled) setApiData(marketHistoryToDashboardData(currentFile, historyFile, secFilingsFile));
       } catch (err) {
         if (!cancelled) {

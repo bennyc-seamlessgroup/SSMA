@@ -389,7 +389,6 @@ export function LendingPressureBrowserPage({ ticker }: { ticker: string }) {
     let cancelled = false;
     const currentEndpoint = `/market-data/current?ticker=${encodeURIComponent(normalizedTicker)}&category=market-current`;
     const historyEndpoint = `/market-data/history?ticker=${encodeURIComponent(normalizedTicker)}&category=market-history`;
-    const aiReportEndpoint = `/market-data/ai-report?ticker=${encodeURIComponent(normalizedTicker)}`;
     async function loadEndpoint(endpoint: string, request: () => Promise<unknown> = () => cachedAuthenticatedFetch(endpoint)) {
       try {
         const payload = await request();
@@ -419,8 +418,15 @@ export function LendingPressureBrowserPage({ ticker }: { ticker: string }) {
       }
     }
 
-    Promise.all([loadEndpoint(currentEndpoint), loadEndpoint(historyEndpoint), loadEndpoint(aiReportEndpoint, () => fetchAiReport(normalizedTicker))])
-      .then(([currentResult, historyResult, aiReportResult]) => {
+    Promise.all([loadEndpoint(currentEndpoint), loadEndpoint(historyEndpoint)])
+      .then(async ([currentResult, historyResult]) => {
+        const publishedRecord = latestCompleteMarketPublicationRecordFromHistory(historyRecords(historyResult.payload));
+        const reportDate = publishedRecord ? marketRecordDate(publishedRecord) : undefined;
+        const aiReportEndpoint = `/market-data/ai-report?ticker=${encodeURIComponent(normalizedTicker)}${reportDate ? `&date=${encodeURIComponent(reportDate)}` : ''}`;
+        const aiReportResult = await loadEndpoint(
+          aiReportEndpoint,
+          () => fetchAiReport(normalizedTicker, reportDate),
+        );
         if (cancelled) return;
         setCurrentPayload(currentResult.payload);
         setHistoryPayload(historyResult.payload);
@@ -601,7 +607,7 @@ export function LendingPressureBrowserPage({ ticker }: { ticker: string }) {
         <ApiDevelopmentTabs sources={[
           { id: 'market-current', title: 'Market Current', endpoint: 'GET /market-data/current?category=market-current', source: 'Market Data API', payload: currentPayload, status: apiRows[0]?.status },
           { id: 'market-history', title: 'Market History', endpoint: 'GET /market-data/history?category=market-history', source: 'Market Data API', payload: historyPayload, status: apiRows[1]?.status },
-          { id: 'ai-report', title: 'AI Report', endpoint: 'GET /market-data/ai-report', source: 'Market Data API', payload: aiReportPayload, status: apiRows[2]?.status },
+          { id: 'ai-report', title: 'AI Report', endpoint: apiRows[2]?.endpoint ?? 'GET /market-data/ai-report', source: 'Market Data API', payload: aiReportPayload, status: apiRows[2]?.status },
         ]} />
       </section>
     </div>

@@ -905,22 +905,30 @@ export function ShortInterestBrowserPage({ ticker }: { ticker: string }) {
     let cancelled = false;
     setLoading(true);
     setError('');
-    Promise.all([
-      cachedAuthenticatedFetch<ApiFile>(`/market-data/current?ticker=${encodeURIComponent(normalizedTicker)}&category=market-current`),
-      cachedAuthenticatedFetch<ApiFile>(`/market-data/history?ticker=${encodeURIComponent(normalizedTicker)}&category=market-history`),
-      cachedAuthenticatedFetch<ApiFile>(`/market-data/history?ticker=${encodeURIComponent(normalizedTicker)}&category=short-volume-history`),
-      cachedAuthenticatedFetch<ApiFile>(`/market-data/history?ticker=${encodeURIComponent(normalizedTicker)}&category=ftd-history`),
-      (fetchAiReport(normalizedTicker) as Promise<ApiFile>)
+
+    async function loadPageData() {
+      const [current, history, shortVolume, ftd] = await Promise.all([
+        cachedAuthenticatedFetch<ApiFile>(`/market-data/current?ticker=${encodeURIComponent(normalizedTicker)}&category=market-current`),
+        cachedAuthenticatedFetch<ApiFile>(`/market-data/history?ticker=${encodeURIComponent(normalizedTicker)}&category=market-history`),
+        cachedAuthenticatedFetch<ApiFile>(`/market-data/history?ticker=${encodeURIComponent(normalizedTicker)}&category=short-volume-history`),
+        cachedAuthenticatedFetch<ApiFile>(`/market-data/history?ticker=${encodeURIComponent(normalizedTicker)}&category=ftd-history`),
+      ]);
+      const publishedRecord = latestCompleteMarketPublicationRecordFromHistory(apiRecords(history, 'market-history'));
+      const reportDate = publishedRecord ? marketRecordDate(publishedRecord) : undefined;
+      const aiReport = await (fetchAiReport(normalizedTicker, reportDate) as Promise<ApiFile>)
         .catch(cause => ({
           requestError: cause instanceof Error ? cause.message : 'Unable to load AI report.',
-        })),
-    ]).then(([current, history, shortVolume, ftd, aiReport]) => {
+        }));
       if (!cancelled) setApiData({ current, history, shortVolume, ftd, aiReport });
-    }).catch(cause => {
-      if (!cancelled) setError(cause instanceof Error ? cause.message : 'Unable to load short-interest API data.');
-    }).finally(() => {
-      if (!cancelled) setLoading(false);
-    });
+    }
+
+    loadPageData()
+      .catch(cause => {
+        if (!cancelled) setError(cause instanceof Error ? cause.message : 'Unable to load short-interest API data.');
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
     return () => { cancelled = true; };
   }, [normalizedTicker]);
 
@@ -1182,7 +1190,7 @@ export function ShortInterestBrowserPage({ ticker }: { ticker: string }) {
             payload: apiData.ftd,
             preferredColumns: ['tradeDate', 'settlementDate'],
           },
-          { id: 'ai-report', title: 'AI Report', endpoint: 'GET /market-data/ai-report', source: 'Market Data API', payload: apiData.aiReport, status: apiData.aiReport.requestError ? 'error' : 'Connected' },
+          { id: 'ai-report', title: 'AI Report', endpoint: `GET /market-data/ai-report?date=${publishedDate || 'calculated'}`, source: 'Market Data API', payload: apiData.aiReport, status: apiData.aiReport.requestError ? 'error' : 'Connected' },
         ]} />
       </section>
     </div>

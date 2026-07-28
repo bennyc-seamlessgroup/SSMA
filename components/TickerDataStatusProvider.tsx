@@ -35,10 +35,38 @@ type SocialStatusPayload = {
   pagination?: { totalItems?: number };
 };
 
+function recordDate(record: Record<string, unknown>) {
+  return String(
+    record.updatedAt
+    ?? record.generatedAt
+    ?? record.tradeDate
+    ?? record.date
+    ?? record.settlementDate
+    ?? record.filingDate
+    ?? record.effectiveDate
+    ?? record.datetime
+    ?? record.timestamp
+    ?? '',
+  );
+}
+
+function datasetVersion(dataset: ApiDataset) {
+  if (!dataset) return 'missing';
+  const records = dataset.records ?? [];
+  const latestRecords = [...records]
+    .sort((a, b) => recordDate(b).localeCompare(recordDate(a)))
+    .slice(0, 3);
+  return [
+    dataset.updatedAt ?? dataset.generatedAt ?? dataset.snapshotDate ?? 'undated',
+    records.length,
+    JSON.stringify(latestRecords),
+  ].join(':');
+}
+
 function apiStatus(...datasets: ApiDataset[]): TickerPageDataStatus {
   const timestamps = datasets.map(row => row?.updatedAt ?? row?.generatedAt).filter((value): value is string => Boolean(value));
   const updatedAt = timestamps.sort((a, b) => b.localeCompare(a))[0] ?? null;
-  return { version: datasets.map(row => row?.updatedAt ?? row?.generatedAt ?? 'missing').join('|'), updatedAt };
+  return { version: datasets.map(datasetVersion).join('|'), updatedAt };
 }
 
 function snapshotApiStatus(

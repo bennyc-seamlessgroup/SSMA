@@ -9,10 +9,18 @@ export type AiReport = {
   short_interest_current_interpretation?: string;
 };
 
-export async function fetchAiReport(ticker: string): Promise<AiReport> {
+export async function fetchAiReport(ticker: string, date?: string): Promise<AiReport> {
   const normalizedTicker = normalizeTicker(ticker);
+  const normalizedDate = date?.trim();
+  if (normalizedDate && !/^\d{4}-\d{2}-\d{2}$/.test(normalizedDate)) {
+    throw new Error('AI report date must use YYYY-MM-DD format.');
+  }
+
+  const params = new URLSearchParams({ ticker: normalizedTicker });
+  if (normalizedDate) params.set('date', normalizedDate);
+
   const payload = await cachedAuthenticatedFetch(
-    `/market-data/ai-report?ticker=${encodeURIComponent(normalizedTicker)}`,
+    `/market-data/ai-report?${params.toString()}`,
   ) as AiReport & { requestError?: unknown };
 
   if (typeof payload.requestError === 'string' && payload.requestError.trim()) {

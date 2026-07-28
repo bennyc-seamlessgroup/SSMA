@@ -16,8 +16,7 @@ type ImportCategory =
   | 'management-holdings'
   | 'sec-filings'
   | 'internal-float-inputs-ticker'
-  | 'internal-float-inputs-user'
-  | 'internal-float-inputs';
+  | 'internal-float-inputs-user';
 
 type CategoryDefinition = {
   key: ImportCategory;
@@ -110,12 +109,6 @@ const categories: CategoryDefinition[] = [
     replacement: 'The requesting user’s Internal Float inputs are replaced.',
     columns: ['section', 'id', 'holderName', 'category', 'shares', 'ratio', 'includeInDeduction', 'notes'],
     sample: ['managementStrategicHoldings', 'holder-001', 'Sample Strategic Holder', 'Strategic Investor', 1000000, '', true, ''],
-  },
-  {
-    key: 'internal-float-inputs', label: 'Internal float inputs (combined compatibility)', description: 'Compatibility import routed by section into ticker and user scopes.',
-    replacement: 'Rows are routed to the matching split input files and a new audit log is generated.',
-    columns: ['managementStrategicHoldings', 'tokenizedShares', 'collateralizedShares', 'privateFriendlyHolders'],
-    sample: ['{"records":[]}', '{"records":[]}', '{"records":[]}', '{"shares":0,"ratio":0}'],
   },
 ];
 
