@@ -68,16 +68,20 @@ function latest(items: Row[], dateKey = 'date') {
   return [...items].sort((a, b) => String(b[dateKey] ?? '').localeCompare(String(a[dateKey] ?? '')))[0] ?? {};
 }
 
-function formatNumber(value: unknown, options?: Intl.NumberFormatOptions) {
+function formatNumber(value: unknown, _options?: Intl.NumberFormatOptions) {
   const parsed = numeric(value);
-  return parsed === null ? 'N/A' : parsed.toLocaleString('en-US', options);
+  return parsed === null ? 'N/A' : parsed.toLocaleString('en-US', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
 }
 
 function formatCompactNumber(value: unknown) {
   const parsed = numeric(value);
   return parsed === null ? 'N/A' : new Intl.NumberFormat('en-US', {
     notation: 'compact',
-    maximumFractionDigits: 1,
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
   }).format(parsed);
 }
 
@@ -85,17 +89,24 @@ function formatAxisNumber(value: unknown) {
   const parsed = numeric(value);
   return parsed === null ? 'N/A' : new Intl.NumberFormat('en-US', {
     notation: 'compact',
-    maximumFractionDigits: 0,
-  }).format(Math.round(parsed));
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(parsed);
 }
 
-function formatPercent(value: unknown, options?: Intl.NumberFormatOptions) {
+function formatPercent(value: unknown, _options?: Intl.NumberFormatOptions) {
   const parsed = numeric(value);
-  return parsed === null ? 'No Source' : `${parsed.toLocaleString('en-US', options)}%`;
+  return parsed === null ? 'No Source' : `${parsed.toLocaleString('en-US', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  })}%`;
 }
 
-function signed(value: number, options?: Intl.NumberFormatOptions) {
-  const formatted = Math.abs(value).toLocaleString('en-US', options);
+function signed(value: number, _options?: Intl.NumberFormatOptions) {
+  const formatted = Math.abs(value).toLocaleString('en-US', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
   if (value > 0) return `+${formatted}`;
   if (value < 0) return `-${formatted}`;
   return formatted;
@@ -166,6 +177,11 @@ function shortDateLabel(value: unknown) {
   const [year, month, day] = raw.split('-');
   if (year && month && day) return `${Number(month)}/${Number(day)}`;
   return raw;
+}
+
+function fullMarketDateLabel(value: unknown) {
+  const match = String(value ?? '').match(/^(\d{4})-(\d{2})-(\d{2})/);
+  return match ? `${match[2]}/${match[3]}/${match[1].slice(-2)}` : 'N/A';
 }
 
 function TrendLine({ values, labels, label, valueFormatter = formatCompactNumber }: {
@@ -267,11 +283,12 @@ function DeltaBadge({ info, suffix = '', display }: { info: ReturnType<typeof de
   );
 }
 
-function ExecutiveMetric({ label, value, changePercent, comparisonLabel = 'vs yesterday' }: {
+function ExecutiveMetric({ label, value, changePercent, comparisonLabel = 'vs prior period', asOfDate }: {
   label: string;
   value: string;
   changePercent?: number | null;
   comparisonLabel?: string;
+  asOfDate?: string;
 }) {
   const tone = typeof changePercent !== 'number' || !Number.isFinite(changePercent)
     ? 'neutral'
@@ -283,10 +300,13 @@ function ExecutiveMetric({ label, value, changePercent, comparisonLabel = 'vs ye
   return (
     <div className="short-executive-metric">
       <span>{label}</span>
-      <strong>{value}</strong>
+      <div className="short-executive-value">
+        <strong>{value}</strong>
+        {asOfDate !== undefined ? <small>As of {fullMarketDateLabel(asOfDate)}</small> : null}
+      </div>
       <em className={tone}>
         {typeof changePercent === 'number' && Number.isFinite(changePercent)
-          ? `${changePercent > 0 ? '+' : ''}${changePercent.toLocaleString('en-US', { maximumFractionDigits: 2 })}% ${comparisonLabel}`
+          ? `${changePercent > 0 ? '+' : ''}${changePercent.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}% ${comparisonLabel}`
           : 'No prior period'}
       </em>
     </div>
@@ -354,9 +374,10 @@ const numericFtdColumnKeys: Array<keyof FtdRow> = ['failsToDeliver', 'ftdChange'
 function formatMarketTableValue(value: unknown, mode?: 'currency' | 'percent') {
   const parsed = numeric(value);
   if (parsed === null) return String(value ?? '—');
-  if (mode === 'currency') return `$${parsed.toLocaleString('en-US', { maximumFractionDigits: 2 })}`;
-  if (mode === 'percent') return `${parsed.toLocaleString('en-US', { maximumFractionDigits: 2 })}%`;
-  return parsed.toLocaleString('en-US', { maximumFractionDigits: 0 });
+  const options = { minimumFractionDigits: 2, maximumFractionDigits: 2 };
+  if (mode === 'currency') return `$${parsed.toLocaleString('en-US', options)}`;
+  if (mode === 'percent') return `${parsed.toLocaleString('en-US', options)}%`;
+  return parsed.toLocaleString('en-US', options);
 }
 
 function shortVolumeValue(row: ShortVolumeRow, key: keyof ShortVolumeRow, mode: ShortVolumeMode) {
@@ -493,15 +514,15 @@ function PagedFtdTable({ rows: apiRows }: { rows: FtdRow[] }) {
           </thead>
           <tbody>
             {!pageRows.length && <tr><td colSpan={ftdColumns.length}>No FTD API records available.</td></tr>}
-            {pageRows.map(row => (
-              <tr key={row.tradeDate}>
+            {pageRows.map((row, rowIndex) => (
+              <tr key={`${row.tradeDate}-${row.settlementDate}-${row.closingDeadline}-${row.failsToDeliver}-${(safePage - 1) * pageSize + rowIndex}`}>
                 {ftdColumns.map(column => {
                   const value = row[column.key];
                   const isCurrency = column.key === 'price';
                   return (
                     <td key={column.key} className={numericFtdColumnKeys.includes(column.key) ? 'num' : ''}>
                       {column.key === 'ftdChange' && typeof value === 'number'
-                        ? signed(value, { maximumFractionDigits: 0 })
+                        ? signed(value)
                         : isCurrency
                           ? formatMarketTableValue(value, 'currency')
                           : formatMarketTableValue(value)}
@@ -863,8 +884,8 @@ function apiShortVolumeRows(payload: ApiFile): ShortVolumeRow[] {
 
 function apiFtdRows(payload: ApiFile): FtdRow[] {
   return apiRecords(payload, 'ftd-history').map(row => ({
-    tradeDate: String(row.settlementDate ?? ''),
-    settlementDate: String(row.tradeDate ?? ''),
+    tradeDate: String(row.tradeDate ?? ''),
+    settlementDate: String(row.settlementDate ?? ''),
     closingDeadline: String(row.closingDeadline ?? ''),
     failsToDeliver: numeric(row.shares) ?? 0,
     ftdChange: numeric(row.change) ?? 0,
@@ -922,6 +943,8 @@ export function ShortInterestBrowserPage({ ticker }: { ticker: string }) {
   const borrowFeeTrendRows = shortInterestTrendRows.filter(row => optionalNumeric(record(row.borrowFeeAll).costToBorrowAll) !== null);
   const availabilityTrendRows = shortInterestTrendRows.filter(row => optionalNumeric(record(row.availability).shortAvailabilityShares) !== null);
   const sortedDailyRows = [...dailyRows].sort((a, b) => String(b.date ?? '').localeCompare(String(a.date ?? '')));
+  const borrowFeeSnapshotRows = sortedDailyRows.filter(row => optionalNumeric(record(row.borrowFeeAll).costToBorrowAll) !== null);
+  const utilizationSnapshotRows = sortedDailyRows.filter(row => optionalNumeric(record(row.availability).shortAvailabilityPct) !== null);
   const latestDaily = sortedDailyRows[0] ?? {};
   const previousDaily = sortedDailyRows[1] ?? {};
   const twoWeeksAgoDaily = rowAtOrBeforeDaysAgo(dailyRows, latestDaily.date, 14);
@@ -948,10 +971,16 @@ export function ShortInterestBrowserPage({ ticker }: { ticker: string }) {
   const twoWeeksAgoShortInterest = record(twoWeeksAgoDaily.shortInterest);
   const latestDaysToCover = record(latestDaily.daysToCover);
   const twoWeeksAgoDaysToCover = record(twoWeeksAgoDaily.daysToCover);
-  const latestBorrowFee = record(latestDaily.borrowFeeAll);
-  const previousBorrowFee = record(previousDaily.borrowFeeAll);
+  const latestBorrowFeeRow = borrowFeeSnapshotRows[0] ?? {};
+  const previousBorrowFeeRow = borrowFeeSnapshotRows[1] ?? {};
+  const latestUtilizationRow = utilizationSnapshotRows[0] ?? {};
+  const previousUtilizationRow = utilizationSnapshotRows[1] ?? {};
+  const latestBorrowFee = record(latestBorrowFeeRow.borrowFeeAll);
+  const previousBorrowFee = record(previousBorrowFeeRow.borrowFeeAll);
   const latestAvailability = record(latestDaily.availability);
   const previousAvailability = record(previousDaily.availability);
+  const latestUtilization = record(latestUtilizationRow.availability);
+  const previousUtilization = record(previousUtilizationRow.availability);
   const latestShortScore = record(latestDaily.shortScore);
   const previousShortScore = record(previousDaily.shortScore);
   const latestClosing = record(latestDaily.closingPrices);
@@ -962,7 +991,7 @@ export function ShortInterestBrowserPage({ ticker }: { ticker: string }) {
   const borrowFeeDelta = delta(numeric(latestBorrowFee.costToBorrowAll), numeric(previousBorrowFee.costToBorrowAll), { maximumFractionDigits: 2 });
   const shortScoreDelta = delta(Math.round(numeric(latestShortScore.score) ?? 0) || null, numeric(previousShortScore.score), { maximumFractionDigits: 1 });
   const sharesAvailableDelta = delta(numeric(latestAvailability.shortAvailabilityShares), numeric(previousAvailability.shortAvailabilityShares), { maximumFractionDigits: 0 });
-  const utilizationDelta = delta(numeric(latestAvailability.shortAvailabilityPct), numeric(previousAvailability.shortAvailabilityPct), { maximumFractionDigits: 2 });
+  const utilizationDelta = delta(numeric(latestUtilization.shortAvailabilityPct), numeric(previousUtilization.shortAvailabilityPct), { maximumFractionDigits: 2 });
   const shortCards = {} as Record<string, Row>;
   const shortInterestCard = record(shortCards?.shortInterest);
   const siPercentCard = record(shortCards?.shortInterestPercentFloat);
@@ -1039,11 +1068,11 @@ export function ShortInterestBrowserPage({ ticker }: { ticker: string }) {
           <article className="terminal-card short-executive-card short-key-metrics-card">
             <span>Key Short Metrics</span>
             <div className="short-executive-metrics">
-              <ExecutiveMetric label="Short Interest %" value={String(siPercentCard.valueDisplay ?? formatPercent(shortInterestPercent, { maximumFractionDigits: 2 }))} changePercent={numeric(siPercentCard.changePercent) ?? shortInterestPctDelta?.percent} comparisonLabel="vs 2 weeks ago" />
-              <ExecutiveMetric label="Short Interest Shares" value={String(shortInterestCard.valueDisplay ?? formatNumber(shortInterestShares))} changePercent={shortInterestChangePercent} comparisonLabel="vs 2 weeks ago" />
-              <ExecutiveMetric label="Days to Cover" value={String(daysToCoverCard.valueDisplay ?? formatNumber(daysToCover, { maximumFractionDigits: 2 }))} changePercent={numeric(daysToCoverCard.changePercent) ?? daysToCoverDelta?.percent} comparisonLabel="vs 2 weeks ago" />
-              <ExecutiveMetric label="Borrow Fee" value={String(borrowFeeCard.valueDisplay ?? formatPercent(borrowFee, { maximumFractionDigits: 2 }))} changePercent={borrowFeeChangePercent} />
-              <ExecutiveMetric label="Utilization" value={String(utilizationCard.valueDisplay ?? formatPercent(utilization, { maximumFractionDigits: 2 }))} changePercent={numeric(utilizationCard.changePercent) ?? utilizationDelta?.percent} />
+              <ExecutiveMetric label="Short Interest %" value={formatPercent(shortInterestPercent)} changePercent={numeric(siPercentCard.changePercent) ?? shortInterestPctDelta?.percent} comparisonLabel="vs 2 weeks ago" />
+              <ExecutiveMetric label="Short Interest Shares" value={formatNumber(shortInterestShares)} changePercent={shortInterestChangePercent} comparisonLabel="vs 2 weeks ago" />
+              <ExecutiveMetric label="Days to Cover" value={formatNumber(daysToCover)} changePercent={numeric(daysToCoverCard.changePercent) ?? daysToCoverDelta?.percent} comparisonLabel="vs 2 weeks ago" />
+              <ExecutiveMetric label="Borrow Fee" value={formatPercent(numeric(latestBorrowFee.costToBorrowAll) ?? borrowFee)} changePercent={borrowFeeChangePercent} asOfDate={String(latestBorrowFeeRow.date ?? '')} comparisonLabel={`vs ${fullMarketDateLabel(previousBorrowFeeRow.date)}`} />
+              <ExecutiveMetric label="Utilization" value={formatPercent(numeric(latestUtilization.shortAvailabilityPct) ?? utilization)} changePercent={numeric(utilizationCard.changePercent) ?? utilizationDelta?.percent} asOfDate={String(latestUtilizationRow.date ?? '')} comparisonLabel={`vs ${fullMarketDateLabel(previousUtilizationRow.date)}`} />
             </div>
           </article>
 
@@ -1145,7 +1174,14 @@ export function ShortInterestBrowserPage({ ticker }: { ticker: string }) {
           { id: 'market-current', title: 'Market Current', endpoint: 'GET /market-data/current?category=market-current', source: 'Market Data API', payload: apiData.current },
           { id: 'market-history', title: 'Market History', endpoint: 'GET /market-data/history?category=market-history', source: 'Market Data API', payload: apiData.history },
           { id: 'short-volume', title: 'Short Volume', endpoint: 'GET /market-data/history?category=short-volume-history', source: 'Market Data API', payload: apiData.shortVolume },
-          { id: 'ftd', title: 'Fails to Deliver', endpoint: 'GET /market-data/history?category=ftd-history', source: 'Market Data API', payload: apiData.ftd },
+          {
+            id: 'ftd',
+            title: 'Fails to Deliver',
+            endpoint: 'GET /market-data/history?category=ftd-history',
+            source: 'Market Data API',
+            payload: apiData.ftd,
+            preferredColumns: ['tradeDate', 'settlementDate'],
+          },
           { id: 'ai-report', title: 'AI Report', endpoint: 'GET /market-data/ai-report', source: 'Market Data API', payload: apiData.aiReport, status: apiData.aiReport.requestError ? 'error' : 'Connected' },
         ]} />
       </section>

@@ -980,6 +980,7 @@ Authorization: <id_token>
 |---|---|---|
 | `company-profile-current` | `current/{ticker}/company-profile-current.json` | Company metadata, name, stock code |
 | `internal-float-current` | `current/{ticker}/internal-float-current.json` | Share structure and tradable float breakdown |
+| `internal-float-current-user` | `current/{ticker}/{sub}/internal-float-current-user.json` (falls back to `current/{ticker}/internal-float-current-ticker.json`) | User-specific float snapshot resolved for requesting user's Cognito `sub` claim |
 | `market-current` | `current/{ticker}/market-current.json` | Latest market data snapshot |
 | `ownership-current` | `current/{ticker}/ownership-current.json` | Institutional ownership current snapshot |
 | `sentiment-current` | `current/{ticker}/sentiment-current.json` | Social sentiment analysis snapshot |
@@ -1400,7 +1401,9 @@ The API manages **11 categories**, grouped into two types:
 | `margins` | Single-Record | Yes | `initialMarginIbkr` (float), `initialMarginFutu` (float), `maintenanceMarginIbkr` (float), `maintenanceMarginFutu` (float), `averageDurationDays` (float), `valueFormat` (string), `displayFormat` (string) |
 | `short-score` | Single-Record | Yes | `shortScore` (int) |
 | `manual-availability` | Single-Record | Yes | `availableSharesIbkr` (int), `availableSharesFutu` (int) |
-| `internal-float-inputs` | Single-Record | No | Holds arrays and settings: `managementStrategicHoldings`, `tokenizedShares`, `collateralizedShares`, `privateFriendlyHolders` |
+| `internal-float-inputs-ticker` | Single-Record | No | Ticker-level float attributes: `tokenizedShares`, `collateralizedShares` |
+| `internal-float-inputs-user` | Single-Record | No | User-level float attributes: `managementStrategicHoldings`, `privateFriendlyHolders` |
+| `internal-float-inputs` | Single-Record | No | Legacy/Combined view across ticker-level and user-level float inputs |
 | `issued-share` | Single-Record | No | `issuedShare` (int) |
 | `profile` | Single-Record | No | `companyName` (string), `stockCode` (string) |
 | `hotkeys` | Record-Array | No | Items inside `records`: `id` (string), `kwatchHotkey` (string), `platform` (string) |
@@ -1504,8 +1507,12 @@ The API manages **11 categories**, grouped into two types:
   }
   ```
 
-#### 5. `internal-float-inputs`
+#### 5. `internal-float-inputs`, `internal-float-inputs-ticker`, `internal-float-inputs-user`
 * **HTTP Methods:** `GET`, `PUT`, `DELETE`
+* **Storage Architecture (Phase 26 Split):**
+  - `internal-float-inputs-ticker`: Ticker-level scope (S3: `manual-input/internal-float-inputs-ticker/{ticker}/internal-float-inputs-ticker.json`). Stores `tokenizedShares` and `collateralizedShares`.
+  - `internal-float-inputs-user`: User-level scope (S3: `manual-input/internal-float-inputs-user/{ticker}/{user_sub}/internal-float-inputs-user.json`). Stores `managementStrategicHoldings` and `privateFriendlyHolders`.
+  - `internal-float-inputs`: Wrapper interface combining both scopes transparently for backward compatibility.
 * **Input Payload (PUT):**
   ```json
   {
@@ -1930,7 +1937,7 @@ Content-Type: text/csv
 
 **Parameters**:
 * `ticker` (**Required** / Query Parameter or Form Field): The stock ticker symbol (e.g. `CURR`).
-* `category` (Optional / Query Parameter or Form Field): Target category. Must be one of: `utilization`, `issued-share`, `manual-availability`, `margins`, `sec-filings`, `institutional-owner`, `short-score`, `internal-float-inputs`, `management-holdings`, `profile`. If omitted, the category is inferred automatically from the uploaded filename (e.g. `utilization.csv` -> `utilization`, `internal-float-input.csv` -> `internal-float-inputs`, `profile.csv` -> `profile`).
+* `category` (Optional / Query Parameter or Form Field): Target category. Must be one of: `utilization`, `issued-share`, `manual-availability`, `margins`, `sec-filings`, `institutional-owner`, `short-score`, `internal-float-inputs`, `internal-float-inputs-ticker`, `internal-float-inputs-user`, `management-holdings`, `profile`. If omitted, the category is inferred automatically from the uploaded filename (e.g. `utilization.csv` -> `utilization`, `internal-float-inputs-ticker.csv` -> `internal-float-inputs-ticker`, `internal-float-inputs-user.csv` -> `internal-float-inputs-user`, `profile.csv` -> `profile`).
 * `file` (**Required** / Form Field): The multipart CSV file containing the data.
 
 **Existing Data Handling**:
@@ -1942,9 +1949,10 @@ Content-Type: text/csv
 - **Single-Record Categories** (`issued-share`, `profile`):
   - These categories store all data in a single JSON file: `manual-input/{category}/{ticker}/{category}.json`.
   - The API completely overwrites this file with the top-sorted record from the CSV. All prior existing information in that file is deleted.
-- **Internal Float Inputs Category** (`internal-float-inputs`):
-  - This category stores complex nested structures in a single JSON file: `manual-input/internal-float-inputs/{ticker}/internal-float-inputs.json`.
-  - The API completely replaces the file. Existing holdings, tokenized shares, and collateralized shares records are cleared, and a fresh file with a newly auto-generated `auditLog` list is written.
+- **Internal Float Inputs Categories** (`internal-float-inputs-ticker`, `internal-float-inputs-user`, `internal-float-inputs`):
+  - `internal-float-inputs-ticker`: Stores ticker-level float attributes (`tokenizedShares`, `collateralizedShares`) at `manual-input/internal-float-inputs-ticker/{ticker}/internal-float-inputs-ticker.json`.
+  - `internal-float-inputs-user`: Stores user-level float attributes (`managementStrategicHoldings`, `privateFriendlyHolders`) at `manual-input/internal-float-inputs-user/{ticker}/{user_sub}/internal-float-inputs-user.json`.
+  - `internal-float-inputs`: Combined import interface. Rows are routed based on CSV section names (`managementStrategicHoldings` / `privateFriendlyHolders` -> user file; `tokenizedShares` / `collateralizedShares` -> ticker file). Existing records in target files are updated and a fresh `auditLog` is written.
 - **Record-Array Categories** (`sec-filings`, `institutional-owner`, `management-holdings`, `hotkeys`):
   - These categories store multiple records under a `"records"` array in a single JSON file (e.g. `manual-input/sec-filings/{ticker}/sec-filings.json`).
   - The API completely replaces this JSON file. All existing items under the `"records"` array are discarded and replaced by the rows parsed from the CSV.
@@ -2446,7 +2454,7 @@ Authorization: <id_token>
 |---|---|---|---|
 | `dataset` | String | Yes | Target dataset name: `chartexchange` \| `fintel` \| `history` \| `manual-input` \| `kwatch`. |
 | `ticker` | String | Yes | Stock ticker symbol (e.g. `CURR`). Case-insensitive. |
-| `category` | String | Conditional | Category name or template name (required for `manual-input` and `kwatch`). Examples: `profile`, `issued-share`, `short-score`, `institutional-owner`, `management-holdings`, `internal-float-inputs`, `manual-availability`, `utilization`, `sec-filings`, `margins`, `market-history`, `ftd-history`, `reddit`, `twitter`, `stocktwits`, etc. |
+| `category` | String | Conditional | Category name or template name (required for `manual-input` and `kwatch`). Examples: `profile`, `issued-share`, `short-score`, `institutional-owner`, `management-holdings`, `internal-float-inputs`, `internal-float-inputs-ticker`, `internal-float-inputs-user`, `manual-availability`, `utilization`, `sec-filings`, `margins`, `market-history`, `ftd-history`, `reddit`, `twitter`, `stocktwits`, etc. |
 | `startDate` | String | No | Date filter lower bound in `YYYY-MM-DD` format. |
 | `endDate` | String | No | Date filter upper bound in `YYYY-MM-DD` format. |
 
@@ -2466,7 +2474,7 @@ For `manual-input` and `kwatch` exports, CSV column headers strictly align with 
 | `manual-input` | `short-score` | `tradeDate,shortScore` |
 | `manual-input` | `institutional-owner` / `security-name` | `tradeDate,id,institutionalOwnerSecurityName` |
 | `manual-input` | `management-holdings` | `tradeDate,id,holderName,category,action,shares,percentOfShares,fileDate,effectiveDate,form,showInOwnership,showAsSuggestion,autoApply,status,source,notes` |
-| `manual-input` | `internal-float-inputs` | `tradeDate,section,id,holderName,category,chain,provider,protocol,shares,ratio,includeInDeduction,notes` |
+| `manual-input` | `internal-float-inputs` / `internal-float-inputs-ticker` / `internal-float-inputs-user` | `tradeDate,section,id,holderName,category,chain,provider,protocol,shares,ratio,includeInDeduction,notes` |
 | `manual-input` | `manual-availability` | `tradeDate,availableSharesIbkr,availableSharesFutu` |
 | `manual-input` | `utilization` | `tradeDate,utilizationPercent` |
 | `manual-input` | `sec-filings` | `tradeDate,id,recordTicker,companyName,formType,formDescription,filingDate,reportingDate,act,filmNumber,fileNumber,accessionNumber,filingsUrl,notes` |

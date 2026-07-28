@@ -206,7 +206,7 @@ export function DesignBTopbar({
           </nav>
         </div>
 
-        {pageStatus ? (
+        {pageStatus && currentSlug !== 'dashboard' ? (
           <div className="portal-design-b-heading-actions">
             <div className="portal-design-b-update">
               <span>{statusLabel}</span>

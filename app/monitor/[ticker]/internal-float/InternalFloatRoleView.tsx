@@ -41,6 +41,7 @@ type InternalFloatInputs = {
   managementStrategicHoldings?: { records?: Array<Record<string, unknown>> };
   tokenizedShares?: { records?: Array<Record<string, unknown>> };
   collateralizedShares?: { records?: Array<Record<string, unknown>> };
+  privateFriendlyHolders?: { shares?: number; ratio?: number };
   auditLog?: InternalFloatUserInput['activityLog'];
 };
 
@@ -57,6 +58,23 @@ function managementHoldingRecords(payload: ManagementHoldingsResponse) {
 
 function holderKey(value: unknown) {
   return String(value ?? '').trim().toLowerCase().replace(/\s+/g, ' ');
+}
+
+function mergeActivityLogs(...logs: Array<InternalFloatUserInput['activityLog']>) {
+  const unique = new Map<string, NonNullable<InternalFloatUserInput['activityLog']>[number]>();
+  logs.flatMap(log => log ?? []).forEach((item, index) => {
+    unique.set(item.id || `${item.createdAt}-${item.section}-${index}`, item);
+  });
+  return Array.from(unique.values()).sort((left, right) => right.createdAt.localeCompare(left.createdAt));
+}
+
+function settledValue<T>(result: PromiseSettledResult<T>, fallback: T) {
+  return result.status === 'fulfilled' ? result.value : fallback;
+}
+
+function settledStatus(result: PromiseSettledResult<unknown>) {
+  if (result.status === 'fulfilled') return 'Connected';
+  return `Error: ${result.reason instanceof Error ? result.reason.message : String(result.reason)}`;
 }
 
 function mergeAutoAppliedHoldings(
@@ -116,24 +134,41 @@ function LiveInternalFloat({ ticker }: { ticker: string }) {
   const [payloads, setPayloads] = useState<{
     ownership: OwnershipCurrent;
     current: InternalFloatCurrent;
-    inputs: InternalFloatInputs;
+    tickerInputs: InternalFloatInputs;
+    userInputs: InternalFloatInputs;
     managementHoldings: ManagementHoldingInputRecord[];
   } | null>(null);
-  const [error, setError] = useState('');
+  const [sourceStatuses, setSourceStatuses] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     let cancelled = false;
     setLoading(true);
-    Promise.all([
+    setPayloads(null);
+    setSourceStatuses({});
+    Promise.allSettled([
       cachedAuthenticatedFetch<OwnershipCurrent>(`/market-data/current?ticker=${encodeURIComponent(ticker)}&category=ownership-current`),
-      cachedAuthenticatedFetch<InternalFloatCurrent>(`/market-data/current?ticker=${encodeURIComponent(ticker)}&category=internal-float-current`),
-      cachedAuthenticatedFetch<InternalFloatInputs>(`/manual-input/internal-float-inputs?ticker=${encodeURIComponent(ticker)}`),
+      cachedAuthenticatedFetch<InternalFloatCurrent>(`/market-data/current?ticker=${encodeURIComponent(ticker)}&category=internal-float-current-user`),
+      cachedAuthenticatedFetch<InternalFloatInputs>(`/manual-input/internal-float-inputs-ticker?ticker=${encodeURIComponent(ticker)}`),
+      cachedAuthenticatedFetch<InternalFloatInputs>(`/manual-input/internal-float-inputs-user?ticker=${encodeURIComponent(ticker)}`),
       cachedAuthenticatedFetch<ManagementHoldingsResponse>(`/manual-input/management-holdings?ticker=${encodeURIComponent(ticker)}`),
-    ]).then(([ownership, current, inputs, managementHoldings]) => {
-      if (!cancelled) setPayloads({ ownership, current, inputs, managementHoldings: managementHoldingRecords(managementHoldings) });
-    }).catch(cause => {
-      if (!cancelled) setError(cause instanceof Error ? cause.message : 'Unable to load Internal Float API data.');
+    ]).then(([ownershipResult, currentResult, tickerInputsResult, userInputsResult, managementHoldingsResult]) => {
+      if (cancelled) return;
+      const managementHoldings = settledValue<ManagementHoldingsResponse>(managementHoldingsResult, []);
+      setPayloads({
+        ownership: settledValue(ownershipResult, {}),
+        current: settledValue(currentResult, {}),
+        tickerInputs: settledValue(tickerInputsResult, {}),
+        userInputs: settledValue(userInputsResult, {}),
+        managementHoldings: managementHoldingRecords(managementHoldings),
+      });
+      setSourceStatuses({
+        ownership: settledStatus(ownershipResult),
+        current: settledStatus(currentResult),
+        tickerInputs: settledStatus(tickerInputsResult),
+        userInputs: settledStatus(userInputsResult),
+        managementHoldings: settledStatus(managementHoldingsResult),
+      });
     }).finally(() => {
       if (!cancelled) setLoading(false);
     });
@@ -141,16 +176,14 @@ function LiveInternalFloat({ ticker }: { ticker: string }) {
   }, [ticker]);
 
   if (loading) return <PortalPageLoading variant="internalFloat" />;
-  if (error || !payloads) {
-    return <section className="panel"><h2>Internal Float data unavailable</h2><p>{error ?? 'Unable to load ownership data.'}</p></section>;
-  }
+  if (!payloads) return null;
 
   const privateRecords = mergeAutoAppliedHoldings(
-    payloads.inputs.managementStrategicHoldings?.records ?? [],
+    payloads.userInputs.managementStrategicHoldings?.records ?? [],
     payloads.managementHoldings,
   );
-  const tokenRecords = payloads.inputs.tokenizedShares?.records ?? [];
-  const collateralRecords = payloads.inputs.collateralizedShares?.records ?? [];
+  const tokenRecords = payloads.tickerInputs.tokenizedShares?.records ?? [];
+  const collateralRecords = payloads.tickerInputs.collateralizedShares?.records ?? [];
   const apiInputs: InternalFloatUserInput = {
     userId: `workspace:${ticker}`,
     workspaceId: ticker,
@@ -163,10 +196,15 @@ function LiveInternalFloat({ ticker }: { ticker: string }) {
       includeInDeduction: row.includeInDeduction !== false,
       notes: String(row.notes ?? ''),
     })),
+    privateFriendlyHolders: payloads.userInputs.privateFriendlyHolders,
     custodyRows: sampleTraditionalCustodyRows,
     tokenChains: tokenRecords.map((row, index) => ({ id: String(row.id ?? `token-${index}`), chain: String(row.chain ?? ''), shares: Number(row.shares ?? 0), provider: String(row.provider ?? '') })),
     collateralChains: collateralRecords.map((row, index) => ({ id: String(row.id ?? `collateral-${index}`), chain: String(row.chain ?? ''), shares: Number(row.shares ?? 0), protocol: String(row.protocol ?? '') })),
-    activityLog: payloads.inputs.auditLog ?? payloads.current.auditLog ?? [],
+    activityLog: mergeActivityLogs(
+      payloads.userInputs.auditLog,
+      payloads.tickerInputs.auditLog,
+      payloads.current.auditLog,
+    ),
   };
   const institutionalOverview: InstitutionalOwnershipOverview = {
     shares_outstanding: payloads.current.issuedShare ?? payloads.ownership.issuedShare,
@@ -178,8 +216,9 @@ function LiveInternalFloat({ ticker }: { ticker: string }) {
     <>
       <ApiSourceTags sources={[
         { endpoint: 'GET /market-data/current?category=ownership-current', label: 'Issued shares & ownership' },
-        { endpoint: 'GET /market-data/current?category=internal-float-current', label: 'Calculated float' },
-        { endpoint: 'GET /manual-input/internal-float-inputs', label: 'Private inputs' },
+        { endpoint: 'GET /market-data/current?category=internal-float-current-user', label: 'User float snapshot' },
+        { endpoint: 'GET /manual-input/internal-float-inputs-ticker', label: 'Ticker float inputs' },
+        { endpoint: 'GET /manual-input/internal-float-inputs-user', label: 'User float inputs' },
         { endpoint: 'GET /manual-input/management-holdings', label: 'Strategic holdings' },
       ]} />
       <InternalFloatClient
@@ -203,10 +242,11 @@ function LiveInternalFloat({ ticker }: { ticker: string }) {
       <section className="terminal-section import-data-dev-panel">
         <div className="terminal-section__head"><div><span>Development Data</span><h2>Internal Float API Data</h2><p className="section-subtitle">Live API payloads only. No local or S3 JSON fallback is used.</p></div></div>
         <ApiDevelopmentTabs sources={[
-          { id: 'ownership-current', title: 'Ownership Current', endpoint: 'GET /market-data/current?category=ownership-current', source: 'Market Data API', payload: payloads.ownership },
-          { id: 'internal-float-current', title: 'Internal Float Current', endpoint: 'GET /market-data/current?category=internal-float-current', source: 'Market Data API', payload: payloads.current },
-          { id: 'internal-float-inputs', title: 'Internal Float Inputs', endpoint: 'GET /manual-input/internal-float-inputs', source: 'Manual Input V2 API', payload: payloads.inputs },
-          { id: 'management-holdings', title: 'Management Holdings', endpoint: 'GET /manual-input/management-holdings', source: 'Manual Input V2 API', payload: payloads.managementHoldings },
+          { id: 'ownership-current', title: 'Ownership Current', endpoint: 'GET /market-data/current?category=ownership-current', source: 'Market Data API', payload: payloads.ownership, status: sourceStatuses.ownership },
+          { id: 'internal-float-current-user', title: 'User Float Current', endpoint: 'GET /market-data/current?category=internal-float-current-user', source: 'Market Data API', payload: payloads.current, status: sourceStatuses.current },
+          { id: 'internal-float-inputs-ticker', title: 'Ticker Float Inputs', endpoint: 'GET /manual-input/internal-float-inputs-ticker', source: 'Manual Input V2 API', payload: payloads.tickerInputs, status: sourceStatuses.tickerInputs },
+          { id: 'internal-float-inputs-user', title: 'User Float Inputs', endpoint: 'GET /manual-input/internal-float-inputs-user', source: 'Manual Input V2 API', payload: payloads.userInputs, status: sourceStatuses.userInputs },
+          { id: 'management-holdings', title: 'Management Holdings', endpoint: 'GET /manual-input/management-holdings', source: 'Manual Input V2 API', payload: payloads.managementHoldings, status: sourceStatuses.managementHoldings },
         ]} />
       </section>
     </>

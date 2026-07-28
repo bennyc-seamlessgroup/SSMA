@@ -13,7 +13,7 @@ export async function getCurrentDataSourceRows(_rawTicker: string): Promise<Curr
   const apiRows = [
     ['Dashboard', '/market-data/current + /market-data/history'],
     ['Ownership', '/market-data/current?category=ownership-current + /market-data/history?category=ownership-history'],
-    ['Internal Float', '/market-data/current?category=internal-float-current + /manual-input/internal-float-inputs'],
+    ['Internal Float', '/market-data/current?category=internal-float-current-user + /manual-input/internal-float-inputs-ticker + /manual-input/internal-float-inputs-user'],
     ['Short Interest', '/market-data/current?category=market-current + /market-data/history'],
     ['Lending Pressure', '/market-data/current?category=market-current + /market-data/history?category=market-history'],
     ['Social Sentiment', '/social-data + /market-data/current?category=sentiment-current + /market-data/history?category=sentiment-events'],

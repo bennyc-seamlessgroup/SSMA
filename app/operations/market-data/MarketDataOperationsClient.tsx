@@ -17,6 +17,7 @@ import { getOperationsTicker, setOperationsTicker } from '@/lib/operations/ticke
 import { formatMarketCountdown, latestClosedUsMarketDate, marketEntryAvailability } from '@/lib/us-market-calendar';
 
 type DateSpecificRecord = {
+  ticker?: string;
   tradeDate?: string;
   createdAt?: string;
   createdBy?: string;
@@ -29,25 +30,26 @@ type UtilizationRecord = DateSpecificRecord & {
 };
 
 type AvailabilityRecord = DateSpecificRecord & {
-  availableSharesIbkr?: number;
-  availableSharesFutu?: number;
+  availableSharesIbkr?: number | null;
+  availableSharesFutu?: number | null;
 };
 
 type MarginRecord = DateSpecificRecord & {
-  initialMarginIbkr?: number;
-  initialMarginFutu?: number;
-  maintenanceMarginIbkr?: number;
-  maintenanceMarginFutu?: number;
+  initialMarginIbkr?: number | null;
+  initialMarginFutu?: number | null;
+  maintenanceMarginIbkr?: number | null;
+  maintenanceMarginFutu?: number | null;
   averageDurationDays?: number | null;
   valueFormat?: string;
   displayFormat?: string;
 };
 
 type ShortScoreRecord = DateSpecificRecord & {
-  shortScore?: number;
+  shortScore?: number | null;
 };
 
 type MarketInputRow = {
+  ticker?: string;
   tradeDate: string;
   issuedShare?: number;
   utilizationPercent?: number;
@@ -128,13 +130,19 @@ function formatShareInput(value: unknown) {
 
 function percentInputToRatio(value: string) {
   const numeric = numberOrUndefined(value);
-  return numeric === undefined ? undefined : numeric / 100;
+  return numeric === undefined ? undefined : roundDecimal(numeric / 100);
 }
 
 function ratioToPercent(value: unknown) {
+  if (value === null || value === undefined || value === '') return '';
   const numeric = typeof value === 'number' ? value : Number(value);
   if (!Number.isFinite(numeric)) return '';
-  return String(numeric * 100);
+  return String(roundDecimal(numeric * 100));
+}
+
+function roundDecimal(value: number, digits = 10) {
+  const factor = 10 ** digits;
+  return Math.round((value + Number.EPSILON) * factor) / factor;
 }
 
 function formatNumber(value: unknown, digits = 0) {
@@ -181,12 +189,22 @@ function recordsFromPayload<T>(value: unknown): T[] {
   return [];
 }
 
-function exactDateRecordsFromPayload<T extends DateSpecificRecord>(value: unknown, tradeDate: string): T[] {
-  const records = recordsFromPayload<T>(value);
+function recordMatchesTicker(record: DateSpecificRecord, ticker: string) {
+  return !record.ticker || normalizeTicker(record.ticker) === normalizeTicker(ticker);
+}
+
+function tickerRecordsFromPayload<T extends DateSpecificRecord>(value: unknown, ticker: string): T[] {
+  return recordsFromPayload<T>(value).filter(record => recordMatchesTicker(record, ticker));
+}
+
+function exactDateRecordsFromPayload<T extends DateSpecificRecord>(value: unknown, ticker: string, tradeDate: string): T[] {
+  const records = tickerRecordsFromPayload<T>(value, ticker);
   if (records.length) {
     return records.filter(record => !record.tradeDate || record.tradeDate.slice(0, 10) === tradeDate);
   }
   if (isRecord(value)) {
+    const returnedTicker = String(value.ticker ?? '');
+    if (returnedTicker && normalizeTicker(returnedTicker) !== normalizeTicker(ticker)) return [];
     const returnedDate = String(value.tradeDate ?? value.date ?? '').slice(0, 10);
     if (returnedDate && returnedDate !== tradeDate) return [];
     return [{ ...value, tradeDate } as T];
@@ -251,6 +269,7 @@ function latestMeta(...records: Array<DateSpecificRecord | undefined>) {
 }
 
 function mergeRows(
+  ticker: string,
   issuedShare: number | undefined,
   utilization: UtilizationRecord[],
   availability: AvailabilityRecord[],
@@ -262,7 +281,7 @@ function mergeRows(
   function row(date: string) {
     const existing = rows.get(date);
     if (existing) return existing;
-    const next: MarketInputRow = { tradeDate: date, issuedShare };
+    const next: MarketInputRow = { ticker, tradeDate: date, issuedShare };
     rows.set(date, next);
     return next;
   }
@@ -278,8 +297,8 @@ function mergeRows(
   availability.forEach(record => {
     if (!record.tradeDate) return;
     const target = row(record.tradeDate);
-    target.availableSharesIbkr = record.availableSharesIbkr;
-    target.availableSharesFutu = record.availableSharesFutu;
+    target.availableSharesIbkr = record.availableSharesIbkr ?? undefined;
+    target.availableSharesFutu = record.availableSharesFutu ?? undefined;
     const meta = latestMeta(target as DateSpecificRecord, record);
     target.updatedAt = meta?.updatedAt ?? meta?.createdAt;
     target.updatedBy = meta?.updatedBy ?? meta?.createdBy;
@@ -287,10 +306,10 @@ function mergeRows(
   margins.forEach(record => {
     if (!record.tradeDate) return;
     const target = row(record.tradeDate);
-    target.initialMarginIbkr = record.initialMarginIbkr;
-    target.initialMarginFutu = record.initialMarginFutu;
-    target.maintenanceMarginIbkr = record.maintenanceMarginIbkr;
-    target.maintenanceMarginFutu = record.maintenanceMarginFutu;
+    target.initialMarginIbkr = record.initialMarginIbkr ?? undefined;
+    target.initialMarginFutu = record.initialMarginFutu ?? undefined;
+    target.maintenanceMarginIbkr = record.maintenanceMarginIbkr ?? undefined;
+    target.maintenanceMarginFutu = record.maintenanceMarginFutu ?? undefined;
     target.averageDurationDays = record.averageDurationDays;
     const meta = latestMeta(target as DateSpecificRecord, record);
     target.updatedAt = meta?.updatedAt ?? meta?.createdAt;
@@ -299,7 +318,7 @@ function mergeRows(
   shortScores.forEach(record => {
     if (!record.tradeDate) return;
     const target = row(record.tradeDate);
-    target.shortScore = record.shortScore;
+    target.shortScore = record.shortScore ?? undefined;
     const meta = latestMeta(target as DateSpecificRecord, record);
     target.updatedAt = meta?.updatedAt ?? meta?.createdAt;
     target.updatedBy = meta?.updatedBy ?? meta?.createdBy;
@@ -329,7 +348,6 @@ export function MarketDataOperationsClient() {
   const [selectedTicker, setSelectedTicker] = useState('CURR');
   const [form, setForm] = useState<FormState>(() => emptyForm());
   const [rows, setRows] = useState<MarketInputRow[]>([]);
-  const [loadedManualRecord, setLoadedManualRecord] = useState<MarketInputRow | null>(null);
   const [marketHistory, setMarketHistory] = useState<MarketPublicationRecord[]>([]);
   const [apiDebugRows, setApiDebugRows] = useState<OperationsDevelopmentDatum[]>([]);
   const [status, setStatus] = useState<'checking' | 'loading' | 'idle' | 'saving' | 'success' | 'error' | 'forbidden'>('checking');
@@ -402,15 +420,22 @@ export function MarketDataOperationsClient() {
         ...[marketCurrentResult, marketHistoryResult, issuedShareResult, utilizationResult, availabilityResult, marginsResult, shortScoreResult].map(result => result.debug),
         ...additionalDebugRows,
       ]);
-      const historyRecords = recordsFromPayload<MarketPublicationRecord>(marketHistoryResult.payload);
+      const historyRecords = tickerRecordsFromPayload<MarketPublicationRecord & DateSpecificRecord>(
+        marketHistoryResult.payload,
+        normalized,
+      );
       setMarketHistory(historyRecords);
-      const issuedShare = numberOrUndefined(String((issuedShareResult.payload as { issuedShare?: unknown } | null)?.issuedShare ?? ''));
+      const issuedSharePayload = issuedShareResult.payload as ({ issuedShare?: unknown; ticker?: string } | null);
+      const issuedShare = issuedSharePayload && recordMatchesTicker(issuedSharePayload, normalized)
+        ? numberOrUndefined(String(issuedSharePayload.issuedShare ?? ''))
+        : undefined;
       const manualRows = mergeRows(
+        normalized,
         issuedShare,
-        recordsFromPayload<UtilizationRecord>(utilizationResult.payload),
-        recordsFromPayload<AvailabilityRecord>(availabilityResult.payload),
-        recordsFromPayload<MarginRecord>(marginsResult.payload),
-        recordsFromPayload<ShortScoreRecord>(shortScoreResult.payload),
+        tickerRecordsFromPayload<UtilizationRecord>(utilizationResult.payload, normalized),
+        tickerRecordsFromPayload<AvailabilityRecord>(availabilityResult.payload, normalized),
+        tickerRecordsFromPayload<MarginRecord>(marginsResult.payload, normalized),
+        tickerRecordsFromPayload<ShortScoreRecord>(shortScoreResult.payload, normalized),
       );
       const selectedManualRecord = manualRows.find(record => record.tradeDate === selectedTradeDate);
       setSelectedTicker(normalized);
@@ -420,7 +445,6 @@ export function MarketDataOperationsClient() {
         selectedManualRecord,
         issuedShare,
       ));
-      setLoadedManualRecord(selectedManualRecord ?? null);
       setRows(manualRows);
       setEditingDate('');
       setStatus(preserveFeedback ? 'success' : 'idle');
@@ -436,7 +460,6 @@ export function MarketDataOperationsClient() {
     const issuedShare = numberOrUndefined(form.issuedShare);
 
     setForm(formFromDailyRecord(tradeDate, undefined, issuedShare));
-    setLoadedManualRecord(null);
     setEditingDate('');
     setMessage('');
 
@@ -460,11 +483,12 @@ export function MarketDataOperationsClient() {
       endpoints.map(endpoint => loadApi(endpoint)),
     );
     const exactRows = mergeRows(
+      selectedTicker,
       issuedShare,
-      exactDateRecordsFromPayload<UtilizationRecord>(utilizationResult.payload, tradeDate),
-      exactDateRecordsFromPayload<AvailabilityRecord>(availabilityResult.payload, tradeDate),
-      exactDateRecordsFromPayload<MarginRecord>(marginsResult.payload, tradeDate),
-      exactDateRecordsFromPayload<ShortScoreRecord>(shortScoreResult.payload, tradeDate),
+      exactDateRecordsFromPayload<UtilizationRecord>(utilizationResult.payload, selectedTicker, tradeDate),
+      exactDateRecordsFromPayload<AvailabilityRecord>(availabilityResult.payload, selectedTicker, tradeDate),
+      exactDateRecordsFromPayload<MarginRecord>(marginsResult.payload, selectedTicker, tradeDate),
+      exactDateRecordsFromPayload<ShortScoreRecord>(shortScoreResult.payload, selectedTicker, tradeDate),
     );
 
     setApiDebugRows(current => [
@@ -476,7 +500,6 @@ export function MarketDataOperationsClient() {
     ]);
     const exactRecord = exactRows.find(record => record.tradeDate === tradeDate);
     setForm(formFromDailyRecord(tradeDate, exactRecord, issuedShare));
-    setLoadedManualRecord(exactRecord ?? null);
     setEditingDate(editAfterLoad ? tradeDate : '');
     setStatus('idle');
   }
@@ -513,14 +536,21 @@ export function MarketDataOperationsClient() {
       return;
     }
 
-    const historyRecords = recordsFromPayload<MarketPublicationRecord>(marketHistoryResult.payload);
-    const issuedShare = numberOrUndefined(String((issuedShareResult.payload as { issuedShare?: unknown } | null)?.issuedShare ?? ''));
+    const historyRecords = tickerRecordsFromPayload<MarketPublicationRecord & DateSpecificRecord>(
+      marketHistoryResult.payload,
+      selectedTicker,
+    );
+    const issuedSharePayload = issuedShareResult.payload as ({ issuedShare?: unknown; ticker?: string } | null);
+    const issuedShare = issuedSharePayload && recordMatchesTicker(issuedSharePayload, selectedTicker)
+      ? numberOrUndefined(String(issuedSharePayload.issuedShare ?? ''))
+      : undefined;
     const manualRows = mergeRows(
+      selectedTicker,
       issuedShare,
-      recordsFromPayload<UtilizationRecord>(utilizationResult.payload),
-      recordsFromPayload<AvailabilityRecord>(availabilityResult.payload),
-      recordsFromPayload<MarginRecord>(marginsResult.payload),
-      recordsFromPayload<ShortScoreRecord>(shortScoreResult.payload),
+      tickerRecordsFromPayload<UtilizationRecord>(utilizationResult.payload, selectedTicker),
+      tickerRecordsFromPayload<AvailabilityRecord>(availabilityResult.payload, selectedTicker),
+      tickerRecordsFromPayload<MarginRecord>(marginsResult.payload, selectedTicker),
+      tickerRecordsFromPayload<ShortScoreRecord>(shortScoreResult.payload, selectedTicker),
     );
     setMarketHistory(historyRecords);
     setRows(manualRows);
@@ -735,11 +765,6 @@ export function MarketDataOperationsClient() {
     const requests: NamedRequest[] = [];
     const issuedShare = numberOrUndefined(form.issuedShare);
     const utilizationPercent = numberOrUndefined(form.utilizationPercent);
-    const clearsSavedUtilization = Boolean(
-      loadedManualRecord?.tradeDate === form.tradeDate
-      && loadedManualRecord.utilizationPercent != null
-      && utilizationPercent === undefined,
-    );
     const availableSharesIbkr = numberOrUndefined(form.availableSharesIbkr);
     const availableSharesFutu = numberOrUndefined(form.availableSharesFutu);
     const initialMarginIbkr = percentInputToRatio(form.initialMarginIbkr);
@@ -747,49 +772,47 @@ export function MarketDataOperationsClient() {
     const maintenanceMarginIbkr = percentInputToRatio(form.maintenanceMarginIbkr);
     const maintenanceMarginFutu = percentInputToRatio(form.maintenanceMarginFutu);
     const averageDurationDays = numberOrUndefined(form.averageDurationDays);
-    const clearsSavedAverageDuration = Boolean(
-      isEditingSavedRecord
-      && selectedSavedRecord?.averageDurationDays != null
-      && averageDurationDays === undefined,
-    );
     const shortScore = numberOrUndefined(form.shortScore);
 
     if (issuedShare !== undefined) {
       requests.push({ label: 'Issued Share', request: saveManualInput(`/manual-input/issued-share?ticker=${tickerParam}`, { issuedShare }) });
     }
-    if (utilizationPercent !== undefined || clearsSavedUtilization) {
-      requests.push({
-        label: 'Utilization',
-        request: saveManualInput(
-          `/manual-input/utilization?ticker=${tickerParam}&tradeDate=${tradeDateParam}`,
-          { utilizationPercent: utilizationPercent ?? null },
-        ),
-      });
-    }
-    if (availableSharesIbkr !== undefined || availableSharesFutu !== undefined) {
-      requests.push({ label: 'Shortable Shares', request: saveManualInput(`/manual-input/manual-availability?ticker=${tickerParam}&tradeDate=${tradeDateParam}`, { availableSharesIbkr, availableSharesFutu }) });
-    }
-    if (
-      initialMarginIbkr !== undefined ||
-      initialMarginFutu !== undefined ||
-      maintenanceMarginIbkr !== undefined ||
-      maintenanceMarginFutu !== undefined ||
-      averageDurationDays !== undefined ||
-      clearsSavedAverageDuration
-    ) {
-      requests.push({ label: 'Margins / Average Duration', request: saveManualInput(`/manual-input/margins?ticker=${tickerParam}&tradeDate=${tradeDateParam}`, {
-        initialMarginIbkr,
-        initialMarginFutu,
-        maintenanceMarginIbkr,
-        maintenanceMarginFutu,
+    requests.push({
+      label: 'Utilization',
+      request: saveManualInput(
+        `/manual-input/utilization?ticker=${tickerParam}&tradeDate=${tradeDateParam}`,
+        { utilizationPercent: utilizationPercent ?? null },
+      ),
+    });
+    requests.push({
+      label: 'Shortable Shares',
+      request: saveManualInput(
+        `/manual-input/manual-availability?ticker=${tickerParam}&tradeDate=${tradeDateParam}`,
+        {
+          availableSharesIbkr: availableSharesIbkr ?? null,
+          availableSharesFutu: availableSharesFutu ?? null,
+        },
+      ),
+    });
+    requests.push({
+      label: 'Margins / Average Duration',
+      request: saveManualInput(`/manual-input/margins?ticker=${tickerParam}&tradeDate=${tradeDateParam}`, {
+        initialMarginIbkr: initialMarginIbkr ?? null,
+        initialMarginFutu: initialMarginFutu ?? null,
+        maintenanceMarginIbkr: maintenanceMarginIbkr ?? null,
+        maintenanceMarginFutu: maintenanceMarginFutu ?? null,
         averageDurationDays: averageDurationDays ?? null,
         valueFormat: 'decimal_ratio',
         displayFormat: 'percent',
-      }) });
-    }
-    if (shortScore !== undefined) {
-      requests.push({ label: 'Short Score', request: saveManualInput(`/manual-input/short-score?ticker=${tickerParam}&tradeDate=${tradeDateParam}`, { shortScore }) });
-    }
+      }),
+    });
+    requests.push({
+      label: 'Short Score',
+      request: saveManualInput(
+        `/manual-input/short-score?ticker=${tickerParam}&tradeDate=${tradeDateParam}`,
+        { shortScore: shortScore ?? null },
+      ),
+    });
 
     try {
       await runNamedRequests('One or more market inputs could not be saved:', requests);

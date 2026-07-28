@@ -34,7 +34,7 @@ const kpis: KpiConfig[] = [
   {
     key: 'feeRate',
     label: 'Borrow Fee',
-    valueFormatter: value => pct(value, 2),
+    valueFormatter: value => pctFixed(value, 2),
     changeFormatter: value => signed(value, 2, ' pts'),
     detail: 'Borrow cost trend',
     explanation: 'Current annualized cost to borrow shares. Higher borrow fees can indicate tighter lending supply or stronger short-side demand.',
@@ -62,7 +62,7 @@ const kpis: KpiConfig[] = [
     key: 'shortableShares',
     label: 'Shortable Shares',
     valueFormatter: value => compact(value),
-    changeFormatter: value => signed(value, 0, ' shares'),
+    changeFormatter: value => signed(value, 2, ' shares'),
     detail: 'Shortable share supply',
     explanation: 'Number of shares currently available to borrow for shorting. Lower availability can signal tighter lendable supply.',
     chartTone: 'orange',
@@ -70,7 +70,7 @@ const kpis: KpiConfig[] = [
   {
     key: 'utilization',
     label: 'Utilization',
-    valueFormatter: value => pct(value, 1),
+    valueFormatter: value => pctFixed(value, 2),
     changeFormatter: value => signed(value, 2, ' pts'),
     detail: 'Lending pool utilization',
     explanation: 'Percentage of lendable inventory currently being used. Higher utilization means more of the borrowable share pool is already committed.',
@@ -79,8 +79,8 @@ const kpis: KpiConfig[] = [
   {
     key: 'averageDurationDays',
     label: 'Average Duration (D)',
-    valueFormatter: value => value === undefined ? 'N/A' : `${value.toLocaleString('en-US', { maximumFractionDigits: 1 })}d`,
-    changeFormatter: value => signed(value, 1, 'd'),
+    valueFormatter: value => value === undefined ? 'N/A' : `${value.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}d`,
+    changeFormatter: value => signed(value, 2, 'd'),
     detail: 'Average holding duration',
     explanation: 'Average duration shows the estimated average number of days positions remain open. A longer duration can indicate slower turnover or more persistent positioning.',
     chartTone: 'purple',
@@ -88,17 +88,13 @@ const kpis: KpiConfig[] = [
   {
     key: 'daysToCover',
     label: 'Days to Cover',
-    valueFormatter: value => value === undefined ? 'N/A' : `${value.toLocaleString('en-US', { maximumFractionDigits: 1 })}d`,
-    changeFormatter: value => signed(value, 1, 'd'),
+    valueFormatter: value => value === undefined ? 'N/A' : `${value.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}d`,
+    changeFormatter: value => signed(value, 2, 'd'),
     detail: 'Short interest coverage',
     explanation: 'Estimated number of trading days it would take short sellers to cover current short interest based on average trading volume.',
     chartTone: 'blue',
   },
 ];
-
-function pct(value: number | undefined, digits: number) {
-  return value === undefined ? 'N/A' : `${value.toLocaleString('en-US', { maximumFractionDigits: digits })}%`;
-}
 
 function pctFixed(value: number | undefined, digits: number) {
   return value === undefined ? 'N/A' : `${value.toLocaleString('en-US', { minimumFractionDigits: digits, maximumFractionDigits: digits })}%`;
@@ -106,14 +102,20 @@ function pctFixed(value: number | undefined, digits: number) {
 
 function compact(value: number | undefined) {
   if (value === undefined) return 'N/A';
-  if (Math.abs(value) >= 1000000) return `${(value / 1000000).toLocaleString('en-US', { maximumFractionDigits: 2 })}M`;
-  if (Math.abs(value) >= 1000) return `${(value / 1000).toLocaleString('en-US', { maximumFractionDigits: 1 })}K`;
-  return value.toLocaleString('en-US', { maximumFractionDigits: 0 });
+  const options = { minimumFractionDigits: 2, maximumFractionDigits: 2 };
+  if (Math.abs(value) >= 1000000) return `${(value / 1000000).toLocaleString('en-US', options)}M`;
+  if (Math.abs(value) >= 1000) return `${(value / 1000).toLocaleString('en-US', options)}K`;
+  return value.toLocaleString('en-US', options);
 }
 
 function signed(value: number, digits: number, suffix: string) {
   const sign = value > 0 ? '+' : '';
-  return `${sign}${value.toLocaleString('en-US', { maximumFractionDigits: digits })}${suffix}`;
+  return `${sign}${value.toLocaleString('en-US', { minimumFractionDigits: digits, maximumFractionDigits: digits })}${suffix}`;
+}
+
+function formatCardDate(value: string | undefined) {
+  const match = String(value ?? '').match(/^(\d{4})-(\d{2})-(\d{2})/);
+  return match ? `${match[2]}/${match[3]}/${match[1].slice(-2)}` : 'N/A';
 }
 
 function parseDate(value: string) {
@@ -240,21 +242,25 @@ export function DashboardKpis({
           const isManualInput = isManualKpiKey(item.key);
           let currentValue: number | undefined;
           let compareValue: number | undefined;
+          let currentDate: string | undefined;
           if (item.key === 'utilization') {
             const latestUtilization = latestMetricRecord(cleanUtilizationRecords, 'utilization');
             const compareUtilization = comparisonMetricRecord(cleanUtilizationRecords, 'utilization', period);
             currentValue = toNumber(latestUtilization?.utilization);
             compareValue = toNumber(compareUtilization?.utilization);
+            currentDate = latestUtilization?.date;
           } else if (isManualKpiKey(item.key)) {
             const latestMargin = latestMetricRecord(cleanMarginRecords, item.key);
             const compareMargin = comparisonMetricRecord(cleanMarginRecords, item.key, period);
             currentValue = toNumber(latestMargin?.[item.key]);
             compareValue = toNumber(compareMargin?.[item.key]);
+            currentDate = latestMargin?.date;
           } else {
             const latest = latestMetricRecord(cleanData, item.key);
             const compare = comparisonMetricRecord(cleanData, item.key, period);
             currentValue = toNumber(latest?.[item.key]);
             compareValue = toNumber(compare?.[item.key]);
+            currentDate = latest?.date;
           }
           let chartValues: number[];
           if (item.key === 'utilization') {
@@ -274,7 +280,10 @@ export function DashboardKpis({
             <article className="dashboard-kpi" key={item.label}>
               <div className="dashboard-kpi-top">
                 <span className="dashboard-kpi-label">{item.label} <InfoTooltip text={item.explanation} /></span>
-                <strong>{item.valueFormatter(currentValue)}</strong>
+                <div className="dashboard-kpi-value-row">
+                  <strong>{item.valueFormatter(currentValue)}</strong>
+                  <small>As of {formatCardDate(currentDate)}</small>
+                </div>
                 <div className={`dashboard-kpi-change ${tone}`}>
                   <b>{change === null ? (isManualInput ? '--' : 'No baseline') : item.changeFormatter(change)}</b>
                   <em>{changePercent === null ? '' : `(${signed(changePercent, 2, '%')})`}</em>

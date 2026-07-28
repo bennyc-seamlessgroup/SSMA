@@ -74,7 +74,7 @@ async function getApiTickerDataStatus(ticker: string): Promise<Pick<TickerDataSt
   const marketHistory = history['market-history'];
   const ownershipCurrent = current['ownership-current'];
   const ownershipHistory = history['ownership-history'];
-  const internalFloatCurrent = current['internal-float-current'];
+  const internalFloatCurrent = current['internal-float-current-user'];
   const sentimentCurrent = current['sentiment-current'];
   const secFilingsHistory = history['sec-filings-history'];
   const shortVolumeHistory = history['short-volume-history'];

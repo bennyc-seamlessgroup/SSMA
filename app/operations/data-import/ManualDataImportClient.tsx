@@ -15,6 +15,8 @@ type ImportCategory =
   | 'institutional-owner'
   | 'management-holdings'
   | 'sec-filings'
+  | 'internal-float-inputs-ticker'
+  | 'internal-float-inputs-user'
   | 'internal-float-inputs';
 
 type CategoryDefinition = {
@@ -98,8 +100,20 @@ const categories: CategoryDefinition[] = [
     sample: ['2026-07-17', 'filing-001', 'CURR', 'CURRENC Group Inc.', '10-Q', 'Quarterly Report', '2026-07-17', '2026-06-30', '', '', '', '0001213900-26-001234', 'https://www.sec.gov/', ''],
   },
   {
-    key: 'internal-float-inputs', label: 'Internal float inputs', description: 'Complete nested internal-float input document.',
-    replacement: 'All internal-float inputs are replaced and a new audit log is generated.',
+    key: 'internal-float-inputs-ticker', label: 'Internal float ticker inputs', description: 'Ticker-wide tokenized and collateralized share records.',
+    replacement: 'Ticker-level tokenized and collateralized inputs are replaced.',
+    columns: ['section', 'id', 'chain', 'provider', 'protocol', 'shares', 'ratio', 'includeInDeduction', 'notes'],
+    sample: ['tokenizedShares', 'token-001', 'Ethereum', 'Securitize', '', 500000, '', true, ''],
+  },
+  {
+    key: 'internal-float-inputs-user', label: 'Internal float user inputs', description: 'User-specific management, strategic, and private-friendly holdings.',
+    replacement: 'The requesting user’s Internal Float inputs are replaced.',
+    columns: ['section', 'id', 'holderName', 'category', 'shares', 'ratio', 'includeInDeduction', 'notes'],
+    sample: ['managementStrategicHoldings', 'holder-001', 'Sample Strategic Holder', 'Strategic Investor', 1000000, '', true, ''],
+  },
+  {
+    key: 'internal-float-inputs', label: 'Internal float inputs (combined compatibility)', description: 'Compatibility import routed by section into ticker and user scopes.',
+    replacement: 'Rows are routed to the matching split input files and a new audit log is generated.',
     columns: ['managementStrategicHoldings', 'tokenizedShares', 'collateralizedShares', 'privateFriendlyHolders'],
     sample: ['{"records":[]}', '{"records":[]}', '{"records":[]}', '{"shares":0,"ratio":0}'],
   },
@@ -193,6 +207,11 @@ function invalidImportPath(result: ImportResponse, category: ImportCategory, tic
 
   const expected = expectedImportPaths(category, ticker, tradeDates).sort();
   const generated = [...(result.generatedFiles ?? [])].sort();
+  if (category === 'internal-float-inputs-user') {
+    const prefix = `manual-input/internal-float-inputs-user/${ticker}/`;
+    const suffix = '/internal-float-inputs-user.json';
+    if (generated.length === 1 && generated[0].startsWith(prefix) && generated[0].endsWith(suffix)) return undefined;
+  }
   if (expected.length === generated.length && expected.every((path, index) => path === generated[index])) return undefined;
   return `expected ${expected.join(', ') || 'a canonical output file'}, received ${generated.join(', ') || 'no generated files'}`;
 }

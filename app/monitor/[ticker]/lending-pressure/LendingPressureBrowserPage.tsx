@@ -219,35 +219,43 @@ function latest(items: Row[]) {
   return [...items].sort((a, b) => String(b.date ?? '').localeCompare(String(a.date ?? '')))[0] ?? {};
 }
 
-function formatNumber(value: unknown, options?: Intl.NumberFormatOptions) {
+function formatNumber(value: unknown, _options?: Intl.NumberFormatOptions) {
   const parsed = numeric(value);
-  return parsed === null ? 'N/A' : parsed.toLocaleString('en-US', options);
+  return parsed === null ? 'N/A' : parsed.toLocaleString('en-US', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
 }
 
-function formatPercent(value: unknown, options?: Intl.NumberFormatOptions) {
+function formatPercent(value: unknown, _options?: Intl.NumberFormatOptions) {
   const parsed = numeric(value);
-  return parsed === null ? 'No Source' : `${parsed.toLocaleString('en-US', options)}%`;
+  return parsed === null ? 'No Source' : `${parsed.toLocaleString('en-US', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  })}%`;
 }
 
 function formatCompactNumber(value: number) {
   const absolute = Math.abs(value);
-  if (absolute >= 1000000) return `${(value / 1000000).toLocaleString('en-US', { maximumFractionDigits: 1 })}M`;
-  if (absolute >= 1000) return `${(value / 1000).toLocaleString('en-US', { maximumFractionDigits: 1 })}K`;
-  return value.toLocaleString('en-US', { maximumFractionDigits: 0 });
+  const options = { minimumFractionDigits: 2, maximumFractionDigits: 2 };
+  if (absolute >= 1000000) return `${(value / 1000000).toLocaleString('en-US', options)}M`;
+  if (absolute >= 1000) return `${(value / 1000).toLocaleString('en-US', options)}K`;
+  return value.toLocaleString('en-US', options);
 }
 
 function formatAxisNumber(value: number) {
-  const rounded = Math.round(value);
-  const absolute = Math.abs(rounded);
-  if (absolute >= 1000000) return `${(rounded / 1000000).toLocaleString('en-US', { maximumFractionDigits: 0 })}M`;
-  if (absolute >= 1000) return `${(rounded / 1000).toLocaleString('en-US', { maximumFractionDigits: 0 })}K`;
-  return rounded.toLocaleString('en-US', { maximumFractionDigits: 0 });
+  return formatCompactNumber(value);
 }
 
 function shortDateLabel(value: unknown) {
   const [year, month, day] = String(value ?? '').split('-').map(part => Number(part));
   if (!year || !month || !day) return String(value ?? '');
   return `${month}/${day}`;
+}
+
+function fullMarketDateLabel(value: unknown) {
+  const match = String(value ?? '').match(/^(\d{4})-(\d{2})-(\d{2})/);
+  return match ? `${match[2]}/${match[3]}/${match[1].slice(-2)}` : 'N/A';
 }
 
 function InfoTitle({ children, text }: { children: ReactNode; text: string }) {
@@ -331,7 +339,13 @@ function TrendLine({ values, labels, label, valueFormatter = formatCompactNumber
   );
 }
 
-function ExecutiveMetric({ label, value, changePercent }: { label: string; value: string; changePercent?: number | null }) {
+function ExecutiveMetric({ label, value, changePercent, asOfDate, comparisonDate }: {
+  label: string;
+  value: string;
+  changePercent?: number | null;
+  asOfDate: string;
+  comparisonDate: string;
+}) {
   const tone = typeof changePercent !== 'number' || !Number.isFinite(changePercent)
     ? 'neutral'
     : changePercent > 0
@@ -342,10 +356,13 @@ function ExecutiveMetric({ label, value, changePercent }: { label: string; value
   return (
     <div className="short-executive-metric">
       <span>{label}</span>
-      <strong>{value}</strong>
+      <div className="short-executive-value">
+        <strong>{value}</strong>
+        <small>As of {fullMarketDateLabel(asOfDate)}</small>
+      </div>
       <em className={tone}>
         {typeof changePercent === 'number' && Number.isFinite(changePercent)
-          ? `${changePercent > 0 ? '+' : ''}${changePercent.toLocaleString('en-US', { maximumFractionDigits: 2 })}% vs yesterday`
+          ? `${changePercent > 0 ? '+' : ''}${changePercent.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}% vs ${fullMarketDateLabel(comparisonDate)}`
           : 'No prior period'}
       </em>
     </div>
@@ -443,25 +460,30 @@ export function LendingPressureBrowserPage({ ticker }: { ticker: string }) {
   const utilizationHistoryRows = rows(lendingData.utilizationHistory)
     .sort((a, b) => String(b.date ?? '').localeCompare(String(a.date ?? '')));
   const sortedDailyRows = [...dailyRows].sort((a, b) => String(b.date ?? '').localeCompare(String(a.date ?? '')));
-  const latestDaily = sortedDailyRows[0] ?? {};
-  const previousDaily = sortedDailyRows[1] ?? {};
+  const availabilitySnapshotRows = sortedDailyRows.filter(row => optionalNumeric(record(row.availability).shortAvailabilityShares) !== null);
+  const borrowFeeSnapshotRows = sortedDailyRows.filter(row => optionalNumeric(record(row.borrowFeeAll).costToBorrowAll) !== null);
+  const latestAvailabilityRow = availabilitySnapshotRows[0] ?? {};
+  const previousAvailabilityRow = availabilitySnapshotRows[1] ?? {};
+  const latestBorrowFeeRow = borrowFeeSnapshotRows[0] ?? {};
+  const previousBorrowFeeSnapshotRow = borrowFeeSnapshotRows[1] ?? {};
   const trendRows = [...dailyRows].sort((a, b) => String(a.date ?? '').localeCompare(String(b.date ?? ''))).slice(-7);
   const availabilityTrendRows = trendRows.filter(row => optionalNumeric(record(row.availability).shortAvailabilityShares) !== null);
   const utilizationTrendRows = [...utilizationHistoryRows].reverse().slice(-7);
   const borrowFeeTrendRows = trendRows.filter(row => optionalNumeric(record(row.borrowFeeAll).costToBorrowAll) !== null);
-  const latestAvailability = record(latestDaily.availability);
-  const previousAvailability = record(previousDaily.availability);
-  const previousBorrowFeeRow = record(previousDaily.borrowFeeAll);
-  const borrowFee = numeric(current.costToBorrowAll) ?? 0;
-  const sharesAvailable = numeric(current.shortAvailabilityShares) ?? 0;
-  const utilizationPct = numeric(current.shortAvailabilityPct) ?? 0;
+  const latestAvailability = record(latestAvailabilityRow.availability);
+  const previousAvailability = record(previousAvailabilityRow.availability);
+  const latestBorrowFeeSnapshot = record(latestBorrowFeeRow.borrowFeeAll);
+  const previousBorrowFeeSnapshot = record(previousBorrowFeeSnapshotRow.borrowFeeAll);
+  const borrowFee = numeric(latestBorrowFeeSnapshot.costToBorrowAll) ?? numeric(current.costToBorrowAll) ?? 0;
+  const sharesAvailable = numeric(latestAvailability.shortAvailabilityShares) ?? numeric(current.shortAvailabilityShares) ?? 0;
+  const utilizationPct = optionalNumeric(utilizationHistoryRows[0]?.value) ?? numeric(current.shortAvailabilityPct) ?? 0;
   const availabilityPressure = sharesAvailable <= 100000 ? 100 : sharesAvailable <= 500000 ? 78 : sharesAvailable <= 1500000 ? 48 : 12;
   const utilizationPressure = Math.min(100, Math.max(0, utilizationPct));
   const borrowFeePressure = Math.min(100, Math.max(0, borrowFee));
   const borrowDemandScore = Math.round((utilizationPressure * .45) + (borrowFeePressure * .35) + (availabilityPressure * .2));
   const previousSharesAvailable = numeric(previousAvailability.shortAvailabilityShares);
   const previousUtilizationPct = optionalNumeric(utilizationHistoryRows[1]?.value);
-  const previousBorrowFee = numeric(previousBorrowFeeRow.costToBorrowAll);
+  const previousBorrowFee = numeric(previousBorrowFeeSnapshot.costToBorrowAll);
   const pressureScore = Math.round((availabilityPressure * .25) + (utilizationPressure * .3) + (borrowFeePressure * .3) + (borrowDemandScore * .15));
   const level = pressureScore >= 81 ? 'Extreme' : pressureScore >= 61 ? 'High' : pressureScore >= 31 ? 'Moderate' : 'Low';
   const lendingDerived = record(record(lendingData.derived).lendingPressurePage);
@@ -531,10 +553,10 @@ export function LendingPressureBrowserPage({ ticker }: { ticker: string }) {
           <article className="terminal-card short-executive-card lending-market-snapshot">
             <span>Lending Market Snapshot</span>
             <div className="short-executive-metrics">
-              <ExecutiveMetric label="Utilization" value={String(utilizationCard.valueDisplay ?? formatPercent(utilizationPct, { maximumFractionDigits: 1 }))} changePercent={utilizationChangePercent} />
-              <ExecutiveMetric label="Borrow Fee" value={String(borrowFeeCard.valueDisplay ?? formatPercent(borrowFee, { maximumFractionDigits: 2 }))} changePercent={borrowFeeChangePercent} />
-              <ExecutiveMetric label="Shortable Shares" value={String(sharesAvailableCard.valueDisplay ?? formatNumber(sharesAvailable))} changePercent={sharesAvailableChangePercent} />
-              <ExecutiveMetric label="Average Duration" value={averageDurationDays === null ? 'N/A' : `${formatNumber(averageDurationDays, { maximumFractionDigits: 2 })}d`} changePercent={averageDurationChangePercent} />
+              <ExecutiveMetric label="Utilization" value={formatPercent(utilizationPct)} changePercent={utilizationChangePercent} asOfDate={String(utilizationHistoryRows[0]?.date ?? '')} comparisonDate={String(utilizationHistoryRows[1]?.date ?? '')} />
+              <ExecutiveMetric label="Borrow Fee" value={formatPercent(borrowFee)} changePercent={borrowFeeChangePercent} asOfDate={String(latestBorrowFeeRow.date ?? '')} comparisonDate={String(previousBorrowFeeSnapshotRow.date ?? '')} />
+              <ExecutiveMetric label="Shortable Shares" value={formatNumber(sharesAvailable)} changePercent={sharesAvailableChangePercent} asOfDate={String(latestAvailabilityRow.date ?? '')} comparisonDate={String(previousAvailabilityRow.date ?? '')} />
+              <ExecutiveMetric label="Average Duration" value={averageDurationDays === null ? 'N/A' : `${formatNumber(averageDurationDays)}d`} changePercent={averageDurationChangePercent} asOfDate={String(latestMarginRecord?.date ?? '')} comparisonDate={String(previousMarginRecord?.date ?? '')} />
             </div>
           </article>
 

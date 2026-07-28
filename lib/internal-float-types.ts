@@ -22,6 +22,7 @@ export type InternalFloatPrivateHolding = { id: string; holderName: string; cate
 export type InternalFloatUserInput = {
   userId: string; workspaceId?: string; ticker: string;
   privateHoldings: InternalFloatPrivateHolding[];
+  privateFriendlyHolders?: { shares?: number; ratio?: number };
   custodyRows: Array<{ id: string; name: string; shares: number }>;
   tokenChains: Array<{ id: string; chain: string; shares: number; provider: string }>;
   collateralChains: Array<{ id: string; chain: string; shares: number; protocol: string }>;

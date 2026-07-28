@@ -7063,6 +7063,20 @@ html[data-portal-design="b"] .monitor-portal .dashboard-kpi strong {
   line-height: 1.05;
 }
 
+html[data-portal-design="b"] .monitor-portal .dashboard-kpi-value-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+html[data-portal-design="b"] .monitor-portal .dashboard-kpi-value-row small {
+  color: #7b8ba0;
+  font-size: 9.5px;
+  font-weight: 650;
+  white-space: nowrap;
+}
+
 html[data-portal-design="b"] .monitor-portal .dashboard-kpi-change {
   min-height: 18px;
   gap: 5px;
@@ -23433,6 +23447,19 @@ html[data-portal-design="b"] .monitor-portal .short-executive-metric strong {
   font-size: 14px;
   font-weight: 700;
   text-align: right;
+  white-space: nowrap;
+}
+
+html[data-portal-design="b"] .monitor-portal .short-executive-value {
+  display: grid;
+  justify-items: end;
+  gap: 2px;
+}
+
+html[data-portal-design="b"] .monitor-portal .short-executive-value small {
+  color: #7b8ba0;
+  font-size: 9px;
+  font-weight: 650;
   white-space: nowrap;
 }
 

@@ -10,6 +10,7 @@ export type ApiDevelopmentSource = {
   source: string;
   payload: unknown;
   status?: string;
+  preferredColumns?: string[];
 };
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -39,9 +40,13 @@ function recordCount(payload: unknown) {
   return payload === null || payload === undefined ? 0 : 1;
 }
 
-function rowsTable(rows: Array<Record<string, unknown>>) {
+function rowsTable(rows: Array<Record<string, unknown>>, preferredColumns: string[] = []) {
   if (!rows.length) return null;
-  const columns = Array.from(new Set(rows.flatMap(row => Object.keys(row))));
+  const availableColumns = Array.from(new Set(rows.flatMap(row => Object.keys(row))));
+  const columns = [
+    ...preferredColumns.filter(column => availableColumns.includes(column)),
+    ...availableColumns.filter(column => !preferredColumns.includes(column)),
+  ];
   return (
     <ImportDataTable
       columns={columns}
@@ -68,7 +73,7 @@ function PayloadPanel({ source }: { source: ApiDevelopmentSource }) {
         <span className={`api-development-status ${source.status?.toLowerCase().startsWith('error') ? 'error' : ''}`}>{source.status ?? 'Connected'}</span>
       </div>
       {metadata.length ? <ImportDataTable columns={['field', 'value']} rows={metadata} pageSize={15} expandableColumns={['value']} /> : null}
-      {rowsTable(records)}
+      {rowsTable(records, source.preferredColumns)}
       {!metadata.length && !records.length && isRecord(source.payload) ? (
         <ImportDataTable
           columns={['field', 'value']}

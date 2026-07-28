@@ -114,6 +114,17 @@ function rowsMatch(left: unknown[], right: unknown[]) {
   return JSON.stringify(left.map(canonicalize)) === JSON.stringify(right.map(canonicalize));
 }
 
+function mergeActivityLogs(
+  current: InternalFloatActivityItem[],
+  incoming: InternalFloatActivityItem[],
+) {
+  const unique = new Map<string, InternalFloatActivityItem>();
+  [...incoming, ...current].forEach((item, index) => {
+    unique.set(item.id || `${item.createdAt}-${item.section}-${index}`, item);
+  });
+  return Array.from(unique.values()).sort((left, right) => right.createdAt.localeCompare(left.createdAt));
+}
+
 function id(prefix: string) {
   return `${prefix}-${Date.now()}-${Math.random().toString(16).slice(2)}`;
 }
@@ -348,14 +359,20 @@ export function InternalFloatClient({
     section?: 'privateHoldings' | 'tokenChains' | 'collateralChains',
     rows?: unknown[],
   ) {
-    const endpoint = `/manual-input/internal-float-inputs?ticker=${encodeURIComponent(ticker)}`;
-    const raw = await authenticatedFetch(endpoint, {
-      method: 'PUT',
-      body: JSON.stringify({
-        managementStrategicHoldings: { records: section === 'privateHoldings' ? rows : privateHoldings },
+    const userScoped = section === 'privateHoldings';
+    const endpoint = `/manual-input/${userScoped ? 'internal-float-inputs-user' : 'internal-float-inputs-ticker'}?ticker=${encodeURIComponent(ticker)}`;
+    const requestBody = userScoped
+      ? {
+        managementStrategicHoldings: { records: rows },
+        privateFriendlyHolders: initialUserInputs.privateFriendlyHolders,
+      }
+      : {
         tokenizedShares: { records: section === 'tokenChains' ? rows : tokenChains },
         collateralizedShares: { records: section === 'collateralChains' ? rows : collateralChains },
-      }),
+      };
+    const raw = await authenticatedFetch(endpoint, {
+      method: 'PUT',
+      body: JSON.stringify(requestBody),
     }) as Record<string, unknown>;
     const management = raw.managementStrategicHoldings as { records?: PrivateHolding[] } | undefined;
     const tokenized = raw.tokenizedShares as { records?: TokenChain[] } | undefined;
@@ -365,10 +382,14 @@ export function InternalFloatClient({
       workspaceId: ticker,
       ticker,
       privateHoldings: management?.records ?? [],
+      privateFriendlyHolders: initialUserInputs.privateFriendlyHolders,
       custodyRows: [],
       tokenChains: tokenized?.records ?? [],
       collateralChains: collateralized?.records ?? [],
-      activityLog: Array.isArray(raw.auditLog) ? raw.auditLog as InternalFloatActivityItem[] : [],
+      activityLog: mergeActivityLogs(
+        activityLog,
+        Array.isArray(raw.auditLog) ? raw.auditLog as InternalFloatActivityItem[] : [],
+      ),
     };
   }
 
