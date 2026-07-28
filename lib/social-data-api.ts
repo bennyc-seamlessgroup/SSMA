@@ -80,6 +80,26 @@ function numberOrNull(value: unknown) {
   return Number.isFinite(parsed) ? parsed : null;
 }
 
+function timestampFromKey(value: unknown) {
+  const key = text(value);
+  const timestampMatch = key.match(/(\d{4}-\d{2}-\d{2}T\d{2})_(\d{2})_(\d{2}(?:\.\d+)?Z)/i);
+  if (timestampMatch) return `${timestampMatch[1]}:${timestampMatch[2]}:${timestampMatch[3]}`;
+  const dateMatch = key.match(/(?:^|\/)(\d{4}-\d{2}-\d{2})(?:\/|_)/);
+  return dateMatch ? `${dateMatch[1]}T00:00:00Z` : '';
+}
+
+function normalizedTimestamp(values: unknown[], key: string) {
+  const raw = values.map(text).find(value => value.trim())?.trim() ?? '';
+  if (/^\d{10}(?:\.\d+)?$/.test(raw)) {
+    return new Date(Number(raw) * 1000).toISOString();
+  }
+  if (/^\d{13}$/.test(raw)) {
+    return new Date(Number(raw)).toISOString();
+  }
+  const parsed = Date.parse(raw);
+  return Number.isFinite(parsed) ? new Date(parsed).toISOString() : timestampFromKey(key);
+}
+
 export function normalizeSocialPlatform(value: unknown): SocialPlatform {
   const normalized = text(value).trim().toLowerCase();
   if (normalized === 'twitter' || normalized === 'x') return 'X';
@@ -95,25 +115,28 @@ export function normalizeSocialMention(value: unknown): SocialMention {
   const key = text(row.key);
   const id = text(row.id ?? row.messages__id ?? sourceRow.messages__id ?? key);
 
+  const timestamp = normalizedTimestamp([
+    row.datetime,
+    row.timestamp,
+    row.eventDate,
+    row.event_date,
+    row.createdAt,
+    row.created_at,
+    row.created_utc,
+    row.messages__created_at,
+    sourceRow.datetime,
+    sourceRow.timestamp,
+    sourceRow.created_utc,
+    row.date,
+    sourceRow.date,
+  ], key);
+
   return {
     id,
     key,
     platform: normalizeSocialPlatform(row.platform),
     query: text(row.query),
-    timestamp: text(
-      row.datetime
-      ?? row.timestamp
-      ?? row.date
-      ?? row.eventDate
-      ?? row.event_date
-      ?? row.createdAt
-      ?? row.created_at
-      ?? row.created_utc
-      ?? row.messages__created_at
-      ?? sourceRow.datetime
-      ?? sourceRow.timestamp
-      ?? sourceRow.created_utc,
-    ),
+    timestamp,
     url: text(row.link ?? row.url),
     author: text(row.author ?? row.username ?? row.user__username),
     text: text(row.content ?? row.text ?? row.message ?? row.summary),

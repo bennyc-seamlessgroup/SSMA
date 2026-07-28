@@ -33,6 +33,59 @@ const defaultCategories: Partial<Record<Dataset, string>> = {
   kwatch: 'reddit',
 };
 
+function parseCsv(text: string) {
+  const rows: string[][] = [];
+  let row: string[] = [];
+  let cell = '';
+  let quoted = false;
+
+  for (let index = 0; index < text.length; index += 1) {
+    const character = text[index];
+    if (character === '"') {
+      if (quoted && text[index + 1] === '"') {
+        cell += '"';
+        index += 1;
+      } else {
+        quoted = !quoted;
+      }
+    } else if (character === ',' && !quoted) {
+      row.push(cell);
+      cell = '';
+    } else if ((character === '\n' || character === '\r') && !quoted) {
+      if (character === '\r' && text[index + 1] === '\n') index += 1;
+      row.push(cell);
+      if (row.some(value => value.length > 0)) rows.push(row);
+      row = [];
+      cell = '';
+    } else {
+      cell += character;
+    }
+  }
+  row.push(cell);
+  if (row.some(value => value.length > 0)) rows.push(row);
+  return rows;
+}
+
+function csvCell(value: string) {
+  return /[",\r\n]/.test(value) ? `"${value.replace(/"/g, '""')}"` : value;
+}
+
+function socialCsvNewestFirst(csv: string) {
+  const rows = parseCsv(csv);
+  const headers = rows[0]?.map(value => value.replace(/^\uFEFF/, '').trim().toLowerCase()) ?? [];
+  const timestampIndex = ['datetime', 'timestamp', 'date', 'created_at', 'messages__created_at']
+    .map(header => headers.indexOf(header))
+    .find(index => index >= 0);
+  if (rows.length < 3 || timestampIndex === undefined) return csv;
+
+  const timestamp = (row: string[]) => {
+    const parsed = Date.parse(row[timestampIndex] ?? '');
+    return Number.isFinite(parsed) ? parsed : 0;
+  };
+  const sortedRows = [...rows.slice(1)].sort((left, right) => timestamp(right) - timestamp(left));
+  return [rows[0], ...sortedRows].map(row => row.map(csvCell).join(',')).join('\r\n').concat('\r\n');
+}
+
 export function DataExportClient() {
   const [ticker, setTicker] = useState('CURR');
   const [dataset, setDataset] = useState<Dataset>('manual-input');
@@ -80,8 +133,12 @@ export function DataExportClient() {
     setMessage('');
     try {
       const result = await authenticatedFileDownload(endpoint);
-      const preview = await result.blob.text();
-      const url = URL.createObjectURL(result.blob);
+      const rawCsv = await result.blob.text();
+      const preview = dataset === 'kwatch' ? socialCsvNewestFirst(rawCsv) : rawCsv;
+      const downloadBlob = dataset === 'kwatch'
+        ? new Blob([preview], { type: result.contentType })
+        : result.blob;
+      const url = URL.createObjectURL(downloadBlob);
       const anchor = document.createElement('a');
       anchor.href = url;
       anchor.download = result.filename;

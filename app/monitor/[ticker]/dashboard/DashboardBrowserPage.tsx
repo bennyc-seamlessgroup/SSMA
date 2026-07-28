@@ -13,6 +13,7 @@ import type { DashboardMarginRecord, DashboardUtilizationRecord, OperationsSecFi
 import { normalizeTicker } from '@/lib/ticker-data';
 import { DashboardClient } from './DashboardClient';
 import { DashboardDevTables } from './DashboardDevTables';
+import type { DashboardCurrentChanges } from './DashboardKpis';
 import type { CurrentAlertMetricValues } from '@/lib/alerts/ruleCatalogApi';
 
 type TrendPoint = {
@@ -44,10 +45,10 @@ type MarketCurrentFile = {
   snapshotDate?: string;
   price?: { value?: unknown };
   shortInterest?: { percent?: unknown; shares?: unknown };
-  borrowFee?: { percent?: unknown };
-  availableShares?: { value?: unknown };
-  utilization?: { percent?: unknown };
-  daysToCover?: { value?: unknown };
+  borrowFee?: { percent?: unknown; numChange?: unknown; percentChange?: unknown };
+  availableShares?: { value?: unknown; numChange?: unknown; percentChange?: unknown };
+  utilization?: { percent?: unknown; numChange?: unknown; percentChange?: unknown };
+  daysToCover?: { value?: unknown; numChange?: unknown; percentChange?: unknown };
   margins?: {
     initialMargin?: unknown;
     maintenanceMargin?: unknown;
@@ -116,6 +117,7 @@ type DashboardApiData = {
   marginInputs: DashboardMarginRecord[];
   events: CompanyEvent[];
   current: Record<string, unknown> | null;
+  currentChanges: DashboardCurrentChanges;
   currentAlertMetrics: CurrentAlertMetricValues;
 };
 
@@ -395,6 +397,24 @@ function marketHistoryToDashboardData(
     utilization: currentUtilization?.value ?? (publishedRecord ? marketNumber(publishedRecord.utilizationPercent) : null),
     availableShares: publishedRecord ? marketNumber(publishedRecord.availableShares) : null,
   };
+  const currentChanges: DashboardCurrentChanges = {
+    feeRate: {
+      numChange: numericOrNull(currentFile?.borrowFee?.numChange),
+      percentChange: numericOrNull(currentFile?.borrowFee?.percentChange),
+    },
+    shortableShares: {
+      numChange: numericOrNull(currentFile?.availableShares?.numChange),
+      percentChange: numericOrNull(currentFile?.availableShares?.percentChange),
+    },
+    utilization: {
+      numChange: numericOrNull(currentFile?.utilization?.numChange),
+      percentChange: numericOrNull(currentFile?.utilization?.percentChange),
+    },
+    daysToCover: {
+      numChange: numericOrNull(currentFile?.daysToCover?.numChange),
+      percentChange: numericOrNull(currentFile?.daysToCover?.percentChange),
+    },
+  };
 
   return {
     currentFile,
@@ -405,6 +425,7 @@ function marketHistoryToDashboardData(
     marginInputs,
     events: secFilingEvents(secFilingRows),
     current,
+    currentChanges,
     currentAlertMetrics,
   };
 }
@@ -471,6 +492,7 @@ export function DashboardBrowserPage({ ticker }: { ticker: string }) {
         events={events}
         utilizationRecords={utilizationInputs}
         marginRecords={marginInputs}
+        currentChanges={apiData.currentChanges}
         currentAlertMetrics={apiData.currentAlertMetrics}
       />
       <DashboardDevTables

@@ -17,6 +17,13 @@ type TrendPoint = {
 
 type ManualKpiKey = 'initialMargin' | 'maintenanceMargin' | 'averageDurationDays' | 'utilization';
 type TrendKpiKey = Exclude<keyof TrendPoint, 'date'>;
+export type DashboardCurrentChanges = Partial<Record<
+  TrendKpiKey | ManualKpiKey,
+  {
+    numChange: number | null;
+    percentChange: number | null;
+  }
+>>;
 
 type KpiConfig = {
   key: TrendKpiKey | ManualKpiKey;
@@ -205,12 +212,14 @@ export function DashboardKpis({
   onPeriodChange,
   utilizationRecords,
   marginRecords,
+  currentChanges,
 }: {
   data: TrendPoint[];
   period: PeriodKey;
   onPeriodChange: (period: PeriodKey) => void;
   utilizationRecords: DashboardUtilizationRecord[];
   marginRecords: DashboardMarginRecord[];
+  currentChanges: DashboardCurrentChanges;
 }) {
   const cleanData = useMemo(() => data.filter(point => point?.date).sort((a, b) => a.date.localeCompare(b.date)), [data]);
   const cleanUtilizationRecords = useMemo(() => [...utilizationRecords].filter(record => record.date).sort((a, b) => a.date.localeCompare(b.date)), [utilizationRecords]);
@@ -272,9 +281,28 @@ export function DashboardKpis({
             const key = item.key;
             chartValues = cleanData.map(point => toNumber(point[key])).filter((value): value is number => value !== undefined);
           }
-          const change = currentValue !== undefined && compareValue !== undefined ? currentValue - compareValue : null;
-          const changePercent = change !== null && compareValue ? (change / compareValue) * 100 : null;
-          const tone = change === null ? 'neutral' : change > 0 ? 'up' : change < 0 ? 'down' : 'neutral';
+          const currentApiChange = currentChanges[item.key];
+          const calculatedChange = currentValue !== undefined && compareValue !== undefined ? currentValue - compareValue : null;
+          const calculatedChangePercent = calculatedChange !== null && compareValue
+            ? (calculatedChange / compareValue) * 100
+            : null;
+          const hasCurrentApiChange = (
+            currentApiChange?.numChange !== null
+            && currentApiChange?.numChange !== undefined
+          ) || (
+            currentApiChange?.percentChange !== null
+            && currentApiChange?.percentChange !== undefined
+          );
+          const useCurrentApiChange = hasCurrentApiChange || period === '1D';
+          const change = useCurrentApiChange
+            ? currentApiChange?.numChange ?? calculatedChange
+            : calculatedChange;
+          const changePercent = useCurrentApiChange
+            ? currentApiChange?.percentChange ?? calculatedChangePercent
+            : calculatedChangePercent;
+          const showsPreviousDayLabel = hasCurrentApiChange;
+          const directionValue = change ?? changePercent;
+          const tone = directionValue === null ? 'neutral' : directionValue > 0 ? 'up' : directionValue < 0 ? 'down' : 'neutral';
 
           return (
             <article className="dashboard-kpi" key={item.label}>
@@ -287,6 +315,7 @@ export function DashboardKpis({
                 <div className={`dashboard-kpi-change ${tone}`}>
                   <b>{change === null ? (isManualInput ? '--' : 'No baseline') : item.changeFormatter(change)}</b>
                   <em>{changePercent === null ? '' : `(${signed(changePercent, 2, '%')})`}</em>
+                  {showsPreviousDayLabel && <small>vs previous day</small>}
                 </div>
               </div>
               <Sparkline values={chartValues} tone={item.chartTone} />

@@ -181,33 +181,60 @@ async function initialFeedPage(
   platform: SentimentPlatformFilter,
   knownTotalItems?: number,
 ) {
-  if (platform !== 'Stocktwits') {
-    const page = await getSocialDataPage({
-      ticker,
-      platform: platform === 'All' ? undefined : platform,
-      page: 1,
-      limit: 10,
-    });
+  const apiPlatform = platform === 'All' ? undefined : platform;
+  const firstPage = await getSocialDataPage({
+    ticker,
+    platform: apiPlatform,
+    page: 1,
+    limit: 10,
+  });
+  const totalItems = knownTotalItems && knownTotalItems > 0
+    ? knownTotalItems
+    : firstPage.pagination.totalItems;
+  const totalPages = Math.max(1, Math.ceil(totalItems / 10));
+
+  if (totalPages === 1) {
     return {
-      records: uniqueMentions(page.records),
-      pages: [page.raw],
-      pagination: page.pagination,
+      records: uniqueMentions(sortSocialMentionsNewestFirst(firstPage.records)),
+      pages: [firstPage.raw],
+      pagination: firstPage.pagination,
       direction: 'forward' as const,
-      nextPage: page.pagination.hasNextPage ? 2 : null,
+      nextPage: null,
       buffer: [] as AdanosMention[],
     };
   }
 
-  let totalItems = knownTotalItems;
-  if (totalItems === undefined || totalItems <= 0) {
-    const metadata = await getSocialDataPage({ ticker, platform: 'Stocktwits', page: 1, limit: 1 });
-    totalItems = metadata.pagination.totalItems;
+  const lastPage = await getSocialDataPage({
+    ticker,
+    platform: apiPlatform,
+    page: totalPages,
+    limit: 10,
+  });
+  const newestTimestamp = (records: AdanosMention[]) => Math.max(
+    0,
+    ...records.map(item => mentionTimestampMs(item.timestamp)),
+  );
+  const newestIsOnLastPage = newestTimestamp(lastPage.records) > newestTimestamp(firstPage.records);
+
+  if (!newestIsOnLastPage) {
+    return {
+      records: uniqueMentions(sortSocialMentionsNewestFirst(firstPage.records)),
+      pages: [firstPage.raw, lastPage.raw],
+      pagination: firstPage.pagination,
+      direction: 'forward' as const,
+      nextPage: 2,
+      buffer: [] as AdanosMention[],
+    };
   }
-  const totalPages = Math.max(1, Math.ceil(totalItems / 10));
-  const lastPage = await getSocialDataPage({ ticker, platform: 'Stocktwits', page: totalPages, limit: 10 });
+
   const fetchedPages = [lastPage];
-  if (lastPage.records.length < 10 && totalPages > 1) {
-    fetchedPages.push(await getSocialDataPage({ ticker, platform: 'Stocktwits', page: totalPages - 1, limit: 10 }));
+  if (lastPage.records.length < 10) {
+    fetchedPages.push(await getSocialDataPage({
+      ticker,
+      platform: apiPlatform,
+      page: totalPages - 1,
+      limit: 10,
+    }));
   }
   const combined = uniqueMentions(sortSocialMentionsNewestFirst(fetchedPages.flatMap(page => page.records)));
   const records = combined.slice(0, 10);
@@ -649,11 +676,18 @@ export function SentimentBrowserPage({ ticker }: { ticker: string }) {
   const currentWindowMs = activeRange.days * dayMs;
   const currentWindowStart = latestMentionTime - currentWindowMs;
   const previousWindowStart = latestMentionTime - currentWindowMs * 2;
+  const validFeedTimes = mentions
+    .map(item => mentionTimestampMs(item.timestamp))
+    .filter(value => value > 0);
+  const latestFeedTime = selectedPlatform !== 'All' && validFeedTimes.length
+    ? Math.max(...validFeedTimes)
+    : latestMentionTime;
+  const feedWindowStart = latestFeedTime - currentWindowMs;
   const activeRangeLabel = activeRange.label as SentimentTimeframe;
 
   const windowMentions = filterWindow(timelineSourceMentions, currentWindowStart, latestMentionTime);
   const previousWindowMentions = filterWindow(timelineSourceMentions, previousWindowStart, currentWindowStart);
-  const windowFeedMentions = filterWindow(mentions, currentWindowStart, latestMentionTime);
+  const windowFeedMentions = filterWindow(mentions, feedWindowStart, latestFeedTime);
   const windowRedditMentions = filterWindow(redditMentions, currentWindowStart, latestMentionTime);
   const windowXMentions = filterWindow(xMentions, currentWindowStart, latestMentionTime);
   const windowFacebookMentions = filterWindow(facebookMentions, currentWindowStart, latestMentionTime);

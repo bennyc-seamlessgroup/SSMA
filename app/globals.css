@@ -7087,6 +7087,13 @@ html[data-portal-design="b"] .monitor-portal .dashboard-kpi-change {
   line-height: 1.25;
 }
 
+html[data-portal-design="b"] .monitor-portal .dashboard-kpi-change small {
+  color: #7b8ba0;
+  font-size: 9px;
+  font-weight: 650;
+  white-space: nowrap;
+}
+
 html[data-portal-design="b"] .monitor-portal .dashboard-kpi-spark {
   height: 36px;
   margin-inline: -14px;
