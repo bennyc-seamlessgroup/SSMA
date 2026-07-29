@@ -193,3 +193,89 @@ completed change.
   build passed.
 - Remaining dependency: A missing company profile continues to display the
   existing `Company name unavailable` fallback.
+
+## 2026-07-29 — Exact-date, lazy-loaded Market Data inputs
+
+- Area: Operations Portal → Market Data → Daily Market Inputs and Saved Daily
+  Inputs.
+- This entry supersedes the earlier 2026-07-29 Issued Share and Utilization
+  entries that described unfiltered category reads or effective-date
+  propagation.
+- Exact-date read APIs:
+  - `GET /manual-input/issued-share?ticker={ticker}&tradeDate={YYYY-MM-DD}`
+  - `GET /manual-input/utilization?ticker={ticker}&tradeDate={YYYY-MM-DD}`
+  - `GET /manual-input/manual-availability?ticker={ticker}&tradeDate={YYYY-MM-DD}`
+  - `GET /manual-input/margins?ticker={ticker}&tradeDate={YYYY-MM-DD}`
+  - `GET /manual-input/short-score?ticker={ticker}&tradeDate={YYYY-MM-DD}`
+- Field ownership:
+  - Issued Share comes only from `issued-share`.
+  - Utilization comes only from `utilization`.
+  - IBKR and Futu Shortable Shares come only from `manual-availability`.
+  - IBKR/Futu Initial Margin, Maintenance Margin, and Average Duration come
+    only from `margins`.
+  - Short Score comes only from `short-score`.
+- Implemented behavior:
+  - The selected input date loads all five exact-date endpoints.
+  - The Saved Daily Inputs table uses consolidated
+    `GET /market-data/history?ticker={ticker}&category=market-history` only as
+    its available-date index and publication-readiness context.
+  - Only the ten dates visible on the current table page load their five
+    exact-date manual-input records.
+  - Changing table pages lazily loads the newly visible dates.
+  - Missing exact-date values display `N/A`; values are never inherited,
+    backfilled, or copied from another date.
+  - The form and table do not use consolidated Market History as the source of
+    displayed manual-input values.
+  - Unfiltered manual-input reads without `tradeDate` were removed from this
+    page.
+  - Save and delete requests for all date-specific categories include the
+    selected `tradeDate`.
+- Performance:
+  - Startup no longer downloads the full history of five manual-input
+    categories.
+  - The unused Market Current request was removed from this operations page.
+  - Market History remains a single full response because its documented API
+    currently provides no pagination parameters.
+- Files changed:
+  - `app/operations/market-data/MarketDataOperationsClient.tsx`
+  - `docs/CODEX_CHANGE_LOG.md`
+- Verification: TypeScript type-check, whitespace validation, and local route
+  response passed.
+- Must preserve:
+  - Never restore `/manual-input/{category}?ticker={ticker}` unfiltered reads
+    for the five daily input categories on this page.
+  - Never use effective-date propagation for Issued Share in the operations
+    input form or Saved Daily Inputs table.
+  - If backend pagination is later added to Market History, replace the full
+    date-index response with server-side paging without changing the exact-date
+    manual-input source rules.
+
+## 2026-07-29 — Center and scale the backend company indicator
+
+- Area: Operations Portal → floating active-company indicator.
+- APIs/data: No API or data-mapping changes.
+- User-reported problem: The ticker and company name were left-aligned, and
+  enlarging the floating window did not enlarge its typography.
+- Root cause: Font sizes were fixed and based on the browser viewport rather
+  than the resizable indicator's own dimensions.
+- Implemented behavior:
+  - Ticker and company name are horizontally centered.
+  - The indicator is a CSS size container.
+  - Both font sizes scale from the indicator's width and height, so enlarging
+    the window makes both labels more prominent.
+  - Minimum and maximum font sizes prevent unreadable or excessive typography.
+- Must preserve:
+  - The ticker remains visually dominant over the company name.
+  - Dragging, resizing, saved layout, switching, API mapping, theme colors, and
+    accessibility behavior remain unchanged.
+- Files changed:
+  - `app/portal-theme.css`
+  - `docs/CODEX_CHANGE_LOG.md`
+- Verification:
+  - At 240×118: ticker 37.12px, company name 12px.
+  - At 580×318: ticker 92.48px, company name 24.565px.
+  - Both labels rendered center-aligned.
+  - TypeScript type-check, whitespace validation, and production build passed.
+- Remaining dependency: Container-relative font scaling requires browser support
+  for CSS container query units, available in the portal's supported modern
+  browsers.

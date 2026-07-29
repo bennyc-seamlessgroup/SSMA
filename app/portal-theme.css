@@ -1732,6 +1732,7 @@ html[data-design-b-theme='dark'] .monitor-portal :is(p, small, .metric__note, .s
 
 /* Persistent company context for operations data entry. */
 .ops-company-indicator {
+  container-type: size;
   position: fixed;
   z-index: 80;
   display: flex;
@@ -1788,10 +1789,11 @@ html[data-design-b-theme='dark'] .monitor-portal :is(p, small, .metric__note, .s
   min-height: 0;
   flex: 1;
   flex-direction: column;
-  align-items: flex-start;
+  align-items: center;
   justify-content: center;
-  gap: 3px;
+  gap: clamp(3px, 2cqh, 10px);
   padding: 10px 18px 14px;
+  text-align: center;
 }
 
 .ops-company-indicator__ticker {
@@ -1799,7 +1801,7 @@ html[data-design-b-theme='dark'] .monitor-portal :is(p, small, .metric__note, .s
   overflow: hidden;
   max-width: 100%;
   color: #174ea6;
-  font-size: clamp(34px, 4vw, 48px);
+  font-size: clamp(34px, min(16cqw, 32cqh), 96px);
   font-weight: 850;
   letter-spacing: .045em;
   line-height: .98;
@@ -1809,14 +1811,15 @@ html[data-design-b-theme='dark'] .monitor-portal :is(p, small, .metric__note, .s
 
 .ops-company-indicator__name {
   min-width: 0;
-  max-width: calc(100% - 20px);
+  max-width: 90%;
   overflow: hidden;
   color: #61738a;
-  font-size: 13px;
+  font-size: clamp(12px, min(4.25cqw, 9cqh), 28px);
   font-weight: 650;
   letter-spacing: .01em;
   line-height: 1.25;
   overflow-wrap: anywhere;
+  text-align: center;
   text-overflow: ellipsis;
 }
 
