@@ -177,18 +177,103 @@ function uniqueMentions(mentions: AdanosMention[]) {
   });
 }
 
-function feedStateFromPage(page: {
-  records: AdanosMention[];
-  pagination: SocialDataPagination;
-  raw: unknown;
-}) {
+async function initialFeedBatch(ticker: string, platform: SentimentPlatformFilter) {
+  const apiPlatform = platform === 'All' ? undefined : platform;
+  const firstProbe = await getSocialDataPage({
+    ticker,
+    platform: apiPlatform,
+    page: 1,
+    limit: 1,
+  });
+  const totalItems = Math.max(firstProbe.records.length, firstProbe.pagination.totalItems);
+
+  if (totalItems <= 1) {
+    return {
+      records: uniqueMentions(sortSocialMentionsNewestFirst(firstProbe.records)),
+      pages: [firstProbe.raw],
+      pagination: {
+        ...firstProbe.pagination,
+        totalItems,
+        totalPages: 1,
+        hasNextPage: false,
+      },
+      direction: 'forward' as const,
+      nextPage: null,
+      buffer: [] as AdanosMention[],
+    };
+  }
+
+  const lastProbe = await getSocialDataPage({
+    ticker,
+    platform: apiPlatform,
+    page: totalItems,
+    limit: 1,
+  });
+  const newestTimestamp = (records: AdanosMention[]) => Math.max(
+    0,
+    ...records.map(item => mentionTimestampMs(item.timestamp)),
+  );
+  const latestEdgeIsLast = newestTimestamp(lastProbe.records) > newestTimestamp(firstProbe.records);
+  const batchTotalPages = Math.max(1, Math.ceil(totalItems / 10));
+
+  if (!latestEdgeIsLast) {
+    const firstBatch = await getSocialDataPage({
+      ticker,
+      platform: apiPlatform,
+      page: 1,
+      limit: 10,
+    });
+    return {
+      records: uniqueMentions(sortSocialMentionsNewestFirst(firstBatch.records)),
+      pages: [firstProbe.raw, lastProbe.raw, firstBatch.raw],
+      pagination: {
+        ...firstBatch.pagination,
+        totalItems,
+        totalPages: batchTotalPages,
+      },
+      direction: 'forward' as const,
+      nextPage: batchTotalPages > 1 ? 2 : null,
+      buffer: [] as AdanosMention[],
+    };
+  }
+
+  const lastBatch = await getSocialDataPage({
+    ticker,
+    platform: apiPlatform,
+    page: batchTotalPages,
+    limit: 10,
+  });
+  const edgePages = [lastBatch];
+  if (lastBatch.records.length < 10 && batchTotalPages > 1) {
+    edgePages.push(await getSocialDataPage({
+      ticker,
+      platform: apiPlatform,
+      page: batchTotalPages - 1,
+      limit: 10,
+    }));
+  }
+  const edgeRecords = uniqueMentions(
+    sortSocialMentionsNewestFirst(edgePages.flatMap(page => page.records)),
+  );
+  const records = edgeRecords.slice(0, 10);
+  const buffer = edgeRecords.slice(10);
+  const lowestFetchedPage = batchTotalPages - edgePages.length + 1;
+  const nextPage = lowestFetchedPage > 1 ? lowestFetchedPage - 1 : null;
+
   return {
-    records: sortSocialMentionsNewestFirst(page.records),
-    pagination: page.pagination,
-    direction: 'forward' as const,
-    nextPage: page.pagination.hasNextPage ? page.pagination.page + 1 : null,
-    buffer: [] as AdanosMention[],
-    raw: page.raw,
+    records,
+    pages: [firstProbe.raw, lastProbe.raw, ...edgePages.map(page => page.raw)],
+    pagination: {
+      ...lastBatch.pagination,
+      page: batchTotalPages,
+      totalItems,
+      totalPages: batchTotalPages,
+      hasNextPage: buffer.length > 0 || nextPage !== null,
+      hasPreviousPage: false,
+    },
+    direction: 'reverse' as const,
+    nextPage,
+    buffer,
   };
 }
 
@@ -445,20 +530,14 @@ export function SentimentBrowserPage({ ticker }: { ticker: string }) {
       const platform = selectedPlatformRef.current;
       try {
         setLoadError('');
-        const [current, sentimentEvents, firstSocialPage] = await Promise.all([
+        const [current, sentimentEvents, social] = await Promise.all([
           getSentimentCurrent(normalizedTicker).catch(() => null),
           getSentimentEvents(normalizedTicker).catch(() => null),
-          getSocialDataPage({
-            ticker: normalizedTicker,
-            platform: platform === 'All' ? undefined : platform,
-            page: 1,
-            limit: 10,
-          }),
+          initialFeedBatch(normalizedTicker, platform),
         ]);
         if (!cancelled && requestId === feedRequestId.current) {
-          const social = feedStateFromPage(firstSocialPage);
           const feedTotals = {
-            All: platform === 'All' ? firstSocialPage.pagination.totalItems : 0,
+            All: platform === 'All' ? social.pagination.totalItems : 0,
             X: 0,
             Reddit: 0,
             Stocktwits: 0,
@@ -468,7 +547,7 @@ export function SentimentBrowserPage({ ticker }: { ticker: string }) {
           if (cancelled || requestId !== feedRequestId.current) return;
           setApiData({
             mentions: social.records,
-            socialPages: [social.raw],
+            socialPages: social.pages,
             socialPagination: social.pagination,
             feedDirection: social.direction,
             feedNextPage: social.nextPage,
@@ -560,19 +639,29 @@ export function SentimentBrowserPage({ ticker }: { ticker: string }) {
       if (requestId !== feedRequestId.current || platform !== selectedPlatformRef.current) return;
       setApiData(current => {
         if (!current) return current;
-        const recordsToAppend = nextPage?.records ?? [];
-        const feedNextPage = nextPage?.pagination.hasNextPage
-          ? nextPage.pagination.page + 1
-          : null;
+        const candidates = uniqueMentions(sortSocialMentionsNewestFirst([
+          ...current.feedBuffer,
+          ...(nextPage?.records ?? []),
+        ]));
+        const recordsToAppend = candidates.slice(0, 10);
+        const feedBuffer = candidates.slice(10);
+        const feedNextPage = requestedPage === null
+          ? null
+          : current.feedDirection === 'reverse'
+            ? (requestedPage > 1 ? requestedPage - 1 : null)
+            : (requestedPage < current.socialPagination.totalPages ? requestedPage + 1 : null);
+        const hasNextPage = feedBuffer.length > 0 || feedNextPage !== null;
         return {
           ...current,
-          mentions: sortSocialMentionsNewestFirst([...current.mentions, ...recordsToAppend]),
+          mentions: uniqueMentions(sortSocialMentionsNewestFirst([...current.mentions, ...recordsToAppend])),
           socialPages: nextPage ? [...current.socialPages, nextPage.raw] : current.socialPages,
           socialPagination: {
-            ...(nextPage?.pagination ?? current.socialPagination),
+            ...current.socialPagination,
+            page: requestedPage ?? current.socialPagination.page,
+            hasNextPage,
           },
           feedNextPage,
-          feedBuffer: [],
+          feedBuffer,
         };
       });
     } catch (error) {
@@ -593,18 +682,12 @@ export function SentimentBrowserPage({ ticker }: { ticker: string }) {
     const requestId = ++feedRequestId.current;
     setIsLoadingFeeds(true);
     try {
-      const page = await getSocialDataPage({
-        ticker: normalizedTicker,
-        platform: platform === 'All' ? undefined : platform,
-        page: 1,
-        limit: 10,
-      });
-      const social = feedStateFromPage(page);
+      const social = await initialFeedBatch(normalizedTicker, platform);
       if (requestId !== feedRequestId.current || platform !== selectedPlatformRef.current) return;
       setApiData(current => current ? {
         ...current,
         mentions: social.records,
-        socialPages: [social.raw],
+        socialPages: social.pages,
         socialPagination: social.pagination,
         feedDirection: social.direction,
         feedNextPage: social.nextPage,

@@ -9,6 +9,7 @@ import { PortalLanguageMenu } from '@/components/PortalLanguageMenu';
 import { PortalPageTranslator } from '@/components/PortalPageTranslator';
 import { getAuthenticatedProfile, getCurrentUser, signOut } from '@/lib/auth-client';
 import { getOperationsTicker, setOperationsTicker } from '@/lib/operations/ticker-client';
+import { OperationsCompanyIndicator } from './OperationsCompanyIndicator';
 
 const workflowItems = [
   ['Market Data', '/operations/market-data', 'market', 'Maintain daily market and broker inputs.'],
@@ -75,6 +76,7 @@ export function OperationsShell({ children }: { children: React.ReactNode }) {
   const [accountOpen, setAccountOpen] = useState(false);
   const [theme, setTheme] = useState<'light' | 'dark'>('light');
   const [tickerDraft, setTickerDraft] = useState('CURR');
+  const [activeTicker, setActiveTicker] = useState('CURR');
   const accountRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
@@ -82,7 +84,9 @@ export function OperationsShell({ children }: { children: React.ReactNode }) {
     const storedTheme = window.localStorage.getItem('monitor-design-b-theme') === 'dark' ? 'dark' : 'light';
     document.documentElement.dataset.designBTheme = storedTheme;
     setTheme(storedTheme);
-    setTickerDraft(getOperationsTicker());
+    const storedTicker = getOperationsTicker();
+    setTickerDraft(storedTicker);
+    setActiveTicker(storedTicker);
 
     let cancelled = false;
     const tokenUser = getCurrentUser();
@@ -145,6 +149,7 @@ export function OperationsShell({ children }: { children: React.ReactNode }) {
     const previous = getOperationsTicker();
     const next = setOperationsTicker(tickerDraft);
     setTickerDraft(next);
+    setActiveTicker(next);
     if (next !== previous) window.location.reload();
   }
 
@@ -260,6 +265,7 @@ export function OperationsShell({ children }: { children: React.ReactNode }) {
         </div>
         {children}
       </main>
+      <OperationsCompanyIndicator ticker={activeTicker} />
     </div>
   );
 }
