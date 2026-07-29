@@ -694,9 +694,13 @@ export function SentimentBrowserPage({ ticker }: { ticker: string }) {
     ?? backendPeriod.previousSentimentScore
     ?? objectValue(backendPeriod.comparison).previousScore,
   ) ?? averageScoreFor(previousWindowMentions);
-  const totalMentions = optionalNumeric(
+  const consolidatedTotalMentions = optionalNumeric(
     backendPeriod.totalMentions ?? backendPeriod.mentionCount,
   ) ?? windowMentions.length;
+  const liveSocialTotal = apiData.feedTotals.All;
+  const totalMentions = activeRange.label === '1Y' && liveSocialTotal > 0
+    ? liveSocialTotal
+    : consolidatedTotalMentions;
   const scoreForPlatform = (platform: Exclude<SentimentPlatformFilter, 'All'>, rows: AdanosMention[]) => {
     const item = backendPlatform(platform);
     const backendScore = optionalNumeric(item?.sentimentScore ?? item?.score);
