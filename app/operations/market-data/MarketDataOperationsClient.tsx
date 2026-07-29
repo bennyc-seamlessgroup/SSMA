@@ -48,6 +48,12 @@ type ShortScoreRecord = DateSpecificRecord & {
   shortScore?: number | null;
 };
 
+type IssuedShareRecord = DateSpecificRecord & {
+  issuedShare?: number | Record<string, unknown> | null;
+  issuedShares?: number | null;
+  issued_share?: number | null;
+};
+
 type MarketInputRow = {
   ticker?: string;
   tradeDate: string;
@@ -181,20 +187,57 @@ function formatReadinessValue(field: ReturnType<typeof marketPublicationFields>[
   return formatPercent(field.value);
 }
 
+function parsePayload(value: unknown): unknown {
+  if (typeof value !== 'string') return value;
+  try {
+    return JSON.parse(value);
+  } catch {
+    return value;
+  }
+}
+
+function categoryPayload(value: unknown, category: string): unknown {
+  const parsed = parsePayload(value);
+  if (Array.isArray(parsed) || !isRecord(parsed)) return parsed;
+
+  const categoryValue = parsed[category];
+  if (categoryValue !== undefined && categoryValue !== null) {
+    return categoryPayload(categoryValue, category);
+  }
+
+  for (const key of ['data', 'result', 'record', 'item', 'items', 'body']) {
+    if (parsed[key] !== undefined && parsed[key] !== null) {
+      const nested = categoryPayload(parsed[key], category);
+      if (nested !== parsed[key] || Array.isArray(nested) || isRecord(nested)) return nested;
+    }
+  }
+
+  return parsed;
+}
+
 function recordsFromPayload<T>(value: unknown): T[] {
-  if (Array.isArray(value)) return value as T[];
-  if (isRecord(value) && Array.isArray(value.records)) return value.records as T[];
-  if (isRecord(value) && Array.isArray(value.data)) return value.data as T[];
-  if (isRecord(value) && isRecord(value.data) && Array.isArray(value.data.records)) return value.data.records as T[];
+  const parsed = parsePayload(value);
+  if (Array.isArray(parsed)) return parsed as T[];
+  if (isRecord(parsed) && Array.isArray(parsed.records)) return parsed.records as T[];
+  if (isRecord(parsed) && Array.isArray(parsed.items)) return parsed.items as T[];
+  if (isRecord(parsed) && Array.isArray(parsed.data)) return parsed.data as T[];
+  if (isRecord(parsed) && isRecord(parsed.data) && Array.isArray(parsed.data.records)) return parsed.data.records as T[];
   return [];
 }
 
 function recordMatchesTicker(record: DateSpecificRecord, ticker: string) {
-  return !record.ticker || normalizeTicker(record.ticker) === normalizeTicker(ticker);
+  const aliases = record as DateSpecificRecord & { recordTicker?: string; stockCode?: string };
+  const recordTicker = aliases.ticker ?? aliases.recordTicker ?? aliases.stockCode;
+  return !recordTicker || normalizeTicker(recordTicker) === normalizeTicker(ticker);
 }
 
 function tickerRecordsFromPayload<T extends DateSpecificRecord>(value: unknown, ticker: string): T[] {
-  return recordsFromPayload<T>(value).filter(record => recordMatchesTicker(record, ticker));
+  return recordsFromPayload<T>(value)
+    .map(record => {
+      const date = String(record.tradeDate ?? (record as DateSpecificRecord & { date?: string }).date ?? '').slice(0, 10);
+      return date && !record.tradeDate ? { ...record, tradeDate: date } : record;
+    })
+    .filter(record => recordMatchesTicker(record, ticker));
 }
 
 function exactDateRecordsFromPayload<T extends DateSpecificRecord>(value: unknown, ticker: string, tradeDate: string): T[] {
@@ -212,14 +255,71 @@ function exactDateRecordsFromPayload<T extends DateSpecificRecord>(value: unknow
   return [];
 }
 
+function issuedShareValue(record: IssuedShareRecord) {
+  const issuedShare = record.issuedShare;
+  const nestedIssuedShare = isRecord(issuedShare) ? issuedShare : {};
+  return numberOrUndefined(String(
+    (isRecord(issuedShare) ? undefined : issuedShare)
+    ?? record.issuedShares
+    ?? record.issued_share
+    ?? nestedIssuedShare.value
+    ?? nestedIssuedShare.shares
+    ?? nestedIssuedShare.total
+    ?? '',
+  ));
+}
+
+function issuedShareRecordsFromPayload(value: unknown, ticker: string) {
+  const payload = categoryPayload(value, 'issued-share');
+  const collection = recordsFromPayload<IssuedShareRecord>(payload);
+  return (
+    collection.length
+      ? collection
+      : isRecord(payload) && issuedShareValue(payload as IssuedShareRecord) !== undefined
+        ? [payload as IssuedShareRecord]
+        : []
+  )
+    .filter(record => recordMatchesTicker(record, ticker))
+    .map(record => {
+      const aliases = record as IssuedShareRecord & { date?: string; effectiveDate?: string };
+      const tradeDate = String(record.tradeDate ?? aliases.effectiveDate ?? aliases.date ?? '').slice(0, 10);
+      return tradeDate && !record.tradeDate ? { ...record, tradeDate } : record;
+    })
+    .filter(record => issuedShareValue(record) !== undefined)
+    .sort((a, b) => String(a.tradeDate ?? '').localeCompare(String(b.tradeDate ?? '')));
+}
+
+function issuedShareForDate(records: IssuedShareRecord[], tradeDate: string) {
+  const datedRecords = records.filter(record => record.tradeDate);
+  if (datedRecords.length) {
+    const effectiveRecord = datedRecords
+      .filter(record => String(record.tradeDate).slice(0, 10) <= tradeDate)
+      .at(-1);
+    return effectiveRecord ? issuedShareValue(effectiveRecord) : undefined;
+  }
+
+  // A date-less record represents only the current snapshot. It must not be
+  // copied backward into every historical row.
+  return undefined;
+}
+
+function latestIssuedShare(records: IssuedShareRecord[]) {
+  const latest = records.at(-1);
+  return latest ? issuedShareValue(latest) : undefined;
+}
+
 function isRecord(value: unknown): value is Record<string, unknown> {
   return Boolean(value) && typeof value === 'object' && !Array.isArray(value);
 }
 
 function payloadRecordCount(value: unknown) {
-  if (Array.isArray(value)) return value.length;
-  if (isRecord(value) && Array.isArray(value.records)) return value.records.length;
-  if (value === null || value === undefined) return 0;
+  const parsed = parsePayload(value);
+  if (Array.isArray(parsed)) return parsed.length;
+  if (isRecord(parsed) && Array.isArray(parsed.records)) return parsed.records.length;
+  if (isRecord(parsed) && Array.isArray(parsed.items)) return parsed.items.length;
+  if (isRecord(parsed) && Array.isArray(parsed.data)) return parsed.data.length;
+  if (isRecord(parsed) && isRecord(parsed.data) && Array.isArray(parsed.data.records)) return parsed.data.records.length;
+  if (parsed === null || parsed === undefined) return 0;
   return 1;
 }
 
@@ -270,7 +370,7 @@ function latestMeta(...records: Array<DateSpecificRecord | undefined>) {
 
 function mergeRows(
   ticker: string,
-  issuedShare: number | undefined,
+  issuedShares: IssuedShareRecord[],
   utilization: UtilizationRecord[],
   availability: AvailabilityRecord[],
   margins: MarginRecord[],
@@ -281,7 +381,11 @@ function mergeRows(
   function row(date: string) {
     const existing = rows.get(date);
     if (existing) return existing;
-    const next: MarketInputRow = { ticker, tradeDate: date, issuedShare };
+    const next: MarketInputRow = {
+      ticker,
+      tradeDate: date,
+      issuedShare: issuedShareForDate(issuedShares, date),
+    };
     rows.set(date, next);
     return next;
   }
@@ -421,21 +525,20 @@ export function MarketDataOperationsClient() {
         ...additionalDebugRows,
       ]);
       const historyRecords = tickerRecordsFromPayload<MarketPublicationRecord & DateSpecificRecord>(
-        marketHistoryResult.payload,
+        categoryPayload(marketHistoryResult.payload, 'market-history'),
         normalized,
       );
       setMarketHistory(historyRecords);
-      const issuedSharePayload = issuedShareResult.payload as ({ issuedShare?: unknown; ticker?: string } | null);
-      const issuedShare = issuedSharePayload && recordMatchesTicker(issuedSharePayload, normalized)
-        ? numberOrUndefined(String(issuedSharePayload.issuedShare ?? ''))
-        : undefined;
+      const issuedShareRecords = issuedShareRecordsFromPayload(issuedShareResult.payload, normalized);
+      const selectedIssuedShare = issuedShareForDate(issuedShareRecords, selectedTradeDate)
+        ?? (issuedShareRecords.some(record => record.tradeDate) ? undefined : latestIssuedShare(issuedShareRecords));
       const manualRows = mergeRows(
         normalized,
-        issuedShare,
-        tickerRecordsFromPayload<UtilizationRecord>(utilizationResult.payload, normalized),
-        tickerRecordsFromPayload<AvailabilityRecord>(availabilityResult.payload, normalized),
-        tickerRecordsFromPayload<MarginRecord>(marginsResult.payload, normalized),
-        tickerRecordsFromPayload<ShortScoreRecord>(shortScoreResult.payload, normalized),
+        issuedShareRecords,
+        tickerRecordsFromPayload<UtilizationRecord>(categoryPayload(utilizationResult.payload, 'utilization'), normalized),
+        tickerRecordsFromPayload<AvailabilityRecord>(categoryPayload(availabilityResult.payload, 'manual-availability'), normalized),
+        tickerRecordsFromPayload<MarginRecord>(categoryPayload(marginsResult.payload, 'margins'), normalized),
+        tickerRecordsFromPayload<ShortScoreRecord>(categoryPayload(shortScoreResult.payload, 'short-score'), normalized),
       );
       const selectedManualRecord = manualRows.find(record => record.tradeDate === selectedTradeDate);
       setSelectedTicker(normalized);
@@ -443,7 +546,7 @@ export function MarketDataOperationsClient() {
       setForm(formFromDailyRecord(
         selectedTradeDate,
         selectedManualRecord,
-        issuedShare,
+        selectedManualRecord?.issuedShare ?? selectedIssuedShare,
       ));
       setRows(manualRows);
       setEditingDate('');
@@ -457,9 +560,7 @@ export function MarketDataOperationsClient() {
   async function loadManualInputsForDate(tradeDate: string, editAfterLoad = false) {
     if (!tradeDate) return;
     const availability = marketEntryAvailability(tradeDate, new Date());
-    const issuedShare = numberOrUndefined(form.issuedShare);
-
-    setForm(formFromDailyRecord(tradeDate, undefined, issuedShare));
+    setForm(formFromDailyRecord(tradeDate, undefined, undefined));
     setEditingDate('');
     setMessage('');
 
@@ -471,6 +572,7 @@ export function MarketDataOperationsClient() {
     const tickerParam = encodeURIComponent(selectedTicker);
     const tradeDateParam = encodeURIComponent(tradeDate);
     const endpoints = [
+      `/manual-input/issued-share?ticker=${tickerParam}&tradeDate=${tradeDateParam}`,
       `/manual-input/utilization?ticker=${tickerParam}&tradeDate=${tradeDateParam}`,
       `/manual-input/manual-availability?ticker=${tickerParam}&tradeDate=${tradeDateParam}`,
       `/manual-input/margins?ticker=${tickerParam}&tradeDate=${tradeDateParam}`,
@@ -479,20 +581,29 @@ export function MarketDataOperationsClient() {
 
     setStatus('loading');
 
-    const [utilizationResult, availabilityResult, marginsResult, shortScoreResult] = await Promise.all(
+    const [issuedShareResult, utilizationResult, availabilityResult, marginsResult, shortScoreResult] = await Promise.all(
       endpoints.map(endpoint => loadApi(endpoint)),
     );
+    const issuedShareRecords = issuedShareRecordsFromPayload(issuedShareResult.payload, selectedTicker);
+    const issuedShare = issuedShareForDate(issuedShareRecords, tradeDate)
+      ?? (issuedShareRecords.some(record => record.tradeDate) ? undefined : latestIssuedShare(issuedShareRecords));
+    const datedIssuedShareRecords = issuedShareRecords.some(record => record.tradeDate)
+      ? issuedShareRecords
+      : issuedShare === undefined
+        ? []
+        : [{ ticker: selectedTicker, tradeDate, issuedShare }];
     const exactRows = mergeRows(
       selectedTicker,
-      issuedShare,
-      exactDateRecordsFromPayload<UtilizationRecord>(utilizationResult.payload, selectedTicker, tradeDate),
-      exactDateRecordsFromPayload<AvailabilityRecord>(availabilityResult.payload, selectedTicker, tradeDate),
-      exactDateRecordsFromPayload<MarginRecord>(marginsResult.payload, selectedTicker, tradeDate),
-      exactDateRecordsFromPayload<ShortScoreRecord>(shortScoreResult.payload, selectedTicker, tradeDate),
+      datedIssuedShareRecords,
+      exactDateRecordsFromPayload<UtilizationRecord>(categoryPayload(utilizationResult.payload, 'utilization'), selectedTicker, tradeDate),
+      exactDateRecordsFromPayload<AvailabilityRecord>(categoryPayload(availabilityResult.payload, 'manual-availability'), selectedTicker, tradeDate),
+      exactDateRecordsFromPayload<MarginRecord>(categoryPayload(marginsResult.payload, 'margins'), selectedTicker, tradeDate),
+      exactDateRecordsFromPayload<ShortScoreRecord>(categoryPayload(shortScoreResult.payload, 'short-score'), selectedTicker, tradeDate),
     );
 
     setApiDebugRows(current => [
       ...current.filter(row => !endpoints.some(endpoint => row.endpoint === `GET ${endpoint}`)),
+      issuedShareResult.debug,
       utilizationResult.debug,
       availabilityResult.debug,
       marginsResult.debug,
@@ -537,20 +648,17 @@ export function MarketDataOperationsClient() {
     }
 
     const historyRecords = tickerRecordsFromPayload<MarketPublicationRecord & DateSpecificRecord>(
-      marketHistoryResult.payload,
+      categoryPayload(marketHistoryResult.payload, 'market-history'),
       selectedTicker,
     );
-    const issuedSharePayload = issuedShareResult.payload as ({ issuedShare?: unknown; ticker?: string } | null);
-    const issuedShare = issuedSharePayload && recordMatchesTicker(issuedSharePayload, selectedTicker)
-      ? numberOrUndefined(String(issuedSharePayload.issuedShare ?? ''))
-      : undefined;
+    const issuedShareRecords = issuedShareRecordsFromPayload(issuedShareResult.payload, selectedTicker);
     const manualRows = mergeRows(
       selectedTicker,
-      issuedShare,
-      tickerRecordsFromPayload<UtilizationRecord>(utilizationResult.payload, selectedTicker),
-      tickerRecordsFromPayload<AvailabilityRecord>(availabilityResult.payload, selectedTicker),
-      tickerRecordsFromPayload<MarginRecord>(marginsResult.payload, selectedTicker),
-      tickerRecordsFromPayload<ShortScoreRecord>(shortScoreResult.payload, selectedTicker),
+      issuedShareRecords,
+      tickerRecordsFromPayload<UtilizationRecord>(categoryPayload(utilizationResult.payload, 'utilization'), selectedTicker),
+      tickerRecordsFromPayload<AvailabilityRecord>(categoryPayload(availabilityResult.payload, 'manual-availability'), selectedTicker),
+      tickerRecordsFromPayload<MarginRecord>(categoryPayload(marginsResult.payload, 'margins'), selectedTicker),
+      tickerRecordsFromPayload<ShortScoreRecord>(categoryPayload(shortScoreResult.payload, 'short-score'), selectedTicker),
     );
     setMarketHistory(historyRecords);
     setRows(manualRows);

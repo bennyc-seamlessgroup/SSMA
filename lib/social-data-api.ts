@@ -112,9 +112,22 @@ export function normalizeSocialPlatform(value: unknown): SocialPlatform {
 export function normalizeSocialMention(value: unknown): SocialMention {
   const row = record(value);
   const sourceRow = record(row.source_row ?? row.sourceRow);
+  const source = record(row.source);
   const key = text(row.key);
   const id = text(row.id ?? row.messages__id ?? sourceRow.messages__id ?? key);
-  const platformSource = [row.platform, sourceRow.platform, key]
+  const platformSource = [
+    row.platform,
+    row.sourcePlatform,
+    row.source_platform,
+    row.channel,
+    row.network,
+    source.platform,
+    source.name,
+    sourceRow.platform,
+    sourceRow.sourcePlatform,
+    sourceRow.source_platform,
+    key,
+  ]
     .find(candidate => text(candidate).trim());
 
   const timestamp = normalizedTimestamp([
@@ -122,6 +135,8 @@ export function normalizeSocialMention(value: unknown): SocialMention {
     row.timestamp,
     row.eventDate,
     row.event_date,
+    row.bucketStart,
+    row.bucket_start,
     row.createdAt,
     row.created_at,
     row.created_utc,
@@ -208,15 +223,31 @@ export async function getSocialDataPage({
     else params.delete('platform');
     raw = await authenticatedFetch(`/social-data?${params.toString()}`, { cache: 'no-store' });
     payload = record(raw);
-    records = Array.isArray(payload.records)
-      ? sortSocialMentionsNewestFirst(payload.records.map(normalizeSocialMention))
+    const data = record(payload.data);
+    const recordValues = Array.isArray(payload.records)
+      ? payload.records
+      : Array.isArray(data.records)
+        ? data.records
+        : [];
+    records = recordValues.length
+      ? sortSocialMentionsNewestFirst(recordValues.map(value => {
+        const mention = normalizeSocialMention(value);
+        return platform ? { ...mention, platform } : mention;
+      }))
       : [];
-    const pageInfo = pagination(payload.pagination, page, limit, records.length);
+    const pagePayload = Object.keys(record(payload.pagination)).length
+      ? payload.pagination
+      : data.pagination;
+    const pageInfo = pagination(pagePayload, page, limit, records.length);
     if (records.length || pageInfo.totalItems > 0 || platformQuery === platformQueries.at(-1)) break;
   }
+  const data = record(payload.data);
+  const pagePayload = Object.keys(record(payload.pagination)).length
+    ? payload.pagination
+    : data.pagination;
   return {
     records,
-    pagination: pagination(payload.pagination, page, limit, records.length),
+    pagination: pagination(pagePayload, page, limit, records.length),
     raw,
   };
 }
@@ -289,7 +320,9 @@ export async function getSocialImportProgress({ jobId, ticker }: { jobId?: strin
 }
 
 export function recordsFromSentimentEvents(payload: unknown): SocialMention[] {
-  const root = record(payload);
+  const payloadRecord = record(payload);
+  const category = record(payloadRecord['sentiment-events']);
+  const root = Object.keys(category).length ? category : payloadRecord;
   const data = root.data;
   const dataRecord = record(data);
   const records = Array.isArray(data)
@@ -304,7 +337,9 @@ export function recordsFromSentimentEvents(payload: unknown): SocialMention[] {
 
 export function sentimentPeriod(payload: unknown, range: string) {
   const payloadRecord = record(payload);
-  const root = Object.keys(record(payloadRecord.data)).length ? record(payloadRecord.data) : payloadRecord;
+  const category = record(payloadRecord['sentiment-current']);
+  const unwrapped = Object.keys(category).length ? category : payloadRecord;
+  const root = Object.keys(record(unwrapped.data)).length ? record(unwrapped.data) : unwrapped;
   const periods = record(root.periods);
   return record(periods[range] ?? periods[range.toLowerCase()] ?? periods[range.toUpperCase()]);
 }

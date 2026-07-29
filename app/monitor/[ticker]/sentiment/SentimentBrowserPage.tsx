@@ -167,8 +167,9 @@ function uniqueMentions(mentions: AdanosMention[]) {
   const seen = new Set<string>();
   return mentions.filter(item => {
     const canonicalUrl = item.url.trim().replace(/[?#].*$/, '').replace(/\/$/, '');
-    const stableIdentity = canonicalUrl
-      || `${item.timestamp}|${item.author.trim().toLowerCase()}|${item.text.trim().replace(/\s+/g, ' ')}`;
+    const stableIdentity = item.key
+      || item.id
+      || `${canonicalUrl}|${item.timestamp}|${item.author.trim().toLowerCase()}|${item.text.trim().replace(/\s+/g, ' ')}`;
     const identity = `${item.platform}|${stableIdentity}`;
     if (seen.has(identity)) return false;
     seen.add(identity);
@@ -176,85 +177,18 @@ function uniqueMentions(mentions: AdanosMention[]) {
   });
 }
 
-async function initialFeedPage(
-  ticker: string,
-  platform: SentimentPlatformFilter,
-  knownTotalItems?: number,
-) {
-  const apiPlatform = platform === 'All' ? undefined : platform;
-  const firstPage = await getSocialDataPage({
-    ticker,
-    platform: apiPlatform,
-    page: 1,
-    limit: 10,
-  });
-  const totalItems = knownTotalItems && knownTotalItems > 0
-    ? knownTotalItems
-    : firstPage.pagination.totalItems;
-  const totalPages = Math.max(1, Math.ceil(totalItems / 10));
-
-  if (totalPages === 1) {
-    return {
-      records: uniqueMentions(sortSocialMentionsNewestFirst(firstPage.records)),
-      pages: [firstPage.raw],
-      pagination: firstPage.pagination,
-      direction: 'forward' as const,
-      nextPage: null,
-      buffer: [] as AdanosMention[],
-    };
-  }
-
-  const lastPage = await getSocialDataPage({
-    ticker,
-    platform: apiPlatform,
-    page: totalPages,
-    limit: 10,
-  });
-  const newestTimestamp = (records: AdanosMention[]) => Math.max(
-    0,
-    ...records.map(item => mentionTimestampMs(item.timestamp)),
-  );
-  const newestIsOnLastPage = newestTimestamp(lastPage.records) > newestTimestamp(firstPage.records);
-
-  if (!newestIsOnLastPage) {
-    return {
-      records: uniqueMentions(sortSocialMentionsNewestFirst(firstPage.records)),
-      pages: [firstPage.raw, lastPage.raw],
-      pagination: firstPage.pagination,
-      direction: 'forward' as const,
-      nextPage: 2,
-      buffer: [] as AdanosMention[],
-    };
-  }
-
-  const fetchedPages = [lastPage];
-  if (lastPage.records.length < 10) {
-    fetchedPages.push(await getSocialDataPage({
-      ticker,
-      platform: apiPlatform,
-      page: totalPages - 1,
-      limit: 10,
-    }));
-  }
-  const combined = uniqueMentions(sortSocialMentionsNewestFirst(fetchedPages.flatMap(page => page.records)));
-  const records = combined.slice(0, 10);
-  const buffer = combined.slice(10);
-  const lowestFetchedPage = totalPages - fetchedPages.length + 1;
-  const nextPage = lowestFetchedPage > 1 ? lowestFetchedPage - 1 : null;
+function feedStateFromPage(page: {
+  records: AdanosMention[];
+  pagination: SocialDataPagination;
+  raw: unknown;
+}) {
   return {
-    records,
-    pages: fetchedPages.map(page => page.raw),
-    pagination: {
-      page: totalPages,
-      limit: 10,
-      totalItems,
-      totalPages,
-      hasNextPage: buffer.length > 0 || nextPage !== null,
-      hasPreviousPage: false,
-    },
-    direction: 'reverse' as const,
-    nextPage,
-    buffer,
+    records: sortSocialMentionsNewestFirst(page.records),
+    pagination: page.pagination,
+    direction: 'forward' as const,
+    nextPage: page.pagination.hasNextPage ? page.pagination.page + 1 : null,
+    buffer: [] as AdanosMention[],
+    raw: page.raw,
   };
 }
 
@@ -511,26 +445,30 @@ export function SentimentBrowserPage({ ticker }: { ticker: string }) {
       const platform = selectedPlatformRef.current;
       try {
         setLoadError('');
-        const [current, sentimentEvents, platformCountPages] = await Promise.all([
+        const [current, sentimentEvents, firstSocialPage] = await Promise.all([
           getSentimentCurrent(normalizedTicker).catch(() => null),
           getSentimentEvents(normalizedTicker).catch(() => null),
-          Promise.all(platformFilters.map(feedPlatform => getSocialDataPage({
+          getSocialDataPage({
             ticker: normalizedTicker,
-            platform: feedPlatform === 'All' ? undefined : feedPlatform,
+            platform: platform === 'All' ? undefined : platform,
             page: 1,
-            limit: 1,
-          }).catch(() => null))),
+            limit: 10,
+          }),
         ]);
         if (!cancelled && requestId === feedRequestId.current) {
-          const feedTotals = Object.fromEntries(platformFilters.map((feedPlatform, index) => [
-            feedPlatform,
-            platformCountPages[index]?.pagination.totalItems ?? 0,
-          ])) as Record<SentimentPlatformFilter, number>;
-          const social = await initialFeedPage(normalizedTicker, platform, feedTotals[platform]);
+          const social = feedStateFromPage(firstSocialPage);
+          const feedTotals = {
+            All: platform === 'All' ? firstSocialPage.pagination.totalItems : 0,
+            X: 0,
+            Reddit: 0,
+            Stocktwits: 0,
+            Facebook: 0,
+            Linkedin: 0,
+          };
           if (cancelled || requestId !== feedRequestId.current) return;
           setApiData({
             mentions: social.records,
-            socialPages: social.pages,
+            socialPages: [social.raw],
             socialPagination: social.pagination,
             feedDirection: social.direction,
             feedNextPage: social.nextPage,
@@ -540,6 +478,38 @@ export function SentimentBrowserPage({ ticker }: { ticker: string }) {
             sentimentEvents,
             timelineMentions: recordsFromSentimentEvents(sentimentEvents),
           });
+
+          void Promise.all(platformFilters.map(async feedPlatform => {
+              const countPage = await getSocialDataPage({
+                ticker: normalizedTicker,
+                platform: feedPlatform === 'All' ? undefined : feedPlatform,
+                page: 1,
+                limit: feedPlatform === 'Linkedin' ? 100 : 1,
+              });
+              return {
+                platform: feedPlatform,
+                totalItems: countPage.pagination.totalItems,
+                records: countPage.records,
+              };
+            }))
+            .then(entries => {
+              if (cancelled) return;
+              const linkedInRecords = entries.find(entry => entry.platform === 'Linkedin')?.records ?? [];
+              setApiData(previous => previous ? {
+                ...previous,
+                feedTotals: {
+                  ...previous.feedTotals,
+                  ...Object.fromEntries(entries.map(entry => [entry.platform, entry.totalItems])),
+                },
+                timelineMentions: sortSocialMentionsNewestFirst(uniqueMentions([
+                  ...previous.timelineMentions,
+                  ...linkedInRecords,
+                ])),
+              } : previous);
+            })
+            .catch(() => {
+              // Counts are supplementary; the feed and consolidated sentiment remain usable.
+            });
         }
       } catch (error) {
         if (!cancelled && requestId === feedRequestId.current) {
@@ -590,29 +560,19 @@ export function SentimentBrowserPage({ ticker }: { ticker: string }) {
       if (requestId !== feedRequestId.current || platform !== selectedPlatformRef.current) return;
       setApiData(current => {
         if (!current) return current;
-        const candidates = uniqueMentions(sortSocialMentionsNewestFirst([
-          ...current.feedBuffer,
-          ...(nextPage?.records ?? []),
-        ]));
-        const recordsToAppend = candidates.slice(0, 10);
-        const feedBuffer = candidates.slice(10);
-        const feedNextPage = requestedPage === null
-          ? null
-          : current.feedDirection === 'reverse'
-            ? (requestedPage > 1 ? requestedPage - 1 : null)
-            : (requestedPage < current.socialPagination.totalPages ? requestedPage + 1 : null);
-        const hasNextPage = feedBuffer.length > 0 || feedNextPage !== null;
+        const recordsToAppend = nextPage?.records ?? [];
+        const feedNextPage = nextPage?.pagination.hasNextPage
+          ? nextPage.pagination.page + 1
+          : null;
         return {
           ...current,
-          mentions: uniqueMentions([...current.mentions, ...recordsToAppend]),
+          mentions: sortSocialMentionsNewestFirst([...current.mentions, ...recordsToAppend]),
           socialPages: nextPage ? [...current.socialPages, nextPage.raw] : current.socialPages,
           socialPagination: {
-            ...current.socialPagination,
-            page: requestedPage ?? current.socialPagination.page,
-            hasNextPage,
+            ...(nextPage?.pagination ?? current.socialPagination),
           },
           feedNextPage,
-          feedBuffer,
+          feedBuffer: [],
         };
       });
     } catch (error) {
@@ -633,12 +593,18 @@ export function SentimentBrowserPage({ ticker }: { ticker: string }) {
     const requestId = ++feedRequestId.current;
     setIsLoadingFeeds(true);
     try {
-      const social = await initialFeedPage(normalizedTicker, platform, apiData?.feedTotals[platform]);
+      const page = await getSocialDataPage({
+        ticker: normalizedTicker,
+        platform: platform === 'All' ? undefined : platform,
+        page: 1,
+        limit: 10,
+      });
+      const social = feedStateFromPage(page);
       if (requestId !== feedRequestId.current || platform !== selectedPlatformRef.current) return;
       setApiData(current => current ? {
         ...current,
         mentions: social.records,
-        socialPages: social.pages,
+        socialPages: [social.raw],
         socialPagination: social.pagination,
         feedDirection: social.direction,
         feedNextPage: social.nextPage,
@@ -657,8 +623,10 @@ export function SentimentBrowserPage({ ticker }: { ticker: string }) {
     return <PortalPageLoading variant="sentiment" />;
   }
 
-  const mentions = uniqueMentions(apiData.mentions);
-  const timelineSourceMentions = uniqueMentions(apiData.timelineMentions.length ? apiData.timelineMentions : mentions);
+  const mentions = sortSocialMentionsNewestFirst(apiData.mentions);
+  const timelineSourceMentions = sortSocialMentionsNewestFirst(
+    apiData.timelineMentions.length ? apiData.timelineMentions : mentions,
+  );
   const redditMentions = timelineSourceMentions.filter(item => item.platform === 'Reddit');
   const xMentions = timelineSourceMentions.filter(item => item.platform === 'X');
   const facebookMentions = timelineSourceMentions.filter(item => item.platform === 'Facebook');
@@ -714,27 +682,32 @@ export function SentimentBrowserPage({ ticker }: { ticker: string }) {
   });
   const computedSentimentCounts = countBySentiment(windowMentions);
   const sentimentCounts = {
-    positive: apiData.timelineMentions.length ? computedSentimentCounts.positive : optionalNumeric(backendDistribution.positiveCount ?? backendDistribution.positive) ?? computedSentimentCounts.positive,
-    neutral: apiData.timelineMentions.length ? computedSentimentCounts.neutral : optionalNumeric(backendDistribution.neutralCount ?? backendDistribution.neutral) ?? computedSentimentCounts.neutral,
-    negative: apiData.timelineMentions.length ? computedSentimentCounts.negative : optionalNumeric(backendDistribution.negativeCount ?? backendDistribution.negative) ?? computedSentimentCounts.negative,
+    positive: optionalNumeric(backendDistribution.positiveCount ?? backendDistribution.positive) ?? computedSentimentCounts.positive,
+    neutral: optionalNumeric(backendDistribution.neutralCount ?? backendDistribution.neutral) ?? computedSentimentCounts.neutral,
+    negative: optionalNumeric(backendDistribution.negativeCount ?? backendDistribution.negative) ?? computedSentimentCounts.negative,
   };
-  const averageScore = optionalNumeric(backendPeriod.overallSentimentScore ?? backendPeriod.sentimentScore) ?? averageScoreFor(windowMentions);
+  const averageScore = optionalNumeric(
+    backendPeriod.overallSentimentScore ?? backendPeriod.sentimentScore,
+  ) ?? averageScoreFor(windowMentions);
   const previousAverageScore = optionalNumeric(
     backendPeriod.previousOverallSentimentScore
     ?? backendPeriod.previousSentimentScore
     ?? objectValue(backendPeriod.comparison).previousScore,
   ) ?? averageScoreFor(previousWindowMentions);
-  const totalMentions = apiData.timelineMentions.length
-    ? windowMentions.length
-    : optionalNumeric(backendPeriod.totalMentions ?? backendPeriod.mentionCount) ?? windowMentions.length;
+  const totalMentions = optionalNumeric(
+    backendPeriod.totalMentions ?? backendPeriod.mentionCount,
+  ) ?? windowMentions.length;
   const scoreForPlatform = (platform: Exclude<SentimentPlatformFilter, 'All'>, rows: AdanosMention[]) => {
     const item = backendPlatform(platform);
-    return optionalNumeric(item?.sentimentScore ?? item?.score) ?? averageScoreFor(rows);
+    const backendScore = optionalNumeric(item?.sentimentScore ?? item?.score);
+    if (backendScore !== null) return backendScore;
+    if (rows.length) return averageScoreFor(rows);
+    return apiData.feedTotals[platform] > 0 ? 50 : 0;
   };
   const countForPlatform = (platform: Exclude<SentimentPlatformFilter, 'All'>, rows: AdanosMention[]) => {
-    if (apiData.timelineMentions.length) return uniqueMentions(rows).length;
     const item = backendPlatform(platform);
-    return optionalNumeric(item?.count ?? item?.mentions ?? item?.mentionCount) ?? rows.length;
+    return optionalNumeric(item?.count ?? item?.mentions ?? item?.mentionCount)
+      ?? (rows.length || apiData.feedTotals[platform]);
   };
   const redditScore = scoreForPlatform('Reddit', windowRedditMentions);
   const xScore = scoreForPlatform('X', windowXMentions);
@@ -762,11 +735,12 @@ export function SentimentBrowserPage({ ticker }: { ticker: string }) {
       sentiment: mentionSentiment(item),
     })).filter(item => item.timestampMs > 0);
   const sentimentBuckets = getSentimentBuckets(activeRangeLabel, currentWindowStart, latestMentionTime);
-  const aggregatedBuckets = apiData.timelineMentions.length
-    ? aggregateSentimentByBucket(timelineMentions, sentimentBuckets, selectedPlatform)
-    : backendTimeline.length
-      ? aggregateBackendTimeline(backendTimeline, sentimentBuckets, selectedPlatform)
-      : aggregateSentimentByBucket(timelineMentions, sentimentBuckets, selectedPlatform);
+  const backendTimelineForSelection = selectedPlatform === 'All'
+    ? backendTimeline
+    : backendTimeline.filter(item => normalizeSocialPlatform(item.platform) === selectedPlatform);
+  const aggregatedBuckets = backendTimelineForSelection.length
+    ? aggregateBackendTimeline(backendTimeline, sentimentBuckets, selectedPlatform)
+    : aggregateSentimentByBucket(timelineMentions, sentimentBuckets, selectedPlatform);
   const selectedBucket = selectedBucketId ? aggregatedBuckets.find(bucket => bucket.id === selectedBucketId) ?? null : null;
   const platformRows = selectedPlatform === 'All' ? allRows : allRows.filter(row => row.platform === selectedPlatform);
   const filteredRows = selectedBucket
