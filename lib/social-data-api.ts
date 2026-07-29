@@ -102,10 +102,10 @@ function normalizedTimestamp(values: unknown[], key: string) {
 
 export function normalizeSocialPlatform(value: unknown): SocialPlatform {
   const normalized = text(value).trim().toLowerCase();
-  if (normalized === 'twitter' || normalized === 'x') return 'X';
-  if (normalized === 'facebook') return 'Facebook';
-  if (normalized === 'linkedin' || normalized === 'linked_in') return 'Linkedin';
-  if (normalized === 'stocktwits') return 'Stocktwits';
+  if (normalized === 'x' || normalized.includes('twitter')) return 'X';
+  if (normalized.includes('facebook')) return 'Facebook';
+  if (normalized.includes('linkedin') || normalized.includes('linked_in') || normalized.includes('linkin')) return 'Linkedin';
+  if (normalized.includes('stocktwits')) return 'Stocktwits';
   return 'Reddit';
 }
 
@@ -114,6 +114,8 @@ export function normalizeSocialMention(value: unknown): SocialMention {
   const sourceRow = record(row.source_row ?? row.sourceRow);
   const key = text(row.key);
   const id = text(row.id ?? row.messages__id ?? sourceRow.messages__id ?? key);
+  const platformSource = [row.platform, sourceRow.platform, key]
+    .find(candidate => text(candidate).trim());
 
   const timestamp = normalizedTimestamp([
     row.datetime,
@@ -134,7 +136,7 @@ export function normalizeSocialMention(value: unknown): SocialMention {
   return {
     id,
     key,
-    platform: normalizeSocialPlatform(row.platform),
+    platform: normalizeSocialPlatform(platformSource),
     query: text(row.query),
     timestamp,
     url: text(row.link ?? row.url),
@@ -195,12 +197,23 @@ export async function getSocialDataPage({
     page: String(page),
     limit: String(limit),
   });
-  if (platform) params.set('platform', platform === 'X' ? 'Twitter' : platform === 'Linkedin' ? 'LinkedIn' : platform);
-  const raw = await authenticatedFetch(`/social-data?${params.toString()}`, { cache: 'no-store' });
-  const payload = record(raw);
-  const records = Array.isArray(payload.records)
-    ? sortSocialMentionsNewestFirst(payload.records.map(normalizeSocialMention))
-    : [];
+  const platformQueries = platform === 'Linkedin'
+    ? ['LinkedIn', 'Linkedin']
+    : [platform === 'X' ? 'Twitter' : platform];
+  let raw: unknown;
+  let payload: Record<string, unknown> = {};
+  let records: SocialMention[] = [];
+  for (const platformQuery of platformQueries) {
+    if (platformQuery) params.set('platform', platformQuery);
+    else params.delete('platform');
+    raw = await authenticatedFetch(`/social-data?${params.toString()}`, { cache: 'no-store' });
+    payload = record(raw);
+    records = Array.isArray(payload.records)
+      ? sortSocialMentionsNewestFirst(payload.records.map(normalizeSocialMention))
+      : [];
+    const pageInfo = pagination(payload.pagination, page, limit, records.length);
+    if (records.length || pageInfo.totalItems > 0 || platformQuery === platformQueries.at(-1)) break;
+  }
   return {
     records,
     pagination: pagination(payload.pagination, page, limit, records.length),

@@ -704,8 +704,12 @@ export function SentimentBrowserPage({ ticker }: { ticker: string }) {
     ? backendPeriod.platformBreakdown.map(objectValue)
     : [];
   const backendPlatform = (platform: Exclude<SentimentPlatformFilter, 'All'>) => backendBreakdown.find(item => {
-    const label = String(item.platform ?? item.name ?? '').toLowerCase();
-    const target = platform === 'X' ? ['x', 'twitter'] : platform === 'Linkedin' ? ['linkedin', 'linked_in'] : [platform.toLowerCase()];
+    const label = String(item.platform ?? item.name ?? '').trim().toLowerCase();
+    const target = platform === 'X'
+      ? ['x', 'twitter']
+      : platform === 'Linkedin'
+        ? ['linkedin', 'linked_in', 'linkin']
+        : [platform.toLowerCase()];
     return target.includes(label);
   });
   const computedSentimentCounts = countBySentiment(windowMentions);

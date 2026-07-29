@@ -72,9 +72,9 @@ const categories: CategoryDefinition[] = [
     columns: ['tradeDate', 'availableSharesIbkr', 'availableSharesFutu'], sample: ['2026-07-17', 2500000, 1500000],
   },
   {
-    key: 'issued-share', label: 'Issued share', description: 'Current issued-share value.',
-    replacement: 'The current issued-share record is replaced.',
-    columns: ['issuedShare'], sample: [112280000],
+    key: 'issued-share', label: 'Issued share history', description: 'Issued-share values effective on each trade date.',
+    replacement: 'Only trade dates included in the CSV are replaced. Historical dates are preserved independently.',
+    columns: ['tradeDate', 'issuedShare'], sample: ['2026-07-28', 112280000],
   },
   {
     key: 'profile', label: 'Company profile', description: 'Company name and stock code.',
@@ -112,7 +112,7 @@ const categories: CategoryDefinition[] = [
   },
 ];
 
-const dateSpecificCategories: ImportCategory[] = ['utilization', 'margins', 'short-score', 'manual-availability'];
+const dateSpecificCategories: ImportCategory[] = ['utilization', 'margins', 'short-score', 'manual-availability', 'issued-share'];
 
 function csvCell(value: string | number | boolean) {
   const text = String(value);
@@ -206,7 +206,10 @@ function invalidImportPath(result: ImportResponse, category: ImportCategory, tic
     if (generated.length === 1 && generated[0].startsWith(prefix) && generated[0].endsWith(suffix)) return undefined;
   }
   if (expected.length === generated.length && expected.every((path, index) => path === generated[index])) return undefined;
-  return `expected ${expected.join(', ') || 'a canonical output file'}, received ${generated.join(', ') || 'no generated files'}`;
+  const summarize = (paths: string[]) => paths.length > 3
+    ? `${paths.length} date-partitioned files (${paths.slice(0, 2).join(', ')}, ...)`
+    : paths.join(', ') || 'no files';
+  return `expected ${summarize(expected)}, received ${summarize(generated)}`;
 }
 
 export function ManualDataImportClient() {
