@@ -166,6 +166,7 @@ function formatMentionDate(value: unknown, timeZone: string) {
     day: 'numeric',
     hour: '2-digit',
     minute: '2-digit',
+    timeZoneName: 'short',
   });
 }
 

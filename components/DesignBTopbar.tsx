@@ -48,9 +48,30 @@ function applyThemeState(theme: 'light' | 'dark') {
   document.documentElement.dataset.designBTheme = theme;
 }
 
-function formatImportDataUpdatedAt(updatedAt: string | null, timeZone: string, emptyText: string, locale: string) {
+function selectedTimeZoneLabel(timeZone: string, value: string, locale: string) {
+  const date = new Date(value);
+  const shortName = Number.isNaN(date.getTime())
+    ? ''
+    : new Intl.DateTimeFormat(locale, {
+        timeZone,
+        timeZoneName: 'short',
+      }).formatToParts(date).find(part => part.type === 'timeZoneName')?.value ?? '';
+  const zoneName = timeZone.replace(/_/g, ' ');
+  return shortName ? `${zoneName} (${shortName})` : zoneName;
+}
+
+function formatImportDataUpdatedAt(
+  updatedAt: string | null,
+  timeZone: string,
+  emptyText: string,
+  locale: string,
+  includeTimeZone = false,
+) {
   if (!updatedAt) return emptyText;
-  return formatPortalDateTime(updatedAt, timeZone, {}, locale);
+  const formatted = formatPortalDateTime(updatedAt, timeZone, {}, locale);
+  return includeTimeZone
+    ? `${formatted} · ${selectedTimeZoneLabel(timeZone, updatedAt, locale)}`
+    : formatted;
 }
 
 function formatDataDate(value: string | null, locale: string, emptyText: string, suffix = '') {
@@ -126,7 +147,13 @@ export function DesignBTopbar({
       : t('dataAsOf');
   const locale = portalLocale(language);
   const statusValue = dateMode === 'last-update'
-    ? formatImportDataUpdatedAt(pageUpdatedAt, timeZone, t('noImportFiles'), locale)
+    ? formatImportDataUpdatedAt(
+        pageUpdatedAt,
+        timeZone,
+        t('noImportFiles'),
+        locale,
+        currentSlug === 'sentiment',
+      )
     : formatDataDate(pageStatus?.displayDate ?? null, locale, t('noData'), isDataAsOf ? ` · ${t('usMarketClose')}` : '');
 
   const toggleCollapsed = () => {
@@ -210,7 +237,7 @@ export function DesignBTopbar({
           <div className="portal-design-b-heading-actions">
             <div className="portal-design-b-update">
               <span>{statusLabel}</span>
-              <strong title={isDataAsOf ? 'US market trading-session date' : undefined}>{statusValue}</strong>
+              <strong title={isDataAsOf ? 'US market trading-session date' : currentSlug === 'sentiment' ? `Selected portal time zone: ${timeZone}` : undefined}>{statusValue}</strong>
             </div>
           </div>
         ) : null}

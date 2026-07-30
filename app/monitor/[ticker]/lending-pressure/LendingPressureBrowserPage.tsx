@@ -265,6 +265,25 @@ function fullMarketDateLabel(value: unknown) {
   return match ? `${match[2]}/${match[3]}/${match[1].slice(-2)}` : 'N/A';
 }
 
+function latestAvailableComparisonLabel(latestValue: unknown, previousValue: unknown) {
+  const latestMatch = String(latestValue ?? '').match(/^(\d{4})-(\d{2})-(\d{2})/);
+  const previousMatch = String(previousValue ?? '').match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (!latestMatch || !previousMatch) return 'vs prior available date';
+
+  const latestDate = new Date(Date.UTC(
+    Number(latestMatch[1]),
+    Number(latestMatch[2]) - 1,
+    Number(latestMatch[3]),
+  ));
+  latestDate.setUTCDate(latestDate.getUTCDate() - 1);
+  const expectedPreviousDate = latestDate.toISOString().slice(0, 10);
+  const actualPreviousDate = `${previousMatch[1]}-${previousMatch[2]}-${previousMatch[3]}`;
+
+  return actualPreviousDate === expectedPreviousDate
+    ? 'vs yesterday'
+    : `vs ${fullMarketDateLabel(actualPreviousDate)}`;
+}
+
 function InfoTitle({ children, text }: { children: ReactNode; text: string }) {
   return <span className="with-info">{children} <InfoTooltip text={text} /></span>;
 }
@@ -369,7 +388,7 @@ function ExecutiveMetric({ label, value, changePercent, asOfDate, comparisonDate
       </div>
       <em className={tone}>
         {typeof changePercent === 'number' && Number.isFinite(changePercent)
-          ? `${changePercent > 0 ? '+' : ''}${changePercent.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}% vs ${fullMarketDateLabel(comparisonDate)}`
+          ? `${changePercent > 0 ? '+' : ''}${changePercent.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}% ${latestAvailableComparisonLabel(asOfDate, comparisonDate)}`
           : 'No prior period'}
       </em>
     </div>

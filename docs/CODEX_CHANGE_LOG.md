@@ -4,6 +4,95 @@ This file is the persistent implementation memory for changes made by Codex.
 Read it before modifying existing portal behavior, and update it after every
 completed change.
 
+## 2026-07-30 — Clarify Lending Market Snapshot comparison dates
+
+- Area: User Portal → Lending Pressure → Lending Market Snapshot.
+- APIs/data: `GET /market-data/history?ticker={ticker}&category=market-history`
+- User-reported problem: Snapshot cards always displayed an explicit prior
+  date, even when that baseline was simply yesterday.
+- Root cause: The shared Lending Market Snapshot metric formatter did not
+  distinguish the preceding calendar day from an older latest-available
+  observation.
+- Implemented behavior:
+  - Utilization, Borrow Fee, Shortable Shares, and Average Duration display
+    `vs yesterday` when their comparison observation is exactly one calendar
+    day earlier.
+  - If the prior valid observation is older, the metric displays its actual
+    date.
+- Must preserve:
+  - Each metric continues to use its own latest two valid observations.
+  - Missing dates are not zero-filled and do not create false changes.
+- Files changed:
+  - `app/monitor/[ticker]/lending-pressure/LendingPressureBrowserPage.tsx`
+  - `docs/CODEX_CHANGE_LOG.md`
+- Verification: TypeScript type-check and whitespace validation passed.
+- Remaining dependency: None identified.
+
+## 2026-07-30 — Label social-feed times with the selected timezone
+
+- Area: User Portal → Social Sentiment → feed cards and Development Data.
+- APIs/data:
+  - Social post `datetime` or normalized timestamp from `GET /social-data`.
+  - Selected portal timezone from General Settings.
+- User-reported problem: Feed timestamps appeared to remain in US time and did
+  not make clear whether the portal timezone preference had been applied.
+- Root cause: Feed timestamps were converted with the selected portal timezone
+  but displayed only month, day, and clock time, without a timezone marker.
+- Implemented behavior:
+  - Feed timestamps continue to convert from the API instant into the selected
+    portal timezone.
+  - Each timestamp now includes the selected zone's timestamp-specific short
+    name, such as `GMT+8`, `EDT`, or `UTC`.
+  - Changing the General Settings timezone immediately reformats the feed
+    timestamps.
+- Must preserve:
+  - The underlying API timestamp remains unchanged.
+  - Valid API timezone offsets and `Z` timestamps are respected before display
+    conversion.
+  - Feed ordering continues to use the normalized absolute timestamp.
+- Files changed:
+  - `app/monitor/[ticker]/sentiment/SentimentBrowserPage.tsx`
+  - `docs/CODEX_CHANGE_LOG.md`
+- Verification: TypeScript type-check, whitespace validation, production
+  build, and timezone conversion checks for Hong Kong, New York, and UTC
+  passed.
+- Remaining dependency: API timestamps without `Z` or an explicit UTC offset
+  are inherently ambiguous; the documented `/social-data` contract provides
+  UTC `datetime` values.
+
+## 2026-07-30 — Show selected timezone beside sentiment Last Update
+
+- Area: User Portal → Social Sentiment → top-bar Last Update.
+- APIs/data:
+  - Existing Social Sentiment `updatedAt` status assembled from
+    `GET /market-data/current?category=sentiment-current`,
+    `GET /market-data/history?category=sentiment-events`, and the latest
+    `GET /social-data` record.
+  - Selected portal timezone from General Settings.
+- User-reported problem: The Last Update timestamp was converted into the
+  selected timezone, but the page did not identify which timezone was being
+  displayed.
+- Root cause: The shared top bar formatted the timestamp with the timezone
+  preference but rendered only the resulting date and time.
+- Implemented behavior:
+  - Social Sentiment appends the exact selected IANA timezone and the
+    timestamp-specific short timezone name, for example
+    `Asia/Hong Kong (GMT+8)`.
+  - The short name is calculated at the update timestamp, so zones with
+    daylight-saving time show the correct seasonal abbreviation.
+  - Other pages retain their existing status formats.
+- Must preserve:
+  - Changing the timezone in General Settings immediately updates both the
+    displayed time and timezone suffix.
+  - The underlying API timestamp is not changed.
+  - Data-as-of and latest-filing pages do not gain this Last Update suffix.
+- Files changed:
+  - `components/DesignBTopbar.tsx`
+  - `docs/CODEX_CHANGE_LOG.md`
+- Verification: TypeScript type-check, whitespace validation, production
+  build, and timezone label checks for Hong Kong, New York, and UTC passed.
+- Remaining dependency: None identified.
+
 ## 2026-07-30 — Plot sentiment timeline bars as feed volume
 
 - Area: User Portal → Social Sentiment → Sentiment Timeline & Social Feed.
