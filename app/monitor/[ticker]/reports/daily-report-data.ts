@@ -201,9 +201,9 @@ export async function buildDailyReportData(report: ReportArchiveRecord) {
   const daysToCover = metric('daysToCover');
   const shortScore = metric('shortScore');
   const previousShortScore = priorMetric('shortScore');
-  const roundedScore = shortScore === null ? null : Math.round(shortScore);
-  const scoreLevel = roundedScore === null ? 'Unavailable' : roundedScore >= 80 ? 'Extreme' : roundedScore >= 65 ? 'High' : roundedScore >= 40 ? 'Moderate' : 'Low';
-  const scoreTone = roundedScore === null ? '' : scoreLevel.toLowerCase();
+  const displayScore = shortScore === null ? null : Math.round(shortScore * 100) / 100;
+  const scoreLevel = displayScore === null ? 'Unavailable' : displayScore >= 80 ? 'Extreme' : displayScore >= 65 ? 'High' : displayScore >= 40 ? 'Moderate' : 'Low';
+  const scoreTone = displayScore === null ? '' : scoreLevel.toLowerCase();
   const scoreComparison = comparison(shortScore, previousShortScore, 'percent');
 
   const oneDay = sentimentPeriod(sentimentCurrent, '1D');
@@ -257,27 +257,27 @@ export async function buildDailyReportData(report: ReportArchiveRecord) {
       { label: 'Days to Cover', value: daysToCover === null ? 'N/A' : `${formatNumber(daysToCover)}d`, ...comparison(daysToCover, priorMetric('daysToCover'), 'days') },
     ],
     shortInterestScore: {
-      score: roundedScore ?? 0,
-      scoreDisplay: roundedScore === null ? 'N/A' : String(roundedScore),
+      score: displayScore ?? 0,
+      scoreDisplay: displayScore === null ? 'N/A' : displayScore.toFixed(2),
       level: scoreLevel,
       tone: scoreTone,
       color: scoreLevel === 'Extreme' || scoreLevel === 'High' ? '#cf3e4f' : scoreLevel === 'Moderate' ? '#e19713' : '#15936f',
       changeDisplay: scoreDelta,
       deltaTone: scoreComparison.tone,
-      summary: roundedScore === null
+      summary: displayScore === null
         ? 'A short-interest score is not available for this report date.'
-        : roundedScore >= 80
+        : displayScore >= 80
           ? 'Severe short-side pressure warrants close review.'
-          : roundedScore >= 65
+          : displayScore >= 65
             ? 'Elevated short-side conditions may increase squeeze sensitivity.'
-            : roundedScore >= 40
+            : displayScore >= 40
               ? 'Short-side pressure is developing and should be monitored.'
               : 'Current short-side pressure is relatively contained.',
       ranges: [
-        { range: '0-39', level: 'Low', description: 'Pressure is relatively contained.', active: roundedScore !== null && roundedScore < 40 },
-        { range: '40-64', level: 'Moderate', description: 'Pressure is developing.', active: roundedScore !== null && roundedScore >= 40 && roundedScore < 65 },
-        { range: '65-79', level: 'High', description: 'Elevated squeeze sensitivity.', active: roundedScore !== null && roundedScore >= 65 && roundedScore < 80 },
-        { range: '80-100', level: 'Extreme', description: 'Severe pressure warrants review.', active: roundedScore !== null && roundedScore >= 80 },
+        { range: '0-39', level: 'Low', description: 'Pressure is relatively contained.', active: displayScore !== null && displayScore < 40 },
+        { range: '40-64', level: 'Moderate', description: 'Pressure is developing.', active: displayScore !== null && displayScore >= 40 && displayScore < 65 },
+        { range: '65-79', level: 'High', description: 'Elevated squeeze sensitivity.', active: displayScore !== null && displayScore >= 65 && displayScore < 80 },
+        { range: '80-100', level: 'Extreme', description: 'Severe pressure warrants review.', active: displayScore !== null && displayScore >= 80 },
       ],
       aiAnalysis: 'short_interest_current_interpretation' in aiReport
         ? aiReport.short_interest_current_interpretation || 'AI analysis is not available for this report date.'

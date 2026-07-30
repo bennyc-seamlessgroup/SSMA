@@ -158,6 +158,18 @@ function formatNumber(value: unknown, digits = 0) {
     : 'N/A';
 }
 
+function formatDecimalFixed(value: unknown, digits = 2) {
+  const numeric = typeof value === 'number' ? value : Number(value);
+  return Number.isFinite(numeric)
+    ? numeric.toLocaleString('en-US', { minimumFractionDigits: digits, maximumFractionDigits: digits })
+    : 'N/A';
+}
+
+function decimalInput(value: unknown, digits = 2) {
+  const numeric = typeof value === 'number' ? value : Number(value);
+  return Number.isFinite(numeric) ? numeric.toFixed(digits) : '';
+}
+
 function formatPercentFromRatio(value: unknown) {
   const numeric = typeof value === 'number' ? value : Number(value);
   return Number.isFinite(numeric)
@@ -172,10 +184,17 @@ function formatPercent(value: unknown) {
     : 'N/A';
 }
 
-function formatDays(value: unknown) {
+function formatPercentFixed(value: unknown) {
   const numeric = typeof value === 'number' ? value : Number(value);
   return Number.isFinite(numeric)
-    ? `${numeric.toLocaleString('en-US', { maximumFractionDigits: 1 })}d`
+    ? `${numeric.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}%`
+    : 'N/A';
+}
+
+function formatDays(value: unknown, digits = 1, minimumDigits = 0) {
+  const numeric = typeof value === 'number' ? value : Number(value);
+  return Number.isFinite(numeric)
+    ? `${numeric.toLocaleString('en-US', { minimumFractionDigits: minimumDigits, maximumFractionDigits: digits })}d`
     : 'N/A';
 }
 
@@ -456,6 +475,22 @@ function exactManualRow(
   } satisfies MarketInputRow;
 }
 
+function hasManualInputValues(record: MarketInputRow | undefined) {
+  if (!record) return false;
+  return [
+    record.issuedShare,
+    record.utilizationPercent,
+    record.availableSharesIbkr,
+    record.availableSharesFutu,
+    record.initialMarginIbkr,
+    record.initialMarginFutu,
+    record.maintenanceMarginIbkr,
+    record.maintenanceMarginFutu,
+    record.averageDurationDays,
+    record.shortScore,
+  ].some(value => value !== undefined && value !== null);
+}
+
 function formFromDailyRecord(tradeDate: string, record: MarketInputRow | undefined, issuedShare: number | undefined): FormState {
   return {
     ...emptyForm(),
@@ -469,7 +504,7 @@ function formFromDailyRecord(tradeDate: string, record: MarketInputRow | undefin
     maintenanceMarginIbkr: ratioToPercent(record?.maintenanceMarginIbkr),
     maintenanceMarginFutu: ratioToPercent(record?.maintenanceMarginFutu),
     averageDurationDays: record?.averageDurationDays == null ? '' : String(record.averageDurationDays),
-    shortScore: record?.shortScore === undefined ? '' : String(record.shortScore),
+    shortScore: decimalInput(record?.shortScore),
   };
 }
 
@@ -568,11 +603,7 @@ export function MarketDataOperationsClient() {
       const dateRows = historyDateRows(normalized, historyRecords);
       setSelectedTicker(normalized);
       setOperationsTicker(normalized);
-      setForm(formFromDailyRecord(
-        selectedTradeDate,
-        selectedManualRecord,
-        selectedManualRecord.issuedShare,
-      ));
+      setForm(formFromDailyRecord(selectedTradeDate, undefined, undefined));
       setRows(dateRows);
       setManualRowsByDate({ [selectedTradeDate]: selectedManualRecord });
       manualRowRequests.current.clear();
@@ -632,7 +663,9 @@ export function MarketDataOperationsClient() {
       shortScoreResult.debug,
     ]);
     setManualRowsByDate(current => ({ ...current, [tradeDate]: exactRecord }));
-    setForm(formFromDailyRecord(tradeDate, exactRecord, exactRecord.issuedShare));
+    setForm(editAfterLoad
+      ? formFromDailyRecord(tradeDate, exactRecord, exactRecord.issuedShare)
+      : formFromDailyRecord(tradeDate, undefined, undefined));
     setEditingDate(editAfterLoad ? tradeDate : '');
     setStatus('idle');
   }
@@ -727,24 +760,28 @@ export function MarketDataOperationsClient() {
   );
   const previewPublicationRows = useMemo(() => {
     if (!form.tradeDate) return rows as MarketPublicationRecord[];
-    const saved = rows.find(row => row.tradeDate === form.tradeDate);
-    const preview: MarketPublicationRecord = {
-      ...saved,
-      tradeDate: form.tradeDate,
-      utilizationPercent: numberOrUndefined(form.utilizationPercent),
-      availableSharesIbkr: numberOrUndefined(form.availableSharesIbkr),
-      availableSharesFutu: numberOrUndefined(form.availableSharesFutu),
-      initialMarginIbkr: percentInputToRatio(form.initialMarginIbkr),
-      initialMarginFutu: percentInputToRatio(form.initialMarginFutu),
-      maintenanceMarginIbkr: percentInputToRatio(form.maintenanceMarginIbkr),
-      maintenanceMarginFutu: percentInputToRatio(form.maintenanceMarginFutu),
-      averageDurationDays: numberOrUndefined(form.averageDurationDays),
-    };
+    const saved = manualRowsByDate[form.tradeDate];
+    const hasSavedRecord = rows.some(row => row.tradeDate === form.tradeDate) || hasManualInputValues(saved);
+    const useFormValues = !hasSavedRecord || editingDate === form.tradeDate;
+    const preview: MarketPublicationRecord = useFormValues
+      ? {
+          ...saved,
+          tradeDate: form.tradeDate,
+          utilizationPercent: numberOrUndefined(form.utilizationPercent),
+          availableSharesIbkr: numberOrUndefined(form.availableSharesIbkr),
+          availableSharesFutu: numberOrUndefined(form.availableSharesFutu),
+          initialMarginIbkr: percentInputToRatio(form.initialMarginIbkr),
+          initialMarginFutu: percentInputToRatio(form.initialMarginFutu),
+          maintenanceMarginIbkr: percentInputToRatio(form.maintenanceMarginIbkr),
+          maintenanceMarginFutu: percentInputToRatio(form.maintenanceMarginFutu),
+          averageDurationDays: numberOrUndefined(form.averageDurationDays),
+        }
+      : saved ?? { tradeDate: form.tradeDate };
     return [
       ...(rows as MarketPublicationRecord[]).filter(row => marketRecordDate(row) !== form.tradeDate),
       preview,
     ];
-  }, [form, rows]);
+  }, [editingDate, form, manualRowsByDate, rows]);
   const manualPublicationInputs = useMemo(() => ({
     utilization: previewPublicationRows,
     availability: previewPublicationRows,
@@ -813,10 +850,11 @@ export function MarketDataOperationsClient() {
   );
   const publishedDate = publishedRecord ? marketRecordDate(publishedRecord) : '';
   const busy = ['checking', 'loading', 'saving'].includes(status);
-  const selectedSavedRecord = useMemo(
-    () => rows.find(record => record.tradeDate === form.tradeDate),
-    [form.tradeDate, rows],
-  );
+  const selectedSavedRecord = useMemo(() => {
+    const consolidatedDate = rows.find(record => record.tradeDate === form.tradeDate);
+    const exactManualRecord = manualRowsByDate[form.tradeDate];
+    return consolidatedDate ?? (hasManualInputValues(exactManualRecord) ? exactManualRecord : undefined);
+  }, [form.tradeDate, manualRowsByDate, rows]);
   const isEditingSavedRecord = Boolean(selectedSavedRecord && editingDate === form.tradeDate);
   const inputFieldsDisabled = !entryAvailability.isOpen || Boolean(selectedSavedRecord && !isEditingSavedRecord);
   const filteredHistoryRows = useMemo(
@@ -951,7 +989,14 @@ export function MarketDataOperationsClient() {
     const maintenanceMarginIbkr = percentInputToRatio(form.maintenanceMarginIbkr);
     const maintenanceMarginFutu = percentInputToRatio(form.maintenanceMarginFutu);
     const averageDurationDays = numberOrUndefined(form.averageDurationDays);
-    const shortScore = numberOrUndefined(form.shortScore);
+    const shortScoreValue = numberOrUndefined(form.shortScore);
+    const shortScore = shortScoreValue === undefined ? undefined : roundDecimal(shortScoreValue, 2);
+
+    if (shortScore !== undefined && (shortScore < 0 || shortScore > 100)) {
+      setStatus('error');
+      setMessage('Short Score must be between 0 and 100.');
+      return;
+    }
 
     if (issuedShare !== undefined) {
       requests.push({
@@ -1120,7 +1165,7 @@ export function MarketDataOperationsClient() {
           <div className="ops-form-grid three">
             <label>Trade Date<input type="date" value={form.tradeDate} onChange={event => selectTradeDate(event.target.value)} required suppressHydrationWarning /></label>
             <label>Issued Share<input inputMode="numeric" value={form.issuedShare} onChange={event => updateField('issuedShare', formatShareInput(event.target.value))} disabled={inputFieldsDisabled} suppressHydrationWarning /></label>
-            <label>Short Score<input inputMode="decimal" value={form.shortScore} onChange={event => updateField('shortScore', event.target.value)} disabled={inputFieldsDisabled} suppressHydrationWarning /></label>
+            <label>Short Score<input type="number" inputMode="decimal" min="0" max="100" step="0.01" value={form.shortScore} onChange={event => updateField('shortScore', event.target.value)} disabled={inputFieldsDisabled} suppressHydrationWarning /></label>
           </div>
           <div className="ops-broker-input-grid">
             <fieldset className="ops-broker-input-group">
@@ -1246,7 +1291,7 @@ export function MarketDataOperationsClient() {
             <div><dt>Initial margin</dt><dd>IBKR {formatPercent(numberOrUndefined(form.initialMarginIbkr))} · Futu {formatPercent(numberOrUndefined(form.initialMarginFutu))}</dd></div>
             <div><dt>Maintenance margin</dt><dd>IBKR {formatPercent(numberOrUndefined(form.maintenanceMarginIbkr))} · Futu {formatPercent(numberOrUndefined(form.maintenanceMarginFutu))}</dd></div>
             <div><dt>Average duration</dt><dd>{formatDays(numberOrUndefined(form.averageDurationDays))}</dd></div>
-            <div><dt>Short score</dt><dd>{formatNumber(numberOrUndefined(form.shortScore), 1)}</dd></div>
+            <div><dt>Short score</dt><dd>{formatDecimalFixed(numberOrUndefined(form.shortScore))}</dd></div>
           </dl>
         </section>
       </aside>
@@ -1340,15 +1385,15 @@ export function MarketDataOperationsClient() {
                   <tr key={record.tradeDate}>
                     <td>{record.tradeDate}</td>
                     <td>{loading ? 'Loading...' : formatNumber(manualRecord.issuedShare)}</td>
-                    <td>{loading ? 'Loading...' : formatPercent(manualRecord.utilizationPercent)}</td>
+                    <td>{loading ? 'Loading...' : formatPercentFixed(manualRecord.utilizationPercent)}</td>
                     <td>{loading ? 'Loading...' : formatNumber(manualRecord.availableSharesIbkr)}</td>
                     <td>{loading ? 'Loading...' : formatNumber(manualRecord.availableSharesFutu)}</td>
                     <td>{loading ? 'Loading...' : formatPercentFromRatio(manualRecord.initialMarginIbkr)}</td>
                     <td>{loading ? 'Loading...' : formatPercentFromRatio(manualRecord.initialMarginFutu)}</td>
                     <td>{loading ? 'Loading...' : formatPercentFromRatio(manualRecord.maintenanceMarginIbkr)}</td>
                     <td>{loading ? 'Loading...' : formatPercentFromRatio(manualRecord.maintenanceMarginFutu)}</td>
-                    <td>{loading ? 'Loading...' : formatDays(manualRecord.averageDurationDays)}</td>
-                    <td>{loading ? 'Loading...' : formatNumber(manualRecord.shortScore, 1)}</td>
+                    <td>{loading ? 'Loading...' : formatDays(manualRecord.averageDurationDays, 2, 2)}</td>
+                    <td>{loading ? 'Loading...' : formatDecimalFixed(manualRecord.shortScore)}</td>
                     <td>
                       <div className="ops-row-actions">
                         <button className="ops-secondary-button" type="button" onClick={() => editRecord(record)}>Edit</button>

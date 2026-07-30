@@ -201,17 +201,29 @@ export async function getSocialDataPage({
   platform,
   page = 1,
   limit = 100,
+  date,
+  sort = 'datetime',
+  order = 'desc',
 }: {
   ticker: string;
   platform?: SocialPlatform;
   page?: number;
   limit?: number;
+  date?: string;
+  sort?: 'datetime';
+  order?: 'asc' | 'desc';
 }): Promise<SocialDataPage> {
   const params = new URLSearchParams({
     ticker,
-    page: String(page),
-    limit: String(limit),
+    sort,
+    order,
   });
+  if (date) {
+    params.set('date', date);
+  } else {
+    params.set('page', String(page));
+    params.set('limit', String(limit));
+  }
   const platformQueries = platform === 'Linkedin'
     ? ['LinkedIn', 'Linkedin']
     : [platform === 'X' ? 'Twitter' : platform];
@@ -230,10 +242,10 @@ export async function getSocialDataPage({
         ? data.records
         : [];
     records = recordValues.length
-      ? sortSocialMentionsNewestFirst(recordValues.map(value => {
+      ? recordValues.map(value => {
         const mention = normalizeSocialMention(value);
         return platform ? { ...mention, platform } : mention;
-      }))
+      })
       : [];
     const pagePayload = Object.keys(record(payload.pagination)).length
       ? payload.pagination

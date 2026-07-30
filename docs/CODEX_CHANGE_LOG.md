@@ -4,6 +4,213 @@ This file is the persistent implementation memory for changes made by Codex.
 Read it before modifying existing portal behavior, and update it after every
 completed change.
 
+## 2026-07-30 — Plot sentiment timeline bars as feed volume
+
+- Area: User Portal → Social Sentiment → Sentiment Timeline & Social Feed.
+- APIs/data:
+  - Bucket `mentions` and `sentimentScore` from the selected period in
+    `GET /market-data/current?ticker={ticker}&category=sentiment-current`.
+- User-reported problem: Selecting Stocktwits showed `Stocktwits (70)`, while
+  a timeline bar appeared to exceed 70 and its tooltip displayed 91.
+- Root cause:
+  - The visible bars used `sentimentScore` on a fixed 0–100 axis, while the
+    platform button displayed feed count. The two different measurements were
+    presented without making that distinction clear.
+  - Tooltip rows without a color marker still used a three-column grid
+    reserved for the highlighted row, causing their labels and values to
+    overlap.
+- Implemented behavior:
+  - Bar height now represents the bucket's mention count.
+  - The vertical axis dynamically scales to the highest bucket mention count
+    using integer ticks.
+  - The highlighted tooltip row displays the same mention count represented by
+    the bar.
+  - Sentiment score remains available as a separately labeled tooltip value.
+  - Tooltip metric rows use a two-column label/value layout and no longer
+    overlap.
+- Must preserve:
+  - Non-overlapping bucket mention counts cannot individually exceed the
+    selected platform's timeframe total.
+  - Sentiment score remains a 0–100 analytical metric but is not used as bar
+    height.
+  - Timeline platform and timeframe filtering remain unchanged.
+- Files changed:
+  - `app/monitor/[ticker]/sentiment/SentimentTimeline.tsx`
+  - `app/globals.css`
+  - `docs/CODEX_CHANGE_LOG.md`
+- Verification: TypeScript type-check, whitespace validation, and production
+  build passed.
+- Remaining dependency: Correct volume bars require backend bucket `mentions`
+  values to be non-cumulative and aligned with the selected timeframe.
+
+## 2026-07-30 — Prevent duplicate sentiment timeline totals
+
+- Area: User Portal → Social Sentiment → Sentiment Timeline & Social Feed.
+- APIs/data:
+  - Timeline and total counts from the selected period in
+    `GET /market-data/current?ticker={ticker}&category=sentiment-current`.
+- User-reported problem: CURR displayed `All (172)`, but the mention counts
+  across the timeline bars added up to more than 172.
+- Root cause:
+  - For All, the chart aggregated every backend timeline row even when the
+    payload contained both an overall row and per-platform rows for the same
+    bucket.
+  - Generic platform normalization treated unrecognized labels such as `All`
+    as Reddit, which could also contaminate the Reddit series.
+- Implemented behavior:
+  - Backend timeline platform labels are classified explicitly.
+  - When overall timeline rows are present, the All series uses only those
+    rows.
+  - When overall rows are absent, the All series is calculated by summing the
+    recognized per-platform rows.
+  - Individual platform series exclude overall and unknown rows.
+  - A platform without matching backend timeline rows falls back to
+    sentiment-event aggregation.
+- Must preserve:
+  - Platform button counts and timeline bars follow the same selected
+    1D/1W/1M/6M/1Y period.
+  - Feed calendar dates remain independent from timeline aggregation.
+  - No synthetic scaling or zero-filled mentions are introduced.
+- Files changed:
+  - `app/monitor/[ticker]/sentiment/SentimentBrowserPage.tsx`
+  - `docs/CODEX_CHANGE_LOG.md`
+- Verification: TypeScript type-check, whitespace validation, and production
+  build passed.
+- Remaining dependency: The backend overall timeline rows must represent
+  non-overlapping bucket counts rather than cumulative counts.
+
+## 2026-07-30 — Separate sentiment timeframe counts from feed dates
+
+- Area: User Portal → Social Sentiment → Sentiment Timeline & Social Feed.
+- APIs/data:
+  - Platform button counts use the selected period from
+    `GET /market-data/current?ticker={ticker}&category=sentiment-current`.
+  - Feed cards continue using
+    `GET /social-data?ticker={ticker}&date={YYYY-MM-DD}&sort=datetime&order=desc`.
+- User-reported problem:
+  - Platform button counts incorrectly followed the feed calendar range
+    instead of the top-right 1D/1W/1M/6M/1Y selector.
+  - Calendar changes required an Apply button.
+  - There was no way to extend the initially loaded daily feed range.
+- Root cause:
+  - The platform buttons reused totals calculated from the daily social-feed
+    API responses.
+  - Date inputs were implemented as draft values requiring explicit
+    submission, and pagination had been removed without a daily replacement.
+- Implemented behavior:
+  - All and per-platform button counts use the active consolidated sentiment
+    timeframe, falling back to the matching sentiment-event window.
+  - From and To calendar selections take effect immediately.
+  - Both calendars are restricted to today through one year ago.
+  - A See more button extends the From date by seven earlier calendar days,
+    stopping at the one-year boundary.
+- Must preserve:
+  - The calendar date range controls feed cards, not the platform count
+    timeframe.
+  - The sentiment selector continues filtering already-loaded feed cards.
+  - Daily feed requests omit `limit` and `page`.
+  - Consolidated timeline and KPI data remain independent from daily feed
+    retrieval.
+- Files changed:
+  - `app/monitor/[ticker]/sentiment/SentimentBrowserPage.tsx`
+  - `app/monitor/[ticker]/sentiment/MentionFeedCards.tsx`
+  - `app/globals.css`
+  - `docs/CODEX_CHANGE_LOG.md`
+- Verification: TypeScript type-check, whitespace validation, and production
+  build passed.
+- Remaining dependency: Accurate platform counts require the consolidated
+  sentiment response to provide per-platform counts for each supported
+  timeframe, or sufficient sentiment-event rows for the frontend fallback.
+
+## 2026-07-30 — Clarify Short Interest daily baselines and table alignment
+
+- Area: User Portal → Short Interest → Key Short Metrics and Market Data
+  Tables.
+- APIs/data:
+  - `GET /market-data/history?ticker={ticker}&category=market-history`
+  - `GET /market-data/history?ticker={ticker}&category=short-volume-history`
+  - `GET /market-data/history?ticker={ticker}&category=ftd-history`
+- User-reported problem:
+  - Borrow Fee and Utilization always displayed an explicit comparison date,
+    even when that date was simply yesterday.
+  - Short Volume and Fails-to-Deliver table headings and values used mixed
+    alignment.
+- Root cause:
+  - Comparison labels formatted every baseline as a date without testing
+    whether it was the preceding calendar day.
+  - Base table CSS left-aligned all cells and selectively overrode numeric
+    cells only.
+- Implemented behavior:
+  - Borrow Fee and Utilization display `vs yesterday` when their baseline is
+    exactly one calendar day before the current observation.
+  - When the nearest earlier observation is older, its actual date is shown.
+  - Short Volume and Fails-to-Deliver column headings and data cells are
+    consistently right-aligned.
+- Must preserve:
+  - Comparisons continue to use the latest valid earlier observation rather
+    than zero-filling missing dates.
+  - Both tables remain newest-first, date-range filterable, and paginated.
+- Files changed:
+  - `app/monitor/[ticker]/short-interest/ShortInterestBrowserPage.tsx`
+  - `app/globals.css`
+  - `docs/CODEX_CHANGE_LOG.md`
+- Verification: TypeScript type-check and whitespace validation passed.
+- Remaining dependency: None identified.
+
+## 2026-07-30 — Decimal Short Score and fixed dashboard daily comparisons
+
+- Area:
+  - Operations Portal → Market Data → Daily Market Inputs and Saved Daily
+    Inputs.
+  - User Portal → Dashboard → Market Overview.
+  - User Portal → Short Interest and generated daily report.
+- APIs/data:
+  - `GET/POST/PUT /manual-input/short-score?ticker={ticker}&tradeDate={date}`
+  - `GET /market-data/history?ticker={ticker}&category=market-history`
+- User-reported problem:
+  - The backend now accepts Short Score as a floating-point value, while the
+    portal still required and displayed an integer.
+  - Dashboard overview cards exposed a multi-period selector and mixed
+    API-provided changes with locally selected comparison periods.
+- Root cause:
+  - Short Score validation, input stepping, and display formatting were based
+    on the previous integer API contract.
+  - Dashboard KPI state retained the earlier configurable comparison design.
+- Implemented behavior:
+  - Short Score accepts values from 0 through 100 with up to two decimal
+    places, is rounded to two decimals before submission, and is displayed with
+    exactly two decimals in the form, preview, Saved Daily Inputs, Short
+    Interest score card, and daily report.
+  - The Dashboard Market Overview timeframe selector is removed.
+  - Each overview KPI uses its latest valid observation and compares it with
+    the valid observation on the preceding calendar day.
+  - If that preceding day has no valid value for the metric, the closest
+    earlier valid observation is used and its actual date is displayed.
+  - The independent timeframe selectors on all dashboard trend charts remain
+    unchanged.
+- Replaces:
+  - The earlier Short Score integer-only requirement is superseded by the
+    user-confirmed backend floating-point contract.
+  - The configurable Dashboard Market Overview comparison period is
+    intentionally replaced by a fixed daily comparison.
+- Must preserve:
+  - A missing prior observation must display no baseline rather than inventing
+    a zero value.
+  - Sparse metrics continue to select their latest valid values independently.
+  - Dashboard trend charts retain their own timeframe state and controls.
+- Files changed:
+  - `app/operations/market-data/MarketDataOperationsClient.tsx`
+  - `app/monitor/[ticker]/dashboard/DashboardKpis.tsx`
+  - `app/monitor/[ticker]/dashboard/DashboardClient.tsx`
+  - `app/monitor/[ticker]/dashboard/DashboardBrowserPage.tsx`
+  - `app/monitor/[ticker]/short-interest/ShortInterestBrowserPage.tsx`
+  - `app/monitor/[ticker]/reports/daily-report-data.ts`
+  - `docs/CODEX_CHANGE_LOG.md`
+- Verification: TypeScript type-check and whitespace validation passed.
+- Remaining dependency: The checked-in `docs/INTEGRATION (7).md` still
+  describes `shortScore` as an integer and should be refreshed from the latest
+  backend contract.
+
 ## Required Entry Format
 
 ```text
@@ -18,6 +225,94 @@ completed change.
 - Verification:
 - Remaining dependency:
 ```
+
+## 2026-07-30 — Load social feeds by selected calendar dates
+
+- Area: User Portal → Social Sentiment → Sentiment Timeline & Social Feed.
+- APIs/data:
+  - `GET /social-data?ticker={ticker}&date={YYYY-MM-DD}&sort=datetime&order=desc`
+  - Under the updated contract, `date` causes the API to ignore `limit` and
+    `page` and return all records matching that calendar day.
+- User-reported problem: The feed still loaded fixed 10-record pages even
+  though the updated API now supports complete daily feed retrieval. The feed
+  controls also lacked a date range selector.
+- Root cause: The frontend implemented the preceding pagination contract and
+  had not yet adopted the new `date` query parameter.
+- Implemented behavior:
+  - The default feed range is today plus the preceding six calendar days.
+  - From and To date selectors appear before the sentiment selector, with an
+    Apply action.
+  - Each selected calendar day is requested separately using `date`; neither
+    `limit` nor `page` is sent for daily requests.
+  - Daily responses are merged newest-day first and duplicate records are
+    removed using the existing stable identity.
+  - Platform tabs filter the loaded daily records locally, and their counts
+    represent the complete selected date range.
+  - Search Posts and Load More were removed.
+- Replaces:
+  - The 2026-07-30 fixed 10-record pagination behavior is intentionally
+    superseded by the new daily API contract.
+- Must preserve:
+  - The API controls chronological order within each daily response through
+    `sort=datetime&order=desc`.
+  - X records continue to normalize to the X platform label.
+  - Consolidated sentiment timeline and KPI data remain independent from the
+    selected daily social-feed range.
+  - Record deduplication remains platform plus stable key or ID.
+- Files changed:
+  - `lib/social-data-api.ts`
+  - `app/monitor/[ticker]/sentiment/SentimentBrowserPage.tsx`
+  - `app/monitor/[ticker]/sentiment/MentionFeedCards.tsx`
+  - `app/globals.css`
+  - `docs/CODEX_CHANGE_LOG.md`
+- Verification: TypeScript type-check, whitespace validation, and production
+  build passed.
+- Remaining dependency: The API exposes a single-day `date` parameter rather
+  than native `startDate` and `endDate` parameters, so a multi-day UI range
+  requires one API request per calendar day.
+
+## 2026-07-30 — Delegate social-feed sequence and page size to the API
+
+- Area: User Portal → Social Sentiment → Sentiment Timeline & Social Feed.
+- APIs/data:
+  - `GET /social-data?ticker={ticker}&platform={platform}&page=1&limit=10&sort=datetime&order=desc`
+  - Subsequent pages use the same `limit`, `sort`, and `order` and follow the
+    response pagination fields `page` and `hasNextPage`.
+- User-reported problem: The X feed showed a July 29 record first but an old
+  February 9 record second instead of the next-most-recent post.
+- Root cause: The frontend still used the earlier first-edge/last-edge probing
+  workaround. When it selected the last edge, it could merge two end pages and
+  sort only that incomplete subset; this did not match the backend's newly
+  supported chronological pagination contract.
+- Implemented behavior:
+  - Initial feed requests page 1 with `limit=10`, `sort=datetime`, and
+    `order=desc`.
+  - The API response order is preserved for the default Newest view.
+  - Load More requests the next API page and uses `hasNextPage` to decide
+    whether another page is available.
+  - The All feed preserves the cross-platform order returned by the API rather
+    than regrouping records by platform.
+  - Frontend edge probing, reverse paging, partial-page merging, and feed
+    buffering were removed.
+- Must preserve:
+  - Exactly 10 records are requested per visible feed page.
+  - Platform counts remain sourced from pagination totals and do not change
+    when switching filters.
+  - Records remain deduplicated by platform plus stable key or ID.
+  - X continues to query the backend as `Twitter`; LinkedIn retains its
+    supported query-name fallback.
+  - Consolidated sentiment timeline and KPI data remain independent from the
+    paginated social-feed batch.
+- Files changed:
+  - `lib/social-data-api.ts`
+  - `app/monitor/[ticker]/sentiment/SentimentBrowserPage.tsx`
+  - `app/monitor/[ticker]/sentiment/MentionFeedCards.tsx`
+  - `docs/CODEX_CHANGE_LOG.md`
+- Verification: TypeScript type-check, whitespace validation, and production
+  build passed.
+- Remaining dependency: Correct feed order now depends on `GET /social-data`
+  honoring `sort=datetime&order=desc` as documented. A live authenticated API
+  response was not available in this task session.
 
 ## 2026-07-29 — Saved Daily Inputs API response normalization
 
@@ -249,6 +544,46 @@ completed change.
   - If backend pagination is later added to Market History, replace the full
     date-index response with server-side paging without changing the exact-date
     manual-input source rules.
+
+## 2026-07-30 — Blank Market Data entry form and consistent numeric precision
+
+- Area: Operations Portal → Market Data → Daily Market Inputs, Preview, and
+  Saved Daily Inputs.
+- API contract checked:
+  - `short-score` defines `shortScore` as an integer.
+  - All daily values continue to use the exact-date `/manual-input/{category}`
+    endpoints documented in the preceding entry.
+- Implemented behavior:
+  - Initial page load and ordinary trade-date selection leave every business
+    input blank.
+  - Existing exact-date values are not inserted into input controls merely by
+    viewing a date.
+  - Clicking `Edit Record` explicitly loads the selected date's exact saved
+    values into the form.
+  - Cancelling edit returns the form to a blank, non-editing state.
+  - Cached exact-date values continue to support publication readiness and
+    existing-record detection even while the form is blank.
+  - A date with unconsolidated exact manual data is still recognized as an
+    existing record, preventing an accidental blind overwrite.
+  - Short Score accepts only an integer from 0 through 100, matching the API
+    contract. Save is blocked with a clear message for decimals or out-of-range
+    values.
+  - Saved Daily Inputs displays float values with two decimal places:
+    Utilization, all margin percentages, and Average Duration.
+  - Integer fields remain integer-formatted: Issued Share, IBKR/Futu Shortable
+    Shares, and Short Score.
+- Must preserve:
+  - Do not restore automatic input prefill on page load or ordinary date
+    selection.
+  - Do not convert Short Score to a floating-point field unless the backend API
+    contract is changed first.
+  - Editing an existing record must still populate exact-date values after the
+    operator explicitly clicks Edit Record.
+- Files changed:
+  - `app/operations/market-data/MarketDataOperationsClient.tsx`
+  - `docs/CODEX_CHANGE_LOG.md`
+- Verification: TypeScript type-check and whitespace validation passed.
+- Remaining dependency: None identified.
 
 ## 2026-07-29 — Center and scale the backend company indicator
 

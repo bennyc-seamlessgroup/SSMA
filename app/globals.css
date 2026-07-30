@@ -14142,6 +14142,20 @@ html[data-design-b-theme="dark"] .monitor-portal .narrative-feed-card__bottom {
   padding-right: 10px;
 }
 
+.narrative-date-range-field {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: #64748b;
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.narrative-filter-selects .narrative-date-range-field input {
+  min-width: 132px;
+  padding: 0 8px;
+}
+
 .narrative-intel-feed {
   display: grid;
   gap: 10px;
@@ -14443,7 +14457,7 @@ html[data-design-b-theme="dark"] .monitor-portal .narrative-feed-card__bottom {
 
 .narrative-line-tooltip span {
   display: grid;
-  grid-template-columns: 8px 1fr auto;
+  grid-template-columns: 1fr auto;
   align-items: center;
   gap: 7px;
   color: #aebbd0;
@@ -14451,6 +14465,7 @@ html[data-design-b-theme="dark"] .monitor-portal .narrative-feed-card__bottom {
 }
 
 .narrative-line-tooltip span.focused {
+  grid-template-columns: 8px 1fr auto;
   color: #ffffff;
   font-weight: 700;
 }
@@ -14957,6 +14972,14 @@ html[data-design-b-theme="dark"] .monitor-portal :where(.narrative-filter-select
   border-color: rgba(148,163,184,.18);
   background: rgba(15,29,51,.72);
   color: #bfdbfe;
+}
+
+html[data-design-b-theme="dark"] .monitor-portal .narrative-date-range-field {
+  color: #94a3b8;
+}
+
+html[data-design-b-theme="dark"] .monitor-portal .narrative-date-range-field input {
+  color-scheme: dark;
 }
 
 html[data-design-b-theme="dark"] .monitor-portal :where(.narrative-filter-group button.active, .narrative-range-tabs button.active) {
@@ -24158,7 +24181,7 @@ html[data-portal-design="b"] .monitor-portal .short-market-table th,
 html[data-portal-design="b"] .monitor-portal .short-market-table td {
   border-bottom: 1px solid #edf2f7;
   padding: 8px 10px;
-  text-align: left;
+  text-align: right;
   white-space: nowrap;
   color: #24354c;
 }

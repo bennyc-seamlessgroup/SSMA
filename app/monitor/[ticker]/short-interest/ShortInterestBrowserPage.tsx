@@ -184,6 +184,25 @@ function fullMarketDateLabel(value: unknown) {
   return match ? `${match[2]}/${match[3]}/${match[1].slice(-2)}` : 'N/A';
 }
 
+function latestAvailableComparisonLabel(latestValue: unknown, previousValue: unknown) {
+  const latestMatch = String(latestValue ?? '').match(/^(\d{4})-(\d{2})-(\d{2})/);
+  const previousMatch = String(previousValue ?? '').match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (!latestMatch || !previousMatch) return 'vs prior available date';
+
+  const latestDate = new Date(Date.UTC(
+    Number(latestMatch[1]),
+    Number(latestMatch[2]) - 1,
+    Number(latestMatch[3]),
+  ));
+  latestDate.setUTCDate(latestDate.getUTCDate() - 1);
+  const expectedPreviousDate = latestDate.toISOString().slice(0, 10);
+  const actualPreviousDate = `${previousMatch[1]}-${previousMatch[2]}-${previousMatch[3]}`;
+
+  return actualPreviousDate === expectedPreviousDate
+    ? 'vs yesterday'
+    : `vs ${fullMarketDateLabel(actualPreviousDate)}`;
+}
+
 function TrendLine({ values, labels, label, valueFormatter = formatCompactNumber }: {
   values: number[];
   labels?: string[];
@@ -1008,7 +1027,8 @@ export function ShortInterestBrowserPage({ ticker }: { ticker: string }) {
   const borrowFee = numeric(latestBorrowFee.costToBorrowAll) ?? numeric(shortCurrent.costToBorrowAll);
   const sharesAvailable = numeric(latestAvailability.shortAvailabilityShares) ?? numeric(shortCurrent.shortAvailabilityShares);
   const utilization = numeric(latestUtilization.shortAvailabilityPct) ?? numeric(shortCurrent.shortAvailabilityPct);
-  const shortScore = Math.round(numeric(latestShortScore.score) ?? numeric(shortCurrent.shortScore) ?? 0);
+  const shortScoreValue = numeric(latestShortScore.score) ?? numeric(shortCurrent.shortScore);
+  const shortScore = shortScoreValue ?? 0;
   const shortScoreLevel = shortScore >= 80 ? 'Extreme' : shortScore >= 65 ? 'High' : shortScore >= 40 ? 'Moderate' : 'Low';
   const shortScoreTone = shortScore >= 80 ? 'extreme' : shortScore >= 65 ? 'high' : shortScore >= 40 ? 'moderate' : 'low';
   const daysToCover = numeric(latestDaysToCover.daysToCover) ?? numeric(shortCurrent.daysToCoverQuantity);
@@ -1016,7 +1036,10 @@ export function ShortInterestBrowserPage({ ticker }: { ticker: string }) {
   const shortInterestPctDelta = delta(numeric(latestShortInterest.shortInterestPcFreeFloat), numeric(twoWeeksAgoShortInterest.shortInterestPcFreeFloat), { maximumFractionDigits: 2 });
   const daysToCoverDelta = delta(numeric(latestDaysToCover.daysToCover), numeric(twoWeeksAgoDaysToCover.daysToCover), { maximumFractionDigits: 2 });
   const borrowFeeDelta = delta(numeric(latestBorrowFee.costToBorrowAll), numeric(previousBorrowFee.costToBorrowAll), { maximumFractionDigits: 2 });
-  const shortScoreDelta = delta(Math.round(numeric(latestShortScore.score) ?? 0) || null, numeric(previousShortScore.score), { maximumFractionDigits: 1 });
+  const shortScoreDelta = delta(numeric(latestShortScore.score), numeric(previousShortScore.score), {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
   const sharesAvailableDelta = delta(numeric(latestAvailability.shortAvailabilityShares), numeric(previousAvailability.shortAvailabilityShares), { maximumFractionDigits: 0 });
   const utilizationDelta = delta(numeric(latestUtilization.shortAvailabilityPct), numeric(previousUtilization.shortAvailabilityPct), { maximumFractionDigits: 2 });
   const shortCards = {} as Record<string, Row>;
@@ -1071,7 +1094,7 @@ export function ShortInterestBrowserPage({ ticker }: { ticker: string }) {
                   style={{ background: `conic-gradient(var(--short-score-accent) ${scoreProgress}%, var(--short-score-track) ${scoreProgress}% 100%)` }}
                 >
                   <div>
-                    <strong>{numeric(shortCurrent.shortScore) === null ? 'N/A' : shortScore}</strong>
+                    <strong>{shortScoreValue === null ? 'N/A' : shortScore.toFixed(2)}</strong>
                     <small>/ 100</small>
                   </div>
                 </div>
@@ -1098,8 +1121,8 @@ export function ShortInterestBrowserPage({ ticker }: { ticker: string }) {
               <ExecutiveMetric label="Short Interest %" value={formatPercent(shortInterestPercent)} changePercent={numeric(siPercentCard.changePercent) ?? shortInterestPctDelta?.percent} comparisonLabel="vs 2 weeks ago" />
               <ExecutiveMetric label="Short Interest Shares" value={formatNumber(shortInterestShares)} changePercent={shortInterestChangePercent} comparisonLabel="vs 2 weeks ago" />
               <ExecutiveMetric label="Days to Cover" value={formatNumber(daysToCover)} changePercent={numeric(daysToCoverCard.changePercent) ?? daysToCoverDelta?.percent} comparisonLabel="vs 2 weeks ago" />
-              <ExecutiveMetric label="Borrow Fee" value={formatPercent(numeric(latestBorrowFee.costToBorrowAll) ?? borrowFee)} changePercent={borrowFeeChangePercent} asOfDate={String(latestBorrowFeeRow.date ?? '')} comparisonLabel={`vs ${fullMarketDateLabel(previousBorrowFeeRow.date)}`} />
-              <ExecutiveMetric label="Utilization" value={formatPercent(numeric(latestUtilization.shortAvailabilityPct) ?? utilization)} changePercent={numeric(utilizationCard.changePercent) ?? utilizationDelta?.percent} asOfDate={String(latestUtilizationRow.date ?? '')} comparisonLabel={`vs ${fullMarketDateLabel(previousUtilizationRow.date)}`} />
+              <ExecutiveMetric label="Borrow Fee" value={formatPercent(numeric(latestBorrowFee.costToBorrowAll) ?? borrowFee)} changePercent={borrowFeeChangePercent} asOfDate={String(latestBorrowFeeRow.date ?? '')} comparisonLabel={latestAvailableComparisonLabel(latestBorrowFeeRow.date, previousBorrowFeeRow.date)} />
+              <ExecutiveMetric label="Utilization" value={formatPercent(numeric(latestUtilization.shortAvailabilityPct) ?? utilization)} changePercent={numeric(utilizationCard.changePercent) ?? utilizationDelta?.percent} asOfDate={String(latestUtilizationRow.date ?? '')} comparisonLabel={latestAvailableComparisonLabel(latestUtilizationRow.date, previousUtilizationRow.date)} />
             </div>
           </article>
 

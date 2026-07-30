@@ -17,13 +17,6 @@ type TrendPoint = {
 
 type ManualKpiKey = 'initialMargin' | 'maintenanceMargin' | 'averageDurationDays' | 'utilization';
 type TrendKpiKey = Exclude<keyof TrendPoint, 'date'>;
-export type DashboardCurrentChanges = Partial<Record<
-  TrendKpiKey | ManualKpiKey,
-  {
-    numChange: number | null;
-    percentChange: number | null;
-  }
->>;
 
 type KpiConfig = {
   key: TrendKpiKey | ManualKpiKey;
@@ -148,15 +141,11 @@ function latestMetricRecord<T extends { date: string }, K extends keyof T>(recor
   return recordsWithMetric(records, key).at(-1) ?? null;
 }
 
-function comparisonMetricRecord<T extends { date: string }, K extends keyof T>(records: T[], key: K, period: PeriodKey) {
+function previousDayMetricRecord<T extends { date: string }, K extends keyof T>(records: T[], key: K) {
   const populated = recordsWithMetric(records, key);
   const latest = populated[populated.length - 1];
   if (!latest) return null;
-  const target = targetDate(parseDate(latest.date), period);
-
-  if (period === 'YTD') {
-    return populated.find(record => parseDate(record.date) >= target && record.date !== latest.date) ?? null;
-  }
+  const target = targetDate(parseDate(latest.date), '1D');
 
   return [...populated].reverse().find(record => record.date !== latest.date && parseDate(record.date) <= target) ?? null;
 }
@@ -208,18 +197,12 @@ function Sparkline({ values, tone }: { values: number[]; tone: KpiConfig['chartT
 
 export function DashboardKpis({
   data,
-  period,
-  onPeriodChange,
   utilizationRecords,
   marginRecords,
-  currentChanges,
 }: {
   data: TrendPoint[];
-  period: PeriodKey;
-  onPeriodChange: (period: PeriodKey) => void;
   utilizationRecords: DashboardUtilizationRecord[];
   marginRecords: DashboardMarginRecord[];
-  currentChanges: DashboardCurrentChanges;
 }) {
   const cleanData = useMemo(() => data.filter(point => point?.date).sort((a, b) => a.date.localeCompare(b.date)), [data]);
   const cleanUtilizationRecords = useMemo(() => [...utilizationRecords].filter(record => record.date).sort((a, b) => a.date.localeCompare(b.date)), [utilizationRecords]);
@@ -233,18 +216,6 @@ export function DashboardKpis({
           { endpoint: 'GET /market-data/current?category=market-current', label: 'Current KPIs' },
           { endpoint: 'GET /market-data/history?category=market-history', label: 'Comparisons & consolidated inputs' },
         ]} />
-        <div className="dashboard-period-control" aria-label="Overview comparison period">
-          {dashboardPeriods.map(item => (
-            <button
-              type="button"
-              key={item}
-              className={period === item ? 'active' : ''}
-              onClick={() => onPeriodChange(item)}
-            >
-              {item}
-            </button>
-          ))}
-        </div>
       </div>
       <div className="dashboard-kpis">
         {kpis.map(item => {
@@ -252,24 +223,28 @@ export function DashboardKpis({
           let currentValue: number | undefined;
           let compareValue: number | undefined;
           let currentDate: string | undefined;
+          let compareDate: string | undefined;
           if (item.key === 'utilization') {
             const latestUtilization = latestMetricRecord(cleanUtilizationRecords, 'utilization');
-            const compareUtilization = comparisonMetricRecord(cleanUtilizationRecords, 'utilization', period);
+            const compareUtilization = previousDayMetricRecord(cleanUtilizationRecords, 'utilization');
             currentValue = toNumber(latestUtilization?.utilization);
             compareValue = toNumber(compareUtilization?.utilization);
             currentDate = latestUtilization?.date;
+            compareDate = compareUtilization?.date;
           } else if (isManualKpiKey(item.key)) {
             const latestMargin = latestMetricRecord(cleanMarginRecords, item.key);
-            const compareMargin = comparisonMetricRecord(cleanMarginRecords, item.key, period);
+            const compareMargin = previousDayMetricRecord(cleanMarginRecords, item.key);
             currentValue = toNumber(latestMargin?.[item.key]);
             compareValue = toNumber(compareMargin?.[item.key]);
             currentDate = latestMargin?.date;
+            compareDate = compareMargin?.date;
           } else {
             const latest = latestMetricRecord(cleanData, item.key);
-            const compare = comparisonMetricRecord(cleanData, item.key, period);
+            const compare = previousDayMetricRecord(cleanData, item.key);
             currentValue = toNumber(latest?.[item.key]);
             compareValue = toNumber(compare?.[item.key]);
             currentDate = latest?.date;
+            compareDate = compare?.date;
           }
           let chartValues: number[];
           if (item.key === 'utilization') {
@@ -281,26 +256,20 @@ export function DashboardKpis({
             const key = item.key;
             chartValues = cleanData.map(point => toNumber(point[key])).filter((value): value is number => value !== undefined);
           }
-          const currentApiChange = currentChanges[item.key];
           const calculatedChange = currentValue !== undefined && compareValue !== undefined ? currentValue - compareValue : null;
           const calculatedChangePercent = calculatedChange !== null && compareValue
             ? (calculatedChange / compareValue) * 100
             : null;
-          const hasCurrentApiChange = (
-            currentApiChange?.numChange !== null
-            && currentApiChange?.numChange !== undefined
-          ) || (
-            currentApiChange?.percentChange !== null
-            && currentApiChange?.percentChange !== undefined
-          );
-          const useCurrentApiChange = hasCurrentApiChange || period === '1D';
-          const change = useCurrentApiChange
-            ? currentApiChange?.numChange ?? calculatedChange
-            : calculatedChange;
-          const changePercent = useCurrentApiChange
-            ? currentApiChange?.percentChange ?? calculatedChangePercent
-            : calculatedChangePercent;
-          const showsPreviousDayLabel = hasCurrentApiChange;
+          const change = calculatedChange;
+          const changePercent = calculatedChangePercent;
+          const expectedPreviousDate = currentDate
+            ? targetDate(parseDate(currentDate), '1D').toISOString().slice(0, 10)
+            : '';
+          const comparisonLabel = compareDate
+            ? compareDate === expectedPreviousDate
+              ? 'vs previous day'
+              : `vs ${formatCardDate(compareDate)}`
+            : '';
           const directionValue = change ?? changePercent;
           const tone = directionValue === null ? 'neutral' : directionValue > 0 ? 'up' : directionValue < 0 ? 'down' : 'neutral';
 
@@ -315,7 +284,7 @@ export function DashboardKpis({
                 <div className={`dashboard-kpi-change ${tone}`}>
                   <b>{change === null ? (isManualInput ? '--' : 'No baseline') : item.changeFormatter(change)}</b>
                   <em>{changePercent === null ? '' : `(${signed(changePercent, 2, '%')})`}</em>
-                  {showsPreviousDayLabel && <small>vs previous day</small>}
+                  {comparisonLabel && <small>{comparisonLabel}</small>}
                 </div>
               </div>
               <Sparkline values={chartValues} tone={item.chartTone} />

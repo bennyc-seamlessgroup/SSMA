@@ -25,9 +25,9 @@ function groupCenterX(index: number, total: number, width: number) {
   return chart.left + ((index + .5) / Math.max(total, 1)) * plotWidth;
 }
 
-function yFor(value: number) {
+function yFor(value: number, maximum: number) {
   const plotHeight = chart.height - chart.top - chart.bottom;
-  return chart.top + ((100 - value) / 100) * plotHeight;
+  return chart.top + ((maximum - value) / Math.max(maximum, 1)) * plotHeight;
 }
 
 function visibleLabelIndexes(length: number) {
@@ -62,6 +62,10 @@ export function SentimentTimeline({
   const plotWidth = chartWidth - chart.left - chart.right;
   const groupStep = plotWidth / Math.max(buckets.length, 1);
   const barWidth = Math.min(Math.max(groupStep * .46, 5), 28);
+  const maximumMentions = Math.max(0, ...buckets.map(bucket => bucket.mentions));
+  const tickStep = Math.max(1, Math.ceil(maximumMentions / 4));
+  const yMaximum = tickStep * 4;
+  const yTicks = [4, 3, 2, 1, 0].map(multiplier => multiplier * tickStep);
   const selectedIndex = selectedBucketId ? buckets.findIndex(bucket => bucket.id === selectedBucketId) : -1;
   const hoveredIndex = hoveredBucketId ? buckets.findIndex(bucket => bucket.id === hoveredBucketId) : -1;
   const activeIndex = hoveredIndex >= 0 ? hoveredIndex : selectedIndex >= 0 ? selectedIndex : null;
@@ -86,13 +90,13 @@ export function SentimentTimeline({
         <svg
           viewBox={`0 0 ${chartWidth} ${chart.height}`}
           role="img"
-          aria-label={`${platformLabel(selectedPlatform)} sentiment scores over time`}
+          aria-label={`${platformLabel(selectedPlatform)} mention volume over time`}
           onMouseLeave={() => setHoveredBucketId(null)}
         >
-          {[100, 75, 50, 25, 0].map(tick => (
+          {yTicks.map(tick => (
             <g key={tick} className="narrative-line-grid">
-              <line x1={chart.left} x2={chartWidth - chart.right} y1={yFor(tick)} y2={yFor(tick)} />
-              <text x={chart.left - 12} y={yFor(tick) + 4} textAnchor="end">{tick}</text>
+              <line x1={chart.left} x2={chartWidth - chart.right} y1={yFor(tick, yMaximum)} y2={yFor(tick, yMaximum)} />
+              <text x={chart.left - 12} y={yFor(tick, yMaximum) + 4} textAnchor="end">{tick}</text>
             </g>
           ))}
 
@@ -110,8 +114,8 @@ export function SentimentTimeline({
 
           <g>
             {buckets.map((bucket, bucketIndex) => {
-              const value = bucket.score ?? 0;
-              const y = yFor(value);
+              const value = bucket.mentions;
+              const y = yFor(value, yMaximum);
               const selected = selectedBucketId === bucket.id;
               return (
                 <rect
@@ -120,7 +124,7 @@ export function SentimentTimeline({
                   x={groupCenterX(bucketIndex, buckets.length, chartWidth) - barWidth / 2}
                   y={y}
                   width={barWidth}
-                  height={Math.max(2, yFor(0) - y)}
+                  height={Math.max(2, yFor(0, yMaximum) - y)}
                   rx={Math.min(5, barWidth / 2)}
                   style={{ fill: selectedColor, opacity: selectedBucketId && !selected ? .32 : bucket.mentions ? .92 : .18 }}
                   onMouseEnter={() => setHoveredBucketId(bucket.id)}
@@ -140,9 +144,9 @@ export function SentimentTimeline({
             <span className="focused">
               <i style={{ background: selectedColor }} />
               {platformLabel(selectedPlatform)}
-              <b>{buckets[tooltipIndex].score ?? 'No data'}</b>
+              <b>{buckets[tooltipIndex].mentions}</b>
             </span>
-            <span>Mentions <b>{buckets[tooltipIndex].mentions}</b></span>
+            <span>Sentiment score <b>{buckets[tooltipIndex].score ?? 'No data'}</b></span>
             <span>Bullish <b>{buckets[tooltipIndex].positive}</b></span>
             <span>Neutral <b>{buckets[tooltipIndex].neutral}</b></span>
             <span>Bearish <b>{buckets[tooltipIndex].negative}</b></span>

@@ -82,40 +82,73 @@ function logoLabel(row: MentionFeedRow) {
 
 export function MentionFeedCards({
   rows,
+  fromDate,
+  toDate,
+  minDate,
+  maxDate,
+  isLoadingRange = false,
+  onDateRangeChange,
+  canSeeMore = false,
+  onSeeMore,
   hidePlatformFilter = false,
   emptyMessage = 'No social feeds captured for this platform and time window.',
-  hasMore = false,
-  isLoadingMore = false,
-  onLoadMore,
 }: {
   rows: MentionFeedRow[];
+  fromDate: string;
+  toDate: string;
+  minDate: string;
+  maxDate: string;
+  isLoadingRange?: boolean;
+  onDateRangeChange: (fromDate: string, toDate: string) => void | Promise<void>;
+  canSeeMore?: boolean;
+  onSeeMore: () => void | Promise<void>;
   hidePlatformFilter?: boolean;
   emptyMessage?: string;
-  hasMore?: boolean;
-  isLoadingMore?: boolean;
-  onLoadMore?: () => void | Promise<void>;
 }) {
   const [sentimentFilter, setSentimentFilter] = useState<(typeof sentimentFilters)[number]>('All Sentiment');
   const [sortMode, setSortMode] = useState<'recent' | 'oldest' | 'followers' | 'likes' | 'engagement'>('recent');
-  const [search, setSearch] = useState('');
   const filteredRows = useMemo(() => {
-    const query = search.trim().toLowerCase();
     return rows
       .filter(row => sentimentFilter === 'All Sentiment' || sentimentLabel(row.sentiment) === sentimentFilter)
-      .filter(row => !query || `${row.text} ${row.author} ${row.platform}`.toLowerCase().includes(query))
       .sort((a, b) => {
         if (sortMode === 'oldest') return a.timestampMs - b.timestampMs;
         if (sortMode === 'followers') return b.followersScore - a.followersScore;
         if (sortMode === 'likes') return b.likesScore - a.likesScore;
         if (sortMode === 'engagement') return engagement(b) - engagement(a);
-        return b.timestampMs - a.timestampMs;
+        return 0;
       });
-  }, [rows, sentimentFilter, sortMode, search]);
+  }, [rows, sentimentFilter, sortMode]);
   return (
     <div className="narrative-feed-shell">
       <div className="narrative-command-filters">
         {!hidePlatformFilter && <span className="narrative-feed-filter-label">Feed filters</span>}
         <div className="narrative-filter-selects">
+          <label className="narrative-date-range-field">
+            <span>From</span>
+            <input
+              type="date"
+              value={fromDate}
+              min={minDate}
+              max={toDate}
+              onChange={event => {
+                if (event.target.value) void onDateRangeChange(event.target.value, toDate);
+              }}
+              aria-label="Social feed start date"
+            />
+          </label>
+          <label className="narrative-date-range-field">
+            <span>To</span>
+            <input
+              type="date"
+              value={toDate}
+              min={fromDate}
+              max={maxDate}
+              onChange={event => {
+                if (event.target.value) void onDateRangeChange(fromDate, event.target.value);
+              }}
+              aria-label="Social feed end date"
+            />
+          </label>
           <select value={sentimentFilter} onChange={event => setSentimentFilter(event.target.value as (typeof sentimentFilters)[number])} aria-label="Sentiment filter">
             {sentimentFilters.map(type => <option key={type} value={type}>{type}</option>)}
           </select>
@@ -126,12 +159,6 @@ export function MentionFeedCards({
             <option value="likes">Highest Likes</option>
             <option value="engagement">Highest Engagement</option>
           </select>
-          <input
-            value={search}
-            onChange={event => setSearch(event.target.value)}
-            placeholder="Search posts..."
-            aria-label="Search social posts"
-          />
         </div>
       </div>
 
@@ -173,10 +200,10 @@ export function MentionFeedCards({
         ))}
       </div>
 
-      <div className="narrative-feed-pagination" aria-label={`${rows[0]?.platform ?? 'Mention'} feed pagination`}>
-        <span>Showing {filteredRows.length} loaded posts</span>
-        <button type="button" onClick={onLoadMore} disabled={!hasMore || isLoadingMore}>
-          {isLoadingMore ? 'Loading...' : 'Load more'}
+      <div className="narrative-feed-pagination" aria-label={`${rows[0]?.platform ?? 'Mention'} feed count`}>
+        <span>Showing {filteredRows.length} posts in selected date range</span>
+        <button type="button" onClick={() => void onSeeMore()} disabled={!canSeeMore || isLoadingRange}>
+          {isLoadingRange ? 'Loading…' : 'See more'}
         </button>
       </div>
     </div>

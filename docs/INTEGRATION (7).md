@@ -1201,6 +1201,7 @@ Retrieve social media posts and sentiment data from the centralized v2 data plat
 ```
 GET /social-data?ticker=CURR&limit=20&page=1
 GET /social-data?ticker=CURR&platform=Reddit&limit=10&page=2
+GET /social-data?ticker=CURR&order=asc
 GET /social-data?key=kwatch/CURR/Reddit/2026-06-26/Reddit_CURR_2026-06-29T11_00_12Z.json
 Authorization: <id_token>
 ```
@@ -1213,8 +1214,11 @@ Authorization: <id_token>
 - `key` (Optional / Query Parameter): The exact S3 key of a target social media record. If provided, the API retrieves that single post and ignores all other parameters.
 - `ticker` (**Required for listing** / Query Parameter): The stock ticker symbol (e.g. `CURR`). Ignored if `key` is specified.
 - `platform` (Optional / Query Parameter): Filter posts by platform (e.g., `Reddit`, `Twitter`, `Stocktwits`, `Facebook`, `LinkedIn`, `Youtube`).
-- `limit` (Optional / Query Parameter): Number of records per page (default `20`, max `100`).
-- `page` (Optional / Query Parameter): Page number for pagination (default `1`).
+- `limit` (Optional / Query Parameter): Number of records per page (default `20`, max `100`). Ignored if `date` parameter is specified.
+- `page` (Optional / Query Parameter): Page number for pagination (default `1`). Ignored if `date` parameter is specified.
+- `date` (Optional / Query Parameter): Filter posts by date (e.g. `2026-06-29`). When provided, skips `limit` and `page` pagination to return all matching records for that date. Matches post date, S3 target bucket date, or calculated target date.
+- `sort` (Optional / Query Parameter): Field to sort by (`datetime`, default `datetime`).
+- `order` (Optional / Query Parameter): Sort direction (`asc` / `ascending` for oldest first, `desc` / `descending` for newest first; default `desc`).
 
 **Response** `200 OK` — Single Record (when `key` is provided):
 Returns the complete JSON content of the requested social post, with the S3 `key` injected.
@@ -1232,7 +1236,7 @@ Returns the complete JSON content of the requested social post, with the S3 `key
 ```
 
 **Response** `200 OK` — Paged Listing (when `key` is omitted):
-Returns a paginated list of social posts sorted in descending chronological order (newest first) along with pagination metadata.
+Returns a paginated list of social posts sorted in chronological order according to `sort` and `order` parameters (default: descending / newest first) along with pagination metadata.
 ```json
 {
   "records": [
@@ -1406,7 +1410,7 @@ The API manages **11 categories**, grouped into two types:
 | `internal-float-inputs-ticker` | Single-Record | No | Ticker-level float attributes: `tokenizedShares`, `collateralizedShares` |
 | `internal-float-inputs-user` | Single-Record | No | User-level float attributes: `managementStrategicHoldings`, `privateFriendlyHolders` |
 | `internal-float-inputs` | Single-Record | No | Legacy/Combined view across ticker-level and user-level float inputs |
-| `issued-share` | Single-Record | No | `issuedShare` (int) |
+| `issued-share` | Single-Record | Yes | `issuedShare` (int) |
 | `profile` | Single-Record | No | `companyName` (string), `stockCode` (string) |
 | `hotkeys` | Record-Array | No | Items inside `records`: `id` (string), `kwatchHotkey` (string), `platform` (string) |
 | `institutional-owner` | Record-Array | No | Items inside `records`: `id` (string), `institutionalOwnerSecurityName` (string) |
@@ -1588,7 +1592,17 @@ The API manages **11 categories**, grouped into two types:
     "issuedShare": 112280000
   }
   ```
-* **Output Payload (GET / PUT):** Same as input.
+* **Output Payload (GET / PUT):**
+  ```json
+  {
+    "issuedShare": 112280000,
+    "createdBy": "justin.lai@tng.asia",
+    "createdAt": "2026-07-14T08:31:33Z",
+    "updatedBy": "justin.lai@tng.asia",
+    "updatedAt": "2026-07-14T08:45:40Z",
+    "generatedAt": "2026-07-14T08:45:40Z"
+  }
+  ```
 
 #### 7. `profile`
 * **HTTP Methods:** `GET`, `PUT`, `DELETE`
@@ -1943,12 +1957,12 @@ Content-Type: text/csv
 * `file` (**Required** / Form Field): The multipart CSV file containing the data.
 
 **Existing Data Handling**:
-- **Date-Specific Categories** (`utilization`, `margins`, `short-score`, `manual-availability`):
+- **Date-Specific Categories** (`utilization`, `margins`, `short-score`, `manual-availability`, `issued-share`):
   - These categories store data in date-partitioned JSON files: `manual-input/{category}/{ticker}/{date}/{category}.json`.
   - During import, the CSV is grouped by the `tradeDate` of each row.
   - For each unique date present in the CSV, the API writes/overwrites the corresponding date-specific file in S3.
   - **Important**: Any existing S3 data/files for dates *not* present in the uploaded CSV will remain intact. Only files for dates that exist in the CSV are replaced.
-- **Single-Record Categories** (`issued-share`, `profile`):
+- **Single-Record Categories** (`profile`):
   - These categories store all data in a single JSON file: `manual-input/{category}/{ticker}/{category}.json`.
   - The API completely overwrites this file with the top-sorted record from the CSV. All prior existing information in that file is deleted.
 - **Internal Float Inputs Categories** (`internal-float-inputs-ticker`, `internal-float-inputs-user`, `internal-float-inputs`):

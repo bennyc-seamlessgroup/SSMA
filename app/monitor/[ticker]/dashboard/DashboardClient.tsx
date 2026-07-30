@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { DashboardChart } from './DashboardChart';
-import { DashboardKpis, type DashboardCurrentChanges, type PeriodKey } from './DashboardKpis';
+import { DashboardKpis, type PeriodKey } from './DashboardKpis';
 import type { DashboardMarginRecord, DashboardUtilizationRecord } from '@/lib/operations/data-types';
 import { CustomAlertCenter } from './CustomAlertCenter';
 import { PageDisclaimerNotice } from '@/components/PageDisclaimerNotice';
@@ -35,7 +35,6 @@ export function DashboardClient({
   events,
   utilizationRecords,
   marginRecords,
-  currentChanges,
   currentAlertMetrics,
 }: {
   ticker: string;
@@ -43,10 +42,8 @@ export function DashboardClient({
   events: CompanyEvent[];
   utilizationRecords: DashboardUtilizationRecord[];
   marginRecords: DashboardMarginRecord[];
-  currentChanges: DashboardCurrentChanges;
   currentAlertMetrics: CurrentAlertMetricValues;
 }) {
-  const [kpiPeriod, setKpiPeriod] = useState<PeriodKey>('1Y');
   const [lendingPeriod, setLendingPeriod] = useState<PeriodKey>('1Y');
   const [marketPeriod, setMarketPeriod] = useState<PeriodKey>('1Y');
   const [overviewPeriod, setOverviewPeriod] = useState<PeriodKey>('1Y');
@@ -55,11 +52,8 @@ export function DashboardClient({
     <>
       <DashboardKpis
         data={data}
-        period={kpiPeriod}
-        onPeriodChange={setKpiPeriod}
         utilizationRecords={utilizationRecords}
         marginRecords={marginRecords}
-        currentChanges={currentChanges}
       />
       <CustomAlertCenter ticker={ticker} currentMetrics={currentAlertMetrics} />
       <DashboardChart
