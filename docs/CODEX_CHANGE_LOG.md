@@ -279,3 +279,115 @@ completed change.
 - Remaining dependency: Container-relative font scaling requires browser support
   for CSS container query units, available in the portal's supported modern
   browsers.
+
+## 2026-07-30 — Add consolidation after Social Data Upload
+
+- Area: Operations Portal → Social Data Upload.
+- APIs/data:
+  - Existing upload: `POST /social-data?ticker={ticker}`
+  - Existing progress polling: `GET /social-data/progress?jobId={jobId}`
+  - Added action: `POST /manual-input/consolidate?ticker={ticker}`
+- User-reported problem: Social CSV uploads completed their background import
+  jobs but the page provided no way to trigger downstream consolidation.
+- Root cause: The Social Data Upload client implemented upload and progress
+  polling only; unlike Data Import, it never called the documented manual
+  consolidation endpoint.
+- Implemented behavior:
+  - A `Run consolidation` button is displayed beside Upload.
+  - It remains disabled until every queued social import job completes
+    successfully.
+  - Failed, active, newly selected, or newly queued imports cannot be
+    consolidated.
+  - Successful consolidation displays the asynchronous-processing notice.
+  - The consolidation request and response are included as a separate
+    Development Data row.
+- Must preserve:
+  - Social uploads remain asynchronous and continue polling their job IDs.
+  - Consolidation is never triggered before background upload processing
+    completes.
+  - Uploading a new batch clears readiness from the previous batch.
+  - Platform-specific replacement behavior and existing social-data APIs remain
+    unchanged.
+- Files changed:
+  - `app/operations/narrative-social/NarrativeSocialUploadClient.tsx`
+  - `docs/CODEX_CHANGE_LOG.md`
+- Verification:
+  - The local Social Data Upload page renders the new button disabled before a
+    successful import.
+  - TypeScript type-check, whitespace validation, and production build passed.
+- Remaining dependency: `/manual-input/consolidate` returns immediately and the
+  backend provides no completion-status API for the consolidation pipeline.
+
+## 2026-07-30 — Make Social Data consolidation visibly responsive
+
+- Area: Operations Portal → Social Data Upload → Run consolidation.
+- APIs/data:
+  - `POST /manual-input/consolidate?ticker={ticker}`
+- User-reported problem: Clicking `Run consolidation` appeared to produce no
+  response.
+- Root cause: The click handler cleared the existing message and displayed no
+  in-progress message while awaiting the API. It also had no request timeout, so
+  a stalled request could leave the page apparently idle indefinitely.
+- Implemented behavior:
+  - Clicking the button immediately displays
+    `Sending the consolidation request...`.
+  - The button immediately changes to `Consolidating...` and is disabled.
+  - Development Data records the request with `requesting`, `triggered`,
+    `timed out`, or `error` state information.
+  - Requests that do not respond within 30 seconds are cancelled and show an
+    explicit retry message.
+  - Guard conditions now show a reason instead of silently returning.
+  - The visible message is an ARIA live status region.
+- Must preserve:
+  - Consolidation remains available only after successful social import jobs.
+  - The same documented consolidation endpoint and ticker are used.
+  - A timeout is not reported as a successful consolidation trigger.
+- Files changed:
+  - `app/operations/narrative-social/NarrativeSocialUploadClient.tsx`
+  - `docs/CODEX_CHANGE_LOG.md`
+- Verification: TypeScript type-check, whitespace validation, and production
+  build passed.
+- Remaining dependency: The backend still provides no consolidation completion
+  endpoint after acknowledging the asynchronous trigger.
+
+## 2026-07-30 — Preserve Social consolidation readiness after refresh
+
+- Area: Operations Portal → Social Data Upload → Run consolidation.
+- APIs/data:
+  - Active-job check: `GET /social-data/progress?ticker={ticker}`
+  - Consolidation: `POST /manual-input/consolidate?ticker={ticker}`
+- User-reported problem: The consolidation control still appeared to do nothing
+  when clicked.
+- Root cause: Consolidation readiness existed only in React memory and defaulted
+  to false. Refreshing or reopening the page lost the completed-upload flag and
+  rendered a native disabled button. Native disabled buttons cannot invoke the
+  handler, so no feedback could be displayed.
+- Implemented behavior:
+  - Readiness defaults to available after a refresh, subject to the active-job
+    API check.
+  - While active jobs are being checked, the control displays
+    `Checking imports...` with explanatory status text.
+  - While imports are active, it displays `Waiting for imports...`.
+  - When no job is active, it displays an enabled `Run consolidation` button
+    and `Ready to consolidate {ticker}`.
+  - A permanent inline live-status message beside the button shows requesting,
+    success, timeout, import failure, or API error state.
+  - Selecting or starting a new upload still blocks consolidation until that
+    batch completes successfully.
+- Must preserve:
+  - Consolidation cannot run while an import job is active.
+  - A failed or unfinished new upload cannot be consolidated.
+  - Refreshing the page must not permanently disable the manual consolidation
+    action merely because the prior completion flag was held in memory.
+- Files changed:
+  - `app/operations/narrative-social/NarrativeSocialUploadClient.tsx`
+  - `app/globals.css`
+  - `docs/CODEX_CHANGE_LOG.md`
+- Verification:
+  - Local page first rendered `Checking imports...` with a visible status.
+  - After the active-job check, it rendered enabled `Run consolidation` with
+    `Ready to consolidate CURR`.
+  - TypeScript type-check, whitespace validation, and production build passed.
+- Remaining dependency: The progress endpoint lists active jobs only, so after
+  a refresh the frontend can prevent consolidation during active work but cannot
+  independently recover the outcome of an older failed job.

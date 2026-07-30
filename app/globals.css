@@ -5653,6 +5653,29 @@ html[data-design-b-theme="dark"] .ops-import-refreshed {
   line-height: 1.5;
 }
 
+.ops-social-consolidation-control {
+  display: grid;
+  justify-items: end;
+  gap: 5px;
+}
+
+.ops-social-consolidation-status {
+  max-width: 320px;
+  color: var(--ci-muted, #64748b);
+  font-size: 10px;
+  font-weight: 650;
+  line-height: 1.35;
+  text-align: right;
+}
+
+.ops-social-consolidation-status.is-success {
+  color: var(--ci-success, #059669);
+}
+
+.ops-social-consolidation-status.is-error {
+  color: var(--ci-danger, #dc2626);
+}
+
 .ops-upload-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));

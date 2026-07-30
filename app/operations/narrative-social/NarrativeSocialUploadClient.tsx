@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { OperationsDevelopmentData } from '@/components/OperationsDevelopmentData';
+import { authenticatedFetch } from '@/lib/auth-client';
 import { getOperationsTicker, setOperationsTicker } from '@/lib/operations/ticker-client';
 import {
   getSocialDataPage,
@@ -70,9 +71,12 @@ export function NarrativeSocialUploadClient() {
   const [data, setData] = useState<Partial<UploadState>>({});
   const [developmentData, setDevelopmentData] = useState<Partial<UploadState>>();
   const [uploadResponses, setUploadResponses] = useState<UploadResponseState>({});
+  const [consolidationResult, setConsolidationResult] = useState<unknown>();
+  const [consolidationReady, setConsolidationReady] = useState(true);
+  const [consolidationFeedback, setConsolidationFeedback] = useState('');
   const [jobs, setJobs] = useState<Record<string, SocialImportJob>>({});
   const [progressPayload, setProgressPayload] = useState<unknown>();
-  const [status, setStatus] = useState<'idle' | 'loading' | 'uploading' | 'processing' | 'done' | 'error'>('loading');
+  const [status, setStatus] = useState<'idle' | 'loading' | 'uploading' | 'processing' | 'consolidating' | 'done' | 'error'>('loading');
   const [message, setMessage] = useState('');
   const [developmentTicker, setDevelopmentTicker] = useState('CURR');
   const finishingJobs = useRef(false);
@@ -170,14 +174,18 @@ export function NarrativeSocialUploadClient() {
           const completedBatch = Object.values(mergedJobs);
           const failures = completedBatch.filter(job => job.status === 'FAILED');
           if (failures.length) {
+            setConsolidationReady(false);
+            setConsolidationFeedback('The latest social import failed. Fix the import before running consolidation.');
             setStatus('error');
             setMessage(failures.map(job => `${job.platform || job.filename}: ${job.error || 'Import failed.'}`).join(' '));
           } else {
             const uploadedCount = completedBatch.reduce((sum, job) => sum + job.uploadedCount, 0);
             await load(selectedTicker);
             if (!cancelled) {
+              setConsolidationReady(true);
+              setConsolidationFeedback(`Social import complete. Consolidation is ready for ${selectedTicker}.`);
               setStatus('done');
-              setMessage(`Processed ${uploadedCount.toLocaleString('en-US')} records across ${completedBatch.length} platform${completedBatch.length === 1 ? '' : 's'}.`);
+              setMessage(`Processed ${uploadedCount.toLocaleString('en-US')} records across ${completedBatch.length} platform${completedBatch.length === 1 ? '' : 's'}. Run consolidation to publish the updated social data.`);
             }
           }
           finishingJobs.current = false;
@@ -218,6 +226,9 @@ export function NarrativeSocialUploadClient() {
       setStatus('error');
       setMessage('No supported Reddit, X, or Stocktwits CSV was detected.');
     } else {
+      setConsolidationReady(false);
+      setConsolidationFeedback('Upload the selected CSV and wait for processing to finish.');
+      setConsolidationResult(undefined);
       setStatus('idle');
       setMessage('');
     }
@@ -233,6 +244,9 @@ export function NarrativeSocialUploadClient() {
     setStatus('uploading');
     setMessage('');
     setDevelopmentData(undefined);
+    setConsolidationReady(false);
+    setConsolidationFeedback('Uploading social data. Consolidation will be available after processing completes.');
+    setConsolidationResult(undefined);
 
     try {
       const uploads = (Object.entries(files) as Array<[PlatformKey, File | undefined]>)
@@ -267,6 +281,54 @@ export function NarrativeSocialUploadClient() {
     }
   }
 
+  async function consolidate() {
+    if (!consolidationReady || activeJobIds.length) {
+      const feedback = activeJobIds.length
+        ? 'Wait for every social import job to finish before running consolidation.'
+        : 'The latest selected or uploaded CSV has not completed successfully. Finish the upload before running consolidation.';
+      setConsolidationFeedback(feedback);
+      setMessage(feedback);
+      return;
+    }
+    setStatus('consolidating');
+    const requestingMessage = `Sending the consolidation request for ${selectedTicker}...`;
+    setConsolidationFeedback(requestingMessage);
+    setMessage(requestingMessage);
+    const endpoint = `/manual-input/consolidate?ticker=${encodeURIComponent(selectedTicker)}`;
+    const request = { ticker: selectedTicker };
+    setConsolidationResult({ request, response: null, state: 'requesting' });
+    const controller = new AbortController();
+    const timeout = window.setTimeout(() => controller.abort(), 30000);
+    try {
+      const response = await authenticatedFetch(endpoint, {
+        method: 'POST',
+        body: JSON.stringify(request),
+        signal: controller.signal,
+      });
+      setConsolidationResult({ request, response, state: 'triggered' });
+      setStatus('done');
+      const successMessage = `Consolidation was queued for ${selectedTicker}. The API returns before processing finishes, so the Social Sentiment page may take a few minutes to update.`;
+      setConsolidationFeedback(successMessage);
+      setMessage(successMessage);
+    } catch (error) {
+      const timedOut = controller.signal.aborted;
+      setConsolidationResult({
+        request,
+        response: null,
+        state: timedOut ? 'timed out' : 'error',
+        error: error instanceof Error ? error.message : String(error),
+      });
+      setStatus('error');
+      const errorMessage = timedOut
+        ? `The consolidation request for ${selectedTicker} did not respond within 30 seconds. No successful trigger was confirmed; please retry.`
+        : error instanceof Error ? error.message : 'Unable to trigger consolidation.';
+      setConsolidationFeedback(errorMessage);
+      setMessage(errorMessage);
+    } finally {
+      window.clearTimeout(timeout);
+    }
+  }
+
   return (
     <div className="ops-social-page">
       <section
@@ -282,12 +344,42 @@ export function NarrativeSocialUploadClient() {
           <h2>Drop CSV files here</h2>
           <p>Upload Reddit, X, or Stocktwits CSV files. Each upload replaces the existing dataset for the detected platform only.</p>
         </div>
-        <button className="ops-primary-button" type="button" disabled={status === 'uploading' || status === 'processing'} onClick={uploadFiles}>
-          {status === 'uploading' ? 'Uploading...' : status === 'processing' ? 'Processing...' : `Upload ${readyCount || ''}`.trim()}
-        </button>
+        <div className="ops-import-actions">
+          <button className="ops-primary-button" type="button" disabled={status === 'uploading' || status === 'processing' || status === 'consolidating'} onClick={uploadFiles}>
+            {status === 'uploading' ? 'Uploading...' : status === 'processing' ? 'Processing...' : `Upload ${readyCount || ''}`.trim()}
+          </button>
+          <div className="ops-social-consolidation-control">
+            <button
+              className="ops-secondary-button"
+              type="button"
+              disabled={Boolean(activeJobIds.length) || status === 'consolidating' || status === 'loading'}
+              onClick={consolidate}
+            >
+              {status === 'consolidating'
+                ? 'Consolidating...'
+                : status === 'loading'
+                  ? 'Checking imports...'
+                : activeJobIds.length
+                  ? 'Waiting for imports...'
+                  : 'Run consolidation'}
+            </button>
+            <small
+              className={`ops-social-consolidation-status ${status === 'error' ? 'is-error' : status === 'done' && consolidationResult ? 'is-success' : ''}`}
+              role="status"
+              aria-live="polite"
+            >
+              {consolidationFeedback
+                || (status === 'loading'
+                  ? 'Checking whether any social import jobs are still running.'
+                  : activeJobIds.length
+                  ? `${activeJobIds.length} import job${activeJobIds.length === 1 ? '' : 's'} must finish first.`
+                  : `Ready to consolidate ${selectedTicker}.`)}
+            </small>
+          </div>
+        </div>
       </section>
 
-      {message && <p className={`ops-form-message ${status === 'error' ? 'bad' : 'good'}`}>{message}</p>}
+      {message && <p className={`ops-form-message ${status === 'error' ? 'bad' : 'good'}`} role="status" aria-live="polite">{message}</p>}
 
       {Object.keys(jobs).length > 0 && (
         <section className="ops-panel ops-social-progress" aria-label="Social import progress">
@@ -419,6 +511,11 @@ export function NarrativeSocialUploadClient() {
           state: activeJobIds.length ? `${activeJobIds.length} active` : 'idle',
           recordCount: Object.keys(jobs).length,
           payload: progressPayload ?? Object.values(jobs),
+        }, {
+          endpoint: `POST /manual-input/consolidate?ticker=${developmentTicker}`,
+          source: 'Manual Input V2 API',
+          state: status === 'consolidating' ? 'running' : consolidationResult ? 'triggered' : consolidationReady ? 'ready' : 'not ready',
+          payload: consolidationResult,
         }]}
       />
     </div>
