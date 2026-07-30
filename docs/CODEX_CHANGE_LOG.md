@@ -4,6 +4,331 @@ This file is the persistent implementation memory for changes made by Codex.
 Read it before modifying existing portal behavior, and update it after every
 completed change.
 
+## 2026-07-30 — Add consolidation verification to Data Import and Market Data
+
+- Areas:
+  - Operations Portal → Social Data Upload.
+  - Operations Portal → Data Import.
+  - Operations Portal → Market Data.
+- APIs/data:
+  - Existing trigger: `POST /manual-input/consolidate?ticker={ticker}`.
+  - Data Import verification uses the consolidated current/history category
+    associated with the selected import category.
+  - Market Data verification uses
+    `GET /market-data/current?category=market-current` and
+    `GET /market-data/history?category=market-history`.
+- User-requested changes:
+  - Remove the duplicate status message directly below the Social Data
+    `Run consolidation` button.
+  - Add Social Data's wait-and-check behavior to Data Import and Market Data
+    without changing their existing working import/save/consolidation logic.
+- Implemented behavior:
+  - Social Data retains the single page-level success/error message and no
+    longer repeats it beneath the button.
+  - Data Import captures the relevant consolidated output before its existing
+    trigger, then polls every ten seconds for up to five minutes.
+  - Market Data performs the same verification after its existing
+    save-and-trigger and delete-and-trigger flows.
+  - Progress messages show elapsed waiting time.
+  - A changed consolidated payload produces a confirmed-success message.
+  - If all expected outputs are available but unchanged after five minutes,
+    the message explains that output may already be current and avoids claiming
+    independent job completion.
+  - Missing expected outputs produce an error message.
+  - Verification summaries are included in the existing development-data
+    diagnostics.
+- Must preserve:
+  - Existing CSV import validation, generated-path checks, raw follow-up GET,
+    request payloads, and explicit Data Import consolidation button.
+  - Existing Market Data field validation, manual-input saves, deletion flow,
+    publication readiness, and consolidation trigger.
+  - No accepted trigger response is treated as proof of asynchronous
+    completion.
+- Files changed:
+  - `lib/consolidation-verification.ts`
+  - `app/operations/narrative-social/NarrativeSocialUploadClient.tsx`
+  - `app/operations/data-import/ManualDataImportClient.tsx`
+  - `app/operations/market-data/MarketDataOperationsClient.tsx`
+  - `docs/CODEX_CHANGE_LOG.md`
+- Verification: TypeScript type-check, whitespace validation, and production
+  build.
+- Remaining dependency: The backend still has no documented consolidation job
+  completion endpoint, so an idempotent successful run cannot be distinguished
+  conclusively from an accepted job that later fails without changing output.
+
+## 2026-07-30 — Make social consolidation confirmation platform-neutral
+
+- Area: Operations Portal → Narrative & Social Upload → Run consolidation.
+- APIs/data:
+  - Trigger: `POST /manual-input/consolidate?ticker={ticker}`.
+  - Verification:
+    `GET /market-data/current?category=sentiment-current` and
+    `GET /market-data/history?category=sentiment-events`.
+- Reported problem: The general consolidation confirmation described the
+  current MIMI LinkedIn incident, including the LinkedIn count, even though the
+  control consolidates all social platforms and must work for every ticker.
+- Root cause: Success and unchanged-output handling used a LinkedIn-specific
+  count as its deciding condition and included that incident-specific result in
+  the user message.
+- Implemented behavior:
+  - Changed-output success now reports only that consolidation output was
+    confirmed for the selected ticker.
+  - Unchanged-output handling checks that both consolidated sentiment outputs
+    are available, without inspecting any platform-specific count.
+  - The five-minute unchanged-output message now states generically that the
+    current output may already be current and that the API has no completion
+    status for the specific run.
+  - The error state is reserved for cases where one or both expected
+    consolidated outputs are unavailable after the verification window.
+- Must preserve:
+  - Five-minute uncached verification.
+  - Consolidated-data-only portal values.
+  - No claim that an accepted trigger independently proves asynchronous job
+    completion.
+- Files changed:
+  - `app/operations/narrative-social/NarrativeSocialUploadClient.tsx`
+  - `docs/CODEX_CHANGE_LOG.md`
+- Verification: TypeScript type-check, whitespace validation, and production
+  build.
+- Remaining dependency: A backend consolidation job-status endpoint would
+  allow the UI to distinguish an idempotent successful run from an accepted job
+  that later failed.
+
+## 2026-07-30 — Extend social consolidation verification to five minutes
+
+- Area: Operations Portal → Narrative & Social Upload → Run consolidation.
+- APIs/data:
+  - Trigger: `POST /manual-input/consolidate?ticker={ticker}` with a
+    ticker-only request body.
+  - Verification:
+    `GET /market-data/current?category=sentiment-current` and
+    `GET /market-data/history?category=sentiment-events`.
+- Reported problem: Backend reported successful direct API consolidation, but
+  the Operations Portal still reported no consolidated output change after its
+  two-minute verification window.
+- Clarifications:
+  - The frontend does not send `input_type: "issued-share"`.
+  - Backend clarified that older documentation showing that field was an
+    example, not the actual request contract.
+  - An accepted asynchronous trigger response is not a completion signal.
+- Implemented behavior:
+  - Poll fresh consolidated sentiment output every ten seconds for up to five
+    minutes.
+  - Continue confirming completion immediately when either consolidated payload
+    changes.
+  - If the payload remains identical but consolidated 1Y LinkedIn is already
+    nonzero, report that the data is already current while clearly stating that
+    this particular run cannot be independently confirmed.
+  - If both payloads remain identical and LinkedIn remains zero after five
+    minutes, identify the exact MIMI output categories the backend must verify.
+- Must preserve:
+  - Consolidated-only platform counts and timeline.
+  - Uncached verification requests.
+  - No claim of job completion based only on the trigger's HTTP 200 response.
+- Files changed:
+  - `app/operations/narrative-social/NarrativeSocialUploadClient.tsx`
+  - `docs/INTEGRATION (7).md`
+  - `docs/api/SOCIAL_DATA_MANUAL_CONSOLIDATION_HANDOFF.md`
+  - `docs/CODEX_CHANGE_LOG.md`
+- Verification: TypeScript type-check, whitespace validation, and production
+  build.
+- Remaining dependency: The API still has no documented consolidation job
+  status endpoint. Backend tests must verify the published `sentiment-current`
+  and `sentiment-events` outputs, not only the accepted trigger response.
+
+## 2026-07-30 — Confirm MIMI social consolidation remains a backend no-op
+
+- Area: Operations Portal → Narrative & Social Upload → Run consolidation.
+- APIs/data:
+  - Trigger: `POST /manual-input/consolidate?ticker=MIMI`.
+  - Verification:
+    `GET /market-data/current?ticker=MIMI&category=sentiment-current` and
+    `GET /market-data/history?ticker=MIMI&category=sentiment-events`.
+- Reported problem: After the backend `LinkedIn`/`linkedIn` capitalization issue
+  was identified, Operations retriggered consolidation. The trigger was
+  accepted, but neither consolidated response changed within two minutes.
+- Confirmed diagnosis:
+  - The verifier uses uncached GET requests and the POST clears the frontend
+    response cache, so this is not a stale frontend response.
+  - Frontend platform normalization is case-insensitive and treats `LinkedIn`,
+    `linkedIn`, and `Linkedin` as the same platform.
+  - The backend trigger still produced no observable consolidated sentiment
+    output.
+- Backend checks required:
+  - Confirm the capitalization fix is deployed in the Lambda/environment
+    invoked by the endpoint.
+  - Confirm the hardcoded `input_type: "issued-share"` invocation runs social
+    consolidation.
+  - Confirm the backend-calculated recent `rebuild_from_date` includes the raw
+    LinkedIn record's effective date.
+- Must preserve:
+  - Do not substitute raw `/social-data` records for consolidated sentiment.
+  - Do not describe an accepted asynchronous trigger as completed
+    consolidation without changed output or a backend completion status.
+- Files changed:
+  - `docs/api/SOCIAL_DATA_MANUAL_CONSOLIDATION_HANDOFF.md`
+  - `docs/CODEX_CHANGE_LOG.md`
+- Verification: Reviewed the uncached authenticated-fetch implementation, the
+  consolidation polling flow, frontend case normalization, and the current
+  integration contract.
+- Remaining dependency: Backend must expose a working social rebuild through
+  the manual consolidation action and preferably provide job completion/error
+  status.
+
+## 2026-07-30 — Document MIMI LinkedIn manual-consolidation gap
+
+- Area: Backend handoff for Operations Portal → Narrative & Social Upload and
+  User Portal → Social Sentiment.
+- APIs/data:
+  - Raw source: `GET /social-data?ticker=MIMI&platform=LinkedIn`.
+  - Trigger: `POST /manual-input/consolidate?ticker=MIMI`.
+  - Outputs: `GET /market-data/current?category=sentiment-current` and
+    `GET /market-data/history?category=sentiment-events`.
+- Reported problem: MIMI has one automatically collected LinkedIn source
+  record, but both consolidated sentiment outputs remain unchanged and report
+  LinkedIn as zero after Operations manually triggers consolidation.
+- Root cause status: Backend investigation required. The documented trigger
+  hardcodes `input_type: "issued-share"` and does not document whether the
+  invoked job rebuilds social sentiment.
+- Documented intended behavior:
+  - Automatic LinkedIn collection writes the raw record without a CSV upload.
+  - Operations manually triggers consolidation.
+  - That manual action must include all raw MIMI social platforms and rebuild
+    both consolidated sentiment outputs.
+- Must preserve:
+  - No new LinkedIn CSV is required.
+  - Raw `/social-data` records must not substitute for consolidated platform
+    counts or timeline data in the user portal.
+- Files changed:
+  - `docs/api/SOCIAL_DATA_MANUAL_CONSOLIDATION_HANDOFF.md`
+  - `docs/CODEX_CHANGE_LOG.md`
+- Verification: Cross-checked the handoff against the social-data,
+  social-import progress, market-data current/history, and manual consolidation
+  contracts in `docs/INTEGRATION (7).md`.
+- Remaining dependency: Backend must confirm or implement the social
+  consolidation path and provide a completion/error status mechanism if one is
+  available.
+
+## 2026-07-30 — Verify social consolidation output after triggering
+
+- Area: Operations Portal → Narrative & Social Upload → Run consolidation.
+- APIs/data:
+  - Trigger: `POST /manual-input/consolidate?ticker={ticker}`.
+  - Verification:
+    `GET /market-data/current?ticker={ticker}&category=sentiment-current` and
+    `GET /market-data/history?ticker={ticker}&category=sentiment-events`.
+- User-reported problem: After clicking Run consolidation and waiting two
+  minutes, LinkedIn remained zero and the portal did not indicate whether
+  consolidation had actually completed.
+- Root cause:
+  - The documented consolidation endpoint is asynchronous and has no job
+    status endpoint.
+  - The operations page treated the trigger's immediate 200 response as its
+    final success state without checking consolidated output.
+  - A user who opened Social Sentiment before backend completion could also
+    retain cached consolidated responses until the normal status poll detected
+    a version change.
+- Implemented behavior:
+  - Capture the uncached consolidated sentiment snapshot before triggering.
+  - After the trigger is accepted, poll both consolidated sentiment APIs every
+    five seconds for up to two minutes.
+  - Show elapsed waiting time while verification is running.
+  - When output changes, report whether consolidated 1Y LinkedIn is now
+    nonzero.
+  - If output changes but LinkedIn remains zero, report that the backend
+    consolidator omitted the source record.
+  - If neither consolidated payload changes within two minutes, report that
+    completion was not confirmed rather than claiming success.
+  - On confirmation, invalidate current/history response caches and dispatch
+    the portal data-update event.
+- Must preserve:
+  - Platform counts and timelines remain consolidated-data-only.
+  - A successful trigger response alone is not described as completed
+    consolidation.
+  - Raw `/social-data` records never substitute for consolidated output.
+  - Existing social import-job polling remains independent.
+- Files changed:
+  - `app/operations/narrative-social/NarrativeSocialUploadClient.tsx`
+  - `docs/CODEX_CHANGE_LOG.md`
+- Verification: TypeScript type-check, whitespace validation, and production
+  build passed.
+- Remaining dependency: There is no backend consolidation status API. If the
+  trigger is accepted but consolidated output does not change, the frontend
+  can diagnose the result but cannot repair the consolidator Lambda.
+
+## 2026-07-30 — Revert LinkedIn catalog fallback; consolidated data only
+
+- Area: User Portal → Social Sentiment → platform buttons and timeline.
+- APIs/data:
+  - Counts and timeline use only
+    `GET /market-data/current?ticker={ticker}&category=sentiment-current` and
+    `GET /market-data/history?ticker={ticker}&category=sentiment-events`.
+  - `GET /social-data?date={YYYY-MM-DD}` remains limited to feed-card display.
+- User correction: A source LinkedIn post must not appear in platform counts or
+  timeline analysis until the data has been imported and consolidated.
+- Reverted behavior:
+  - Removed platform catalog count probes using
+    `GET /social-data?platform={platform}&page=1&limit=1`.
+  - Removed `/social-data` records from the 1Y timeline fallback.
+  - Removed reconciliation that increased All to the sum of source catalog
+    fallbacks.
+- Intended behavior:
+  - If consolidated data reports LinkedIn as zero, the platform button and
+    timeline remain zero even when an unconsolidated source post exists.
+  - After import and consolidation update `sentiment-current` or
+    `sentiment-events`, LinkedIn appears through the normal consolidated path.
+- Must preserve:
+  - Source feed cards remain controlled by the daily feed calendar.
+  - Source feed availability never changes consolidated KPI, platform, or
+    timeline values.
+  - The preceding “Restore missing LinkedIn social catalog fallback” entry is
+    explicitly superseded and must not be reintroduced.
+- Files changed:
+  - `app/monitor/[ticker]/sentiment/SentimentBrowserPage.tsx`
+  - `docs/CODEX_CHANGE_LOG.md`
+- Verification: TypeScript type-check, whitespace validation, and production
+  build passed.
+- Remaining dependency: The backend consolidation must include the LinkedIn
+  record before the consolidated UI will show it.
+
+## 2026-07-30 — Restore missing LinkedIn social catalog fallback
+
+- Area: User Portal → Social Sentiment → platform buttons and timeline.
+- APIs/data:
+  - Primary timeframe counts remain from
+    `GET /market-data/current?ticker={ticker}&category=sentiment-current` and
+    `GET /market-data/history?ticker={ticker}&category=sentiment-events`.
+  - Fallback catalog count and latest record use
+    `GET /social-data?ticker={ticker}&platform={platform}&page=1&limit=1`.
+- User-reported problem: LinkedIn displayed zero even though `/social-data`
+  reported one LinkedIn post.
+- Root cause: After platform counts were moved to consolidated timeframe data,
+  the earlier social catalog fallback was removed. CURR's consolidated
+  sentiment payload omitted LinkedIn while the source social catalog retained
+  one record.
+- Implemented behavior:
+  - Consolidated nonzero platform counts remain authoritative.
+  - For the 1Y view only, a platform whose consolidated and event counts are
+    both zero may fall back to its `/social-data` pagination total when the
+    latest catalog record falls inside the selected one-year window.
+  - The latest catalog records supplement the 1Y event fallback, allowing the
+    missing LinkedIn platform timeline to render.
+  - The All badge is at least the sum of the displayed platform badges.
+- Must preserve:
+  - X, Reddit, Stocktwits, and other nonzero timeframe counts must not be
+    replaced by larger all-catalog totals.
+  - Shorter 1D/1W/1M/6M counts remain strictly tied to their consolidated or
+    event windows.
+  - Feed cards remain controlled by the separate daily calendar range.
+  - LinkedIn retains its `LinkedIn`/`Linkedin` query-name fallback.
+- Files changed:
+  - `app/monitor/[ticker]/sentiment/SentimentBrowserPage.tsx`
+  - `docs/CODEX_CHANGE_LOG.md`
+- Verification: TypeScript type-check, whitespace validation, and production
+  build passed.
+- Remaining dependency: The backend should ultimately include LinkedIn in
+  consolidated sentiment periods so the catalog fallback is unnecessary.
+
 ## 2026-07-30 — Clarify Lending Market Snapshot comparison dates
 
 - Area: User Portal → Lending Pressure → Lending Market Snapshot.

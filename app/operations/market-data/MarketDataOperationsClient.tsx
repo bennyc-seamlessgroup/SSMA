@@ -4,6 +4,10 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { OperationsDevelopmentData, type OperationsDevelopmentDatum } from '@/components/OperationsDevelopmentData';
 import { authenticatedFetch } from '@/lib/auth-client';
 import {
+  captureConsolidatedOutputs,
+  waitForConsolidatedOutputChange,
+} from '@/lib/consolidation-verification';
+import {
   isCompleteMarketPublicationRecord,
   latestCompleteMarketPublicationRecordFromSources,
   marketNumber,
@@ -87,6 +91,14 @@ type FormState = {
 
 const dateSpecificCategories = ['utilization', 'manual-availability', 'margins', 'short-score'] as const;
 const historyPageSize = 10;
+
+function marketConsolidatedOutputEndpoints(ticker: string) {
+  const tickerParam = encodeURIComponent(ticker);
+  return [
+    `/market-data/current?ticker=${tickerParam}&category=market-current`,
+    `/market-data/history?ticker=${tickerParam}&category=market-history`,
+  ];
+}
 
 function emptyForm(): FormState {
   return {
@@ -1047,6 +1059,8 @@ export function MarketDataOperationsClient() {
     try {
       await runNamedRequests('One or more market inputs could not be saved:', requests);
       const consolidateEndpoint = `/manual-input/consolidate?ticker=${tickerParam}`;
+      const verificationEndpoints = marketConsolidatedOutputEndpoints(selectedTicker);
+      const baseline = await captureConsolidatedOutputs(verificationEndpoints);
       let consolidationPayload: unknown;
 
       try {
@@ -1075,9 +1089,34 @@ export function MarketDataOperationsClient() {
         updatedAt: payloadGeneratedAt(consolidationPayload),
         payload: consolidationPayload,
       };
+      setMessage(`Inputs were saved for ${form.tradeDate}. Consolidation was accepted for ${selectedTicker}; waiting for published market output...`);
+      const verification = await waitForConsolidatedOutputChange({
+        endpoints: verificationEndpoints,
+        baseline,
+        onProgress: elapsedSeconds => {
+          setMessage(`Inputs were saved for ${form.tradeDate}. Still checking published market output (${elapsedSeconds}s elapsed)...`);
+        },
+      });
+      const verificationDebug: OperationsDevelopmentDatum = {
+        endpoint: verificationEndpoints.join(' + '),
+        source: 'Centralized Market Data API',
+        state: verification.changed ? 'confirmed' : 'unchanged after 5 minutes',
+        recordCount: verification.latest.availableOutputs,
+        updatedAt: verification.latest.checks.map(check => check.updatedAt).filter(Boolean).sort().at(-1),
+        payload: verification.latest.checks,
+      };
       await loadRecords(selectedTicker, true, [consolidationDebug]);
-      setStatus('success');
-      setMessage(`Saved Manual Input V2 records for ${form.tradeDate} and triggered consolidation for ${selectedTicker}.`);
+      setApiDebugRows(current => [...current, verificationDebug]);
+      if (verification.changed) {
+        setStatus('success');
+        setMessage(`Saved Manual Input V2 records for ${form.tradeDate}. Consolidated market output was confirmed for ${selectedTicker}.`);
+      } else if (verification.latest.availableOutputs === verification.latest.expectedOutputs) {
+        setStatus('success');
+        setMessage(`Saved Manual Input V2 records for ${form.tradeDate}. The consolidation request for ${selectedTicker} was accepted, but no payload change was detected within 5 minutes, so the published market output may already be current.`);
+      } else {
+        setStatus('error');
+        setMessage(`Inputs were saved for ${form.tradeDate}, but one or more expected consolidated market outputs were unavailable after 5 minutes. Consolidation completion was not confirmed.`);
+      }
     } catch (error) {
       setStatus('error');
       setMessage(error instanceof Error ? error.message : 'Unable to save Manual Input V2 records.');
@@ -1102,6 +1141,8 @@ export function MarketDataOperationsClient() {
         { label: 'Short Score', request: authenticatedFetch(`/manual-input/short-score?ticker=${tickerParam}&tradeDate=${tradeDateParam}`, { method: 'DELETE' }) },
       ]);
       const consolidateEndpoint = `/manual-input/consolidate?ticker=${tickerParam}`;
+      const verificationEndpoints = marketConsolidatedOutputEndpoints(selectedTicker);
+      const baseline = await captureConsolidatedOutputs(verificationEndpoints);
       let consolidationPayload: unknown;
       try {
         consolidationPayload = await authenticatedFetch(consolidateEndpoint, {
@@ -1128,9 +1169,34 @@ export function MarketDataOperationsClient() {
         updatedAt: payloadGeneratedAt(consolidationPayload),
         payload: consolidationPayload,
       };
-      setStatus('success');
-      setMessage(`Deleted daily Manual Input V2 records for ${record.tradeDate} and triggered consolidation.`);
+      setMessage(`Inputs for ${record.tradeDate} were deleted. Consolidation was accepted; waiting for published market output...`);
+      const verification = await waitForConsolidatedOutputChange({
+        endpoints: verificationEndpoints,
+        baseline,
+        onProgress: elapsedSeconds => {
+          setMessage(`Inputs for ${record.tradeDate} were deleted. Still checking published market output (${elapsedSeconds}s elapsed)...`);
+        },
+      });
+      const verificationDebug: OperationsDevelopmentDatum = {
+        endpoint: verificationEndpoints.join(' + '),
+        source: 'Centralized Market Data API',
+        state: verification.changed ? 'confirmed after delete' : 'unchanged after 5 minutes',
+        recordCount: verification.latest.availableOutputs,
+        updatedAt: verification.latest.checks.map(check => check.updatedAt).filter(Boolean).sort().at(-1),
+        payload: verification.latest.checks,
+      };
       await loadRecords(selectedTicker, true, [consolidationDebug]);
+      setApiDebugRows(current => [...current, verificationDebug]);
+      if (verification.changed) {
+        setStatus('success');
+        setMessage(`Deleted daily Manual Input V2 records for ${record.tradeDate}. Consolidated market output was confirmed.`);
+      } else if (verification.latest.availableOutputs === verification.latest.expectedOutputs) {
+        setStatus('success');
+        setMessage(`Deleted daily Manual Input V2 records for ${record.tradeDate}. The consolidation request was accepted, but no payload change was detected within 5 minutes, so the published market output may already be current.`);
+      } else {
+        setStatus('error');
+        setMessage(`Inputs for ${record.tradeDate} were deleted, but one or more expected consolidated market outputs were unavailable after 5 minutes. Consolidation completion was not confirmed.`);
+      }
     } catch (error) {
       setStatus('error');
       setMessage(error instanceof Error ? error.message : 'Unable to delete Manual Input V2 records.');

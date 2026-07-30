@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { OperationsDevelopmentData } from '@/components/OperationsDevelopmentData';
-import { authenticatedFetch } from '@/lib/auth-client';
+import { authenticatedFetch, invalidateAuthenticatedFetchCache } from '@/lib/auth-client';
 import { getOperationsTicker, setOperationsTicker } from '@/lib/operations/ticker-client';
 import {
   getSocialDataPage,
@@ -27,6 +27,9 @@ type SocialMentionFile = {
 
 type UploadState = Record<PlatformKey, SocialMentionFile>;
 type UploadResponseState = Partial<Record<PlatformKey, SocialUploadResponse>>;
+
+const CONSOLIDATION_VERIFICATION_TIMEOUT_MS = 5 * 60 * 1000;
+const CONSOLIDATION_POLL_INTERVAL_MS = 10 * 1000;
 
 function platformCards(ticker: string): Array<{
   key: PlatformKey;
@@ -65,6 +68,54 @@ function formatDateTime(value: string) {
   }).format(date);
 }
 
+function objectValue(value: unknown): Record<string, unknown> {
+  return value && typeof value === 'object' && !Array.isArray(value)
+    ? value as Record<string, unknown>
+    : {};
+}
+
+function consolidatedDataset(payload: unknown, category: string) {
+  const root = objectValue(payload);
+  const categoryPayload = objectValue(root[category]);
+  return Object.keys(categoryPayload).length ? categoryPayload : root;
+}
+
+type ConsolidatedSocialSnapshot = {
+  fingerprint: string;
+  updatedAt: string;
+  hasCurrentOutput: boolean;
+  hasEventOutput: boolean;
+  current: unknown;
+  events: unknown;
+};
+
+async function loadConsolidatedSocialSnapshot(ticker: string): Promise<ConsolidatedSocialSnapshot> {
+  const [current, events] = await Promise.all([
+    authenticatedFetch(`/market-data/current?ticker=${encodeURIComponent(ticker)}&category=sentiment-current`, { cache: 'no-store' }),
+    authenticatedFetch(`/market-data/history?ticker=${encodeURIComponent(ticker)}&category=sentiment-events`, { cache: 'no-store' }),
+  ]);
+  const currentDataset = consolidatedDataset(current, 'sentiment-current');
+  const eventDataset = consolidatedDataset(events, 'sentiment-events');
+  const timestamps = [
+    currentDataset.updatedAt,
+    currentDataset.generatedAt,
+    objectValue(currentDataset.data).updatedAt,
+    objectValue(currentDataset.data).generatedAt,
+    eventDataset.updatedAt,
+    eventDataset.generatedAt,
+    objectValue(eventDataset.data).updatedAt,
+    objectValue(eventDataset.data).generatedAt,
+  ].map(value => String(value ?? '')).filter(Boolean).sort();
+  return {
+    fingerprint: JSON.stringify({ current, events }),
+    updatedAt: timestamps.at(-1) ?? '',
+    hasCurrentOutput: Object.keys(currentDataset).length > 0,
+    hasEventOutput: Object.keys(eventDataset).length > 0,
+    current,
+    events,
+  };
+}
+
 export function NarrativeSocialUploadClient() {
   const [selectedTicker, setSelectedTicker] = useState('CURR');
   const [files, setFiles] = useState<Partial<Record<PlatformKey, File>>>({});
@@ -73,13 +124,14 @@ export function NarrativeSocialUploadClient() {
   const [uploadResponses, setUploadResponses] = useState<UploadResponseState>({});
   const [consolidationResult, setConsolidationResult] = useState<unknown>();
   const [consolidationReady, setConsolidationReady] = useState(true);
-  const [consolidationFeedback, setConsolidationFeedback] = useState('');
+  const [, setConsolidationFeedback] = useState('');
   const [jobs, setJobs] = useState<Record<string, SocialImportJob>>({});
   const [progressPayload, setProgressPayload] = useState<unknown>();
   const [status, setStatus] = useState<'idle' | 'loading' | 'uploading' | 'processing' | 'consolidating' | 'done' | 'error'>('loading');
   const [message, setMessage] = useState('');
   const [developmentTicker, setDevelopmentTicker] = useState('CURR');
   const finishingJobs = useRef(false);
+  const consolidationAttempt = useRef(0);
   const inputRefs = useRef<Record<PlatformKey, HTMLInputElement | null>>({
     x: null,
     reddit: null,
@@ -294,22 +346,84 @@ export function NarrativeSocialUploadClient() {
     const requestingMessage = `Sending the consolidation request for ${selectedTicker}...`;
     setConsolidationFeedback(requestingMessage);
     setMessage(requestingMessage);
+    const attempt = ++consolidationAttempt.current;
     const endpoint = `/manual-input/consolidate?ticker=${encodeURIComponent(selectedTicker)}`;
     const request = { ticker: selectedTicker };
     setConsolidationResult({ request, response: null, state: 'requesting' });
     const controller = new AbortController();
     const timeout = window.setTimeout(() => controller.abort(), 30000);
     try {
+      const baseline = await loadConsolidatedSocialSnapshot(selectedTicker);
       const response = await authenticatedFetch(endpoint, {
         method: 'POST',
         body: JSON.stringify(request),
         signal: controller.signal,
       });
-      setConsolidationResult({ request, response, state: 'triggered' });
-      setStatus('done');
-      const successMessage = `Consolidation was queued for ${selectedTicker}. The API returns before processing finishes, so the Social Sentiment page may take a few minutes to update.`;
-      setConsolidationFeedback(successMessage);
-      setMessage(successMessage);
+      window.clearTimeout(timeout);
+      setConsolidationResult({ request, response, baseline, state: 'triggered; awaiting consolidated output' });
+      const queuedMessage = `Consolidation was queued for ${selectedTicker}. Waiting for consolidated sentiment output to change...`;
+      setConsolidationFeedback(queuedMessage);
+      setMessage(queuedMessage);
+
+      let verified: ConsolidatedSocialSnapshot | null = null;
+      let latestCandidate = baseline;
+      const verificationStartedAt = Date.now();
+      while (Date.now() - verificationStartedAt < CONSOLIDATION_VERIFICATION_TIMEOUT_MS && attempt === consolidationAttempt.current) {
+        await new Promise(resolve => window.setTimeout(resolve, CONSOLIDATION_POLL_INTERVAL_MS));
+        const candidate = await loadConsolidatedSocialSnapshot(selectedTicker);
+        latestCandidate = candidate;
+        if (candidate.fingerprint !== baseline.fingerprint) {
+          verified = candidate;
+          break;
+        }
+        const elapsedSeconds = Math.round((Date.now() - verificationStartedAt) / 1000);
+        const waitingMessage = `Consolidation trigger accepted. Still waiting for consolidated sentiment output (${elapsedSeconds}s elapsed)...`;
+        setConsolidationFeedback(waitingMessage);
+        setMessage(waitingMessage);
+      }
+      if (attempt !== consolidationAttempt.current) return;
+
+      if (verified) {
+        invalidateAuthenticatedFetchCache('/market-data/current');
+        invalidateAuthenticatedFetchCache('/market-data/history');
+        window.dispatchEvent(new CustomEvent('import-data-updated', {
+          detail: { ticker: selectedTicker, source: 'social-consolidation', updatedAt: verified.updatedAt },
+        }));
+        const successMessage = `Consolidation output was confirmed for ${selectedTicker}.`;
+        setConsolidationResult({ request, response, baseline, verification: verified, state: 'confirmed' });
+        setStatus('done');
+        setConsolidationFeedback(successMessage);
+        setMessage(successMessage);
+      } else if (latestCandidate.hasCurrentOutput && latestCandidate.hasEventOutput) {
+        invalidateAuthenticatedFetchCache('/market-data/current');
+        invalidateAuthenticatedFetchCache('/market-data/history');
+        window.dispatchEvent(new CustomEvent('import-data-updated', {
+          detail: { ticker: selectedTicker, source: 'social-consolidation', updatedAt: latestCandidate.updatedAt },
+        }));
+        const alreadyCurrentMessage = `The consolidation request for ${selectedTicker} was accepted. No payload change was detected within 5 minutes, so the consolidated sentiment output may already be current. The API does not provide a completion status for this specific run.`;
+        setConsolidationResult({
+          request,
+          response,
+          baseline,
+          verification: latestCandidate,
+          state: 'accepted; consolidated sentiment output already available after 5 minutes',
+        });
+        setStatus('done');
+        setConsolidationFeedback(alreadyCurrentMessage);
+        setMessage(alreadyCurrentMessage);
+      } else {
+        const unconfirmedMessage = `The trigger API accepted consolidation for ${selectedTicker}, but sentiment-current and sentiment-events did not change within 5 minutes and one or both consolidated outputs are unavailable. Consolidation completion was not confirmed.`;
+        setConsolidationResult({
+          request,
+          response,
+          baseline,
+          verification: latestCandidate,
+          state: 'not confirmed after 5 minutes',
+        });
+        setStatus('error');
+        setConsolidationFeedback(unconfirmedMessage);
+        setMessage(unconfirmedMessage);
+      }
     } catch (error) {
       const timedOut = controller.signal.aborted;
       setConsolidationResult({
@@ -363,18 +477,6 @@ export function NarrativeSocialUploadClient() {
                   ? 'Waiting for imports...'
                   : 'Run consolidation'}
             </button>
-            <small
-              className={`ops-social-consolidation-status ${status === 'error' ? 'is-error' : status === 'done' && consolidationResult ? 'is-success' : ''}`}
-              role="status"
-              aria-live="polite"
-            >
-              {consolidationFeedback
-                || (status === 'loading'
-                  ? 'Checking whether any social import jobs are still running.'
-                  : activeJobIds.length
-                  ? `${activeJobIds.length} import job${activeJobIds.length === 1 ? '' : 's'} must finish first.`
-                  : `Ready to consolidate ${selectedTicker}.`)}
-            </small>
           </div>
         </div>
       </section>

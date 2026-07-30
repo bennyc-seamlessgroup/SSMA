@@ -3,6 +3,10 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { OperationsDevelopmentData } from '@/components/OperationsDevelopmentData';
 import { authenticatedFetch } from '@/lib/auth-client';
+import {
+  captureConsolidatedOutputs,
+  waitForConsolidatedOutputChange,
+} from '@/lib/consolidation-verification';
 import { getOperationsTicker } from '@/lib/operations/ticker-client';
 
 type ImportCategory =
@@ -113,6 +117,29 @@ const categories: CategoryDefinition[] = [
 ];
 
 const dateSpecificCategories: ImportCategory[] = ['utilization', 'margins', 'short-score', 'manual-availability', 'issued-share'];
+
+function consolidatedOutputEndpoints(category: ImportCategory, ticker: string) {
+  const tickerParam = encodeURIComponent(ticker);
+  if (dateSpecificCategories.includes(category)) {
+    return [
+      `/market-data/current?ticker=${tickerParam}&category=market-current`,
+      `/market-data/history?ticker=${tickerParam}&category=market-history`,
+    ];
+  }
+  if (category === 'profile') {
+    return [`/market-data/current?ticker=${tickerParam}&category=company-profile-current`];
+  }
+  if (category === 'institutional-owner') {
+    return [`/market-data/current?ticker=${tickerParam}&category=ownership-current`];
+  }
+  if (category === 'management-holdings' || category === 'internal-float-inputs-ticker') {
+    return [`/market-data/current?ticker=${tickerParam}&category=internal-float-current`];
+  }
+  if (category === 'internal-float-inputs-user') {
+    return [`/market-data/current?ticker=${tickerParam}&category=internal-float-current-user`];
+  }
+  return [`/market-data/history?ticker=${tickerParam}&category=sec-filings-history`];
+}
 
 function csvCell(value: string | number | boolean) {
   const text = String(value);
@@ -371,10 +398,12 @@ export function ManualDataImportClient() {
 
   async function consolidate() {
     setStatus('consolidating');
-    setMessage('');
+    setMessage(`Preparing to consolidate ${ticker}...`);
     try {
       const importedDates = [...(fileDetails?.tradeDates ?? [])].sort();
       const requestedRebuildFromDate = importedDates[0];
+      const verificationEndpoints = consolidatedOutputEndpoints(category, ticker);
+      const baseline = await captureConsolidatedOutputs(verificationEndpoints);
       const requestBody = {
         ticker,
         force_rebuild: true,
@@ -384,7 +413,12 @@ export function ManualDataImportClient() {
         method: 'POST',
         body: JSON.stringify(requestBody),
       }) as ConsolidationResponse;
-      setConsolidationResult({ request: requestBody, response: result });
+      setConsolidationResult({
+        request: requestBody,
+        response: result,
+        baseline: baseline.checks,
+        state: 'triggered; awaiting consolidated output',
+      });
       const rebuildFromDate = result.detail?.rebuild_from_date;
       const backendUsedLaterCutoff = Boolean(
         requestedRebuildFromDate
@@ -397,11 +431,36 @@ export function ManualDataImportClient() {
         setMessage(
           `Full rebuild was requested from ${requestedRebuildFromDate}, but the backend queued consolidation from ${rebuildFromDate}. Dates before the backend cutoff will not update in consolidated portal history.`,
         );
-      } else {
+        return;
+      }
+
+      setMessage(`Consolidation was accepted for ${ticker}. Waiting for consolidated output...`);
+      const verification = await waitForConsolidatedOutputChange({
+        endpoints: verificationEndpoints,
+        baseline,
+        onProgress: elapsedSeconds => {
+          setMessage(`Consolidation was accepted for ${ticker}. Still checking consolidated output (${elapsedSeconds}s elapsed)...`);
+        },
+      });
+      setConsolidationResult({
+        request: requestBody,
+        response: result,
+        baseline: baseline.checks,
+        verification: verification.latest.checks,
+        state: verification.changed
+          ? 'confirmed'
+          : 'accepted; consolidated output already available after 5 minutes',
+      });
+
+      if (verification.changed) {
         setStatus('idle');
-        setMessage(
-          `Forced consolidation was queued${requestedRebuildFromDate ? ` from the earliest imported date, ${requestedRebuildFromDate}` : ''}. The API returns before processing finishes, so consolidated portal data may take a few minutes to update.`,
-        );
+        setMessage(`Consolidation output was confirmed for ${ticker}.`);
+      } else if (verification.latest.availableOutputs === verification.latest.expectedOutputs) {
+        setStatus('idle');
+        setMessage(`The consolidation request for ${ticker} was accepted. No payload change was detected within 5 minutes, so the consolidated output may already be current. The API does not provide a completion status for this specific run.`);
+      } else {
+        setStatus('error');
+        setMessage(`The consolidation request for ${ticker} was accepted, but one or more expected consolidated outputs were unavailable after 5 minutes. Consolidation completion was not confirmed.`);
       }
     } catch (error) {
       setStatus('error');

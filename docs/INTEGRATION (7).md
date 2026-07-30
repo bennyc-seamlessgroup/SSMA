@@ -1900,31 +1900,20 @@ Content-Type: application/json
 * `ticker` (optional query parameter or JSON body parameter): Target stock ticker. Defaults to the user's primary associated ticker if omitted.
 
 **Rules:**
-* This API ignores optional client parameters like `input_type`, `rebuild_from_date`, and `force_rebuild` from client input, hardcoding them on the backend.
-* It invokes the consolidator Lambda asynchronously with:
-  * `"input_type": "issued-share"`
-  * `"force_rebuild": true`
-  * `"rebuild_from_date"`: Calculated dynamically based on the current UTC time:
-    * Before 4:00 AM UTC: `ref_date = today_utc - 1 day`
-    * At/After 4:00 AM UTC: `ref_date = today_utc`
-    * If `ref_date` falls on a Monday: `rebuild_from_date = ref_date - 3 days` (Friday)
-    * If `ref_date` falls on a Sunday: `rebuild_from_date = ref_date - 3 days` (Thursday)
-    * If `ref_date` falls on a Saturday: `rebuild_from_date = ref_date - 2 days` (Thursday)
-    * Otherwise: `rebuild_from_date = ref_date - 1 day`
+* The frontend request provides the target `ticker` only.
+* `input_type`, `rebuild_from_date`, and `force_rebuild` shown in older examples
+  are reference implementation details, not required request fields and not a
+  guarantee of the current backend invocation payload.
+* The endpoint invokes consolidation asynchronously for the requested ticker.
 * The API returns immediately without waiting for the consolidation to complete.
+* The response confirms that the trigger was accepted. It does not confirm that
+  downstream consolidated files have finished publishing.
 
 **Response** `200 OK`:
 ```json
 {
   "message": "Consolidation pipeline triggered successfully",
-  "ticker": "SPY",
-  "detail": {
-    "source": "user-inputs-update",
-    "ticker": "SPY",
-    "input_type": "issued-share",
-    "rebuild_from_date": "2026-07-15",
-    "force_rebuild": true
-  }
+  "ticker": "SPY"
 }
 ```
 
