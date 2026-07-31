@@ -4,6 +4,259 @@ This file is the persistent implementation memory for changes made by Codex.
 Read it before modifying existing portal behavior, and update it after every
 completed change.
 
+## 2026-07-31 — Align Publication Readiness with independent dashboard metrics
+
+- Area: Operations Portal → Market Data → Publication Readiness only.
+- API/data: `GET /market-data/history?ticker={ticker}&category=market-history`
+  plus the currently displayed Manual Input form/list state.
+- Reported problem: Publication Readiness used an all-or-nothing complete-date
+  rule even though dashboard cards now display each metric's latest available
+  non-null observation independently.
+- Implemented behavior:
+  - Publication Readiness now presents the same seven dashboard metrics:
+    Borrow Fee, Initial Margin, Maintenance Margin, Shortable Shares,
+    Utilization, Average Duration, and Days to Cover.
+  - Each metric first uses the selected date's value and otherwise uses its own
+    latest available value on or before that date.
+  - Every populated metric displays its individual source date. A missing
+    metric does not hold back available metrics.
+  - The status is `Available` only when all seven metrics have an available
+    value; otherwise it is `Partial`.
+  - Removed the obsolete `Frontend currently displays` / `No complete date
+    available` indicator and complete-date explanatory text.
+  - Removed CSS used only by the retired indicator and optional-row treatment.
+- Must preserve:
+  - This change is limited to the Operations Portal Publication Readiness
+    section.
+  - Dashboard, consolidation, save, delete, and Manual Input behavior remain
+    unchanged.
+  - Values must not be carried forward from a future date.
+- Files changed:
+  - `app/operations/market-data/MarketDataOperationsClient.tsx`
+  - `app/globals.css`
+  - `app/portal-theme.css`
+  - `docs/CODEX_CHANGE_LOG.md`
+- Verification: TypeScript type-check, whitespace validation, and production
+  build.
+
+## 2026-07-31 — Preview saved Market Data before editing
+
+- Area: Operations Portal → Market Data → Daily Market Inputs.
+- APIs/data: The merged list responses from `issued-share`, `utilization`,
+  `manual-availability`, `margins`, and `short-score`.
+- Reported problem: Selecting a date that existed in Saved Daily Inputs showed
+  disabled but empty fields until the operator clicked `Edit Record`.
+- Implemented behavior:
+  - Selecting an existing date immediately displays that date's saved Manual
+    Input values in disabled fields.
+  - `Edit Record` unlocks the same displayed values; it does not fetch or
+    substitute another record.
+  - `Cancel Edit` restores the saved values in read-only mode.
+  - Dates absent from Saved Daily Inputs remain blank.
+- Must preserve: Display and edit values use the same ticker-and-date row from
+  the merged Manual Input list state; no exact-date, latest-value, consolidated,
+  or cross-ticker fallback is permitted.
+- Files changed:
+  - `app/operations/market-data/MarketDataOperationsClient.tsx`
+  - `docs/CODEX_CHANGE_LOG.md`
+- Verification: TypeScript type-check and whitespace validation.
+
+## 2026-07-31 — Keep deleted or new Market Data dates blank
+
+- Area: Operations Portal → Market Data → Daily Market Inputs and Saved Daily
+  Inputs.
+- APIs/data:
+  - `GET /manual-input/issued-share?ticker={ticker}`
+  - `GET /manual-input/utilization?ticker={ticker}`
+  - `GET /manual-input/manual-availability?ticker={ticker}`
+  - `GET /manual-input/margins?ticker={ticker}`
+  - `GET /manual-input/short-score?ticker={ticker}`
+  - Corresponding `PUT` and `DELETE` requests retain both `ticker` and
+    `tradeDate`.
+- Reported problem: July 30 had been deleted and no longer appeared in Saved
+  Daily Inputs, but selecting July 30 and clicking `Edit Record` repopulated the
+  form with old values.
+- Root cause: Date selection and edit prefilling made a second set of exact-date
+  GET requests. A response without a trustworthy `tradeDate` was treated as if
+  it belonged to the selected date, so stale values recreated a deleted row in
+  frontend state.
+- Implemented behavior:
+  - The five merged Manual Input list responses are now the sole authority for
+    whether a saved date exists.
+  - Selecting a date absent from the merged list always opens a blank form and
+    never makes an exact-date prefill request.
+  - `Edit Record` is shown only for a row present in Saved Daily Inputs and
+    prefills only that list row.
+  - After successful writes, the submitted values are inserted into the local
+    list state. After successful category deletes, the row is removed from local
+    list state. Neither action performs an ambiguous exact-date readback.
+- Must preserve:
+  - Deleted and never-saved dates remain blank until the operator saves data.
+  - No consolidated, cross-date, latest-value, or date-less API response may
+    create or prefill a Manual Input record.
+  - Saved Daily Inputs and edit prefilling use the same merged Manual Input list
+    source.
+- Files changed:
+  - `app/operations/market-data/MarketDataOperationsClient.tsx`
+  - `docs/CODEX_CHANGE_LOG.md`
+- Verification: TypeScript type-check, whitespace validation, and production
+  build.
+
+## 2026-07-31 — Separate Market Data storage from manual consolidation
+
+- Area: Operations Portal → Market Data → Daily Market Inputs, Publication
+  Readiness, and Saved Daily Inputs.
+- APIs/data:
+  - Saved-input histories:
+    - `GET /manual-input/issued-share?ticker={ticker}`
+    - `GET /manual-input/utilization?ticker={ticker}`
+    - `GET /manual-input/manual-availability?ticker={ticker}`
+    - `GET /manual-input/margins?ticker={ticker}`
+    - `GET /manual-input/short-score?ticker={ticker}`
+  - Manual publication trigger:
+    `POST /manual-input/consolidate?ticker={ticker}`.
+  - Consolidated publication/readiness source:
+    `GET /market-data/history?ticker={ticker}&category=market-history`.
+- User-requested changes:
+  - Fix #01: Saved Daily Inputs must be built from Manual Input histories, not
+    consolidated Market History dates.
+  - Split `Save Inputs & Publish` into `Save Data` and `Run Consolidation`.
+  - Delete must remove Manual Input records without automatically running
+    consolidation.
+- Implemented behavior:
+  - The five Manual Input history lists are merged by `tradeDate` into the Saved
+    Daily Inputs table. A date appears only when at least one manual business
+    value exists.
+  - Consolidated Market History is no longer used as the saved-input date index.
+    It remains available only for publication readiness, prior optional values,
+    and the currently published frontend date.
+  - `Save Data` writes Manual Input records and immediately inserts or updates
+    the submitted date in the table. It does not trigger consolidation.
+  - `Delete` removes the selected date from all five Manual Input categories,
+    treats an already-absent category as harmless, and removes the row
+    immediately. It does not trigger consolidation.
+  - `Run Consolidation` is a separate explicit action. It retains the existing
+    accepted-trigger and consolidated-output verification behavior.
+  - Messages direct operators to run consolidation after completing a batch of
+    additions and deletions.
+- Must preserve:
+  - Form and table values come only from Manual Input APIs.
+  - No consolidated, local, cross-date, or cross-ticker fallback may populate
+    manual input values.
+  - Ticker and trade date remain part of write/delete requests and frontend
+    record keys.
+  - Saving and deleting must remain useful without waiting for the asynchronous
+    consolidation pipeline.
+- Supersedes:
+  - The 2026-07-31 delete behavior below that automatically triggered
+    consolidation.
+  - The previous Market History date-index workaround for Saved Daily Inputs.
+- Files changed:
+  - `app/operations/market-data/MarketDataOperationsClient.tsx`
+  - `app/globals.css`
+  - `docs/CODEX_CHANGE_LOG.md`
+- Verification: TypeScript type-check, whitespace validation, and production
+  build passed.
+- Remaining backend dependency: Manual Input history APIs return complete lists
+  without documented server-side pagination. The frontend paginates the merged
+  result after retrieval.
+
+## 2026-07-31 — Verify Market Data deletion and hide empty manual dates
+
+- Area: Operations Portal → Market Data → Saved Daily Inputs.
+- APIs/data:
+  - `DELETE /manual-input/{category}?ticker={ticker}&tradeDate={date}` for
+    `issued-share`, `utilization`, `manual-availability`, `margins`, and
+    `short-score`.
+  - Exact-date `GET` requests to the same five categories.
+  - Consolidated date index:
+    `GET /market-data/history?ticker={ticker}&category=market-history`.
+- Reported problem: After deleting a daily input and waiting for consolidation,
+  the date still appeared in Saved Daily Inputs.
+- Root cause: The table used consolidated Market History as its row index.
+  Consolidation can retain a market-history date even after all exact manual
+  records for that date have been removed, so the date was presented as if it
+  were still a saved manual input.
+- Implemented behavior:
+  - After all five delete requests succeed, the page immediately reads all five
+    exact-date manual-input endpoints and verifies that no business values
+    remain.
+  - A verified-empty date is removed from Saved Daily Inputs immediately, before
+    the longer consolidation-output check completes.
+  - Dates whose lazy exact-date responses are known to be empty are excluded
+    from the saved-input table even if consolidated Market History retains the
+    date.
+  - If any exact-date endpoint still returns a value, or verification fails for
+    a reason other than a normal not-found response, the page reports that the
+    backend deletion is incomplete and does not falsely claim success.
+  - Saving new values removes any local deleted-date suppression for that
+    ticker and date.
+- Must preserve:
+  - Consolidated Market History remains the available date index and publication
+    source, but never becomes the source of manual form values.
+  - Form values and table cells continue to come only from the five exact-date
+    Manual Input V2 endpoints.
+  - Ticker and trade date remain part of every cache identity and API request.
+  - The existing consolidation trigger and output-verification flow remains in
+    place after manual deletion is independently verified.
+- Files changed:
+  - `app/operations/market-data/MarketDataOperationsClient.tsx`
+  - `docs/CODEX_CHANGE_LOG.md`
+- Verification: TypeScript type-check and whitespace validation passed.
+- Remaining backend dependency: Consolidated Market History may legitimately
+  retain the trade date after manual values are deleted. The frontend now
+  distinguishes that historical date from an actual saved manual record.
+- Superseded behavior: Automatic consolidation after deletion was explicitly
+  removed later on 2026-07-31. See “Separate Market Data storage from manual
+  consolidation” above.
+
+## 2026-07-31 — Prevent cross-ticker Market Data edit prefills
+
+- Area: Operations Portal → Market Data → Daily Market Inputs and Saved Daily
+  Inputs.
+- APIs/data:
+  - `GET /market-data/history?ticker={ticker}&category=market-history`
+  - Exact-date `GET /manual-input/{category}?ticker={ticker}&tradeDate={date}`
+    for `issued-share`, `utilization`, `manual-availability`, `margins`, and
+    `short-score`.
+- Reported problem: The MIMI workspace said that a daily input record already
+  existed and Edit Record could show CURR-like values even though no MIMI
+  manual inputs had been entered for the selected date.
+- Root causes:
+  - The frontend manual-input cache and in-flight request registry were keyed
+    only by trade date, so they did not encode company identity.
+  - A consolidated Market History date was treated as proof that a manual-input
+    record existed, even when all five exact-date manual-input responses were
+    empty.
+  - The active ticker was committed only after the initial API batch completed,
+    leaving a window in which an older ticker request could update current
+    state.
+- Implemented behavior:
+  - Manual-input cache and request identities now use `ticker + tradeDate`.
+  - The selected ticker is committed and prior rows/cache are cleared before a
+    new ticker's requests begin.
+  - Each ticker load has a generation guard; responses from an older ticker or
+    older load are discarded.
+  - Market History remains only the date index. A date is considered editable
+    as an existing record only when an exact-date manual-input response contains
+    at least one business value.
+  - Edit Record continues to prefill only the five exact-date APIs for the
+    active ticker and selected date.
+- Must preserve:
+  - No local, cross-date, or cross-ticker fallback values.
+  - Market History must not become the source of form values.
+  - A backend exact-date response that explicitly declares another ticker is
+    rejected by the existing response filter.
+- Files changed:
+  - `app/operations/market-data/MarketDataOperationsClient.tsx`
+  - `docs/CODEX_CHANGE_LOG.md`
+- Verification: TypeScript type-check and whitespace validation passed.
+- Remaining backend dependency: The documented exact-date Manual Input response
+  examples omit `ticker` and `tradeDate`. If the API returns another company's
+  business values while omitting those identifiers, the frontend cannot prove
+  that mismatch. Returning both fields in every exact-date response is
+  recommended for end-to-end validation.
+
 ## 2026-07-30 — Add consolidation verification to Data Import and Market Data
 
 - Areas:

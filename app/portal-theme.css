@@ -1611,19 +1611,6 @@ html[data-design-b-theme='dark'] .ops-shell :is(.ops-market-entry-gate small, .o
   color: var(--ci-muted);
 }
 
-html[data-design-b-theme='dark'] .ops-shell .ops-published-date {
-  border-color: var(--ci-border);
-  background: var(--ci-surface-muted);
-}
-
-html[data-design-b-theme='dark'] .ops-shell .ops-published-date span {
-  color: var(--ci-muted);
-}
-
-html[data-design-b-theme='dark'] .ops-shell .ops-published-date strong {
-  color: #93c5fd;
-}
-
 html[data-design-b-theme='dark'] .ops-shell .ops-readiness-row {
   border-color: var(--ci-border);
   background: var(--ci-surface-muted);

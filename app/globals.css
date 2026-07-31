@@ -3951,6 +3951,14 @@ html[data-design-b-theme="dark"] .monitor-portal .report-history-pagination butt
   padding-top: 4px;
 }
 
+.ops-form-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  flex: 0 0 auto;
+  gap: 8px;
+}
+
 .ops-form-footer span,
 .ops-form-message,
 .ops-storage-box small {
@@ -5980,30 +5988,6 @@ html[data-design-b-theme="dark"] .ops-import-refreshed {
   line-height: 1.4;
 }
 
-.ops-published-date {
-  display: flex;
-  justify-content: space-between;
-  gap: 12px;
-  align-items: center;
-  margin-bottom: 10px;
-  padding: 10px 11px;
-  border: 1px solid #dbeafe;
-  border-radius: 8px;
-  background: #eff6ff;
-}
-
-.ops-published-date span {
-  color: #64748b;
-  font-size: 11px;
-  font-weight: 700;
-}
-
-.ops-published-date strong {
-  color: #1d4ed8;
-  font-size: 12px;
-  text-align: right;
-}
-
 .ops-readiness-list {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -6023,11 +6007,6 @@ html[data-design-b-theme="dark"] .ops-import-refreshed {
   gap: 8px;
 }
 
-.ops-readiness-head-actions .ops-published-date {
-  margin: 0;
-  padding: 7px 9px;
-}
-
 .ops-readiness-row {
   display: grid;
   grid-template-columns: 26px minmax(0, 1fr) auto;
@@ -6044,11 +6023,6 @@ html[data-design-b-theme="dark"] .ops-import-refreshed {
   background: #fffaf0;
 }
 
-.ops-readiness-row.is-optional {
-  border-color: #dbe5f1;
-  background: #f8fafc;
-}
-
 .ops-readiness-check {
   display: grid;
   width: 24px;
@@ -6062,11 +6036,6 @@ html[data-design-b-theme="dark"] .ops-import-refreshed {
 .ops-readiness-list .is-missing .ops-readiness-check {
   background: #fef3c7;
   color: #b45309;
-}
-
-.ops-readiness-list .is-optional .ops-readiness-check {
-  background: #e8f1ff;
-  color: #2563eb;
 }
 
 .ops-readiness-list span strong,
@@ -9820,10 +9789,6 @@ html[data-portal-design="b"] .portal-design-b-actions .user-menu__head span {
     flex-wrap: wrap;
   }
 
-  .ops-readiness-head-actions .ops-published-date {
-    width: 100%;
-  }
-
   .ops-form-grid.two,
   .ops-form-grid.three,
   .ops-broker-input-grid {
@@ -9842,6 +9807,14 @@ html[data-portal-design="b"] .portal-design-b-actions .user-menu__head span {
   .ops-form-footer {
     align-items: stretch;
     flex-direction: column;
+  }
+
+  .ops-form-actions {
+    justify-content: stretch;
+  }
+
+  .ops-form-actions button {
+    flex: 1 1 0;
   }
 
   .ops-ticker-context {
@@ -28508,11 +28481,6 @@ html[data-design-b-theme="dark"] .ops-readiness-row {
 html[data-design-b-theme="dark"] .ops-readiness-row.is-missing {
   border-color: #745321;
   background: #2d281f;
-}
-
-html[data-design-b-theme="dark"] .ops-readiness-row.is-optional {
-  border-color: #3b4b61;
-  background: #172235;
 }
 
 html[data-design-b-theme="dark"] .ops-readiness-list span strong,
