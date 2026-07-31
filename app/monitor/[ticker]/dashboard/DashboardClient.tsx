@@ -7,6 +7,7 @@ import type { DashboardMarginRecord, DashboardUtilizationRecord } from '@/lib/op
 import { CustomAlertCenter } from './CustomAlertCenter';
 import { PageDisclaimerNotice } from '@/components/PageDisclaimerNotice';
 import type { CurrentAlertMetricValues } from '@/lib/alerts/ruleCatalogApi';
+import { DailyMarketSnapshot, type DailyMarketSnapshotData } from './DailyMarketSnapshot';
 
 type TrendPoint = {
   date: string;
@@ -35,6 +36,7 @@ export function DashboardClient({
   events,
   utilizationRecords,
   marginRecords,
+  dailyMarketSnapshot,
   currentAlertMetrics,
 }: {
   ticker: string;
@@ -42,6 +44,7 @@ export function DashboardClient({
   events: CompanyEvent[];
   utilizationRecords: DashboardUtilizationRecord[];
   marginRecords: DashboardMarginRecord[];
+  dailyMarketSnapshot: DailyMarketSnapshotData | null;
   currentAlertMetrics: CurrentAlertMetricValues;
 }) {
   const [lendingPeriod, setLendingPeriod] = useState<PeriodKey>('1Y');
@@ -55,6 +58,7 @@ export function DashboardClient({
         utilizationRecords={utilizationRecords}
         marginRecords={marginRecords}
       />
+      <DailyMarketSnapshot data={dailyMarketSnapshot} />
       <CustomAlertCenter ticker={ticker} currentMetrics={currentAlertMetrics} />
       <DashboardChart
         title="Borrow Utilization & Duration History"

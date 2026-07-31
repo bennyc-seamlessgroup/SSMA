@@ -155,6 +155,9 @@ function DashboardLoading() {
         </div>
         <Kpis count={7} layout="dashboard" />
       </section>
+      <section className="portal-loading-panel portal-loading-market-snapshot">
+        <div>{Array.from({ length: 5 }, (_, index) => <span key={index} />)}</div>
+      </section>
       <section className="portal-loading-panel portal-loading-alert-panel">
         <PanelHead controls />
         <List rows={1} compact />

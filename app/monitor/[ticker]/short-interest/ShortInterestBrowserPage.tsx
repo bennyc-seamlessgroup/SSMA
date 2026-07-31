@@ -356,7 +356,6 @@ type FtdRow = {
   closingDeadline: string;
   failsToDeliver: number;
   ftdChange: number;
-  tradeVolume: number;
   price: number;
   notional: number;
 };
@@ -381,14 +380,13 @@ const ftdColumns: Array<{ key: keyof FtdRow; label: string }> = [
   { key: 'tradeDate', label: 'Trade Date' },
   { key: 'failsToDeliver', label: 'Fails-to-Deliver' },
   { key: 'ftdChange', label: 'FTD Change' },
-  { key: 'tradeVolume', label: 'Trade Volume' },
   { key: 'settlementDate', label: 'Settlement Date' },
   { key: 'closingDeadline', label: 'Closing Deadline' },
   { key: 'price', label: 'Price' },
   { key: 'notional', label: '$ Notional' },
 ];
 
-const numericFtdColumnKeys: Array<keyof FtdRow> = ['failsToDeliver', 'ftdChange', 'tradeVolume', 'price', 'notional'];
+const numericFtdColumnKeys: Array<keyof FtdRow> = ['failsToDeliver', 'ftdChange', 'price', 'notional'];
 
 function formatMarketTableValue(value: unknown, mode?: 'currency' | 'percent') {
   const parsed = numeric(value);
@@ -908,7 +906,6 @@ function apiFtdRows(payload: ApiFile): FtdRow[] {
     closingDeadline: String(row.closingDeadline ?? ''),
     failsToDeliver: numeric(row.shares) ?? 0,
     ftdChange: numeric(row.change) ?? 0,
-    tradeVolume: numeric(row.tradeVolume) ?? 0,
     price: numeric(row.price) ?? 0,
     notional: numeric(row.value) ?? 0,
   })).filter(row => row.tradeDate || row.settlementDate);

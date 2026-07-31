@@ -23,6 +23,7 @@ export type AggregatedSentimentBucket = SentimentBucket & {
   positive: number;
   neutral: number;
   negative: number;
+  classifiedMentions: number;
 };
 
 const dayMs = 24 * 60 * 60 * 1000;
@@ -114,21 +115,47 @@ export function aggregateSentimentByBucket(
   buckets: SentimentBucket[],
   selectedPlatform: SentimentPlatformFilter,
 ): AggregatedSentimentBucket[] {
-  return buckets.map((item, index) => {
-    const bucketFeeds = feeds.filter(feed => (
-      (selectedPlatform === 'All' || feed.platform === selectedPlatform)
-      && feed.timestampMs >= item.startMs
-      && (index === buckets.length - 1 ? feed.timestampMs <= item.endMs : feed.timestampMs < item.endMs)
-    ));
-    const mentions = bucketFeeds.length;
-    const score = mentions ? Math.round(bucketFeeds.reduce((sum, feed) => sum + feed.score, 0) / mentions) : null;
-    return {
-      ...item,
-      score,
-      mentions,
-      positive: bucketFeeds.filter(feed => feed.sentiment === 'positive').length,
-      neutral: bucketFeeds.filter(feed => feed.sentiment === 'neutral').length,
-      negative: bucketFeeds.filter(feed => feed.sentiment === 'negative').length,
-    };
+  const scoreTotals = buckets.map(() => 0);
+  const aggregated = buckets.map(item => ({
+    ...item,
+    score: null,
+    mentions: 0,
+    positive: 0,
+    neutral: 0,
+    negative: 0,
+    classifiedMentions: 0,
+  } satisfies AggregatedSentimentBucket));
+
+  feeds.forEach(feed => {
+    if (selectedPlatform !== 'All' && feed.platform !== selectedPlatform) return;
+
+    let low = 0;
+    let high = buckets.length - 1;
+    let matchingIndex = -1;
+    while (low <= high) {
+      const middle = Math.floor((low + high) / 2);
+      const candidate = buckets[middle];
+      const isLast = middle === buckets.length - 1;
+      if (feed.timestampMs < candidate.startMs) {
+        high = middle - 1;
+      } else if (feed.timestampMs > candidate.endMs || (!isLast && feed.timestampMs === candidate.endMs)) {
+        low = middle + 1;
+      } else {
+        matchingIndex = middle;
+        break;
+      }
+    }
+    if (matchingIndex < 0) return;
+
+    const target = aggregated[matchingIndex];
+    target.mentions += 1;
+    target[feed.sentiment] = (target[feed.sentiment] ?? 0) + 1;
+    target.classifiedMentions += 1;
+    scoreTotals[matchingIndex] += feed.score;
   });
+
+  return aggregated.map((item, index) => ({
+    ...item,
+    score: item.mentions ? Math.round(scoreTotals[index] / item.mentions) : null,
+  }));
 }

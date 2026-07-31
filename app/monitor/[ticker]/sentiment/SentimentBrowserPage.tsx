@@ -72,8 +72,10 @@ function aggregateBackendTimeline(
   timeline: Record<string, unknown>[],
   buckets: TimelineBucket[],
   selectedPlatform: SentimentPlatformFilter,
+  eventBuckets: AggregatedSentimentBucket[],
 ): AggregatedSentimentBucket[] {
   const hasOverallRows = timeline.some(item => backendTimelinePlatform(item) === 'All');
+  const eventBucketsById = new Map(eventBuckets.map(item => [item.id, item]));
   return buckets.map((bucket, index) => {
     const rows = timeline.filter(item => {
       const timestampMs = Date.parse(String(item.bucketStart ?? item.date ?? item.timestamp ?? ''));
@@ -92,13 +94,38 @@ function aggregateBackendTimeline(
       const score = optionalNumeric(item.sentimentScore ?? item.score) ?? 0;
       return sum + score * count;
     }, 0);
+    const hasBackendBreakdown = rows.length > 0 && rows.every(item => (
+      Object.hasOwn(item, 'positiveCount')
+      || Object.hasOwn(item, 'positive')
+      || Object.hasOwn(item, 'neutralCount')
+      || Object.hasOwn(item, 'neutral')
+      || Object.hasOwn(item, 'negativeCount')
+      || Object.hasOwn(item, 'negative')
+    ));
+    const eventBucket = eventBucketsById.get(bucket.id);
+    const breakdown = hasBackendBreakdown
+      ? {
+        positive: rows.reduce((sum, item) => sum + (optionalNumeric(item.positiveCount ?? item.positive) ?? 0), 0),
+        neutral: rows.reduce((sum, item) => sum + (optionalNumeric(item.neutralCount ?? item.neutral) ?? 0), 0),
+        negative: rows.reduce((sum, item) => sum + (optionalNumeric(item.negativeCount ?? item.negative) ?? 0), 0),
+        classifiedMentions: rows.reduce((sum, item) => (
+          sum
+          + (optionalNumeric(item.positiveCount ?? item.positive) ?? 0)
+          + (optionalNumeric(item.neutralCount ?? item.neutral) ?? 0)
+          + (optionalNumeric(item.negativeCount ?? item.negative) ?? 0)
+        ), 0),
+      }
+      : {
+        positive: eventBucket?.positive ?? 0,
+        neutral: eventBucket?.neutral ?? 0,
+        negative: eventBucket?.negative ?? 0,
+        classifiedMentions: eventBucket?.classifiedMentions ?? 0,
+      };
     return {
       ...bucket,
       score: mentions ? Math.round(weightedScore / mentions) : null,
       mentions,
-      positive: rows.reduce((sum, item) => sum + (optionalNumeric(item.positiveCount ?? item.positive) ?? 0), 0),
-      neutral: rows.reduce((sum, item) => sum + (optionalNumeric(item.neutralCount ?? item.neutral) ?? 0), 0),
-      negative: rows.reduce((sum, item) => sum + (optionalNumeric(item.negativeCount ?? item.negative) ?? 0), 0),
+      ...breakdown,
     };
   });
 }
@@ -230,19 +257,107 @@ function feedTotalsFrom(records: AdanosMention[]): Record<SentimentPlatformFilte
   return totals;
 }
 
-async function dailyFeedRange(ticker: string, fromDate: string, toDate: string) {
+async function dailyFeedRange(
+  ticker: string,
+  fromDate: string,
+  toDate: string,
+  platform?: Exclude<SentimentPlatformFilter, 'All'>,
+) {
   const dates = datesNewestFirst(fromDate, toDate);
-  const responses = await Promise.all(dates.map(date => getSocialDataPage({
-    ticker,
+  const results = await Promise.allSettled(dates.map(async date => ({
     date,
-    sort: 'datetime',
-    order: 'desc',
+    response: await getSocialDataPage({
+      ticker,
+      platform,
+      date,
+      sort: 'datetime',
+      order: 'desc',
+    }),
   })));
+  const responses = results.flatMap(result => result.status === 'fulfilled' ? [result.value.response] : []);
+  const failures = results.flatMap((result, index) => result.status === 'rejected'
+    ? [{
+      date: dates[index],
+      reason: result.reason instanceof Error ? result.reason.message : String(result.reason),
+    }]
+    : []);
+  if (dates.length && !responses.length) {
+    throw new Error(`Unable to load social feeds for ${fromDate} to ${toDate}.${failures[0]?.reason ? ` ${failures[0].reason}` : ''}`);
+  }
   const records = uniqueMentions(responses.flatMap(response => response.records));
   return {
     records,
     pages: responses.map(response => response.raw),
     totals: feedTotalsFrom(records),
+    failures,
+  };
+}
+
+async function feedRangeWithLatestFallback(
+  ticker: string,
+  fromDate: string,
+  toDate: string,
+  platform: Exclude<SentimentPlatformFilter, 'All'> | undefined,
+  allowLatestFallback: boolean,
+  minimumDate: string,
+  maximumDate: string,
+) {
+  const requested = await dailyFeedRange(ticker, fromDate, toDate, platform);
+  if (requested.records.length || !platform || !allowLatestFallback) {
+    return {
+      ...requested,
+      fromDate,
+      toDate,
+      fallbackNotice: '',
+    };
+  }
+
+  const latest = await getSocialDataPage({
+    ticker,
+    platform,
+    page: 1,
+    limit: 100,
+    sort: 'datetime',
+    order: 'desc',
+  });
+  const latestDate = sortSocialMentionsNewestFirst(latest.records)[0]?.timestamp.slice(0, 10) ?? '';
+  if (
+    !/^\d{4}-\d{2}-\d{2}$/.test(latestDate)
+    || latestDate < minimumDate
+    || latestDate > maximumDate
+  ) {
+    return {
+      ...requested,
+      fromDate,
+      toDate,
+      fallbackNotice: '',
+    };
+  }
+
+  const fallbackToDate = latestDate;
+  const shiftedFromDate = shiftIsoDate(fallbackToDate, -6);
+  const fallbackFromDate = shiftedFromDate < minimumDate ? minimumDate : shiftedFromDate;
+  const fallback = await dailyFeedRange(ticker, fallbackFromDate, fallbackToDate, platform);
+  return {
+    ...fallback,
+    fromDate: fallbackFromDate,
+    toDate: fallbackToDate,
+    fallbackNotice: `No ${platformDisplayLabel(platform)} feeds were found from ${fromDate} to ${toDate}. Showing the latest available seven-day period instead.`,
+  };
+}
+
+function localIsoDate(timestampMs: number) {
+  const date = new Date(timestampMs);
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
+function feedRangeForBucket(bucket: AggregatedSentimentBucket) {
+  return {
+    fromDate: localIsoDate(bucket.startMs),
+    toDate: localIsoDate(bucket.endMs - 1),
   };
 }
 
@@ -354,7 +469,7 @@ function Donut({ segments, total }: { segments: Array<{ label: string; value: nu
 
 function SentimentGauge({ score }: { score: number }) {
   const clamped = Math.max(0, Math.min(100, score));
-  const rotation = -90 + (clamped / 100) * 180;
+  const rotation = 90 - (clamped / 100) * 180;
   return (
     <div className="narrative-sentiment-gauge" aria-label={`Overall sentiment ${score}`}>
       <div className="narrative-sentiment-gauge__arc">
@@ -481,10 +596,13 @@ export function SentimentBrowserPage({ ticker }: { ticker: string }) {
     fromDate: isoDateWithOffset(-6),
     toDate: isoDateWithOffset(0),
   }));
+  const [allowLatestFeedFallback, setAllowLatestFeedFallback] = useState(true);
   const [apiData, setApiData] = useState<{
     mentions: AdanosMention[];
     socialPages: unknown[];
     feedTotals: Record<SentimentPlatformFilter, number>;
+    feedRange: { fromDate: string; toDate: string };
+    fallbackNotice: string;
     current: SentimentCurrentPayload | null;
     sentimentEvents: unknown;
     timelineMentions: AdanosMention[];
@@ -492,6 +610,10 @@ export function SentimentBrowserPage({ ticker }: { ticker: string }) {
   const [loadError, setLoadError] = useState('');
   const [isLoadingFeeds, setIsLoadingFeeds] = useState(false);
   const feedRequestId = useRef(0);
+  const feedRangeBeforeBucket = useRef<{
+    range: { fromDate: string; toDate: string };
+    allowLatestFallback: boolean;
+  } | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -503,14 +625,27 @@ export function SentimentBrowserPage({ ticker }: { ticker: string }) {
         const [current, sentimentEvents, social] = await Promise.all([
           getSentimentCurrent(normalizedTicker).catch(() => null),
           getSentimentEvents(normalizedTicker).catch(() => null),
-          dailyFeedRange(normalizedTicker, feedDateRange.fromDate, feedDateRange.toDate),
+          feedRangeWithLatestFallback(
+            normalizedTicker,
+            feedDateRange.fromDate,
+            feedDateRange.toDate,
+            selectedPlatform === 'All' ? undefined : selectedPlatform,
+            allowLatestFeedFallback,
+            feedMinDate,
+            feedMaxDate,
+          ),
         ]);
         if (!cancelled && requestId === feedRequestId.current) {
           if (cancelled || requestId !== feedRequestId.current) return;
+          if (social.failures.length) {
+            setLoadError(`${social.failures.length} daily feed request(s) failed. ${social.failures.map(failure => `${failure.date}: ${failure.reason}`).join(' · ')}`);
+          }
           setApiData({
             mentions: social.records,
             socialPages: social.pages,
             feedTotals: social.totals,
+            feedRange: { fromDate: social.fromDate, toDate: social.toDate },
+            fallbackNotice: social.fallbackNotice,
             current,
             sentimentEvents,
             timelineMentions: recordsFromSentimentEvents(sentimentEvents),
@@ -523,6 +658,8 @@ export function SentimentBrowserPage({ ticker }: { ticker: string }) {
             mentions: [],
             socialPages: [],
             feedTotals: { All: 0, X: 0, Reddit: 0, Stocktwits: 0, Facebook: 0, Linkedin: 0 },
+            feedRange: feedDateRange,
+            fallbackNotice: '',
             current: null,
             sentimentEvents: null,
             timelineMentions: [],
@@ -538,20 +675,53 @@ export function SentimentBrowserPage({ ticker }: { ticker: string }) {
       cancelled = true;
       window.removeEventListener('import-data-updated', load);
     };
-  }, [normalizedTicker, feedDateRange.fromDate, feedDateRange.toDate]);
+  }, [allowLatestFeedFallback, normalizedTicker, feedDateRange.fromDate, feedDateRange.toDate, selectedPlatform]);
 
   const selectFeedDateRange = (fromDate: string, toDate: string) => {
     if (!datesNewestFirst(fromDate, toDate).length) return;
     setLoadError('');
+    feedRangeBeforeBucket.current = null;
+    setAllowLatestFeedFallback(false);
     setFeedDateRange({ fromDate, toDate });
     setSelectedBucketId(null);
   };
   const showMoreFeedDays = () => {
-    const extendedFromDate = shiftIsoDate(feedDateRange.fromDate, -7);
+    const visibleRange = apiData?.feedRange ?? feedDateRange;
+    const extendedFromDate = shiftIsoDate(visibleRange.fromDate, -7);
     selectFeedDateRange(
       extendedFromDate < feedMinDate ? feedMinDate : extendedFromDate,
-      feedDateRange.toDate,
+      visibleRange.toDate,
     );
+  };
+  const selectTimelineBucket = (bucket: AggregatedSentimentBucket) => {
+    if (selectedBucketId === bucket.id) {
+      const prior = feedRangeBeforeBucket.current;
+      feedRangeBeforeBucket.current = null;
+      setSelectedBucketId(null);
+      if (prior) {
+        setAllowLatestFeedFallback(prior.allowLatestFallback);
+        setFeedDateRange(prior.range);
+      }
+      return;
+    }
+    if (!selectedBucketId) {
+      feedRangeBeforeBucket.current = {
+        range: apiData?.feedRange ?? feedDateRange,
+        allowLatestFallback: allowLatestFeedFallback,
+      };
+    }
+    setAllowLatestFeedFallback(false);
+    setSelectedBucketId(bucket.id);
+    setFeedDateRange(feedRangeForBucket(bucket));
+  };
+  const clearTimelineBucket = () => {
+    const prior = feedRangeBeforeBucket.current;
+    feedRangeBeforeBucket.current = null;
+    setSelectedBucketId(null);
+    if (prior) {
+      setAllowLatestFeedFallback(prior.allowLatestFallback);
+      setFeedDateRange(prior.range);
+    }
   };
 
   if (!apiData) {
@@ -569,15 +739,21 @@ export function SentimentBrowserPage({ ticker }: { ticker: string }) {
   const stocktwitsMentions = timelineSourceMentions.filter(item => item.platform === 'Stocktwits');
   const backendPeriod = sentimentPeriod(apiData.current, activeRange.label);
   const backendTimeline = Array.isArray(backendPeriod.timeline) ? backendPeriod.timeline.map(objectValue) : [];
+  const backendPeriodStart = Date.parse(String(backendPeriod.start ?? ''));
   const backendPeriodEnd = Date.parse(String(backendPeriod.end ?? ''));
   const validMentionTimes = [...timelineSourceMentions, ...mentions]
     .map(item => mentionTimestampMs(item.timestamp))
     .filter(value => value > 0);
-  if (Number.isFinite(backendPeriodEnd)) validMentionTimes.push(backendPeriodEnd);
-  const latestMentionTime = validMentionTimes.length ? Math.max(...validMentionTimes) : Date.now();
+  const latestMentionTime = Number.isFinite(backendPeriodEnd)
+    ? backendPeriodEnd
+    : validMentionTimes.length
+      ? Math.max(...validMentionTimes)
+      : Date.now();
   const dayMs = 24 * 60 * 60 * 1000;
   const currentWindowMs = activeRange.days * dayMs;
-  const currentWindowStart = latestMentionTime - currentWindowMs;
+  const currentWindowStart = Number.isFinite(backendPeriodStart)
+    ? backendPeriodStart
+    : latestMentionTime - currentWindowMs;
   const previousWindowStart = latestMentionTime - currentWindowMs * 2;
   const activeRangeLabel = activeRange.label as SentimentTimeframe;
 
@@ -656,8 +832,17 @@ export function SentimentBrowserPage({ ticker }: { ticker: string }) {
       platform: item.platform,
       score: sentimentValue(item),
       sentiment: mentionSentiment(item),
-    })).filter(item => item.timestampMs > 0);
+    })).filter(item => (
+      item.timestampMs > 0
+      && item.timestampMs >= currentWindowStart
+      && item.timestampMs <= latestMentionTime
+    ));
   const sentimentBuckets = getSentimentBuckets(activeRangeLabel, currentWindowStart, latestMentionTime);
+  const eventAggregatedBuckets = aggregateSentimentByBucket(
+    timelineMentions,
+    sentimentBuckets,
+    selectedPlatform,
+  );
   const hasBackendTimelineForSelection = backendTimeline.some(item => {
     const platform = backendTimelinePlatform(item);
     if (selectedPlatform === 'All') {
@@ -667,8 +852,13 @@ export function SentimentBrowserPage({ ticker }: { ticker: string }) {
     return platform === selectedPlatform;
   });
   const aggregatedBuckets = hasBackendTimelineForSelection
-    ? aggregateBackendTimeline(backendTimeline, sentimentBuckets, selectedPlatform)
-    : aggregateSentimentByBucket(timelineMentions, sentimentBuckets, selectedPlatform);
+    ? aggregateBackendTimeline(
+      backendTimeline,
+      sentimentBuckets,
+      selectedPlatform,
+      eventAggregatedBuckets,
+    )
+    : eventAggregatedBuckets;
   const selectedBucket = selectedBucketId ? aggregatedBuckets.find(bucket => bucket.id === selectedBucketId) ?? null : null;
   const platformRows = selectedPlatform === 'All' ? allRows : allRows.filter(row => row.platform === selectedPlatform);
   const filteredRows = selectedBucket
@@ -734,7 +924,6 @@ export function SentimentBrowserPage({ ticker }: { ticker: string }) {
                 className={selectedPlatform === platform ? 'active' : ''}
                 onClick={() => {
                   setSelectedPlatform(platform);
-                  setSelectedBucketId(null);
                 }}
               >
                 {platformDisplayLabel(platform)} ({platformCounts[platform].toLocaleString('en-US')})
@@ -750,24 +939,29 @@ export function SentimentBrowserPage({ ticker }: { ticker: string }) {
           buckets={aggregatedBuckets}
           selectedPlatform={selectedPlatform}
           selectedBucketId={selectedBucketId}
-          onSelectBucket={bucket => setSelectedBucketId(current => current === bucket.id ? null : bucket.id)}
+          onSelectBucket={selectTimelineBucket}
         />
         {selectedBucket && (
           <div className="narrative-date-filter-note">
             <span>Filtered to {selectedBucket.tooltipLabel}</span>
-            <button type="button" onClick={() => setSelectedBucketId(null)}>Clear date filter</button>
+            <button type="button" onClick={clearTimelineBucket}>Clear date filter</button>
+          </div>
+        )}
+        {apiData.fallbackNotice && (
+          <div className="narrative-date-filter-note" role="status">
+            <span>{apiData.fallbackNotice}</span>
           </div>
         )}
         <div className="narrative-feed-under-chart">
           <MentionFeedCards
             rows={filteredRows}
-            fromDate={feedDateRange.fromDate}
-            toDate={feedDateRange.toDate}
+            fromDate={apiData.feedRange.fromDate}
+            toDate={apiData.feedRange.toDate}
             minDate={feedMinDate}
             maxDate={feedMaxDate}
             isLoadingRange={isLoadingFeeds}
             onDateRangeChange={selectFeedDateRange}
-            canSeeMore={feedDateRange.fromDate > feedMinDate}
+            canSeeMore={apiData.feedRange.fromDate > feedMinDate}
             onSeeMore={showMoreFeedDays}
             hidePlatformFilter
             emptyMessage={isLoadingFeeds ? 'Loading social feeds...' : 'No social feeds captured for this platform and time window.'}

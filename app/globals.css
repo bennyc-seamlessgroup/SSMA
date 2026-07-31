@@ -13798,7 +13798,7 @@ html[data-design-b-theme="dark"] .monitor-portal .narrative-feed-card__bottom {
   width: 150px;
   height: 150px;
   border-radius: 50%;
-  background: conic-gradient(from 270deg, #16a34a 0deg 54deg, #facc15 54deg 126deg, #ef4444 126deg 180deg, transparent 180deg 360deg);
+  background: conic-gradient(from 270deg, #ef4444 0deg 54deg, #facc15 54deg 126deg, #16a34a 126deg 180deg, transparent 180deg 360deg);
 }
 
 .narrative-sentiment-gauge__arc::after {
@@ -20884,6 +20884,88 @@ html[data-design-b-theme="dark"] .monitor-portal .hotkey-empty strong {
 .dashboard-kpi-spark--slate .dashboard-kpi-spark-area { fill: #94a3b8; }
 .dashboard-kpi-spark--slate .dashboard-kpi-spark-line { stroke: #64748b; }
 
+.dashboard-daily-snapshot {
+  display: grid;
+  grid-template-rows: auto 1fr;
+  overflow: hidden;
+  border: 1px solid var(--ci-border);
+  border-radius: var(--ci-radius);
+  background: var(--ci-surface);
+}
+
+.dashboard-daily-snapshot__meta {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 12px;
+  padding: 7px 14px 0;
+}
+
+.dashboard-daily-snapshot__metrics dt {
+  color: var(--ci-muted);
+  font-size: 10px;
+  font-weight: 750;
+  letter-spacing: .1em;
+  line-height: 1.25;
+  text-transform: uppercase;
+}
+
+.dashboard-daily-snapshot__meta time {
+  color: var(--ci-muted);
+  font-size: 10px;
+  font-weight: 650;
+  white-space: nowrap;
+}
+
+.dashboard-daily-snapshot__metrics {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  min-width: 0;
+  margin: 0;
+}
+
+.dashboard-daily-snapshot__metrics > div {
+  display: grid;
+  align-content: center;
+  gap: 4px;
+  min-width: 0;
+  padding: 8px 14px 11px;
+  border-right: 1px solid var(--ci-border-soft);
+}
+
+.dashboard-daily-snapshot__metrics > div:last-child {
+  border-right: 0;
+}
+
+.dashboard-daily-snapshot__metrics dd {
+  min-width: 0;
+  margin: 0;
+  overflow: hidden;
+  color: var(--ci-text);
+  font-size: 18px;
+  font-weight: 760;
+  line-height: 1.2;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.portal-loading-market-snapshot > div:last-child {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 10px;
+  padding: 12px;
+}
+
+.portal-loading-market-snapshot > div:last-child > span {
+  display: block;
+  height: 34px;
+  border-radius: 5px;
+  background: linear-gradient(90deg, var(--ci-surface-muted) 20%, var(--ci-border-soft) 42%, var(--ci-surface-muted) 64%);
+  background-size: 220% 100%;
+  animation: ci-loading-shimmer 1.35s linear infinite;
+}
+
 .dashboard-chart-card {
   border: 1px solid var(--saas-line);
   border-radius: 8px;
@@ -21451,6 +21533,7 @@ html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .dashbo
     justify-content: flex-start;
     max-width: none;
   }
+
 }
 
 @media (max-width: 720px) {
@@ -21495,6 +21578,24 @@ html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .dashbo
 
   .dashboard-chart-card {
     padding: 14px;
+  }
+
+  .dashboard-daily-snapshot__metrics,
+  .portal-loading-market-snapshot > div:last-child {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .dashboard-daily-snapshot__metrics > div {
+    border-bottom: 1px solid var(--ci-border-soft);
+  }
+
+  .dashboard-daily-snapshot__metrics > div:nth-child(2n) {
+    border-right: 0;
+  }
+
+  .dashboard-daily-snapshot__metrics > div:last-child {
+    grid-column: 1 / -1;
+    border-bottom: 0;
   }
 }
 .news-card {
@@ -23372,8 +23473,10 @@ html[data-portal-design="b"] .monitor-portal .short-score-radial {
 
 html[data-portal-design="b"] .monitor-portal .short-score-radial > div {
   display: flex;
-  align-items: baseline;
+  flex-direction: column;
+  align-items: center;
   justify-content: center;
+  gap: 2px;
   width: 100%;
   height: 100%;
   border-radius: 50%;
@@ -23381,19 +23484,21 @@ html[data-portal-design="b"] .monitor-portal .short-score-radial > div {
 }
 
 html[data-portal-design="b"] .monitor-portal .short-score-radial strong {
-  align-self: center;
   color: #10233c;
-  font-size: 30px;
+  max-width: 100%;
+  font-size: 22px;
   font-weight: 700;
+  font-variant-numeric: tabular-nums;
   line-height: 1;
+  white-space: nowrap;
 }
 
 html[data-portal-design="b"] .monitor-portal .short-score-radial small {
-  align-self: center;
-  margin: 11px 0 0 3px;
+  margin: 0;
   color: #8290a5;
   font-size: 10px;
   font-weight: 600;
+  line-height: 1;
 }
 
 html[data-portal-design="b"] .monitor-portal .short-score-compact__copy {

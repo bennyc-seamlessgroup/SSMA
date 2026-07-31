@@ -353,5 +353,15 @@ export function sentimentPeriod(payload: unknown, range: string) {
   const unwrapped = Object.keys(category).length ? category : payloadRecord;
   const root = Object.keys(record(unwrapped.data)).length ? record(unwrapped.data) : unwrapped;
   const periods = record(root.periods);
-  return record(periods[range] ?? periods[range.toLowerCase()] ?? periods[range.toUpperCase()]);
+  const normalizedRange = range.toUpperCase();
+  const aliases: Record<string, string[]> = {
+    '1W': ['1W', '7D'],
+    '1M': ['1M', '30D'],
+  };
+  const candidates = aliases[normalizedRange] ?? [range];
+  const matched = candidates
+    .flatMap(candidate => [candidate, candidate.toLowerCase(), candidate.toUpperCase()])
+    .map(candidate => periods[candidate])
+    .find(value => Object.keys(record(value)).length);
+  return record(matched);
 }

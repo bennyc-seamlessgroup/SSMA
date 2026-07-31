@@ -13,6 +13,7 @@ import type { DashboardMarginRecord, DashboardUtilizationRecord, OperationsSecFi
 import { normalizeTicker } from '@/lib/ticker-data';
 import { DashboardClient } from './DashboardClient';
 import { DashboardDevTables } from './DashboardDevTables';
+import type { DailyMarketSnapshotData } from './DailyMarketSnapshot';
 import type { CurrentAlertMetricValues } from '@/lib/alerts/ruleCatalogApi';
 
 type TrendPoint = {
@@ -42,7 +43,14 @@ type MarketCurrentFile = {
   ticker?: string;
   generatedAt?: string;
   snapshotDate?: string;
-  price?: { value?: unknown };
+  price?: {
+    value?: unknown;
+    open?: unknown;
+    high?: unknown;
+    low?: unknown;
+    close?: unknown;
+  };
+  tradeVolume?: unknown;
   shortInterest?: { percent?: unknown; shares?: unknown };
   borrowFee?: { percent?: unknown; numChange?: unknown; percentChange?: unknown };
   availableShares?: { value?: unknown; numChange?: unknown; percentChange?: unknown };
@@ -115,6 +123,7 @@ type DashboardApiData = {
   utilizationInputs: DashboardUtilizationRecord[];
   marginInputs: DashboardMarginRecord[];
   events: CompanyEvent[];
+  dailyMarketSnapshot: DailyMarketSnapshotData | null;
   current: Record<string, unknown> | null;
   currentAlertMetrics: CurrentAlertMetricValues;
 };
@@ -257,6 +266,25 @@ function secFilingEvents(rows: OperationsSecFilingRecord[]): CompanyEvent[] {
     })
     .filter((event): event is CompanyEvent => Boolean(event))
     .sort((a, b) => a.date.localeCompare(b.date));
+}
+
+function currentDailyMarketSnapshot(currentFile: MarketCurrentFile | null): DailyMarketSnapshotData | null {
+  const date = plainText(currentFile?.snapshotDate);
+  if (!date || !currentFile) return null;
+  const snapshot = {
+    date,
+    open: numericOrNull(currentFile.price?.open),
+    high: numericOrNull(currentFile.price?.high),
+    low: numericOrNull(currentFile.price?.low),
+    close: numericOrNull(currentFile.price?.close ?? currentFile.price?.value),
+    tradeVolume: numericOrNull(currentFile.tradeVolume),
+  };
+  const hasMarketValue = snapshot.open !== null
+    || snapshot.high !== null
+    || snapshot.low !== null
+    || snapshot.close !== null
+    || snapshot.tradeVolume !== null;
+  return hasMarketValue ? snapshot : null;
 }
 
 function marketHistoryToDashboardData(
@@ -403,6 +431,7 @@ function marketHistoryToDashboardData(
     utilizationInputs,
     marginInputs,
     events: secFilingEvents(secFilingRows),
+    dailyMarketSnapshot: currentDailyMarketSnapshot(currentFile),
     current,
     currentAlertMetrics,
   };
@@ -470,6 +499,7 @@ export function DashboardBrowserPage({ ticker }: { ticker: string }) {
         events={events}
         utilizationRecords={utilizationInputs}
         marginRecords={marginInputs}
+        dailyMarketSnapshot={apiData.dailyMarketSnapshot}
         currentAlertMetrics={apiData.currentAlertMetrics}
       />
       <DashboardDevTables

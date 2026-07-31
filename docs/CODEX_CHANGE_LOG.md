@@ -4,6 +4,351 @@ This file is the persistent implementation memory for changes made by Codex.
 Read it before modifying existing portal behavior, and update it after every
 completed change.
 
+## 2026-07-31 — Hide timeline classified-event coverage text
+
+- Area: User Portal → Social Sentiment → Sentiment Timeline tooltips.
+- API/data: No data-source or calculation change.
+- Requested change: Remove the visible
+  `Classified events: X / Y mentions` coverage line.
+- Implemented behavior:
+  - Tooltips continue to show the authoritative bar mention total and score.
+  - Bullish, Neutral, and Bearish continue to show the available
+    event-derived counts.
+  - The classified-event coverage ratio is no longer displayed.
+- Must preserve:
+  - Timeline bars and scores remain sourced from `sentiment-current`.
+  - Sentiment breakdown counts continue to use `sentiment-events` when the
+    backend timeline does not provide its own breakdown.
+  - No `Unavailable` label is restored.
+- Files changed:
+  - `app/monitor/[ticker]/sentiment/SentimentTimeline.tsx`
+  - `docs/CODEX_CHANGE_LOG.md`
+- Verification: TypeScript type-check, whitespace validation, and production
+  build.
+
+## 2026-07-31 — Display partial timeline event classifications
+
+- Area: User Portal → Social Sentiment → Sentiment Timeline tooltips.
+- APIs/data:
+  - Authoritative bar total and score:
+    `GET /market-data/current?ticker={ticker}&category=sentiment-current`.
+  - Bullish, Neutral, and Bearish classification counts:
+    `GET /market-data/history?ticker={ticker}&category=sentiment-events`.
+- Requested replacement: Do not hide event-derived sentiment counts when their
+  total differs from the consolidated timeline bar. Replace the immediately
+  preceding strict-reconciliation `Unavailable` behavior with a transparent
+  partial-coverage display.
+- Implemented behavior:
+  - Bullish, Neutral, and Bearish always display the available event-derived
+    counts when the backend timeline does not supply its own breakdown.
+  - When the classified-event total differs from the authoritative bar total,
+    the tooltip adds `Classified events: X / Y mentions`.
+  - When the two totals match, the extra coverage line is omitted.
+  - Backend-provided per-bucket sentiment counts remain authoritative when
+    present.
+- Regression behavior that must remain intact:
+  - Timeline bar height and sentiment score remain sourced from
+    `sentiment-current`; events do not resize or rescore the bars.
+  - Events remain clipped to the backend period and indexed once by visible
+    bucket and selected platform.
+  - Raw `/social-data` feed records do not affect timeline calculations.
+  - `1W` continues to resolve backend `7D`, and `1M` continues to resolve
+    backend `30D`.
+- Files changed:
+  - `app/monitor/[ticker]/sentiment/SentimentBrowserPage.tsx`
+  - `app/monitor/[ticker]/sentiment/SentimentTimeline.tsx`
+  - `lib/sentiment-buckets.ts`
+  - `docs/CODEX_CHANGE_LOG.md`
+- Verification:
+  - TypeScript type-check and whitespace validation.
+  - Focused classified-event aggregation and bucket-boundary check.
+  - Production build passed.
+- Remaining backend dependency / limitation:
+  - The coverage line can remain below 100% until every backend timeline row
+    supplies matching `positiveCount`, `neutralCount`, and `negativeCount`
+    fields or the event history is fully aligned with the consolidated data.
+
+## 2026-07-31 — Reconcile timeline sentiment breakdowns with event records
+
+- Area: User Portal → Social Sentiment → Sentiment Timeline tooltips.
+- APIs/data:
+  - Authoritative timeline bars and scores:
+    `GET /market-data/current?ticker={ticker}&category=sentiment-current`.
+  - Tooltip sentiment breakdown fallback:
+    `GET /market-data/history?ticker={ticker}&category=sentiment-events`.
+- Reported problem: The 1Y timeline tooltip always displayed zero Bullish,
+  Neutral, and Bearish counts even when its bars contained mentions.
+- Root causes:
+  - The live `1Y` backend timeline supplies `bucketStart`, `platform`,
+    `mentions`, and `sentimentScore`, but no per-bucket sentiment counts.
+  - Because the backend timeline existed, the frontend never used
+    `sentiment-events` for those three tooltip fields.
+  - UI ranges `1W` and `1M` did not match the backend's `7D` and `30D` period
+    keys, so those ranges silently used the event fallback instead of their
+    available backend timelines.
+- Implemented behavior:
+  - `1W` now resolves `7D`, and `1M` resolves `30D`; exact backend keys remain
+    supported.
+  - Backend timeline mention volume and sentiment score remain authoritative.
+  - The already-loaded sentiment events are clipped to the backend period's
+    exact start/end, indexed into the visible buckets in one pass, and used
+    only for missing Bullish, Neutral, and Bearish tooltip counts.
+  - Event counts are displayed only when a bucket's event total exactly
+    matches its authoritative backend mention total. Otherwise each sentiment
+    breakdown field displays `Unavailable` instead of a misleading zero.
+  - If a backend timeline supplies its own per-bucket sentiment counts, those
+    remain authoritative and no event-derived replacement is applied.
+- Regression behavior that must remain intact:
+  - Raw `/social-data` feed records never affect the timeline, KPI,
+    distribution, or platform totals.
+  - Backend timeline bars and sentiment scores are not recalculated from
+    events.
+  - Platform and date filtering continue to trigger the feed API behavior
+    documented in the adjacent Social Sentiment entries.
+- Files changed:
+  - `app/monitor/[ticker]/sentiment/SentimentBrowserPage.tsx`
+  - `app/monitor/[ticker]/sentiment/SentimentTimeline.tsx`
+  - `lib/sentiment-buckets.ts`
+  - `lib/social-data-api.ts`
+  - `docs/CODEX_CHANGE_LOG.md`
+- Verification:
+  - TypeScript type-check and whitespace validation.
+  - Focused aggregation check confirmed boundary assignment, per-tone counts,
+    and average score calculation.
+  - Production build passed.
+- Remaining backend dependency / limitation:
+  - A mismatched bucket intentionally shows `Unavailable`. Supplying
+    `positiveCount`, `neutralCount`, and `negativeCount` in every backend
+    timeline row would remove the need for event reconciliation.
+
+## 2026-07-31 — Correct sentiment gauge direction and Short Interest score fit
+
+- Areas:
+  - User Portal → Social Sentiment → Overall Sentiment.
+  - User Portal → Short Interest → Short Interest Score.
+- API/data: No API contract change; this is presentation-only.
+- Reported problems:
+  - The Overall Sentiment gauge placed bullish green on the left and bearish
+    red on the right.
+  - A two-decimal Short Interest score could touch or overlap its circular
+    gauge.
+- Implemented behavior:
+  - The sentiment arc now runs from bearish red on the left, through neutral
+    yellow, to bullish green on the right.
+  - The gauge needle direction now follows the same low-to-high mapping.
+  - The Short Interest score and `/ 100` label are vertically centered and
+    independently sized inside the ring, including for `100.00` and compact
+    viewports.
+- Must preserve: Sentiment and Short Interest values, labels, ranges, and API
+  sources remain unchanged.
+- Files changed:
+  - `app/monitor/[ticker]/sentiment/SentimentBrowserPage.tsx`
+  - `app/globals.css`
+  - `docs/CODEX_CHANGE_LOG.md`
+- Verification: TypeScript type-check and whitespace validation.
+
+## 2026-07-31 — Fetch Social Sentiment feeds for every active platform and date filter
+
+- Area: User Portal → Social Sentiment → Sentiment Timeline & Social Feed.
+- APIs/data:
+  - Feed cards:
+    `GET /social-data?ticker={ticker}&platform={platform}&date={YYYY-MM-DD}&sort=datetime&order=desc`.
+  - Timeline and platform totals remain:
+    `GET /market-data/current?ticker={ticker}&category=sentiment-current` and
+    `GET /market-data/history?ticker={ticker}&category=sentiment-events`.
+- Reported problems:
+  - Selecting Reddit could show a nonzero consolidated platform count but no
+    feed cards.
+  - Clicking a timeline bar filtered only the already-loaded default seven-day
+    feed, so older chart buckets appeared empty.
+- Root cause:
+  - Platform selection was a local array filter and did not issue a
+    platform-scoped `/social-data` request.
+  - Timeline bucket selection changed only `selectedBucketId`; it did not
+    change the feed API date range or fetch the bucket's calendar dates.
+- Implemented behavior:
+  - Changing the platform reruns the daily feed requests with the selected
+    platform query. `All` omits the platform query.
+  - Clicking a timeline bucket converts its inclusive calendar span into the
+    feed From/To range and requests every date in that span.
+  - Platform and timeline filters can remain active together.
+  - Clearing a timeline bucket restores the prior calendar feed range and
+    refetches it.
+  - Daily requests use `Promise.allSettled`; successful dates remain visible
+    when another date fails, and the failed date plus API reason is displayed.
+- Regression behavior that must remain intact:
+  - Consolidated timeframe counts and timeline bars continue to come only from
+    `sentiment-current` and `sentiment-events`.
+  - Raw `/social-data` feed records do not change consolidated KPI, platform
+    count, distribution, or timeline values.
+  - Date-scoped feed requests continue to omit `limit` and `page`, retain API
+    `sort=datetime&order=desc`, and deduplicate by platform plus stable record
+    identity.
+- Files changed:
+  - `app/monitor/[ticker]/sentiment/SentimentBrowserPage.tsx`
+  - `docs/CODEX_CHANGE_LOG.md`
+- Verification: TypeScript type-check, whitespace validation, and production
+  build passed.
+- Remaining backend dependency / limitation:
+  - The API supports one `date` per request rather than a native date range, so
+    a monthly timeline bucket requires one request for every calendar day.
+  - The 1Y consolidated timeline currently supplies mention volume and
+    sentiment score but not per-bucket positive, neutral, and negative counts.
+    Because that timeline exists, the frontend does not use the
+    sentiment-event fallback for those tooltip fields; correcting that separate
+    issue requires either backend bucket counts or an explicit frontend
+    per-bucket event calculation.
+
+## 2026-07-31 — Show the latest available feed period for inactive platforms
+
+- Area: User Portal → Social Sentiment → Sentiment Timeline & Social Feed.
+- APIs/data:
+  - Default feed range:
+    `GET /social-data?ticker={ticker}&platform={platform}&date={YYYY-MM-DD}&sort=datetime&order=desc`.
+  - Latest-record probe:
+    `GET /social-data?ticker={ticker}&platform={platform}&page=1&limit=100&sort=datetime&order=desc`.
+- Reported problem: A platform could have a nonzero count in the selected
+  consolidated timeframe but no posts in the default last-seven-days feed
+  range, making the selected platform appear to have no feed data.
+- Root cause: Consolidated platform counts follow the selected sentiment
+  timeframe, while feed cards intentionally use a separate seven-day calendar
+  range. The UI did not recover when those two valid ranges did not overlap.
+- Implemented behavior:
+  - When a selected platform has no posts in the untouched default feed range,
+    the page probes that platform's latest records, finds the newest timestamp
+    within the allowed one-year feed window, and loads the seven-day period
+    ending on that date.
+  - The visible From/To fields update to the effective fallback range and a
+    notice explains the original empty range and the substituted period.
+  - The frontend sorts the probe response itself before choosing the newest
+    date because the live API does not consistently return its first record in
+    descending timestamp order.
+  - Manually selected calendar dates and timeline-bar date ranges remain exact;
+    an empty explicit selection is never silently moved to another period.
+- Regression behavior that must remain intact:
+  - Every platform or date change still issues fresh `/social-data` requests.
+  - Feed cards remain separate from consolidated KPI, platform-count,
+    distribution, and timeline data.
+  - Date-scoped requests still omit `limit` and `page`; the pagination
+    parameters are used only by the latest-record probe.
+  - Partial daily-request failures remain visible with their specific API
+    reason.
+- Files changed:
+  - `app/monitor/[ticker]/sentiment/SentimentBrowserPage.tsx`
+  - `docs/CODEX_CHANGE_LOG.md`
+- Verification:
+  - TypeScript type-check, whitespace validation, and production build.
+  - Authenticated browser check with CURR → 1Y → Stocktwits: the empty
+    2026-07-25 through 2026-07-31 default range moved to 2026-07-17 through
+    2026-07-23, displayed the explanatory notice, and loaded the Jul 23 post.
+- Remaining backend dependency / limitation:
+  - `/social-data` has no native date-range query, so the fallback uses one
+    latest-record probe plus one request per day in the displayed seven-day
+    period.
+  - The latest-record probe inspects up to 100 returned records. A backend
+    endpoint that returns an authoritative latest available date would remove
+    that frontend safeguard.
+
+## 2026-07-31 — Remove misplaced CURR ownership records from MIMI
+
+- Area: Operations Portal → Ownership Data → Management Holdings API records.
+- API/data:
+  `GET` and `DELETE /manual-input/management-holdings?ticker=MIMI&id={id}`.
+- Reported problem: Three CURR holder records continued to appear in MIMI's
+  raw management-holdings response even though they were not entered as MIMI
+  holdings.
+- Confirmed root cause:
+  - The frontend requested `ticker=MIMI` correctly and rendered the uncached
+    response without merging CURR records.
+  - The three records were physically present in MIMI's ticker-scoped backend
+    record array. Their audit timestamps show that they were created under MIMI
+    on July 17, 2026, consistent with a historical company-selection mismatch
+    during data entry rather than a current frontend display merge.
+- Corrective action:
+  - Deleted only `Nga Man Wong` (`ops-strat-42503f7b`),
+    `Yafangzhou Huang` (`ops-strat-b7806595`), and
+    `Man San Wong` (`ops-strat-8fd08bad`) from MIMI.
+  - Preserved all six genuine MIMI management-holdings records.
+- Must preserve:
+  - Management-holdings data remains strictly ticker-scoped.
+  - The normal Suggested Changes tab continues to show pending suggestions
+    only; applied and discarded audit records are not reclassified as active
+    suggestions.
+  - No CURR records or consolidated ownership snapshots were modified.
+- Files changed: `docs/CODEX_CHANGE_LOG.md` only. A temporary local UI exposure
+  used to access completed records was fully reverted.
+- Verification:
+  - Uncached MIMI API response decreased from nine records to six.
+  - All three deleted names and IDs are absent from the refreshed raw response.
+  - The five pending MIMI suggestions remain present.
+  - The Operations company indicator was restored to its prior size and
+    position after the cleanup.
+- Remaining dependency: Manual-input deletion does not automatically run
+  consolidation. If a previously applied record was copied into a separate
+  consolidated or user-scoped holding, that downstream record must be reviewed
+  independently rather than inferred from this source-record cleanup.
+
+## 2026-07-31 — Simplify Dashboard daily market snapshot
+
+- Area: User Portal → Dashboard, between Market Overview and Alert Center.
+- API/data:
+  `GET /market-data/current?ticker={ticker}&category=market-current`.
+- Requested change: Remove the `Daily Market` and `Trading Snapshot` headings
+  so the compact OHLC and Trade Volume strip remains visually simple.
+- Implemented behavior:
+  - Removed both visible title lines and the dedicated title column.
+  - Open, High, Low, Close, and Trade Volume now use the full section width.
+  - The small source-date metadata remains available without adding another
+    visible section heading.
+  - Updated the dashboard loading placeholder to match the title-free layout.
+- Must preserve: Current Market remains the sole source; missing values remain
+  `N/A`; no Market History fallback or cross-date merge is allowed.
+- Files changed:
+  - `app/monitor/[ticker]/dashboard/DailyMarketSnapshot.tsx`
+  - `components/PortalPageLoading.tsx`
+  - `app/globals.css`
+  - `docs/CODEX_CHANGE_LOG.md`
+- Verification: TypeScript type-check and whitespace validation.
+
+## 2026-07-31 — Add Dashboard daily trading snapshot and simplify FTD table
+
+- Areas:
+  - User Portal → Dashboard, between Market Overview and Alert Center.
+  - User Portal → Short Interest → Fails-to-Deliver table.
+- API/data:
+  `GET /market-data/current?ticker={ticker}&category=market-current`.
+- Requested changes:
+  - Remove Trade Volume from the Fails-to-Deliver table.
+  - Add a compact dashboard section for Open, High, Low, Close, and Trade
+    Volume.
+- Implemented behavior:
+  - The FTD table no longer defines, maps, or renders a Trade Volume column.
+  - Dashboard Trading Snapshot reads `price.open`, `price.high`, `price.low`,
+    `price.close`, and `tradeVolume` from the same Market Current snapshot.
+  - Missing fields display `N/A`; no Market History or cross-date fallback is
+    applied.
+  - The section displays its exact source date and a development-mode API
+    source tag.
+  - The dashboard loading placeholder now includes a corresponding five-metric
+    strip to reduce layout shift.
+- Source decision: Market Current now provides the complete same-date OHLC and
+  Trade Volume snapshot, so the section uses that API directly.
+- Must preserve:
+  - Do not merge Market History Trade Volume into FTD records.
+  - Do not combine OHLC values from different dates or fall back to Market
+    History.
+  - Existing dashboard KPI, Alert Center, and chart behavior remains unchanged.
+- Files changed:
+  - `app/monitor/[ticker]/short-interest/ShortInterestBrowserPage.tsx`
+  - `app/monitor/[ticker]/dashboard/DailyMarketSnapshot.tsx`
+  - `app/monitor/[ticker]/dashboard/DashboardBrowserPage.tsx`
+  - `app/monitor/[ticker]/dashboard/DashboardClient.tsx`
+  - `components/PortalPageLoading.tsx`
+  - `app/globals.css`
+  - `docs/CODEX_CHANGE_LOG.md`
+- Verification: TypeScript type-check, whitespace validation, and production
+  build.
+
 ## 2026-07-31 — Align Publication Readiness with independent dashboard metrics
 
 - Area: Operations Portal → Market Data → Publication Readiness only.
