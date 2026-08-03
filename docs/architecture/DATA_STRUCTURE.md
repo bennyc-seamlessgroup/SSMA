@@ -445,7 +445,12 @@ Schema:
           "bucketStart": "2026-06-18",
           "platform": "Stocktwits",
           "mentions": 5,
-          "sentimentScore": 80
+          "sentimentScore": 80,
+          "distribution": {
+            "positiveCount": 3,
+            "neutralCount": 2,
+            "negativeCount": 0
+          }
         }
       ]
     }

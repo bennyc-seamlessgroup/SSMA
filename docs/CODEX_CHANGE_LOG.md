@@ -4,6 +4,257 @@ This file is the persistent implementation memory for changes made by Codex.
 Read it before modifying existing portal behavior, and update it after every
 completed change.
 
+## 2026-08-03 — Read per-bucket sentiment distribution from Sentiment Current
+
+- Area: User Portal → Social Sentiment → Timeline tooltip.
+- API/data:
+  `GET /market-data/current?ticker={ticker}&category=sentiment-current`.
+- Reported problem and root cause:
+  - Backend Timeline rows provide Bullish/Neutral/Bearish counts under the
+    nested `distribution.positiveCount`, `distribution.neutralCount`, and
+    `distribution.negativeCount` fields.
+  - The portal only checked direct fields on each Timeline row. It therefore
+    treated the authoritative per-bucket distribution as missing and displayed
+    a fallback classification aggregated from `sentiment-events`.
+- Implemented behavior:
+  - Each selected Timeline bucket and platform now reads its nested
+    `distribution` counts from `sentiment-current`.
+  - Nested distribution fields take priority. Direct `positiveCount`,
+    `neutralCount`, and `negativeCount` fields remain supported for backwards
+    compatibility.
+  - A Timeline breakdown is considered complete only when all three counts are
+    present. `sentiment-events` remains the fallback only when the complete
+    authoritative breakdown is absent.
+- Regression behavior that must remain intact:
+  - Timeline mention volume and sentiment score continue to come from the same
+    `sentiment-current` Timeline rows.
+  - Platform and trading-day selection continue to select the matching backend
+    rows before their distributions are summed.
+  - Trading-day feed behavior and raw `/social-data` feed-card sentiments are
+    unchanged.
+- Files changed:
+  - `app/monitor/[ticker]/sentiment/SentimentBrowserPage.tsx`
+  - `docs/architecture/DATA_STRUCTURE.md`
+  - `docs/CODEX_CHANGE_LOG.md`
+- Verification: TypeScript type-check, whitespace validation, and production
+  build passed.
+- Remaining backend dependency / limitation: A backend Timeline row must return
+  all three distribution counts for the portal to treat that row as the
+  authoritative breakdown.
+
+## 2026-08-03 — Align Social Sentiment feeds to backend trading days
+
+- Area: User Portal → Social Sentiment → Sentiment Timeline & Social Feed.
+- APIs/data:
+  - Trading-day Timeline values:
+    `GET /market-data/current?ticker={ticker}&category=sentiment-current`.
+  - Trading-day event classifications:
+    `GET /market-data/history?ticker={ticker}&category=sentiment-events`.
+  - Trading-day feed partitions:
+    `GET /social-data?ticker={ticker}&date={TRADING-DAY}&sort=datetime&order=desc`.
+- Reported problem and clarified root cause:
+  - Timeline mentions are assigned to a U.S. trading day, not grouped by the
+    social post's visible calendar date.
+  - Pre-market posts remain assigned to the preceding trading day, while
+    weekend and market-holiday posts remain assigned to the most recent
+    trading day.
+  - The frontend treated the `/social-data` partition as a posting-date query,
+    fetched adjacent calendar dates, and then discarded records whose displayed
+    timestamp did not fall inside the selected calendar range. This could hide
+    valid posts assigned to the selected Timeline bar.
+- Implemented behavior:
+  - The backend `/social-data?date=...` partition is authoritative. Every
+    date-scoped record is stamped with the requested `tradeDate`; the portal no
+    longer recomputes or filters that assignment using the display timezone.
+  - The section title, information tooltip, chart accessibility label, chart
+    tooltip, selected-filter notices, date controls, loading/empty text, feed
+    count, and pagination language now identify the selected trading day or
+    trading-day range.
+  - Feed cards display both their assigned trading day and original posting
+    timestamp. Newest/oldest sorting remains based on posting time.
+  - Weekend and U.S. market-holiday filter boundaries are rejected with a
+    specific explanation.
+  - The default feed window is the latest five trading days. “See earlier
+    trading days” extends it by five preceding sessions; it remains hidden while
+    a Timeline bucket is selected.
+  - Daily and longer event-derived Bullish/Neutral/Bearish counts use an
+    available backend `tradeDate`; hourly buckets continue using source
+    timestamps within the selected trading day.
+  - Development Data lists `tradeDate` separately from `postedAt`.
+  - The business rules are recorded in
+    `docs/SOCIAL_SENTIMENT_TRADING_DAY_RULES.md`.
+- Trading-day rules:
+  - `America/New_York` and the U.S. market calendar are authoritative.
+  - A new trading day begins at 9:30:00 a.m.; exactly 9:30 belongs to the new
+    trading day.
+  - After-hours, overnight, weekend, holiday, and early-close-period posts stay
+    with the most recent trading day until the next session opens.
+  - Late arrivals use the original posting time rather than ingestion time.
+- Regression behavior that must remain intact:
+  - Timeline bar heights and scores remain authoritative `sentiment-current`
+    values; raw feed records do not resize or rescore them.
+  - Sentiment-event breakdowns remain fallback values only when the Timeline
+    does not supply its own breakdown.
+  - Platform or trading-day changes issue fresh `/social-data` requests.
+  - The request-id guard and loading overlay prevent stale feed cards from being
+    mistaken for the newly selected trading day.
+  - Deduplication, exact API failure reasons, platform filtering, posting-time
+    sorting, and configured-timezone display remain intact.
+  - This entry explicitly replaces the August 3 “Keep Social Feed cards inside
+    the visible date range” posting-date filter and its adjacent-date lookup;
+    those behaviors must not be restored for trading-day feed partitions.
+- Files changed:
+  - `app/monitor/[ticker]/sentiment/SentimentBrowserPage.tsx`
+  - `app/monitor/[ticker]/sentiment/MentionFeedCards.tsx`
+  - `app/monitor/[ticker]/sentiment/SentimentTimeline.tsx`
+  - `app/globals.css`
+  - `lib/social-data-api.ts`
+  - `lib/sentiment-buckets.ts`
+  - `lib/us-market-calendar.ts`
+  - `lib/portal-page-translations.ts`
+  - `docs/INTEGRATION (7).md`
+  - `docs/SOCIAL_SENTIMENT_TRADING_DAY_RULES.md`
+  - `docs/CODEX_CHANGE_LOG.md`
+- Verification:
+  - TypeScript type-check and whitespace validation passed.
+  - Focused New York-time boundary checks passed for 9:29:59 / 9:30:00,
+    summer and winter offsets, weekends, Monday pre-market, a U.S. market
+    holiday, and previous-trading-day shifting.
+  - Production build passed.
+- Remaining backend dependency / limitation:
+  - Unscoped latest-feed fallback obtains the trading day from an explicit
+    backend field or the S3 partition in the record key. Records lacking both
+    cannot be assigned safely by the frontend.
+  - Raw source retention may still make feed-card availability lower than a
+    consolidated Timeline total; the portal does not move posts across trading
+    days to force totals to match.
+
+## 2026-08-03 — Cover stale Social Feed cards while a new range loads
+
+- Area: User Portal → Social Sentiment → Sentiment Timeline & Social Feed.
+- API/data: No API contract or data-source change.
+- Reported problem: After selecting a Timeline bar, the previous date's feed
+  cards remained visible for several seconds while the new `/social-data`
+  requests were running, making the interface appear unresponsive or already
+  updated.
+- Implemented behavior:
+  - The feed-card region is marked `aria-busy` and immediately covered by a
+    translucent loading layer while a platform, bar, or calendar range request
+    is active.
+  - The layer displays an animated spinner, `Loading social feeds…`, and a
+    short explanation that the selected range is being updated.
+  - Existing cards remain mounted underneath to avoid layout collapse, but are
+    visually covered and cannot be mistaken for the newly selected range.
+  - The overlay supports the portal's light and dark themes and disables its
+    rotation when the user prefers reduced motion.
+- Regression behavior that must remain intact:
+  - The request-id guard still prevents an older request from replacing a
+    newer selection.
+  - Existing loading, empty, partial-failure, date, and platform behavior is
+    unchanged after the request completes.
+  - Timeline values remain independent from raw feed availability.
+- Files changed:
+  - `app/monitor/[ticker]/sentiment/MentionFeedCards.tsx`
+  - `app/globals.css`
+  - `docs/CODEX_CHANGE_LOG.md`
+- Verification: TypeScript type-check, whitespace validation, and production
+  build. The local browser reached the authentication gate, so the signed-in
+  visual transition was not available for automated inspection.
+
+## 2026-08-03 — Keep Social Feed cards inside the visible date range
+
+- Area: User Portal → Social Sentiment → Sentiment Timeline & Social Feed.
+- API/data:
+  `GET /social-data?ticker={ticker}&date={YYYY-MM-DD}&sort=datetime&order=desc`.
+- Reported regression: Selecting the Jul 14 Timeline bucket displayed feed
+  cards whose visible timestamps were Jul 15 in the configured portal
+  timezone.
+- Root cause:
+  - The documented `date` filter may match a record by its post date, S3 target
+    bucket date, or calculated target date.
+  - The preceding Timeline alignment change trusted every date-scoped response
+    record for daily and longer buckets. A Jul 14 API request could therefore
+    legitimately return a record whose actual timestamp displays as Jul 15.
+- Implemented behavior:
+  - Feed loading requests two adjacent calendar dates on each side of the
+    visible range so records stored under a nearby target/calculated date can
+    still be discovered.
+  - Returned records are deduplicated and then filtered by their actual
+    timestamp converted into the portal's configured timezone.
+  - Only records whose displayed date falls within the visible From/To range
+    are rendered and counted.
+  - Latest-platform fallback dates are also calculated in the configured
+    portal timezone.
+- Regression behavior that must remain intact:
+  - Backend Timeline `bucketStart` remains the canonical selected boundary.
+  - Platform/date selections continue to issue fresh `/social-data` requests.
+  - Daily API failures remain visible with their exact queried date and error.
+  - Timeline bars, scores, and consolidated platform totals are not changed by
+    raw feed availability.
+- Files changed:
+  - `app/monitor/[ticker]/sentiment/SentimentBrowserPage.tsx`
+  - `docs/CODEX_CHANGE_LOG.md`
+- Verification: TypeScript type-check, whitespace validation, focused timezone
+  date-boundary checks, and production build.
+- Remaining backend dependency / limitation:
+  - The adjacent-date search covers the observed target-date drift without a
+    range endpoint. A record stored more than two calendar days away from its
+    actual timestamp may still require backend date normalization.
+  - Matching the visible date does not recreate raw posts absent from
+    `/social-data`, so card totals can still be lower than consolidated
+    Timeline mentions.
+
+## 2026-07-31 — Align Social Feed requests to backend Timeline buckets
+
+- Area: User Portal → Social Sentiment → Sentiment Timeline & Social Feed.
+- APIs/data:
+  - Bucket boundaries:
+    `GET /market-data/current?ticker={ticker}&category=sentiment-current`.
+  - Feed cards:
+    `GET /social-data?ticker={ticker}&date={YYYY-MM-DD}&sort=datetime&order=desc`.
+- Reported problem:
+  - A selected daily Timeline bar could show consolidated mentions while the
+    feed section displayed no posts.
+  - The frontend generated local-time bucket boundaries instead of retaining
+    the backend Timeline row's canonical `bucketStart`.
+  - After the already date-scoped `/social-data` response arrived, the
+    frontend applied a second strict timestamp filter. That could discard a
+    record which the documented API correctly matched by post date, S3 target
+    bucket date, or calculated target date.
+- Implemented behavior:
+  - When backend Timeline rows are available, visible chart buckets are aligned
+    to their actual `bucketStart` values before event aggregation, selection,
+    and feed requests.
+  - Clicking a backend-aligned daily or longer bucket requests the exact
+    inclusive calendar dates represented by that bucket.
+  - Daily and longer selections trust the date-scoped `/social-data` response
+    and no longer apply the conflicting second timestamp filter.
+  - Sub-day buckets still apply the exact start/end timestamp filter because
+    `/social-data` supports dates but not hours.
+  - Existing generated buckets remain the fallback when no backend Timeline is
+    available.
+- Regression behavior that must remain intact:
+  - `1M` remains daily, `1W` remains daily, `1D` remains hourly, and `1Y`
+    remains monthly.
+  - Timeline bar heights and sentiment scores remain authoritative backend
+    values; raw feeds do not resize or rescore them.
+  - Platform filters and every bucket/date selection continue to issue fresh
+    `/social-data` requests.
+  - Partial daily API failures remain visible with their specific reasons.
+- Files changed:
+  - `app/monitor/[ticker]/sentiment/SentimentBrowserPage.tsx`
+  - `lib/sentiment-buckets.ts`
+  - `docs/CODEX_CHANGE_LOG.md`
+- Verification: TypeScript type-check, whitespace validation, focused bucket
+  alignment checks, and production build.
+- Remaining backend dependency / limitation:
+  - This removes frontend date-boundary and double-filter mismatches. It cannot
+    recreate a raw social record that is absent from `/social-data`, so a
+    historical consolidated bar can still exceed available raw cards if the
+    source archive itself is incomplete.
+  - Monthly selections still require one API request per calendar day because
+    `/social-data` has no native range query.
+
 ## 2026-07-31 — Hide timeline classified-event coverage text
 
 - Area: User Portal → Social Sentiment → Sentiment Timeline tooltips.

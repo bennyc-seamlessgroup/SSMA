@@ -5,7 +5,7 @@ import { ApiSourceTags } from '@/components/ApiSourceTags';
 import { InfoTooltip } from '@/components/InfoTooltip';
 import { PortalPageLoading } from '@/components/PortalPageLoading';
 import { usePortalTimeZone } from '@/components/usePortalTimeZone';
-import { aggregateSentimentByBucket, getSentimentBuckets, type AggregatedSentimentBucket, type SentimentBucket as TimelineBucket, type SentimentPlatformFilter, type SentimentTimeframe } from '@/lib/sentiment-buckets';
+import { aggregateSentimentByBucket, alignSentimentBucketsToTimeline, getSentimentBuckets, type AggregatedSentimentBucket, type SentimentBucket as TimelineBucket, type SentimentPlatformFilter, type SentimentTimeframe } from '@/lib/sentiment-buckets';
 import {
   getSocialDataPage,
   getSentimentCurrent,
@@ -18,6 +18,7 @@ import {
 } from '@/lib/social-data-api';
 import { normalizeTicker } from '@/lib/ticker-data';
 import { formatPortalDateTime } from '@/lib/timezone';
+import { assignedUsMarketTradingDate, isUsMarketTradingDay, shiftUsMarketTradingDate } from '@/lib/us-market-calendar';
 import { useSearchParams } from 'next/navigation';
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { MentionFeedCards, type MentionFeedRow } from './MentionFeedCards';
@@ -68,6 +69,47 @@ function backendTimelinePlatform(item: Record<string, unknown>): SentimentPlatfo
   return null;
 }
 
+function backendTimelineTradeDate(item: Record<string, unknown>) {
+  const candidate = String(
+    item.tradeDate
+    ?? item.trade_date
+    ?? item.tradingDay
+    ?? item.trading_day
+    ?? item.bucketStart
+    ?? item.date
+    ?? '',
+  );
+  return candidate.match(/^\d{4}-\d{2}-\d{2}/)?.[0] ?? '';
+}
+
+function backendTimelineDistribution(item: Record<string, unknown>) {
+  const distribution = objectValue(
+    item.distribution
+    ?? item.sentimentDistribution
+    ?? item.sentiment_distribution,
+  );
+  return {
+    positive: optionalNumeric(
+      distribution.positiveCount
+      ?? distribution.positive
+      ?? item.positiveCount
+      ?? item.positive,
+    ),
+    neutral: optionalNumeric(
+      distribution.neutralCount
+      ?? distribution.neutral
+      ?? item.neutralCount
+      ?? item.neutral,
+    ),
+    negative: optionalNumeric(
+      distribution.negativeCount
+      ?? distribution.negative
+      ?? item.negativeCount
+      ?? item.negative,
+    ),
+  };
+}
+
 function aggregateBackendTimeline(
   timeline: Record<string, unknown>[],
   buckets: TimelineBucket[],
@@ -88,31 +130,27 @@ function aggregateBackendTimeline(
         && (index === buckets.length - 1 ? timestampMs <= bucket.endMs : timestampMs < bucket.endMs)
         && matchesPlatform;
     });
+    const rowTradeDates = [...new Set(rows.map(backendTimelineTradeDate).filter(Boolean))].sort();
     const mentions = rows.reduce((sum, item) => sum + (optionalNumeric(item.mentions ?? item.count) ?? 0), 0);
     const weightedScore = rows.reduce((sum, item) => {
       const count = optionalNumeric(item.mentions ?? item.count) ?? 0;
       const score = optionalNumeric(item.sentimentScore ?? item.score) ?? 0;
       return sum + score * count;
     }, 0);
-    const hasBackendBreakdown = rows.length > 0 && rows.every(item => (
-      Object.hasOwn(item, 'positiveCount')
-      || Object.hasOwn(item, 'positive')
-      || Object.hasOwn(item, 'neutralCount')
-      || Object.hasOwn(item, 'neutral')
-      || Object.hasOwn(item, 'negativeCount')
-      || Object.hasOwn(item, 'negative')
+    const rowDistributions = rows.map(backendTimelineDistribution);
+    const hasBackendBreakdown = rowDistributions.length > 0 && rowDistributions.every(item => (
+      item.positive !== null
+      && item.neutral !== null
+      && item.negative !== null
     ));
     const eventBucket = eventBucketsById.get(bucket.id);
     const breakdown = hasBackendBreakdown
       ? {
-        positive: rows.reduce((sum, item) => sum + (optionalNumeric(item.positiveCount ?? item.positive) ?? 0), 0),
-        neutral: rows.reduce((sum, item) => sum + (optionalNumeric(item.neutralCount ?? item.neutral) ?? 0), 0),
-        negative: rows.reduce((sum, item) => sum + (optionalNumeric(item.negativeCount ?? item.negative) ?? 0), 0),
-        classifiedMentions: rows.reduce((sum, item) => (
-          sum
-          + (optionalNumeric(item.positiveCount ?? item.positive) ?? 0)
-          + (optionalNumeric(item.neutralCount ?? item.neutral) ?? 0)
-          + (optionalNumeric(item.negativeCount ?? item.negative) ?? 0)
+        positive: rowDistributions.reduce((sum, item) => sum + (item.positive ?? 0), 0),
+        neutral: rowDistributions.reduce((sum, item) => sum + (item.neutral ?? 0), 0),
+        negative: rowDistributions.reduce((sum, item) => sum + (item.negative ?? 0), 0),
+        classifiedMentions: rowDistributions.reduce((sum, item) => (
+          sum + (item.positive ?? 0) + (item.neutral ?? 0) + (item.negative ?? 0)
         ), 0),
       }
       : {
@@ -123,6 +161,10 @@ function aggregateBackendTimeline(
       };
     return {
       ...bucket,
+      ...(rowTradeDates.length ? {
+        tradeDateFrom: rowTradeDates[0],
+        tradeDateTo: rowTradeDates[rowTradeDates.length - 1],
+      } : {}),
       score: mentions ? Math.round(weightedScore / mentions) : null,
       mentions,
       ...breakdown,
@@ -231,6 +273,15 @@ function shiftIsoDate(value: string, days: number) {
   return date.toISOString().slice(0, 10);
 }
 
+function tradingDateOnOrAfter(value: string) {
+  let candidate = value;
+  for (let attempts = 0; attempts < 10; attempts += 1) {
+    if (isUsMarketTradingDay(candidate)) return candidate;
+    candidate = shiftIsoDate(candidate, 1);
+  }
+  return value;
+}
+
 function datesNewestFirst(fromDate: string, toDate: string) {
   const start = Date.parse(`${fromDate}T00:00:00Z`);
   const end = Date.parse(`${toDate}T00:00:00Z`);
@@ -263,7 +314,7 @@ async function dailyFeedRange(
   toDate: string,
   platform?: Exclude<SentimentPlatformFilter, 'All'>,
 ) {
-  const dates = datesNewestFirst(fromDate, toDate);
+  const dates = datesNewestFirst(fromDate, toDate).filter(isUsMarketTradingDay);
   const results = await Promise.allSettled(dates.map(async date => ({
     date,
     response: await getSocialDataPage({
@@ -302,7 +353,12 @@ async function feedRangeWithLatestFallback(
   minimumDate: string,
   maximumDate: string,
 ) {
-  const requested = await dailyFeedRange(ticker, fromDate, toDate, platform);
+  const requested = await dailyFeedRange(
+    ticker,
+    fromDate,
+    toDate,
+    platform,
+  );
   if (requested.records.length || !platform || !allowLatestFallback) {
     return {
       ...requested,
@@ -320,7 +376,9 @@ async function feedRangeWithLatestFallback(
     sort: 'datetime',
     order: 'desc',
   });
-  const latestDate = sortSocialMentionsNewestFirst(latest.records)[0]?.timestamp.slice(0, 10) ?? '';
+  const latestDate = sortSocialMentionsNewestFirst(latest.records)
+    .map(record => record.tradeDate)
+    .find(date => /^\d{4}-\d{2}-\d{2}$/.test(date)) ?? '';
   if (
     !/^\d{4}-\d{2}-\d{2}$/.test(latestDate)
     || latestDate < minimumDate
@@ -335,14 +393,19 @@ async function feedRangeWithLatestFallback(
   }
 
   const fallbackToDate = latestDate;
-  const shiftedFromDate = shiftIsoDate(fallbackToDate, -6);
+  const shiftedFromDate = shiftUsMarketTradingDate(fallbackToDate, -4);
   const fallbackFromDate = shiftedFromDate < minimumDate ? minimumDate : shiftedFromDate;
-  const fallback = await dailyFeedRange(ticker, fallbackFromDate, fallbackToDate, platform);
+  const fallback = await dailyFeedRange(
+    ticker,
+    fallbackFromDate,
+    fallbackToDate,
+    platform,
+  );
   return {
     ...fallback,
     fromDate: fallbackFromDate,
     toDate: fallbackToDate,
-    fallbackNotice: `No ${platformDisplayLabel(platform)} feeds were found from ${fromDate} to ${toDate}. Showing the latest available seven-day period instead.`,
+    fallbackNotice: `No ${platformDisplayLabel(platform)} feeds were found for trading days ${fromDate} to ${toDate}. Showing the latest available five-trading-day period instead.`,
   };
 }
 
@@ -355,10 +418,25 @@ function localIsoDate(timestampMs: number) {
 }
 
 function feedRangeForBucket(bucket: AggregatedSentimentBucket) {
+  if (bucket.tradeDateFrom && bucket.tradeDateTo) {
+    return { fromDate: bucket.tradeDateFrom, toDate: bucket.tradeDateTo };
+  }
+  if (bucket.apiDateZone === 'utc') {
+    return {
+      fromDate: new Date(bucket.startMs).toISOString().slice(0, 10),
+      toDate: new Date(bucket.endMs - 1).toISOString().slice(0, 10),
+    };
+  }
   return {
     fromDate: localIsoDate(bucket.startMs),
     toDate: localIsoDate(bucket.endMs - 1),
   };
+}
+
+function tradingDayFilterLabel(bucket: AggregatedSentimentBucket) {
+  return bucket.tradeDateFrom && bucket.tradeDateTo && bucket.tradeDateFrom !== bucket.tradeDateTo
+    ? `trading-day period ${bucket.tooltipLabel}`
+    : `trading day ${bucket.tooltipLabel}`;
 }
 
 function rangeFromSearch(value: unknown) {
@@ -418,6 +496,7 @@ function feedRows(feed: AdanosMention[], timeZone: string) {
     return {
       timestamp: formatMentionDate(item.timestamp, timeZone),
       timestampMs: mentionTimestampMs(item.timestamp),
+      tradeDate: item.tradeDate,
       platform: platformLabel,
       author: String(item.author ?? 'N/A'),
       sentiment: mentionSentiment(item),
@@ -565,7 +644,14 @@ function DevApiTables({
   events: unknown;
   timeZone: string;
 }) {
-  const mentionRows = mentions.map(row => ({ ...row, timestamp: formatMentionDate(row.timestamp, timeZone) }));
+  const mentionRows = mentions.map(row => {
+    const { tradeDate, timestamp, ...rest } = row;
+    return {
+      tradeDate,
+      postedAt: formatMentionDate(timestamp, timeZone),
+      ...rest,
+    };
+  });
 
   return (
     <section className="narrative-feed-panel dev-only import-data-dev-panel">
@@ -575,7 +661,7 @@ function DevApiTables({
         </div>
       </div>
       <ApiDevelopmentTabs sources={[
-        { id: 'social-data', title: 'Social Records', endpoint: 'GET /social-data?date=YYYY-MM-DD', source: `${socialPages.length} daily API response(s)`, payload: mentionRows },
+        { id: 'social-data', title: 'Social Records', endpoint: 'GET /social-data?date=TRADING-DAY', source: `${socialPages.length} trading-day API response(s)`, payload: mentionRows },
         { id: 'sentiment-current', title: 'Sentiment Current', endpoint: 'GET /market-data/current?category=sentiment-current', source: 'Market Data API', payload: current },
         { id: 'sentiment-events', title: 'Sentiment Timeline', endpoint: 'GET /market-data/history?category=sentiment-events', source: 'Market Data API', payload: events },
       ]} />
@@ -588,13 +674,13 @@ export function SentimentBrowserPage({ ticker }: { ticker: string }) {
   const searchParams = useSearchParams();
   const timeZone = usePortalTimeZone();
   const activeRange = rangeFromSearch(searchParams.get('range') ?? undefined);
-  const feedMinDate = isoDateWithOffset(-365);
-  const feedMaxDate = isoDateWithOffset(0);
+  const feedMaxDate = assignedUsMarketTradingDate() || isoDateWithOffset(0);
+  const feedMinDate = tradingDateOnOrAfter(shiftIsoDate(feedMaxDate, -365));
   const [selectedPlatform, setSelectedPlatform] = useState<SentimentPlatformFilter>('All');
   const [selectedBucketId, setSelectedBucketId] = useState<string | null>(null);
   const [feedDateRange, setFeedDateRange] = useState(() => ({
-    fromDate: isoDateWithOffset(-6),
-    toDate: isoDateWithOffset(0),
+    fromDate: shiftUsMarketTradingDate(feedMaxDate, -4) || feedMinDate,
+    toDate: feedMaxDate,
   }));
   const [allowLatestFeedFallback, setAllowLatestFeedFallback] = useState(true);
   const [apiData, setApiData] = useState<{
@@ -638,7 +724,7 @@ export function SentimentBrowserPage({ ticker }: { ticker: string }) {
         if (!cancelled && requestId === feedRequestId.current) {
           if (cancelled || requestId !== feedRequestId.current) return;
           if (social.failures.length) {
-            setLoadError(`${social.failures.length} daily feed request(s) failed. ${social.failures.map(failure => `${failure.date}: ${failure.reason}`).join(' · ')}`);
+            setLoadError(`${social.failures.length} trading-day feed request(s) failed. ${social.failures.map(failure => `${failure.date}: ${failure.reason}`).join(' · ')}`);
           }
           setApiData({
             mentions: social.records,
@@ -675,10 +761,10 @@ export function SentimentBrowserPage({ ticker }: { ticker: string }) {
       cancelled = true;
       window.removeEventListener('import-data-updated', load);
     };
-  }, [allowLatestFeedFallback, normalizedTicker, feedDateRange.fromDate, feedDateRange.toDate, selectedPlatform]);
+  }, [allowLatestFeedFallback, normalizedTicker, feedDateRange.fromDate, feedDateRange.toDate, selectedPlatform, feedMinDate, feedMaxDate]);
 
   const selectFeedDateRange = (fromDate: string, toDate: string) => {
-    if (!datesNewestFirst(fromDate, toDate).length) return;
+    if (!datesNewestFirst(fromDate, toDate).length || !isUsMarketTradingDay(fromDate) || !isUsMarketTradingDay(toDate)) return;
     setLoadError('');
     feedRangeBeforeBucket.current = null;
     setAllowLatestFeedFallback(false);
@@ -687,7 +773,7 @@ export function SentimentBrowserPage({ ticker }: { ticker: string }) {
   };
   const showMoreFeedDays = () => {
     const visibleRange = apiData?.feedRange ?? feedDateRange;
-    const extendedFromDate = shiftIsoDate(visibleRange.fromDate, -7);
+    const extendedFromDate = shiftUsMarketTradingDate(visibleRange.fromDate, -5);
     selectFeedDateRange(
       extendedFromDate < feedMinDate ? feedMinDate : extendedFromDate,
       visibleRange.toDate,
@@ -827,17 +913,29 @@ export function SentimentBrowserPage({ ticker }: { ticker: string }) {
     { label: 'Stocktwits' as const, score: stocktwitsScore, previousScore: previousStocktwitsMentions.length ? averageScoreFor(previousStocktwitsMentions) : null, count: countForPlatform('Stocktwits', windowStocktwitsMentions) },
   ];
   const allRows = feedRows(windowFeedMentions, timeZone);
+  const backendTradeDateStart = String(backendPeriod.start ?? '').match(/^\d{4}-\d{2}-\d{2}/)?.[0] ?? '';
+  const backendTradeDateEnd = String(backendPeriod.end ?? '').match(/^\d{4}-\d{2}-\d{2}/)?.[0] ?? '';
   const timelineMentions = timelineSourceMentions.map(item => ({
       timestampMs: mentionTimestampMs(item.timestamp),
+      tradeDate: item.tradeDate,
       platform: item.platform,
       score: sentimentValue(item),
       sentiment: mentionSentiment(item),
     })).filter(item => (
       item.timestampMs > 0
-      && item.timestampMs >= currentWindowStart
-      && item.timestampMs <= latestMentionTime
+      && (
+        activeRangeLabel !== '1D'
+        && item.tradeDate
+        && backendTradeDateStart
+        && backendTradeDateEnd
+          ? item.tradeDate >= backendTradeDateStart && item.tradeDate <= backendTradeDateEnd
+          : item.timestampMs >= currentWindowStart && item.timestampMs <= latestMentionTime
+      )
     ));
-  const sentimentBuckets = getSentimentBuckets(activeRangeLabel, currentWindowStart, latestMentionTime);
+  const generatedSentimentBuckets = getSentimentBuckets(activeRangeLabel, currentWindowStart, latestMentionTime);
+  const sentimentBuckets = backendTimeline.length
+    ? alignSentimentBucketsToTimeline(backendTimeline, generatedSentimentBuckets)
+    : generatedSentimentBuckets;
   const eventAggregatedBuckets = aggregateSentimentByBucket(
     timelineMentions,
     sentimentBuckets,
@@ -861,7 +959,8 @@ export function SentimentBrowserPage({ ticker }: { ticker: string }) {
     : eventAggregatedBuckets;
   const selectedBucket = selectedBucketId ? aggregatedBuckets.find(bucket => bucket.id === selectedBucketId) ?? null : null;
   const platformRows = selectedPlatform === 'All' ? allRows : allRows.filter(row => row.platform === selectedPlatform);
-  const filteredRows = selectedBucket
+  const selectedBucketDuration = selectedBucket ? selectedBucket.endMs - selectedBucket.startMs : 0;
+  const filteredRows = selectedBucket && selectedBucketDuration < dayMs
     ? platformRows.filter(row => row.timestampMs >= selectedBucket.startMs && row.timestampMs < selectedBucket.endMs)
     : platformRows;
   const platformCounts: Record<SentimentPlatformFilter, number> = {
@@ -908,7 +1007,7 @@ export function SentimentBrowserPage({ ticker }: { ticker: string }) {
       <section className="narrative-feed-panel narrative-timeline-fullwidth">
         <div className="narrative-section-head">
           <div>
-            <h2 className="panel__title">Sentiment Timeline & Social Feed <InfoTooltip text="Platform counts follow the selected 1D, 1W, 1M, 6M, or 1Y timeframe. The calendar range controls which feed cards are loaded." /></h2>
+            <h2 className="panel__title">Sentiment Timeline & Social Feed — by Trading Day <InfoTooltip text="Mentions are grouped by their backend-assigned U.S. trading day, not posting date. Posts before market open, during weekends, or during market holidays remain assigned to the most recent trading day. Feed cards retain their original posting timestamps." /></h2>
           </div>
           <ApiSourceTags sources={[
             { endpoint: 'GET /market-data/current?category=sentiment-current', label: 'Timeline' },
@@ -943,8 +1042,8 @@ export function SentimentBrowserPage({ ticker }: { ticker: string }) {
         />
         {selectedBucket && (
           <div className="narrative-date-filter-note">
-            <span>Filtered to {selectedBucket.tooltipLabel}</span>
-            <button type="button" onClick={clearTimelineBucket}>Clear date filter</button>
+            <span>Filtered to {tradingDayFilterLabel(selectedBucket)}</span>
+            <button type="button" onClick={clearTimelineBucket}>Clear trading-day filter</button>
           </div>
         )}
         {apiData.fallbackNotice && (
@@ -962,10 +1061,17 @@ export function SentimentBrowserPage({ ticker }: { ticker: string }) {
             isLoadingRange={isLoadingFeeds}
             onDateRangeChange={selectFeedDateRange}
             canSeeMore={apiData.feedRange.fromDate > feedMinDate}
+            showSeeMore={!selectedBucket}
             onSeeMore={showMoreFeedDays}
             hidePlatformFilter
-            emptyMessage={isLoadingFeeds ? 'Loading social feeds...' : 'No social feeds captured for this platform and time window.'}
+            emptyMessage={isLoadingFeeds ? 'Loading social feeds...' : 'No social feeds were assigned to this platform and trading-day range.'}
           />
+          {selectedBucket && (
+            <div className="narrative-date-filter-note narrative-date-filter-note--feed-footer">
+              <span>Showing all available posts assigned to {tradingDayFilterLabel(selectedBucket)}</span>
+              <button type="button" onClick={clearTimelineBucket}>Clear trading-day filter</button>
+            </div>
+          )}
         </div>
       </section>
 

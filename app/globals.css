@@ -14129,9 +14129,76 @@ html[data-design-b-theme="dark"] .monitor-portal .narrative-feed-card__bottom {
   padding: 0 8px;
 }
 
+.narrative-trade-date-error {
+  margin: -2px 0 12px;
+  color: #b45309;
+  font-size: 11px;
+  font-weight: 750;
+}
+
 .narrative-intel-feed {
+  position: relative;
   display: grid;
   gap: 10px;
+}
+
+.narrative-intel-feed.is-loading {
+  min-height: 150px;
+}
+
+.narrative-feed-loading-overlay {
+  position: absolute;
+  z-index: 5;
+  inset: 0;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  min-height: 150px;
+  padding: 34px 20px;
+  border: 1px solid rgba(148, 163, 184, .28);
+  border-radius: 8px;
+  background: rgba(248, 250, 252, .92);
+  backdrop-filter: blur(3px);
+}
+
+.narrative-feed-loading-message {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  gap: 7px;
+  color: #334155;
+  text-align: center;
+}
+
+.narrative-feed-loading-message strong {
+  font-size: 13px;
+  font-weight: 850;
+}
+
+.narrative-feed-loading-message small {
+  color: #64748b;
+  font-size: 11px;
+  font-weight: 650;
+}
+
+.narrative-feed-loading-spinner {
+  width: 28px;
+  height: 28px;
+  border: 3px solid rgba(37, 99, 235, .18);
+  border-top-color: #2563eb;
+  border-radius: 999px;
+  animation: narrative-feed-loading-spin .72s linear infinite;
+}
+
+@keyframes narrative-feed-loading-spin {
+  to { transform: rotate(360deg); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .narrative-feed-loading-spinner {
+    animation: none;
+  }
 }
 
 .narrative-feed-under-chart {
@@ -14198,6 +14265,19 @@ html[data-design-b-theme="dark"] .monitor-portal .narrative-feed-card__bottom {
   color: #64748b;
   font-size: 11px;
   font-weight: 700;
+}
+
+.narrative-trade-day-label {
+  padding: 3px 7px;
+  border-radius: 999px;
+  background: #eff6ff;
+  color: #1d4ed8;
+  font-size: 10px;
+  font-weight: 800;
+}
+
+.narrative-date-filter-note--feed-footer {
+  margin-top: 12px;
 }
 
 .narrative-intel-card h3 {
@@ -14955,6 +15035,15 @@ html[data-design-b-theme="dark"] .monitor-portal .narrative-date-range-field inp
   color-scheme: dark;
 }
 
+html[data-design-b-theme="dark"] .monitor-portal .narrative-trade-date-error {
+  color: #fbbf24;
+}
+
+html[data-design-b-theme="dark"] .monitor-portal .narrative-trade-day-label {
+  background: rgba(37,99,235,.22);
+  color: #bfdbfe;
+}
+
 html[data-design-b-theme="dark"] .monitor-portal :where(.narrative-filter-group button.active, .narrative-range-tabs button.active) {
   border-color: rgba(96,165,250,.42);
   background: rgba(37,99,235,.28);
@@ -14993,6 +15082,19 @@ html[data-design-b-theme="dark"] .monitor-portal .narrative-platform-row em.down
 html[data-design-b-theme="dark"] .monitor-portal .narrative-feed-empty {
   border-color: rgba(148,163,184,.26);
   background: rgba(15,29,51,.72);
+  color: #9fb2ca;
+}
+
+html[data-design-b-theme="dark"] .monitor-portal .narrative-feed-loading-overlay {
+  border-color: rgba(148,163,184,.24);
+  background: rgba(10,22,39,.9);
+}
+
+html[data-design-b-theme="dark"] .monitor-portal .narrative-feed-loading-message {
+  color: #e2e8f0;
+}
+
+html[data-design-b-theme="dark"] .monitor-portal .narrative-feed-loading-message small {
   color: #9fb2ca;
 }
 

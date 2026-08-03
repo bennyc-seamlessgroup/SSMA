@@ -100,6 +100,17 @@ export function usMarketCloseTime(value: string) {
   return new Date(instant);
 }
 
+export function usMarketOpenTime(value: string) {
+  const parts = parseDateKey(value);
+  if (!parts) return null;
+  const localClockAsUtc = Date.UTC(parts.year, parts.month - 1, parts.day, 9, 30, 0);
+  let instant = localClockAsUtc;
+  for (let iteration = 0; iteration < 2; iteration += 1) {
+    instant = localClockAsUtc - timeZoneOffsetMs(new Date(instant), MARKET_TIME_ZONE);
+  }
+  return new Date(instant);
+}
+
 export function newYorkDateKey(date = new Date()) {
   const parts = Object.fromEntries(new Intl.DateTimeFormat('en-CA', {
     timeZone: MARKET_TIME_ZONE,
@@ -123,6 +134,36 @@ export function latestClosedUsMarketDate(now = new Date()) {
     candidate = addUtcDays(candidate, -1);
   }
 
+  return '';
+}
+
+export function shiftUsMarketTradingDate(value: string, tradingDays: number) {
+  let candidate = parseDateKey(value);
+  if (!candidate || !Number.isInteger(tradingDays)) return '';
+  if (tradingDays === 0) return isUsMarketTradingDay(value) ? value : '';
+
+  const direction = tradingDays > 0 ? 1 : -1;
+  let remaining = Math.abs(tradingDays);
+  for (let attempts = 0; attempts < 740 && remaining > 0; attempts += 1) {
+    candidate = addUtcDays(candidate, direction);
+    const candidateKey = dateKey(candidate);
+    if (isUsMarketTradingDay(candidateKey)) remaining -= 1;
+  }
+  return remaining === 0 ? dateKey(candidate) : '';
+}
+
+export function assignedUsMarketTradingDate(now = new Date()) {
+  let candidate = parseDateKey(newYorkDateKey(now));
+  if (!candidate) return '';
+
+  for (let attempts = 0; attempts < 370; attempts += 1) {
+    const candidateKey = dateKey(candidate);
+    const openAt = usMarketOpenTime(candidateKey);
+    if (isUsMarketTradingDay(candidateKey) && openAt && now.getTime() >= openAt.getTime()) {
+      return candidateKey;
+    }
+    candidate = addUtcDays(candidate, -1);
+  }
   return '';
 }
 

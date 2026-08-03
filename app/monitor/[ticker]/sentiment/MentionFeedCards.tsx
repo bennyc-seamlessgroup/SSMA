@@ -1,10 +1,12 @@
 'use client';
 
 import { useMemo, useState } from 'react';
+import { isUsMarketTradingDay } from '@/lib/us-market-calendar';
 
 export type MentionFeedRow = {
   timestamp: string;
   timestampMs: number;
+  tradeDate: string;
   platform: string;
   author: string;
   sentiment: 'positive' | 'negative' | 'neutral';
@@ -29,6 +31,16 @@ function sentimentLabel(sentiment: MentionFeedRow['sentiment']) {
   if (sentiment === 'positive') return 'Bullish';
   if (sentiment === 'negative') return 'Bearish';
   return 'Neutral';
+}
+
+function tradingDayLabel(value: string) {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return 'N/A';
+  return new Intl.DateTimeFormat('en-US', {
+    timeZone: 'UTC',
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+  }).format(new Date(`${value}T00:00:00Z`));
 }
 
 function engagement(row: MentionFeedRow) {
@@ -89,6 +101,7 @@ export function MentionFeedCards({
   isLoadingRange = false,
   onDateRangeChange,
   canSeeMore = false,
+  showSeeMore = true,
   onSeeMore,
   hidePlatformFilter = false,
   emptyMessage = 'No social feeds captured for this platform and time window.',
@@ -101,12 +114,14 @@ export function MentionFeedCards({
   isLoadingRange?: boolean;
   onDateRangeChange: (fromDate: string, toDate: string) => void | Promise<void>;
   canSeeMore?: boolean;
+  showSeeMore?: boolean;
   onSeeMore: () => void | Promise<void>;
   hidePlatformFilter?: boolean;
   emptyMessage?: string;
 }) {
   const [sentimentFilter, setSentimentFilter] = useState<(typeof sentimentFilters)[number]>('All Sentiment');
   const [sortMode, setSortMode] = useState<'recent' | 'oldest' | 'followers' | 'likes' | 'engagement'>('recent');
+  const [tradeDateError, setTradeDateError] = useState('');
   const filteredRows = useMemo(() => {
     return rows
       .filter(row => sentimentFilter === 'All Sentiment' || sentimentLabel(row.sentiment) === sentimentFilter)
@@ -124,29 +139,41 @@ export function MentionFeedCards({
         {!hidePlatformFilter && <span className="narrative-feed-filter-label">Feed filters</span>}
         <div className="narrative-filter-selects">
           <label className="narrative-date-range-field">
-            <span>From</span>
+            <span>Trading day from</span>
             <input
               type="date"
               value={fromDate}
               min={minDate}
               max={toDate}
               onChange={event => {
-                if (event.target.value) void onDateRangeChange(event.target.value, toDate);
+                if (!event.target.value) return;
+                if (!isUsMarketTradingDay(event.target.value)) {
+                  setTradeDateError('Select a valid U.S. trading day. Weekends and market holidays are assigned to the preceding trading day.');
+                  return;
+                }
+                setTradeDateError('');
+                void onDateRangeChange(event.target.value, toDate);
               }}
-              aria-label="Social feed start date"
+              aria-label="Social feed starting trading day"
             />
           </label>
           <label className="narrative-date-range-field">
-            <span>To</span>
+            <span>Trading day to</span>
             <input
               type="date"
               value={toDate}
               min={fromDate}
               max={maxDate}
               onChange={event => {
-                if (event.target.value) void onDateRangeChange(fromDate, event.target.value);
+                if (!event.target.value) return;
+                if (!isUsMarketTradingDay(event.target.value)) {
+                  setTradeDateError('Select a valid U.S. trading day. Weekends and market holidays are assigned to the preceding trading day.');
+                  return;
+                }
+                setTradeDateError('');
+                void onDateRangeChange(fromDate, event.target.value);
               }}
-              aria-label="Social feed end date"
+              aria-label="Social feed ending trading day"
             />
           </label>
           <select value={sentimentFilter} onChange={event => setSentimentFilter(event.target.value as (typeof sentimentFilters)[number])} aria-label="Sentiment filter">
@@ -161,8 +188,12 @@ export function MentionFeedCards({
           </select>
         </div>
       </div>
+      {tradeDateError && <div className="narrative-trade-date-error" role="alert">{tradeDateError}</div>}
 
-      <div className="narrative-intel-feed">
+      <div
+        className={`narrative-intel-feed${isLoadingRange ? ' is-loading' : ''}`}
+        aria-busy={isLoadingRange}
+      >
         {filteredRows.length === 0 ? (
           <div className="narrative-feed-empty">{emptyMessage}</div>
         ) : filteredRows.map((row, index) => (
@@ -173,6 +204,7 @@ export function MentionFeedCards({
             <div className="narrative-intel-body">
               <div className="narrative-intel-meta">
                 <span className={`narrative-sentiment-pill ${sentimentTone(row.sentiment)}`}>{sentimentLabel(row.sentiment)}</span>
+                <span className="narrative-trade-day-label">Trading day {tradingDayLabel(row.tradeDate)}</span>
                 <time>{row.timestamp}</time>
               </div>
               <h3><HighlightedText text={headline(row)} /></h3>
@@ -198,13 +230,24 @@ export function MentionFeedCards({
             </div>
           </article>
         ))}
+        {isLoadingRange && (
+          <div className="narrative-feed-loading-overlay" role="status" aria-live="polite">
+            <div className="narrative-feed-loading-message">
+              <span className="narrative-feed-loading-spinner" aria-hidden="true" />
+              <strong>Loading social feeds…</strong>
+              <small>Updating posts assigned to the selected trading-day range.</small>
+            </div>
+          </div>
+        )}
       </div>
 
       <div className="narrative-feed-pagination" aria-label={`${rows[0]?.platform ?? 'Mention'} feed count`}>
-        <span>Showing {filteredRows.length} posts in selected date range</span>
-        <button type="button" onClick={() => void onSeeMore()} disabled={!canSeeMore || isLoadingRange}>
-          {isLoadingRange ? 'Loading…' : 'See more'}
-        </button>
+        <span>Showing {filteredRows.length} posts assigned to selected trading-day range</span>
+        {showSeeMore && (
+          <button type="button" onClick={() => void onSeeMore()} disabled={!canSeeMore || isLoadingRange}>
+            {isLoadingRange ? 'Loading…' : 'See earlier trading days'}
+          </button>
+        )}
       </div>
     </div>
   );

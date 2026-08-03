@@ -7,6 +7,7 @@ export type SocialPlatform = 'Reddit' | 'X' | 'Facebook' | 'Linkedin' | 'Stocktw
 export type SocialMention = {
   id: string;
   key: string;
+  tradeDate: string;
   platform: SocialPlatform;
   query: string;
   timestamp: string;
@@ -88,6 +89,30 @@ function timestampFromKey(value: unknown) {
   return dateMatch ? `${dateMatch[1]}T00:00:00Z` : '';
 }
 
+function tradeDateFromKey(value: unknown) {
+  const segments = text(value).split('/');
+  return segments.find(segment => /^\d{4}-\d{2}-\d{2}$/.test(segment)) ?? '';
+}
+
+function normalizedTradeDate(row: Record<string, unknown>, key: string) {
+  const candidate = text(
+    row.tradeDate
+    ?? row.trade_date
+    ?? row.tradingDay
+    ?? row.trading_day
+    ?? row.assignedTradeDate
+    ?? row.assigned_trade_date
+    ?? row.targetDate
+    ?? row.target_date
+    ?? row.calculatedTargetDate
+    ?? row.calculated_target_date
+    ?? row.bucketStart
+    ?? row.bucket_start,
+  ).trim();
+  const datePrefix = candidate.match(/^\d{4}-\d{2}-\d{2}/)?.[0] ?? '';
+  return datePrefix || tradeDateFromKey(key);
+}
+
 function normalizedTimestamp(values: unknown[], key: string) {
   const raw = values.map(text).find(value => value.trim())?.trim() ?? '';
   if (/^\d{10}(?:\.\d+)?$/.test(raw)) {
@@ -151,6 +176,7 @@ export function normalizeSocialMention(value: unknown): SocialMention {
   return {
     id,
     key,
+    tradeDate: normalizedTradeDate(row, key),
     platform: normalizeSocialPlatform(platformSource),
     query: text(row.query),
     timestamp,
@@ -244,7 +270,14 @@ export async function getSocialDataPage({
     records = recordValues.length
       ? recordValues.map(value => {
         const mention = normalizeSocialMention(value);
-        return platform ? { ...mention, platform } : mention;
+        return {
+          ...mention,
+          ...(platform ? { platform } : {}),
+          // A date-scoped /social-data response is partitioned by the
+          // backend-assigned trading day. Keep that canonical assignment
+          // separate from the post's original timestamp.
+          ...(date ? { tradeDate: date } : {}),
+        };
       })
       : [];
     const pagePayload = Object.keys(record(payload.pagination)).length

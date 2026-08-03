@@ -4,6 +4,7 @@ export type SentimentTone = 'positive' | 'neutral' | 'negative';
 
 export type SentimentBucketInput = {
   timestampMs: number;
+  tradeDate?: string;
   platform: Exclude<SentimentPlatformFilter, 'All'>;
   score: number;
   sentiment: SentimentTone;
@@ -15,6 +16,9 @@ export type SentimentBucket = {
   tooltipLabel: string;
   startMs: number;
   endMs: number;
+  apiDateZone?: 'utc';
+  tradeDateFrom?: string;
+  tradeDateTo?: string;
 };
 
 export type AggregatedSentimentBucket = SentimentBucket & {
@@ -60,6 +64,37 @@ function fmt(value: number, options: Intl.DateTimeFormatOptions) {
 
 function bucket(id: string, startMs: number, endMs: number, label: string, tooltipLabel = label): SentimentBucket {
   return { id, startMs, endMs, label, tooltipLabel };
+}
+
+function isoDate(value: number) {
+  return new Date(value).toISOString().slice(0, 10);
+}
+
+export function alignSentimentBucketsToTimeline(
+  timeline: Record<string, unknown>[],
+  buckets: SentimentBucket[],
+) {
+  const backendStarts = [...new Set(timeline
+    .map(item => Date.parse(String(item.bucketStart ?? item.date ?? item.timestamp ?? '')))
+    .filter(Number.isFinite))]
+    .sort((a, b) => a - b);
+
+  return buckets.map((item, index) => {
+    const matchingStarts = backendStarts.filter(timestampMs => (
+      timestampMs >= item.startMs
+      && (index === buckets.length - 1 ? timestampMs <= item.endMs : timestampMs < item.endMs)
+    ));
+    if (!matchingStarts.length) return item;
+    const startMs = matchingStarts[0];
+    return {
+      ...item,
+      startMs,
+      endMs: startMs + (item.endMs - item.startMs),
+      apiDateZone: 'utc' as const,
+      tradeDateFrom: isoDate(startMs),
+      tradeDateTo: isoDate(matchingStarts[matchingStarts.length - 1]),
+    };
+  });
 }
 
 export function getSentimentBuckets(timeframe: SentimentTimeframe, startDate: number, endDate: number): SentimentBucket[] {
@@ -132,7 +167,16 @@ export function aggregateSentimentByBucket(
     let low = 0;
     let high = buckets.length - 1;
     let matchingIndex = -1;
+    if (feed.tradeDate && /^\d{4}-\d{2}-\d{2}$/.test(feed.tradeDate)) {
+      matchingIndex = buckets.findIndex(candidate => (
+        Boolean(candidate.tradeDateFrom && candidate.tradeDateTo)
+        && candidate.endMs - candidate.startMs >= dayMs
+        && feed.tradeDate! >= candidate.tradeDateFrom!
+        && feed.tradeDate! <= candidate.tradeDateTo!
+      ));
+    }
     while (low <= high) {
+      if (matchingIndex >= 0) break;
       const middle = Math.floor((low + high) / 2);
       const candidate = buckets[middle];
       const isLast = middle === buckets.length - 1;

@@ -23,9 +23,14 @@
   - [PUT /profile](#put-profile)
   - [PATCH /profile](#patch-profile)
   - [DELETE /profile](#delete-profile)
+  - [POST /tickers](#post-tickers)
+  - [GET /tickers](#get-tickers)
+  - [GET /tickers/{ticker}](#get-tickersticker)
+  - [PUT /tickers/{ticker}](#put-tickersticker)
+  - [DELETE /tickers/{ticker}](#delete-tickersticker)
   - [POST /tickers/invite](#post-tickersinvite)
   - [GET /tickers/invite](#get-tickersinvite)
-  - [GET /tickers/{ticker}](#get-tickersticker)
+  - [POST /tickers/historical-init](#post-tickershistorical-init)
   - [GET /user-inputs](#get-user-inputs)
   - [PUT /user-inputs/private-holdings](#put-user-inputsprivate-holdings)
   - [PUT /user-inputs/token-chains](#put-user-inputstoken-chains)
@@ -516,6 +521,214 @@ Authorization: <id_token>
 
 ---
 
+### POST /tickers
+
+Create a new stock ticker definition in the `stock_tickers` table. Restricted to users with the `OPERATOR` role.
+
+> [!NOTE]
+> **Operator Profile Auto-Sync:** Creating an `ACTIVE` or `INACTIVE` ticker automatically adds the ticker symbol to the calling operator's `tickers` list in `user_profiles`.  
+> **Audit Attribution:** `createdBy` and `updatedBy` store and display the operator's email address.
+
+```
+POST /tickers
+Authorization: <id_token>
+Content-Type: application/json
+
+{
+  "ticker": "AAPL",
+  "companyName": "Apple Inc.",
+  "status": "ACTIVE",
+  "effectiveDate": "2026-07-31"
+}
+```
+
+**Response** `201 Created`:
+```json
+{
+  "ticker": "AAPL",
+  "companyName": "Apple Inc.",
+  "status": "ACTIVE",
+  "effectiveDate": "2026-07-31",
+  "createdBy": "justin.lai@tng.asia",
+  "updatedBy": "justin.lai@tng.asia",
+  "createdAt": "2026-07-31T08:26:48.123456+00:00",
+  "updatedAt": "2026-07-31T08:26:48.123456+00:00"
+}
+```
+
+**Response** `400 Bad Request` (Invalid symbol, status, or date format):
+```json
+{
+  "message": "Invalid ticker symbol: '$INVALID!'. Must contain only letters, numbers, dots, or hyphens."
+}
+```
+
+**Response** `409 Conflict` (Ticker already exists):
+```json
+{
+  "message": "Ticker 'AAPL' already exists."
+}
+```
+
+**Response** `403 Forbidden` (User is not an operator):
+```json
+{
+  "message": "Access Denied: Only operators can access this resource."
+}
+```
+
+---
+
+### GET /tickers
+
+List managed stock tickers with optional status filtering, search keyword query, and soft-delete inclusion toggle. Restricted to users with the `OPERATOR` role.
+
+```
+GET /tickers?status=ACTIVE&includeDeleted=false&q=apple
+Authorization: <id_token>
+```
+
+**Query Parameters:**
+- `status` (`string`, optional): Filter by ticker status (`ACTIVE`, `INACTIVE`).
+- `includeDeleted` (`boolean`, optional): Include soft-deleted tickers (`true`, `false`). Default `false`.
+- `q` (`string`, optional): Case-insensitive substring search matching `ticker` symbol or `companyName`.
+- `limit` (`integer`, optional): Maximum number of records to return.
+- `nextToken` (`string`, optional): Pagination token.
+
+**Response** `200 OK`:
+```json
+{
+  "tickers": [
+    {
+      "ticker": "AAPL",
+      "companyName": "Apple Inc.",
+      "status": "ACTIVE",
+      "effectiveDate": "2026-07-31",
+      "createdBy": "justin.lai@tng.asia",
+      "updatedBy": "justin.lai@tng.asia",
+      "createdAt": "2026-07-31T08:26:48.123456+00:00",
+      "updatedAt": "2026-07-31T08:26:48.123456+00:00"
+    }
+  ],
+  "count": 1
+}
+```
+
+---
+
+### GET /tickers/{ticker}
+
+Query the details of a specific stock ticker. Restricted to users with the `OPERATOR` role. Includes fallback behavior for unknown symbols.
+
+```
+GET /tickers/{ticker}
+Authorization: <id_token>
+```
+
+**Response** `200 OK` (ticker exists):
+```json
+{
+  "ticker": "AAPL",
+  "companyName": "Apple Inc.",
+  "status": "ACTIVE",
+  "effectiveDate": "2026-07-31",
+  "createdBy": "justin.lai@tng.asia",
+  "updatedBy": "justin.lai@tng.asia",
+  "createdAt": "2026-07-31T08:26:48.123456+00:00",
+  "updatedAt": "2026-07-31T08:26:48.123456+00:00"
+}
+```
+
+**Response** `200 OK` (ticker does not exist / fallback D-03):
+```json
+{
+  "ticker": "GOOG",
+  "status": "INACTIVE",
+  "effectiveDate": null
+}
+```
+
+---
+
+### PUT /tickers/{ticker}
+
+Update details (`companyName`, `status`, `effectiveDate`) of an existing stock ticker. Restricted to users with the `OPERATOR` role.
+
+> [!NOTE]
+> **Operator Profile Auto-Sync:** Updating a ticker to `ACTIVE` or `INACTIVE` retains the ticker in the calling operator's `tickers` list in `user_profiles`. Setting status to `DELETED` automatically removes the ticker from their list.
+
+```
+PUT /tickers/AAPL
+Authorization: <id_token>
+Content-Type: application/json
+
+{
+  "companyName": "Apple Inc.",
+  "status": "INACTIVE"
+}
+```
+
+**Response** `200 OK`:
+```json
+{
+  "ticker": "AAPL",
+  "companyName": "Apple Inc.",
+  "status": "INACTIVE",
+  "effectiveDate": "2026-07-31",
+  "createdBy": "justin.lai@tng.asia",
+  "updatedBy": "justin.lai@tng.asia",
+  "createdAt": "2026-07-31T08:26:48.123456+00:00",
+  "updatedAt": "2026-07-31T08:30:00.123456+00:00"
+}
+```
+
+**Response** `404 Not Found`:
+```json
+{
+  "message": "Ticker 'NONEXISTENT' not found."
+}
+```
+
+---
+
+### DELETE /tickers/{ticker}
+
+Soft delete a stock ticker (marks status as `"DELETED"`). Restricted to users with the `OPERATOR` role.
+
+> [!NOTE]
+> **Operator Profile Auto-Sync:** Soft deleting a ticker automatically removes it from the calling operator's `tickers` list in `user_profiles`.
+
+```
+DELETE /tickers/AAPL
+Authorization: <id_token>
+```
+
+**Response** `200 OK`:
+```json
+{
+  "message": "Ticker 'AAPL' soft deleted successfully.",
+  "ticker": {
+    "ticker": "AAPL",
+    "companyName": "Apple Inc.",
+    "status": "DELETED",
+    "effectiveDate": "2026-07-31",
+    "createdBy": "justin.lai@tng.asia",
+    "updatedBy": "justin.lai@tng.asia",
+    "createdAt": "2026-07-31T08:26:48.123456+00:00",
+    "updatedAt": "2026-07-31T08:30:15.123456+00:00"
+  }
+}
+```
+
+**Response** `404 Not Found`:
+```json
+{
+  "message": "Ticker 'NONEXISTENT' not found."
+}
+```
+
+---
+
 ### POST /tickers/invite
 
 Invite a new user to a stock ticker. If the user already exists in the Cognito User Pool, returns `409 Conflict`. Otherwise, creates a pending invitation and registers the stock ticker if it does not exist.
@@ -601,30 +814,77 @@ Authorization: <id_token>
 
 ---
 
-### GET /tickers/{ticker}
+### POST /tickers/historical-init
 
-Query the status and activation date of a stock ticker.
+Trigger on-demand historical market data initialization for a specific target stock ticker.
+
+The API validates the request payload, performs an S3 lock guard check against `.in_progress_historical_init/{TICKER}` in bucket `data-sync-platform-centralized-v2` (returning HTTP 409 Conflict if an init job was started within the last 15 minutes), and asynchronously invokes the worker Lambda `data-sync-platform-init-historical-data-v2` returning HTTP 202 Accepted.
 
 ```
-GET /tickers/{ticker}
+POST /tickers/historical-init
 Authorization: <id_token>
+Content-Type: application/json
 ```
 
-**Response** `200 OK` (ticker exists):
+**Request Payload:**
 ```json
 {
   "ticker": "AAPL",
-  "status": "ACTIVE",
-  "effectiveDate": "2026-06-30"
+  "from_date": "2026-07-01",
+  "to_date": "2026-07-05",
+  "vendors": [
+    "chartexchange",
+    "massive",
+    "fintel"
+  ],
+  "dry_run": false
 }
 ```
 
-**Response** `200 OK` (ticker does not exist / fallback):
+**Request Parameters:**
+
+| Parameter | Type | Required | Default | Description |
+|---|---|---|---|---|
+| `ticker` | `string` | **Yes** | — | Stock ticker symbol (e.g. `"AAPL"`, `"SPCX"`). Alphanumeric with dots/hyphens (`^[A-Z0-9.\-]+$`). Case-insensitive. |
+| `from_date` | `string` | **Yes** | — | Start date in `YYYY-MM-DD` format. |
+| `to_date` | `string` | **Yes** | — | End date in `YYYY-MM-DD` format (must be `>= from_date` and `<= today`). Maximum date range is capped at 180 days. |
+| `vendors` | `array[string]` | No | `["chartexchange", "massive", "fintel"]` | List of vendor strings to collect historical data for. Allowed values: `"chartexchange"`, `"massive"`, `"fintel"`. |
+| `dry_run` | `boolean` | No | `false` | If `true`, performs dry-run without persisting files or acquiring S3 lock. |
+
+**Response** `202 Accepted` (Historical initialization triggered asynchronously):
 ```json
 {
-  "ticker": "GOOG",
-  "status": "INACTIVE",
-  "effectiveDate": null
+  "message": "Historical initialization started for ticker AAPL",
+  "ticker": "AAPL",
+  "from_date": "2026-07-01",
+  "to_date": "2026-07-05",
+  "vendors": [
+    "chartexchange",
+    "massive",
+    "fintel"
+  ],
+  "dry_run": false
+}
+```
+
+**Response** `409 Conflict` (Initialization already in progress for this ticker within 15 minutes):
+```json
+{
+  "message": "Historical initialization already in progress for ticker AAPL."
+}
+```
+
+**Response** `400 Bad Request` (Invalid input or validation error):
+```json
+{
+  "message": "Date range cannot exceed 180 days."
+}
+```
+
+**Response** `401 Unauthorized` (Missing or invalid Cognito authorization):
+```json
+{
+  "message": "Unauthorized: Missing sub claim"
 }
 ```
 
@@ -979,10 +1239,10 @@ Authorization: <id_token>
 | Category | S3 File | Description |
 |---|---|---|
 | `company-profile-current` | `current/{ticker}/company-profile-current.json` | Company metadata, name, stock code |
-| `internal-float-current` | `current/{ticker}/internal-float-current.json` | Share structure and tradable float breakdown |
 | `internal-float-current-user` | `current/{ticker}/{sub}/internal-float-current-user.json` (falls back to `current/{ticker}/internal-float-current-ticker.json`) | User-specific float snapshot resolved for requesting user's Cognito `sub` claim |
 | `market-current` | `current/{ticker}/market-current.json` | Latest market data snapshot |
 | `ownership-current` | `current/{ticker}/ownership-current.json` | Institutional ownership current snapshot |
+| `ownership-summary-current` | `current/{ticker}/ownership-summary-current.json` | Institutional ownership summary current snapshot |
 | `sentiment-current` | `current/{ticker}/sentiment-current.json` | Social sentiment analysis snapshot |
 
 **Response** `200 OK` — Single category (e.g. `?category=market-current`):
@@ -1003,9 +1263,10 @@ Returns a combined object with all category names as keys. Missing files are ret
 ```json
 {
   "company-profile-current": { "schemaVersion": 1, "ticker": "CURR", ... },
-  "internal-float-current": { "schemaVersion": 1, "ticker": "CURR", ... },
+  "internal-float-current-user": { "schemaVersion": 1, "ticker": "CURR", ... },
   "market-current": null,
   "ownership-current": { "schemaVersion": 1, "ticker": "CURR", ... },
+  "ownership-summary-current": { "schemaVersion": 1, "ticker": "CURR", ... },
   "sentiment-current": { "schemaVersion": 1, "ticker": "CURR", ... }
 }
 ```
@@ -1040,6 +1301,7 @@ Authorization: <id_token>
 | `ftd-history` | `history/{ticker}/ftd-history.json` | Failure-to-deliver historical records |
 | `market-history` | `history/{ticker}/market-history.json` | Historical market data (price, volume, short interest) |
 | `ownership-history` | `history/{ticker}/ownership-history.json` | Historical institutional ownership changes |
+| `ownership-summary-history` | `history/{ticker}/ownership-summary-history.json` | Historical institutional ownership summary records |
 | `sec-filings-history` | `history/{ticker}/sec-filings-history.json` | Historical SEC filing records |
 | `short-volume-history` | `history/{ticker}/short-volume-history.json` | Historical short volume by exchange |
 | `sentiment-events` | `history/{ticker}/sentiment-events.json` | Historical social sentiment event logs |
@@ -1069,6 +1331,7 @@ Returns a combined object with all history category names as keys. Missing files
   "ftd-history": { "schemaVersion": 1, "ticker": "CURR", "records": [...] },
   "market-history": { "schemaVersion": 1, "ticker": "CURR", "records": [...] },
   "ownership-history": null,
+  "ownership-summary-history": { "schemaVersion": 1, "ticker": "CURR", "records": [...] },
   "sec-filings-history": { "schemaVersion": 1, "ticker": "CURR", "records": [...] },
   "short-volume-history": { "schemaVersion": 1, "ticker": "CURR", "records": [...] },
   "sentiment-events": { "schemaVersion": 1, "ticker": "CURR", "records": [...] }
@@ -1405,7 +1668,7 @@ The API manages **11 categories**, grouped into two types:
 |----------|------|----------------|-------------------------------|
 | `utilization` | Single-Record | Yes | `utilizationPercent` (float/int) |
 | `margins` | Single-Record | Yes | `initialMarginIbkr` (float), `initialMarginFutu` (float), `maintenanceMarginIbkr` (float), `maintenanceMarginFutu` (float), `averageDurationDays` (float), `valueFormat` (string), `displayFormat` (string) |
-| `short-score` | Single-Record | Yes | `shortScore` (int) |
+| `short-score` | Single-Record | Yes | `shortScore` (float/int) |
 | `manual-availability` | Single-Record | Yes | `availableSharesIbkr` (int), `availableSharesFutu` (int) |
 | `internal-float-inputs-ticker` | Single-Record | No | Ticker-level float attributes: `tokenizedShares`, `collateralizedShares` |
 | `internal-float-inputs-user` | Single-Record | No | User-level float attributes: `managementStrategicHoldings`, `privateFriendlyHolders` |
@@ -1900,20 +2163,31 @@ Content-Type: application/json
 * `ticker` (optional query parameter or JSON body parameter): Target stock ticker. Defaults to the user's primary associated ticker if omitted.
 
 **Rules:**
-* The frontend request provides the target `ticker` only.
-* `input_type`, `rebuild_from_date`, and `force_rebuild` shown in older examples
-  are reference implementation details, not required request fields and not a
-  guarantee of the current backend invocation payload.
-* The endpoint invokes consolidation asynchronously for the requested ticker.
+* This API ignores optional client parameters like `input_type`, `rebuild_from_date`, and `force_rebuild` from client input, hardcoding them on the backend.
+* It invokes the consolidator Lambda asynchronously with:
+  * `"input_type": "issued-share"`
+  * `"force_rebuild": true`
+  * `"rebuild_from_date"`: Calculated dynamically based on the current UTC time:
+    * Before 4:00 AM UTC: `ref_date = today_utc - 1 day`
+    * At/After 4:00 AM UTC: `ref_date = today_utc`
+    * If `ref_date` falls on a Monday: `rebuild_from_date = ref_date - 3 days` (Friday)
+    * If `ref_date` falls on a Sunday: `rebuild_from_date = ref_date - 3 days` (Thursday)
+    * If `ref_date` falls on a Saturday: `rebuild_from_date = ref_date - 2 days` (Thursday)
+    * Otherwise: `rebuild_from_date = ref_date - 1 day`
 * The API returns immediately without waiting for the consolidation to complete.
-* The response confirms that the trigger was accepted. It does not confirm that
-  downstream consolidated files have finished publishing.
 
 **Response** `200 OK`:
 ```json
 {
   "message": "Consolidation pipeline triggered successfully",
-  "ticker": "SPY"
+  "ticker": "SPY",
+  "detail": {
+    "source": "user-inputs-update",
+    "ticker": "SPY",
+    "input_type": "issued-share",
+    "rebuild_from_date": "2026-07-15",
+    "force_rebuild": true
+  }
 }
 ```
 
