@@ -4,6 +4,143 @@ This file is the persistent implementation memory for changes made by Codex.
 Read it before modifying existing portal behavior, and update it after every
 completed change.
 
+## 2026-08-03 — Standardize pending states for save and import buttons
+
+- Areas:
+  - User Portal → User Profile, Alert Rules, and Internal Float edit forms.
+  - Operations Portal → Market Data, SEC Filings, Ownership Data,
+    Notification Routing, Data Import, Social Data Upload, and Company
+    Management save/create forms.
+- APIs/data: Existing write and import APIs are unchanged.
+- Reported problem: Save and import actions could be clicked repeatedly while
+  their network request was still in flight, and pending feedback differed
+  between pages.
+- Implemented behavior:
+  - Every active save/import button is disabled immediately by its existing
+    request state, visually dimmed, and given a loading spinner.
+  - Buttons retain their contextual `Saving`, `Importing`, `Uploading`,
+    `Processing`, or `Creating` text while pending.
+  - The spinner and disabled state are released only when the owning request
+    state resolves to success or error.
+  - Added `aria-busy` so assistive technology receives the same pending state.
+- Must preserve:
+  - Existing validation-based disabled states remain unchanged and do not show
+    a spinner unless a request is actually running.
+  - API payloads, success/error handling, consolidation controls, and unrelated
+    delete/download/refresh actions remain unchanged.
+- Files changed:
+  - `app/monitor/[ticker]/user-profile/UserProfileClient.tsx`
+  - `app/monitor/[ticker]/settings/alerts/CustomAlertSettingsClient.tsx`
+  - `app/monitor/[ticker]/internal-float/InternalFloatClient.tsx`
+  - `app/operations/market-data/MarketDataOperationsClient.tsx`
+  - `app/operations/sec-filings/SecFilingsOperationsClient.tsx`
+  - `app/operations/ownership/ManagementHoldingsOperationsClient.tsx`
+  - `app/operations/hotkeys/HotkeyOperationsClient.tsx`
+  - `app/operations/data-import/ManualDataImportClient.tsx`
+  - `app/operations/narrative-social/NarrativeSocialUploadClient.tsx`
+  - `app/operations/tickers/TickerManagementOperationsClient.tsx`
+  - `app/globals.css`
+  - `docs/CODEX_CHANGE_LOG.md`
+- Verification: TypeScript type-check and whitespace validation.
+
+## 2026-08-03 — Sort merged Social Feed records by posting time
+
+- Area: User Portal → Social Sentiment → Sentiment Timeline & Social Feed.
+- API/data: Date-partitioned records from
+  `GET /social-data?ticker={ticker}&date={TRADING-DAY}&sort=datetime&order=desc`.
+- Reported problem and root cause:
+  - When several trading-day responses were merged, posts dated August 1 could
+    appear below posts dated July 30 or July 31 while the control displayed
+    Newest.
+  - The Newest comparator returned equality for every pair and therefore kept
+    the API-response merge order instead of comparing posting timestamps.
+- Implemented behavior:
+  - Newest now sorts every visible feed card by normalized posting timestamp in
+    descending order across all selected trading-day partitions and platforms.
+  - Oldest, followers, likes, and engagement sorting remain unchanged.
+- Regression behavior that must remain intact:
+  - A post's backend-assigned `tradeDate` remains authoritative and continues
+    to be displayed separately from its posting timestamp.
+  - No post is moved to another trading-day partition, and API records are not
+    rewritten or reclassified.
+  - The selected portal timezone affects timestamp presentation only; ordering
+    uses the underlying absolute timestamp.
+- Files changed:
+  - `app/monitor/[ticker]/sentiment/MentionFeedCards.tsx`
+  - `docs/CODEX_CHANGE_LOG.md`
+- Verification: TypeScript type-check, whitespace validation, and production
+  build passed.
+- Remaining backend dependency / limitation: Records without a parseable
+  posting timestamp normalize to zero and therefore appear at the end in
+  Newest order.
+
+## 2026-08-03 — Add operator ticker lifecycle management
+
+- Area: Operations Portal → Administration → Company Management.
+- APIs:
+  - `POST /tickers`
+  - `GET /tickers`
+  - `GET /tickers/{ticker}`
+  - `PUT /tickers/{ticker}`
+  - `DELETE /tickers/{ticker}`
+  - `POST /tickers/historical-init`
+- Reported problem and root cause:
+  - The backend exposes the complete managed-ticker lifecycle, but the
+    operations portal had no page or navigation entry for these APIs.
+  - Operators therefore could not create, find, inspect, update, retire, or
+    initialize history for ticker workspaces from the portal.
+- Implemented behavior:
+  - Added an operator-only Company Management page and Administration
+    navigation item.
+  - Operators can create Active or Inactive tickers with company name and
+    effective date; search and filter the server-side registry; include
+    soft-deleted records; choose 10, 25, or 50 results per page; and move
+    through opaque `nextToken` pages.
+  - Each record can be loaded through the detail API, edited, activated or
+    deactivated, opened in the existing operations workspace, or soft deleted
+    after confirmation. A deleted record can be submitted as Active or
+    Inactive as a restore attempt.
+  - Historical initialization supports a ticker, inclusive date range, the
+    `chartexchange`, `massive`, and `fintel` vendor choices, and dry-run or live
+    execution. Frontend validation enforces a non-future end date, at least one
+    vendor, and the documented 180-calendar-day maximum.
+  - Live historical initialization requires confirmation. An HTTP 202 response
+    is described as accepted asynchronous work, not completed work.
+  - Development Data exposes the latest list, detail, mutation, and historical
+    initialization request/response payloads without changing their API data.
+  - English, Traditional Chinese, and Simplified Chinese presentation remains
+    supported through the existing portal language system.
+- Behavior invariants:
+  - Ticker CRUD remains restricted to authenticated `OPERATOR` users.
+  - Delete remains a backend soft delete; the frontend does not remove data
+    locally or claim a hard deletion.
+  - The documented 200 fallback from `GET /tickers/{ticker}` for an unknown
+    ticker is shown as unregistered and is not treated as a complete record.
+  - Search, status, deleted-record inclusion, result limit, and pagination are
+    passed to `GET /tickers`; the frontend does not reconstruct a master list.
+  - The current operations workspace ticker changes only when the operator
+    explicitly chooses Open Workspace.
+- Files changed:
+  - `app/operations/tickers/page.tsx`
+  - `app/operations/tickers/TickerManagementOperationsClient.tsx`
+  - `app/operations/OperationsShell.tsx`
+  - `app/globals.css`
+  - `lib/portal-page-translations.ts`
+  - `docs/CODEX_CHANGE_LOG.md`
+- Verification:
+  - TypeScript type-check, whitespace validation, and production build passed.
+  - Browser verification confirmed the new Administration navigation item,
+    operator page layout, create form, historical-init controls, managed ticker
+    filters/table/pagination, and Development Data sections without submitting
+    an API mutation.
+- Remaining backend dependency / limitation:
+  - Historical initialization has no documented job-status endpoint. The page
+    can report acceptance or an API error, but cannot independently confirm
+    eventual completion.
+  - Restoring a soft-deleted ticker uses `PUT /tickers/{ticker}` with Active or
+    Inactive status. If the backend disallows updates to Deleted records, its
+    exact error is surfaced and a dedicated restore contract will be required.
+
 ## 2026-08-03 — Read per-bucket sentiment distribution from Sentiment Current
 
 - Area: User Portal → Social Sentiment → Timeline tooltip.

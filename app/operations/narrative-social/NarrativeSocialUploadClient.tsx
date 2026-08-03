@@ -459,7 +459,7 @@ export function NarrativeSocialUploadClient() {
           <p>Upload Reddit, X, or Stocktwits CSV files. Each upload replaces the existing dataset for the detected platform only.</p>
         </div>
         <div className="ops-import-actions">
-          <button className="ops-primary-button" type="button" disabled={status === 'uploading' || status === 'processing' || status === 'consolidating'} onClick={uploadFiles}>
+          <button className="ops-primary-button" type="button" disabled={status === 'uploading' || status === 'processing' || status === 'consolidating'} aria-busy={status === 'uploading' || status === 'processing'} onClick={uploadFiles}>
             {status === 'uploading' ? 'Uploading...' : status === 'processing' ? 'Processing...' : `Upload ${readyCount || ''}`.trim()}
           </button>
           <div className="ops-social-consolidation-control">

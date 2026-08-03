@@ -1,0 +1,561 @@
+'use client';
+
+import { FormEvent, useEffect, useState } from 'react';
+import { OperationsDevelopmentData, type OperationsDevelopmentDatum } from '@/components/OperationsDevelopmentData';
+import { authenticatedFetch, getAuthenticatedProfile } from '@/lib/auth-client';
+import { setOperationsTicker } from '@/lib/operations/ticker-client';
+
+type TickerStatus = 'ACTIVE' | 'INACTIVE' | 'DELETED';
+type RequestState = 'idle' | 'loading' | 'saving' | 'error' | 'success';
+type Vendor = 'chartexchange' | 'massive' | 'fintel';
+
+type TickerRecord = {
+  ticker: string;
+  companyName: string;
+  status: TickerStatus;
+  effectiveDate: string;
+  createdBy: string;
+  updatedBy: string;
+  createdAt: string;
+  updatedAt: string;
+};
+
+type TickerListEnvelope = {
+  tickers?: unknown[];
+  data?: unknown[] | { tickers?: unknown[] };
+  count?: number;
+  nextToken?: string | null;
+  next_token?: string | null;
+};
+
+const tickerPattern = /^[A-Z0-9.-]+$/;
+const allVendors: Vendor[] = ['chartexchange', 'massive', 'fintel'];
+
+function localDate(date = new Date()) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
+function daysAgo(days: number) {
+  const date = new Date();
+  date.setDate(date.getDate() - days);
+  return localDate(date);
+}
+
+function normalizeStatus(value: unknown): TickerStatus {
+  const normalized = String(value ?? '').toUpperCase();
+  if (normalized === 'DELETED') return 'DELETED';
+  if (normalized === 'INACTIVE') return 'INACTIVE';
+  return 'ACTIVE';
+}
+
+function normalizeTickerRecord(value: unknown): TickerRecord {
+  const input = value && typeof value === 'object' ? value as Record<string, unknown> : {};
+  return {
+    ticker: String(input.ticker ?? '').trim().toUpperCase(),
+    companyName: String(input.companyName ?? '').trim(),
+    status: normalizeStatus(input.status),
+    effectiveDate: String(input.effectiveDate ?? '').trim(),
+    createdBy: String(input.createdBy ?? '').trim(),
+    updatedBy: String(input.updatedBy ?? '').trim(),
+    createdAt: String(input.createdAt ?? '').trim(),
+    updatedAt: String(input.updatedAt ?? '').trim(),
+  };
+}
+
+function normalizeTickerList(payload: unknown) {
+  if (Array.isArray(payload)) {
+    return { records: payload.map(normalizeTickerRecord), count: payload.length, nextToken: null as string | null };
+  }
+  const envelope = payload && typeof payload === 'object' ? payload as TickerListEnvelope : {};
+  const nestedData = envelope.data && !Array.isArray(envelope.data) ? envelope.data : undefined;
+  const rows = Array.isArray(envelope.tickers)
+    ? envelope.tickers
+    : Array.isArray(envelope.data)
+      ? envelope.data
+      : Array.isArray(nestedData?.tickers)
+        ? nestedData.tickers
+        : [];
+  const nextToken = envelope.nextToken ?? envelope.next_token ?? null;
+  return {
+    records: rows.map(normalizeTickerRecord).filter(record => record.ticker),
+    count: Number.isFinite(Number(envelope.count)) ? Number(envelope.count) : rows.length,
+    nextToken: nextToken ? String(nextToken) : null,
+  };
+}
+
+function formatDateTime(value: string) {
+  if (!value) return 'Not available';
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
+  return new Intl.DateTimeFormat('en-GB', {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  }).format(date);
+}
+
+function dateRangeDays(fromDate: string, toDate: string) {
+  const start = Date.parse(`${fromDate}T00:00:00Z`);
+  const end = Date.parse(`${toDate}T00:00:00Z`);
+  if (!Number.isFinite(start) || !Number.isFinite(end)) return NaN;
+  return Math.floor((end - start) / 86_400_000) + 1;
+}
+
+export function TickerManagementOperationsClient() {
+  const [authorized, setAuthorized] = useState<boolean | null>(null);
+  const [records, setRecords] = useState<TickerRecord[]>([]);
+  const [lastListEndpoint, setLastListEndpoint] = useState('GET /tickers');
+  const [listPayload, setListPayload] = useState<unknown>();
+  const [detailPayload, setDetailPayload] = useState<unknown>();
+  const [actionPayload, setActionPayload] = useState<unknown>();
+  const [historicalPayload, setHistoricalPayload] = useState<unknown>();
+  const [listState, setListState] = useState<RequestState>('loading');
+  const [actionState, setActionState] = useState<RequestState>('idle');
+  const [historicalState, setHistoricalState] = useState<RequestState>('idle');
+  const [message, setMessage] = useState('');
+  const [historicalMessage, setHistoricalMessage] = useState('');
+
+  const [search, setSearch] = useState('');
+  const [statusFilter, setStatusFilter] = useState('');
+  const [includeDeleted, setIncludeDeleted] = useState(false);
+  const [limit, setLimit] = useState(25);
+  const [currentToken, setCurrentToken] = useState<string | null>(null);
+  const [previousTokens, setPreviousTokens] = useState<Array<string | null>>([]);
+  const [nextToken, setNextToken] = useState<string | null>(null);
+  const [pageNumber, setPageNumber] = useState(1);
+  const [reportedCount, setReportedCount] = useState(0);
+
+  const [createTicker, setCreateTicker] = useState('');
+  const [createCompanyName, setCreateCompanyName] = useState('');
+  const [createStatus, setCreateStatus] = useState<'ACTIVE' | 'INACTIVE'>('ACTIVE');
+  const [createEffectiveDate, setCreateEffectiveDate] = useState(localDate());
+
+  const [selectedTicker, setSelectedTicker] = useState<TickerRecord | null>(null);
+  const [editCompanyName, setEditCompanyName] = useState('');
+  const [editStatus, setEditStatus] = useState<'ACTIVE' | 'INACTIVE'>('ACTIVE');
+  const [editEffectiveDate, setEditEffectiveDate] = useState('');
+  const [detailState, setDetailState] = useState<RequestState>('idle');
+
+  const [historicalTicker, setHistoricalTicker] = useState('');
+  const [fromDate, setFromDate] = useState(daysAgo(29));
+  const [toDate, setToDate] = useState(localDate());
+  const [vendors, setVendors] = useState<Vendor[]>(allVendors);
+  const [dryRun, setDryRun] = useState(true);
+
+  const today = localDate();
+  const historicalDays = dateRangeDays(fromDate, toDate);
+
+  function populateEditor(record: TickerRecord) {
+    setSelectedTicker(record);
+    setEditCompanyName(record.companyName);
+    setEditStatus(record.status === 'ACTIVE' ? 'ACTIVE' : 'INACTIVE');
+    setEditEffectiveDate(record.effectiveDate);
+    setHistoricalTicker(record.ticker);
+  }
+
+  async function loadTickers(
+    token: string | null = currentToken,
+    targetPage = pageNumber,
+    filters = { search, statusFilter, includeDeleted, limit },
+  ) {
+    setListState('loading');
+    setMessage('');
+    const params = new URLSearchParams({ includeDeleted: String(filters.includeDeleted), limit: String(filters.limit) });
+    if (filters.search.trim()) params.set('q', filters.search.trim());
+    if (filters.statusFilter) params.set('status', filters.statusFilter);
+    if (token) params.set('nextToken', token);
+    const endpoint = `/tickers?${params.toString()}`;
+    setLastListEndpoint(`GET ${endpoint}`);
+    try {
+      const payload = await authenticatedFetch(endpoint, { cache: 'no-store' });
+      const normalized = normalizeTickerList(payload);
+      setRecords(normalized.records);
+      setReportedCount(normalized.count);
+      setNextToken(normalized.nextToken);
+      setCurrentToken(token);
+      setPageNumber(targetPage);
+      setListPayload(payload);
+      setListState('idle');
+      return true;
+    } catch (error) {
+      setListState('error');
+      setMessage(error instanceof Error ? error.message : 'Unable to load managed tickers.');
+      return false;
+    }
+  }
+
+  useEffect(() => {
+    let cancelled = false;
+    getAuthenticatedProfile()
+      .then(async profile => {
+        if (cancelled) return;
+        const isOperator = String(profile.role ?? '').trim().toUpperCase() === 'OPERATOR';
+        setAuthorized(isOperator);
+        if (!isOperator) {
+          setListState('idle');
+          setMessage('Ticker Management is available only to operations users.');
+          return;
+        }
+        await loadTickers(null, 1);
+      })
+      .catch(error => {
+        if (cancelled) return;
+        setAuthorized(false);
+        setListState('error');
+        setMessage(error instanceof Error ? error.message : 'Unable to verify operator access.');
+      });
+    return () => { cancelled = true; };
+    // Initial operator workspace load only.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  async function applyFilters(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setPreviousTokens([]);
+    setCurrentToken(null);
+    setPageNumber(1);
+    await loadTickers(null, 1);
+  }
+
+  async function resetFilters() {
+    setSearch('');
+    setStatusFilter('');
+    setIncludeDeleted(false);
+    setLimit(25);
+    setPreviousTokens([]);
+    setCurrentToken(null);
+    setPageNumber(1);
+    await loadTickers(null, 1, { search: '', statusFilter: '', includeDeleted: false, limit: 25 });
+  }
+
+  async function nextPage() {
+    if (!nextToken || listState === 'loading') return;
+    const priorToken = currentToken;
+    const loaded = await loadTickers(nextToken, pageNumber + 1);
+    if (loaded) setPreviousTokens(tokens => [...tokens, priorToken]);
+  }
+
+  async function previousPage() {
+    if (!previousTokens.length || listState === 'loading') return;
+    const token = previousTokens[previousTokens.length - 1] ?? null;
+    const loaded = await loadTickers(token, Math.max(1, pageNumber - 1));
+    if (loaded) setPreviousTokens(tokens => tokens.slice(0, -1));
+  }
+
+  async function createRecord(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const ticker = createTicker.trim().toUpperCase();
+    const companyName = createCompanyName.trim();
+    if (!tickerPattern.test(ticker)) {
+      setActionState('error');
+      setMessage('Ticker must use only letters, numbers, dots, or hyphens.');
+      return;
+    }
+    if (!companyName || !createEffectiveDate) {
+      setActionState('error');
+      setMessage('Company name and effective date are required.');
+      return;
+    }
+    setActionState('saving');
+    setMessage('Creating ticker...');
+    try {
+      const payload = await authenticatedFetch('/tickers', {
+        method: 'POST',
+        body: JSON.stringify({ ticker, companyName, status: createStatus, effectiveDate: createEffectiveDate }),
+      });
+      const record = normalizeTickerRecord(payload);
+      setActionPayload(payload);
+      setCreateTicker('');
+      setCreateCompanyName('');
+      setCreateStatus('ACTIVE');
+      setCreateEffectiveDate(localDate());
+      populateEditor(record);
+      setDetailPayload(payload);
+      setPreviousTokens([]);
+      await loadTickers(null, 1);
+      setActionState('success');
+      setMessage(`${ticker} was created successfully.`);
+    } catch (error) {
+      setActionState('error');
+      setMessage(error instanceof Error ? error.message : 'Unable to create ticker.');
+    }
+  }
+
+  async function openTicker(ticker: string) {
+    setDetailState('loading');
+    setMessage('');
+    try {
+      const payload = await authenticatedFetch(`/tickers/${encodeURIComponent(ticker)}`, { cache: 'no-store' });
+      const record = normalizeTickerRecord(payload);
+      setDetailPayload(payload);
+      populateEditor(record);
+      setDetailState('idle');
+      if (!record.companyName) setMessage(`${record.ticker} is not registered in the managed ticker table.`);
+    } catch (error) {
+      setDetailState('error');
+      setMessage(error instanceof Error ? error.message : `Unable to load ${ticker}.`);
+    }
+  }
+
+  async function updateRecord(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!selectedTicker) return;
+    if (!editCompanyName.trim() || !editEffectiveDate) {
+      setActionState('error');
+      setMessage('Company name and effective date are required.');
+      return;
+    }
+    setActionState('saving');
+    setMessage(`Updating ${selectedTicker.ticker}...`);
+    try {
+      const payload = await authenticatedFetch(`/tickers/${encodeURIComponent(selectedTicker.ticker)}`, {
+        method: 'PUT',
+        body: JSON.stringify({
+          companyName: editCompanyName.trim(),
+          status: editStatus,
+          effectiveDate: editEffectiveDate,
+        }),
+      });
+      const record = normalizeTickerRecord(payload);
+      setActionPayload(payload);
+      setDetailPayload(payload);
+      populateEditor(record);
+      await loadTickers(currentToken, pageNumber);
+      setActionState('success');
+      setMessage(`${record.ticker} was updated successfully.`);
+    } catch (error) {
+      setActionState('error');
+      setMessage(error instanceof Error ? error.message : `Unable to update ${selectedTicker.ticker}.`);
+    }
+  }
+
+  async function deleteRecord() {
+    if (!selectedTicker || selectedTicker.status === 'DELETED') return;
+    const confirmed = window.confirm(`Soft delete ${selectedTicker.ticker}? It will be removed from your operator ticker list.`);
+    if (!confirmed) return;
+    setActionState('saving');
+    setMessage(`Soft deleting ${selectedTicker.ticker}...`);
+    try {
+      const payload = await authenticatedFetch(`/tickers/${encodeURIComponent(selectedTicker.ticker)}`, { method: 'DELETE' });
+      const returned = payload && typeof payload === 'object' && 'ticker' in payload
+        ? (payload as { ticker?: unknown }).ticker
+        : payload;
+      const record = normalizeTickerRecord(returned);
+      setActionPayload(payload);
+      setDetailPayload(payload);
+      populateEditor(record.ticker ? record : { ...selectedTicker, status: 'DELETED' });
+      await loadTickers(currentToken, pageNumber);
+      setActionState('success');
+      setMessage(`${selectedTicker.ticker} was soft deleted.`);
+    } catch (error) {
+      setActionState('error');
+      setMessage(error instanceof Error ? error.message : `Unable to delete ${selectedTicker.ticker}.`);
+    }
+  }
+
+  function toggleVendor(vendor: Vendor) {
+    setVendors(current => current.includes(vendor)
+      ? current.filter(item => item !== vendor)
+      : [...current, vendor]);
+  }
+
+  async function runHistoricalInit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const ticker = historicalTicker.trim().toUpperCase();
+    const days = dateRangeDays(fromDate, toDate);
+    if (!tickerPattern.test(ticker)) {
+      setHistoricalState('error');
+      setHistoricalMessage('Enter a valid ticker before starting historical initialization.');
+      return;
+    }
+    if (!fromDate || !toDate || fromDate > toDate) {
+      setHistoricalState('error');
+      setHistoricalMessage('From date must be on or before the to date.');
+      return;
+    }
+    if (toDate > today) {
+      setHistoricalState('error');
+      setHistoricalMessage('The historical initialization end date cannot be in the future.');
+      return;
+    }
+    if (!Number.isFinite(days) || days > 180) {
+      setHistoricalState('error');
+      setHistoricalMessage('Historical initialization is limited to 180 calendar days per request.');
+      return;
+    }
+    if (!vendors.length) {
+      setHistoricalState('error');
+      setHistoricalMessage('Select at least one data vendor.');
+      return;
+    }
+    if (!dryRun && !window.confirm(`Start historical initialization for ${ticker} from ${fromDate} to ${toDate}?`)) return;
+
+    setHistoricalState('saving');
+    setHistoricalMessage(dryRun ? 'Validating historical initialization...' : 'Starting historical initialization...');
+    try {
+      const payload = await authenticatedFetch('/tickers/historical-init', {
+        method: 'POST',
+        body: JSON.stringify({ ticker, from_date: fromDate, to_date: toDate, vendors, dry_run: dryRun }),
+      });
+      setHistoricalPayload(payload);
+      setHistoricalState('success');
+      setHistoricalMessage(dryRun
+        ? `Dry run accepted for ${ticker}. No files were persisted and no lock was acquired.`
+        : `Historical initialization was accepted for ${ticker}. Processing continues asynchronously.`);
+    } catch (error) {
+      setHistoricalState('error');
+      setHistoricalMessage(error instanceof Error ? error.message : 'Unable to start historical initialization.');
+    }
+  }
+
+  function openWorkspace(record: TickerRecord) {
+    setOperationsTicker(record.ticker);
+    window.location.assign(`/operations/market-data?ticker=${encodeURIComponent(record.ticker)}`);
+  }
+
+  const developmentRows: OperationsDevelopmentDatum[] = [
+    {
+      endpoint: lastListEndpoint,
+      source: 'Ticker Registry API',
+      state: listState,
+      recordCount: records.length,
+      payload: listPayload ?? { state: listState, message },
+    },
+    {
+      endpoint: selectedTicker ? `GET /tickers/${selectedTicker.ticker}` : 'GET /tickers/{ticker}',
+      source: 'Ticker Registry API',
+      state: detailState,
+      recordCount: detailPayload ? 1 : 0,
+      payload: detailPayload ?? { state: 'not requested' },
+    },
+    {
+      endpoint: 'POST /tickers · PUT /tickers/{ticker} · DELETE /tickers/{ticker}',
+      source: 'Ticker Registry API',
+      state: actionState,
+      payload: actionPayload ?? { state: 'no mutation in this session' },
+    },
+    {
+      endpoint: 'POST /tickers/historical-init',
+      source: 'Historical Initialization API',
+      state: historicalState,
+      payload: historicalPayload ?? { state: 'not requested' },
+    },
+  ];
+
+  if (authorized === false) {
+    return (
+      <section className="ops-panel ops-access-restricted">
+        <span className="ops-eyebrow">Restricted</span>
+        <h2>Operator access required</h2>
+        <p>{message || 'Ticker Management is available only to operations users.'}</p>
+      </section>
+    );
+  }
+
+  return (
+    <div className="ops-ticker-management-page">
+      <section className="ops-ticker-management-top">
+        <form className="ops-panel ops-ticker-create-panel" onSubmit={createRecord}>
+          <div className="ops-panel-head">
+            <div><span className="ops-eyebrow">Ticker Registry</span><h2>Add Company</h2><p>Create a managed ticker and add it to your operator workspace.</p></div>
+            <span className={`ops-status ${actionState === 'error' ? 'bad' : actionState === 'success' ? 'good' : ''}`}>{actionState === 'saving' ? 'saving' : 'operator'}</span>
+          </div>
+          <div className="ops-ticker-form-grid">
+            <label><span>Ticker symbol</span><input required maxLength={20} value={createTicker} onChange={event => setCreateTicker(event.target.value.toUpperCase())} placeholder="AAPL" /></label>
+            <label><span>Company name</span><input required value={createCompanyName} onChange={event => setCreateCompanyName(event.target.value)} placeholder="Apple Inc." /></label>
+            <label><span>Status</span><select value={createStatus} onChange={event => setCreateStatus(event.target.value as 'ACTIVE' | 'INACTIVE')}><option value="ACTIVE">Active</option><option value="INACTIVE">Inactive</option></select></label>
+            <label><span>Effective date</span><input required type="date" value={createEffectiveDate} onChange={event => setCreateEffectiveDate(event.target.value)} /></label>
+          </div>
+          <div className="ops-ticker-form-actions"><button className="ops-primary-button" type="submit" disabled={actionState === 'saving'} aria-busy={actionState === 'saving'}>{actionState === 'saving' ? 'Creating...' : 'Create Ticker'}</button></div>
+        </form>
+
+        <form className="ops-panel ops-ticker-history-panel" onSubmit={runHistoricalInit}>
+          <div className="ops-panel-head">
+            <div><span className="ops-eyebrow">Historical Data</span><h2>Initialize History</h2><p>Collect up to 180 days from selected vendors. Accepted jobs run asynchronously.</p></div>
+            <span className={`ops-status ${historicalState === 'error' ? 'bad' : historicalState === 'success' ? 'good' : ''}`}>{historicalState === 'saving' ? 'requesting' : dryRun ? 'dry run' : 'live run'}</span>
+          </div>
+          <div className="ops-ticker-history-fields">
+            <label><span>Ticker</span><input required maxLength={20} value={historicalTicker} onChange={event => setHistoricalTicker(event.target.value.toUpperCase())} placeholder="Select a ticker below" /></label>
+            <label><span>From date</span><input required type="date" max={today} value={fromDate} onChange={event => setFromDate(event.target.value)} /></label>
+            <label><span>To date</span><input required type="date" max={today} value={toDate} onChange={event => setToDate(event.target.value)} /></label>
+          </div>
+          <fieldset className="ops-ticker-vendors"><legend>Data vendors</legend>{allVendors.map(vendor => <label key={vendor}><input type="checkbox" checked={vendors.includes(vendor)} onChange={() => toggleVendor(vendor)} /><span>{vendor}</span></label>)}</fieldset>
+          <label className="ops-ticker-dry-run"><input type="checkbox" checked={dryRun} onChange={event => setDryRun(event.target.checked)} /><span><strong>Dry run</strong><small>Validate without writing files or acquiring the 15-minute S3 lock.</small></span></label>
+          <div className="ops-ticker-history-summary"><span>{Number.isFinite(historicalDays) ? historicalDays : '—'} days</span><span>{vendors.length} vendors</span><span>{dryRun ? 'No persistence' : 'Writes enabled'}</span></div>
+          <button className="ops-primary-button" type="submit" disabled={historicalState === 'saving'}>{historicalState === 'saving' ? 'Submitting...' : dryRun ? 'Run Validation' : 'Start Historical Init'}</button>
+          {historicalMessage && <p className={`ops-form-message ${historicalState === 'error' ? 'bad' : 'good'}`} role="status">{historicalMessage}</p>}
+        </form>
+      </section>
+
+      {message && <p className={`ops-form-message ops-ticker-page-message ${actionState === 'error' || listState === 'error' || detailState === 'error' ? 'bad' : 'good'}`} role="status">{message}</p>}
+
+      <section className="ops-panel ops-ticker-list-panel">
+        <div className="ops-panel-head">
+          <div><span className="ops-eyebrow">Company Management</span><h2>Managed Tickers</h2><p>Search, inspect, update, restore, or soft delete ticker definitions.</p></div>
+          <span className="company-count-badge">{reportedCount} returned</span>
+        </div>
+        <form className="ops-ticker-toolbar" onSubmit={applyFilters}>
+          <input type="search" value={search} onChange={event => setSearch(event.target.value)} placeholder="Search ticker or company..." aria-label="Search managed tickers" />
+          <select value={statusFilter} onChange={event => setStatusFilter(event.target.value)} aria-label="Filter ticker status"><option value="">All active statuses</option><option value="ACTIVE">Active</option><option value="INACTIVE">Inactive</option></select>
+          <select value={limit} onChange={event => setLimit(Number(event.target.value))} aria-label="Ticker rows per page"><option value={10}>10 per page</option><option value={25}>25 per page</option><option value={50}>50 per page</option></select>
+          <label className="ops-ticker-include-deleted"><input type="checkbox" checked={includeDeleted} onChange={event => setIncludeDeleted(event.target.checked)} /><span>Include deleted</span></label>
+          <button className="ops-primary-button" type="submit" disabled={listState === 'loading'}>{listState === 'loading' ? 'Loading...' : 'Apply'}</button>
+          <button className="ops-secondary-button" type="button" onClick={resetFilters} disabled={listState === 'loading'}>Reset</button>
+          <button className="ops-secondary-button" type="button" onClick={() => loadTickers(currentToken, pageNumber)} disabled={listState === 'loading'}>Refresh</button>
+        </form>
+
+        <div className="ops-table-wrap">
+          <table className="ops-table ops-ticker-table">
+            <thead><tr><th>Ticker</th><th>Company</th><th>Status</th><th>Effective Date</th><th>Updated</th><th>Updated By</th><th>Actions</th></tr></thead>
+            <tbody>
+              {records.map(record => (
+                <tr key={record.ticker} className={selectedTicker?.ticker === record.ticker ? 'is-selected' : ''}>
+                  <td><strong className="ops-ticker-symbol">{record.ticker}</strong></td>
+                  <td>{record.companyName || 'Company name unavailable'}</td>
+                  <td><span className={`ops-ticker-status is-${record.status.toLowerCase()}`}>{record.status}</span></td>
+                  <td>{record.effectiveDate || 'Not set'}</td>
+                  <td>{formatDateTime(record.updatedAt)}</td>
+                  <td>{record.updatedBy || 'Not available'}</td>
+                  <td><div className="ops-ticker-row-actions"><button type="button" onClick={() => openTicker(record.ticker)}>View / Edit</button><button type="button" onClick={() => { populateEditor(record); openWorkspace(record); }} disabled={record.status === 'DELETED'}>Open Workspace</button></div></td>
+                </tr>
+              ))}
+              {listState !== 'loading' && !records.length && <tr><td colSpan={7} className="ops-table-empty">No tickers match the selected filters.</td></tr>}
+            </tbody>
+          </table>
+        </div>
+        <div className="ops-pagination" aria-label="Managed ticker pagination"><button type="button" onClick={previousPage} disabled={!previousTokens.length || listState === 'loading'}>Previous</button><span>Page {pageNumber}</span><button type="button" onClick={nextPage} disabled={!nextToken || listState === 'loading'}>Next</button></div>
+      </section>
+
+      {selectedTicker && (
+        <section className="ops-panel ops-ticker-detail-panel">
+          <div className="ops-panel-head">
+            <div><span className="ops-eyebrow">Ticker Detail</span><h2>{selectedTicker.ticker} · {selectedTicker.companyName || 'Unregistered ticker'}</h2><p>Update the registry record or use it as the target for historical initialization.</p></div>
+            <span className={`ops-ticker-status is-${selectedTicker.status.toLowerCase()}`}>{selectedTicker.status}</span>
+          </div>
+          <div className="ops-ticker-detail-layout">
+            <form className="ops-ticker-edit-form" onSubmit={updateRecord}>
+              <label><span>Ticker</span><input value={selectedTicker.ticker} disabled /></label>
+              <label><span>Company name</span><input required value={editCompanyName} onChange={event => setEditCompanyName(event.target.value)} /></label>
+              <label><span>Status</span><select value={editStatus} onChange={event => setEditStatus(event.target.value as 'ACTIVE' | 'INACTIVE')}><option value="ACTIVE">Active</option><option value="INACTIVE">Inactive</option></select><small>{selectedTicker.status === 'DELETED' ? 'Saving Active or Inactive attempts to restore this soft-deleted ticker.' : 'Use soft delete below to mark the ticker Deleted.'}</small></label>
+              <label><span>Effective date</span><input required type="date" value={editEffectiveDate} onChange={event => setEditEffectiveDate(event.target.value)} /></label>
+              <div className="ops-ticker-detail-actions"><button className="ops-primary-button" type="submit" disabled={actionState === 'saving' || detailState === 'loading'} aria-busy={actionState === 'saving'}>{actionState === 'saving' ? 'Saving...' : selectedTicker.status === 'DELETED' ? 'Restore Ticker' : 'Save Changes'}</button><button className="ops-secondary-button" type="button" onClick={() => setHistoricalTicker(selectedTicker.ticker)}>Use for Historical Init</button><button className="ops-danger-button" type="button" onClick={deleteRecord} disabled={actionState === 'saving' || selectedTicker.status === 'DELETED'}>Soft Delete</button></div>
+            </form>
+            <dl className="ops-ticker-audit">
+              <div><dt>Created by</dt><dd>{selectedTicker.createdBy || 'Not available'}</dd></div>
+              <div><dt>Created at</dt><dd>{formatDateTime(selectedTicker.createdAt)}</dd></div>
+              <div><dt>Updated by</dt><dd>{selectedTicker.updatedBy || 'Not available'}</dd></div>
+              <div><dt>Updated at</dt><dd>{formatDateTime(selectedTicker.updatedAt)}</dd></div>
+            </dl>
+          </div>
+        </section>
+      )}
+
+      <OperationsDevelopmentData title="Ticker Management API Responses" description="Raw authenticated ticker registry and historical initialization responses." rows={developmentRows} />
+    </div>
+  );
+}

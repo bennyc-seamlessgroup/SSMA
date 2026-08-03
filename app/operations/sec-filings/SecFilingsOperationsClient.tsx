@@ -345,7 +345,7 @@ export function SecFilingsOperationsClient() {
           <label>Internal notes<textarea suppressHydrationWarning rows={4} value={form.notes} onChange={event => updateField('notes', event.target.value)} /></label>
           <div className="ops-form-footer">
             <span>{requiredReady ? 'Ready to save' : 'Required: form type, description, filing date, accession number, URL'}</span>
-            <button className="ops-primary-button" type="submit" disabled={!requiredReady || status === 'saving'}>{status === 'saving' ? 'Saving...' : 'Save Record'}</button>
+            <button className="ops-primary-button" type="submit" disabled={!requiredReady || status === 'saving'} aria-busy={status === 'saving'}>{status === 'saving' ? 'Saving...' : 'Save Record'}</button>
           </div>
           {message && <p className={`ops-form-message ${status === 'error' ? 'bad' : 'good'}`}>{message}</p>}
         </form>

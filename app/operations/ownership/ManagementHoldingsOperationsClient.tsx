@@ -462,7 +462,7 @@ export function ManagementHoldingsOperationsClient() {
                 preview.showAsSuggestion ? 'suggestion' : '',
                 preview.autoApply ? 'direct apply' : '',
               ].filter(Boolean).join(' / ') || 'no destination selected'}</span>
-              <button className="ops-primary-button" type="submit" disabled={status === 'saving'}>
+              <button className="ops-primary-button" type="submit" disabled={status === 'saving'} aria-busy={status === 'saving'}>
                 {status === 'saving' ? 'Saving...' : 'Save Latest Total'}
               </button>
             </div>

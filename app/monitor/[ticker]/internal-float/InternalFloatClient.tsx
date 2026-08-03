@@ -1011,7 +1011,7 @@ export function InternalFloatClient({
 
           <div className="modal-actions">
             <button className="button secondary" type="button" onClick={discardEditPanel} disabled={apiStatus === 'saving'}>Cancel</button>
-            <button className="button primary" type="button" onClick={saveEditPanel} disabled={apiStatus === 'saving'}>
+            <button className="button primary" type="button" onClick={saveEditPanel} disabled={apiStatus === 'saving'} aria-busy={apiStatus === 'saving'}>
               {apiStatus === 'saving' ? 'Saving...' : 'Save Changes'}
             </button>
           </div>

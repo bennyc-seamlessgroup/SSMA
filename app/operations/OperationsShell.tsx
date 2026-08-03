@@ -22,6 +22,7 @@ const workflowItems = [
 ] as const;
 
 const administrationItems = [
+  ['Company Management', '/operations/tickers', 'companies', 'Create, update, initialize, and retire managed ticker workspaces.'],
   ['Team Access', '/operations/user-access', 'users', 'Invite users and review workspace access.'],
 ] as const;
 
@@ -36,6 +37,9 @@ function OperationsNavIcon({ icon }: { icon: string }) {
   }
   if (icon === 'users') {
     return <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="8" r="4" /><path d="M3 21a6 6 0 0 1 12 0M16 7h5M18.5 4.5v5" /></svg>;
+  }
+  if (icon === 'companies') {
+    return <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 21V6h10v15M14 10h6v11M8 10h2M8 14h2M8 18h2M17 14h1M17 18h1M2 21h20" /></svg>;
   }
   if (icon === 'hotkeys') {
     return <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="6" width="18" height="12" rx="2" /><path d="M7 10h2m2 0h2m2 0h2M7 14h7m2 0h1" /></svg>;

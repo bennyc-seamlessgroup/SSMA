@@ -1176,6 +1176,7 @@ export function MarketDataOperationsClient() {
                 className="ops-primary-button"
                 type="submit"
                 disabled={!form.tradeDate || !formHasAnyData || !entryAvailability.isOpen || Boolean(selectedSavedRecord && !isEditingSavedRecord) || busy}
+                aria-busy={status === 'saving'}
               >
                 {status === 'saving' ? 'Saving...' : 'Save Data'}
               </button>

@@ -176,7 +176,7 @@ export function CustomAlertSettingsClient({ ticker }: { ticker: string }) {
             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m15 18-6-6 6-6" /></svg>
             Back to Dashboard
           </Link>
-          <button className="button primary" type="button" onClick={() => void save()} disabled={!changed || saving}>{saving ? 'Saving...' : 'Save Alert Settings'}</button>
+          <button className="button primary" type="button" onClick={() => void save()} disabled={!changed || saving} aria-busy={saving}>{saving ? 'Saving...' : 'Save Alert Settings'}</button>
         </div>
       </div>
 
@@ -321,7 +321,7 @@ export function CustomAlertSettingsClient({ ticker }: { ticker: string }) {
         <div>
           <button className="button ghost" type="button" onClick={resetDefaults}>Reset Defaults</button>
           <button className="button secondary" type="button" onClick={cancel}>Cancel</button>
-          <button className="button primary" type="button" onClick={() => void save()} disabled={!changed || saving}>{saving ? 'Saving...' : 'Save Alert Settings'}</button>
+          <button className="button primary" type="button" onClick={() => void save()} disabled={!changed || saving} aria-busy={saving}>{saving ? 'Saving...' : 'Save Alert Settings'}</button>
         </div>
       </div>
 

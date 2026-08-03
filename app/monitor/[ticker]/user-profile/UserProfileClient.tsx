@@ -138,7 +138,7 @@ export function UserProfileClient() {
             <span>Biography</span>
             <textarea className="textarea" value={form.bio} onChange={event => setForm(current => ({ ...current, bio: event.target.value }))} placeholder="Write something about yourself..." rows={5} />
           </label>
-          <button className="button" type="submit" disabled={isSaving}>{isSaving ? 'Saving...' : 'Save Changes'}</button>
+          <button className="button" type="submit" disabled={isSaving} aria-busy={isSaving}>{isSaving ? 'Saving...' : 'Save Changes'}</button>
         </form>
         {message && <p className="user-profile-message success">{message}</p>}
         {error && <p className="user-profile-message error">{error}</p>}

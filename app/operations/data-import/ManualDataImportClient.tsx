@@ -527,6 +527,7 @@ export function ManualDataImportClient() {
               className="ops-primary-button"
               type="button"
               disabled={!file || Boolean(fileDetails?.tickers.length && !fileDetails.tickers.includes(ticker)) || status === 'importing' || status === 'consolidating'}
+              aria-busy={status === 'importing'}
               onClick={importCsv}
             >
               {status === 'importing' ? 'Importing...' : 'Import CSV'}

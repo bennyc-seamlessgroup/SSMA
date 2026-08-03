@@ -261,7 +261,7 @@ export function HotkeyOperationsClient({ ticker }: { ticker: string }) {
                 ))}
               </select>
             </label>
-            <button className="button primary" type="submit" disabled={busy || !normalizedDraft}>
+            <button className="button primary" type="submit" disabled={busy || !normalizedDraft} aria-busy={state === 'saving'}>
               {state === 'saving' ? 'Saving...' : 'Save hotkey'}
             </button>
           </form>

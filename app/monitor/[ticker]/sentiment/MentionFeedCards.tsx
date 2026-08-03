@@ -130,7 +130,7 @@ export function MentionFeedCards({
         if (sortMode === 'followers') return b.followersScore - a.followersScore;
         if (sortMode === 'likes') return b.likesScore - a.likesScore;
         if (sortMode === 'engagement') return engagement(b) - engagement(a);
-        return 0;
+        return b.timestampMs - a.timestampMs;
       });
   }, [rows, sentimentFilter, sortMode]);
   return (
