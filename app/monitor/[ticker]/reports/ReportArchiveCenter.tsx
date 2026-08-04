@@ -107,15 +107,15 @@ export function ReportArchiveCenter({
     };
   }, [openMenu]);
 
-  const todayReports = useMemo(() => {
+  const latestReportDate = sortedReports[0]?.reportDate ?? todayDate;
+  const latestTradingDayReports = useMemo(() => {
     return reportWindows.map(window => {
-      const report = sortedReports.find(item => item.reportDate === todayDate && item.reportType === window.type);
+      const report = sortedReports.find(item => item.reportDate === latestReportDate && item.reportType === window.type);
       return { ...window, report };
     });
-  }, [sortedReports, todayDate]);
+  }, [latestReportDate, sortedReports]);
 
-  const completedCount = todayReports.filter(item => item.report).length;
-  const latestToday = [...todayReports].reverse().find(item => item.report);
+  const latestAvailable = [...latestTradingDayReports].reverse().find(item => item.report);
 
   const filteredReports = useMemo(() => {
     return sortedReports.filter(report => {
@@ -210,23 +210,23 @@ export function ReportArchiveCenter({
               </svg>
             </span>
             <div>
-              <h2>Today&apos;s Reports</h2>
-              <p>{formatDisplayDate(todayDate, timeZone)}</p>
+              <h2>Latest Trading Day Report</h2>
+              <p>{formatDisplayDate(latestReportDate, timeZone)}</p>
             </div>
           </div>
-          <div className="report-latest-badge">
-            <span>Latest Report</span>
-            <strong>{completedCount} / 3 · {latestToday?.time ?? 'Pending'}</strong>
+          <div className={`report-latest-badge${latestAvailable ? '' : ' is-empty'}`}>
+            <span>Latest Available</span>
+            <strong>{latestAvailable ? `${latestAvailable.shortTitle} · ${latestAvailable.time}` : 'No report available'}</strong>
           </div>
         </div>
 
-        <div className="report-timeline" style={{ '--report-progress': `${completedCount <= 1 ? 0 : ((completedCount - 1) / 2) * 100}%` } as CSSProperties}>
-          {todayReports.map(item => {
+        <div className="report-timeline" style={{ '--report-progress': '0%' } as CSSProperties}>
+          {latestTradingDayReports.map(item => {
             const isAvailable = Boolean(item.report);
-            const isLatest = latestToday?.type === item.type;
+            const isLatest = latestAvailable?.type === item.type;
             const isComingSoon = item.type === '8AM' || item.type === '1150AM';
             return (
-              <div className={`report-timeline-step${isAvailable ? ' is-complete' : ''}${isLatest ? ' is-latest' : ''}`} key={item.type}>
+              <div className={`report-timeline-step${isAvailable ? ' is-complete' : ''}${isLatest ? ' is-latest' : ''}${isComingSoon ? ' is-placeholder' : ''}`} key={item.type}>
                 <div className="report-timeline-node">{item.step}</div>
                 <div className="report-timeline-time">{item.time}</div>
                 <h3>{item.title}</h3>
@@ -240,7 +240,7 @@ export function ReportArchiveCenter({
                       <button type="button" onClick={() => openReport(item.report!, true)} disabled={generatingReportId === item.report.id}>Download</button>
                     </>
                   ) : (
-                    <span>Pending</span>
+                    <span>Unavailable</span>
                   )}
                 </div>
               </div>
@@ -270,8 +270,8 @@ export function ReportArchiveCenter({
             </label>
             <select value={selectedType} onChange={event => setSelectedType(event.target.value as ReportType | 'all')} aria-label="Filter report type">
               <option value="all">All</option>
-              <option value="8AM">Pre-Market</option>
-              <option value="1150AM">Midday</option>
+              <option value="8AM" disabled>Pre-Market (Coming soon)</option>
+              <option value="1150AM" disabled>Midday (Coming soon)</option>
               <option value="7PM">Post-Market</option>
             </select>
           </div>
@@ -292,17 +292,21 @@ export function ReportArchiveCenter({
               <div className="report-history-icons">
                 {reportWindows.map(window => {
                   const report = row.reports.find(item => item.reportType === window.type);
+                  const isComingSoon = window.type === '8AM' || window.type === '1150AM';
                   return (
                     <span className="report-history-icon-wrap" key={`${row.date}-${window.type}`}>
                       <button
                         type="button"
-                        className={`report-history-icon${report ? ' is-ready' : ''}`}
-                        disabled={!report}
+                        className={`report-history-icon${report && !isComingSoon ? ' is-ready' : ''}${isComingSoon ? ' is-placeholder' : ''}`}
+                        disabled={!report || isComingSoon}
                         onClick={() => report && setOpenMenu(openMenu === report.id ? null : report.id)}
-                        title={`${window.title}${report ? '' : ' pending'}`}
+                        title={`${window.title}${isComingSoon ? ' — coming soon' : report ? ' — available' : ' — unavailable'}`}
                       >
                         {iconSvg(window.icon)}
-                        <span>{window.time}</span>
+                        <span className="report-history-window-copy">
+                          <strong>{window.shortTitle}</strong>
+                          <small>{isComingSoon ? 'Coming soon' : report ? window.time : 'Unavailable'}</small>
+                        </span>
                       </button>
                       {report && openMenu === report.id ? (
                         <span className="report-history-popover">

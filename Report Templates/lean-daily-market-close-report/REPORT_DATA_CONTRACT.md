@@ -16,6 +16,7 @@ Lean V1 renders only fields supported by currently implemented APIs. Missing sec
   "generatedAt": "Jul 21, 2026, 7:05 PM ET",
   "status": "Moderate Lending Pressure",
   "legalDisclaimers": {},
+  "tradingSnapshot": {},
   "snapshotKpis": [],
   "shortInterestScore": {},
   "shortLending": {},
@@ -77,11 +78,12 @@ Use the same score ranges as the portal: `0-39 Low`, `40-64 Moderate`, `65-79 Hi
 {
   "shortLending": {
     "posture": "Moderate Lending Pressure",
+    "shortVolumeChart": {},
     "borrowFeeChart": {},
     "shortableSharesChart": {},
+    "ftdChart": {},
     "utilizationChart": {},
-    "daysToCoverChart": {},
-    "signalGuide": []
+    "daysToCoverChart": {}
   }
 }
 ```
@@ -107,6 +109,10 @@ Each chart uses aligned date and value arrays:
 - Do not convert missing values to zero.
 - `dates[index]` and `values[index]` must represent the same observation.
 - Every chart must contain only the latest seven valid daily observations.
+- `shortVolumeChart` uses `totalShortVolumeReported` from
+  `GET /market-data/history?category=short-volume-history`.
+- `ftdChart` uses `shares` and `tradeDate` from
+  `GET /market-data/history?category=ftd-history`.
 
 ## Sentiment
 
@@ -143,7 +149,7 @@ Each chart uses aligned date and value arrays:
 }
 ```
 
-All sentiment fields must be filtered to the report's latest 24-hour window. Percentages should total approximately 100 after rounding. Platform mentions should reconcile to total mentions.
+All sentiment fields must be filtered to the report's latest 24-hour window. Percentages should total approximately 100 after rounding. Platform mentions should reconcile to total mentions. The platform array must always include Reddit, X, Facebook, LinkedIn, and Stocktwits; unavailable platforms use zero mentions, zero share, and `No data` sentiment.
 
 ## SEC Filings
 

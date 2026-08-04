@@ -14,6 +14,8 @@ type DashboardDevTablesProps = {
   marketCurrent: Record<string, unknown> | null;
   marketHistory: Record<string, unknown> | null;
   secFilingsHistory: Record<string, unknown> | null;
+  utilizationManual: unknown;
+  marginsManual: unknown;
 };
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -89,6 +91,8 @@ export function DashboardDevTables({
   marketCurrent,
   marketHistory,
   secFilingsHistory,
+  utilizationManual,
+  marginsManual,
 }: DashboardDevTablesProps) {
   const apiTables: ApiTable[] = [
     {
@@ -102,6 +106,18 @@ export function DashboardDevTables({
       title: 'Market History',
       endpoint: 'GET /market-data/history?category=market-history',
       payload: marketHistory,
+    },
+    {
+      id: 'manual-utilization',
+      title: 'Manual Utilization',
+      endpoint: 'GET /manual-input/utilization',
+      payload: utilizationManual,
+    },
+    {
+      id: 'manual-margins',
+      title: 'Manual Margins',
+      endpoint: 'GET /manual-input/margins',
+      payload: marginsManual,
     },
     {
       id: 'sec-filings',

@@ -9,6 +9,16 @@
   "legalDisclaimers": {
     "footer": "For informational purposes only. Not investment advice. Market data may be delayed or incomplete."
   },
+  "tradingSnapshot": {
+    "asOfDate": "Jun 12, 2026",
+    "items": [
+      { "label": "Open", "value": "$3.1151" },
+      { "label": "High", "value": "$3.45" },
+      { "label": "Low", "value": "$3.03" },
+      { "label": "Close", "value": "$3.25" },
+      { "label": "Trade Volume", "value": "204,973" }
+    ]
+  },
   "snapshotKpis": [
     { "label": "Short Interest %", "value": "8.58%", "changeValue": "+0.16 pts", "changePercent": "+1.90%", "tone": "negative" },
     { "label": "Borrow Fee", "value": "29.15%", "changeValue": "-2.05 pts", "changePercent": "-6.57%", "tone": "positive" },
@@ -38,6 +48,17 @@
   },
   "shortLending": {
     "posture": "Moderate Lending Pressure",
+    "shortVolumeChart": {
+      "id": "shortVolume",
+      "title": "Short Volume Trend",
+      "subtitle": "Latest seven available trading days",
+      "color": "#1769e8",
+      "unit": "shares",
+      "minValid": 0,
+      "dates": ["2026-06-04", "2026-06-05", "2026-06-08", "2026-06-09", "2026-06-10", "2026-06-11", "2026-06-12"],
+      "values": [48335, 37660, 23900, 49400, 87754, 14881, 59491],
+      "latestDisplay": "59.5K"
+    },
     "borrowFeeChart": {
       "id": "borrowFee",
       "title": "Borrow Fee Trend",
@@ -59,6 +80,17 @@
       "dates": ["2026-06-04", "2026-06-05", "2026-06-08", "2026-06-09", "2026-06-10", "2026-06-11", "2026-06-12"],
       "values": [2431493, 2433471, 2484134, 2448317, 2450377, 2491973, 2500000],
       "latestDisplay": "2.5M"
+    },
+    "ftdChart": {
+      "id": "failsToDeliver",
+      "title": "Fails-to-Deliver Trend",
+      "subtitle": "Latest seven available trading days",
+      "color": "#8a5cf5",
+      "unit": "shares",
+      "minValid": 0,
+      "dates": ["2026-06-04", "2026-06-05", "2026-06-08", "2026-06-09", "2026-06-10", "2026-06-11", "2026-06-12"],
+      "values": [0, 238, 0, 8129, 145, 648, 1827],
+      "latestDisplay": "1.8K"
     },
     "utilizationChart": {
       "id": "utilization",
@@ -103,9 +135,11 @@
       "bearishPercent": 8
     },
     "platforms": [
+      { "name": "Reddit", "mentions": 2, "mentionsDisplay": "2", "sharePercent": 16.7, "sentimentLabel": "Neutral" },
       { "name": "X", "mentions": 6, "mentionsDisplay": "6", "sharePercent": 50, "sentimentLabel": "Bullish" },
-      { "name": "Stocktwits", "mentions": 4, "mentionsDisplay": "4", "sharePercent": 33.3, "sentimentLabel": "Neutral" },
-      { "name": "Reddit", "mentions": 2, "mentionsDisplay": "2", "sharePercent": 16.7, "sentimentLabel": "Neutral" }
+      { "name": "Facebook", "mentions": 0, "mentionsDisplay": "0", "sharePercent": 0, "sentimentLabel": "No data" },
+      { "name": "LinkedIn", "mentions": 0, "mentionsDisplay": "0", "sharePercent": 0, "sentimentLabel": "No data" },
+      { "name": "Stocktwits", "mentions": 4, "mentionsDisplay": "4", "sharePercent": 33.3, "sentimentLabel": "Neutral" }
     ]
   },
   "secFilings": [

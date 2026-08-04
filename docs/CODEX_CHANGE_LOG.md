@@ -4,6 +4,277 @@ This file is the persistent implementation memory for changes made by Codex.
 Read it before modifying existing portal behavior, and update it after every
 completed change.
 
+## 2026-08-04 — Preserve manual metric source dates on Dashboard
+
+- Area: User Portal → Dashboard → Market Overview, specifically Utilization
+  and Average Duration.
+- APIs/data:
+  - Values and explicit per-field dates:
+    `GET /market-data/current?ticker={ticker}&category=market-current`
+  - Consolidated comparisons and chart history:
+    `GET /market-data/history?ticker={ticker}&category=market-history`
+  - Exact manual-input provenance:
+    `GET /manual-input/utilization?ticker={ticker}` and
+    `GET /manual-input/margins?ticker={ticker}`
+- User-reported problem:
+  - CURR had no Aug 3 utilization or average-duration input, but Dashboard
+    labelled the carried-forward 69.52% and 6.40d values as Aug 3.
+- Root cause:
+  - Aug 3 consolidation produced a `market-current` snapshot dated Aug 3 while
+    retaining the latest available manual values from Jul 31.
+  - When `otherDateData` did not contain the exact paths
+    `utilization.percent` or `margins.averageDurationDays`,
+    `marketCurrentMetricObservation` fell back to the overall snapshot date.
+    Dashboard then inserted the old value as an Aug 3 observation.
+- Implemented behavior:
+  - An explicit matching date in `market-current.otherDateData` remains
+    authoritative.
+  - When that explicit date is absent, Dashboard matches the consolidated
+    current value against the ticker's exact manual-input history and uses the
+    newest matching input date on or before the snapshot date.
+  - For the reported case, Utilization and Average Duration retain their
+    published values but display Jul 31 as their source date; the missing Aug 3
+    inputs are not fabricated.
+  - Manual utilization and margins responses are visible as separate Dashboard
+    Development Data tabs, and the Market Overview source tags identify their
+    date-provenance role.
+  - A manual-input read failure does not prevent Dashboard from loading; it
+    retains the existing snapshot-date fallback when provenance cannot be
+    resolved.
+- Must preserve:
+  - Manual-input records are used only to resolve the source date of the
+    already-published `market-current` value. Unsaved or unconsolidated manual
+    values must not replace published Dashboard values.
+  - Values from a future manual-input date must never be matched to an earlier
+    snapshot.
+  - Each Dashboard metric continues to select its latest valid observation
+    independently, and comparison labels continue using the actual prior
+    observation date.
+  - Consolidated Market History remains the source for comparisons and trend
+    charts; no history record is rewritten by the frontend.
+- Files changed:
+  - `app/monitor/[ticker]/dashboard/DashboardBrowserPage.tsx`
+  - `app/monitor/[ticker]/dashboard/DashboardDevTables.tsx`
+  - `app/monitor/[ticker]/dashboard/DashboardKpis.tsx`
+  - `docs/CODEX_CHANGE_LOG.md`
+- Verification: TypeScript type-check, whitespace validation, production build,
+  and focused source-date behavior checks passed.
+- Remaining dependency:
+  - The preferred backend contract is still to populate
+    `market-current.otherDateData` with exact per-field dates. If a current
+    value has no explicit date and no matching readable manual-input record,
+    the frontend cannot prove an older source date and retains `snapshotDate`.
+
+## 2026-08-04 - Correct and complete the lean report backend contract
+
+- Area: Report Archive and Lean Daily Market Close Report backend handoff.
+- APIs/data:
+  - `GET /market-data/reports?ticker={ticker}&date={YYYY-MM-DD}`
+  - Company profile, market history, short-volume history, FTD history,
+    sentiment current/events, SEC filings, and AI-report source files.
+- Reported problem: The backend implementation response covered the main report
+  sections but omitted or ambiguously defined several fields needed by the
+  current PDF, including the complete Trading Snapshot mapping.
+- Root cause: The earlier handoff did not make every renderer field, source
+  path, comparison rule, and reconciliation invariant equally explicit.
+- Intended behavior and invariants:
+  - The corrective specification is self-contained and supersedes ambiguous
+    portions of the earlier handoff.
+  - It defines canonical raw and display fields for Open, High, Low, Close, and
+    Trade Volume.
+  - KPI comparisons use the previous valid observation independently per
+    metric and preserve both observation dates.
+  - Short Score ranges, six latest-seven-valid-observation charts, complete 1D
+    sentiment, five platform rows, filing details, legal text, provenance, and
+    immutable archive behavior are all explicitly defined.
+  - Missing data stays null and company names never fall back to a different
+    ticker's identity.
+- Files changed:
+  - `Report Templates/lean-daily-market-close-report/BACKEND_REPORT_API_CORRECTIONS.md`
+  - `docs/CODEX_CHANGE_LOG.md`
+- Verification:
+  - Cross-checked field requirements against the current report renderer and
+    browser report composition.
+  - Cross-checked API categories and source paths against
+    `docs/INTEGRATION (7).md`.
+  - Markdown structure, source mappings, examples, and validation rules were
+    reviewed; whitespace validation passed.
+- Remaining dependency: Backend must provide real authenticated sample
+  responses and pass the documented reconciliation checks before the frontend
+  switches to the consolidated reports endpoint.
+
+## 2026-08-04 — Expand lean report trends and platform coverage
+
+- Area: Report Archive → browser-generated lean Daily Market Close Report,
+  pages 3 and 4.
+- APIs/data:
+  - Existing `GET /market-data/history?ticker={ticker}&category=market-history`.
+  - Added report composition reads from
+    `GET /market-data/history?ticker={ticker}&category=short-volume-history`
+    and `GET /market-data/history?ticker={ticker}&category=ftd-history`.
+  - Existing 1D `sentiment-current` platform breakdown.
+- Reported problem and root cause:
+  - The trends page had only four charts and did not include Short Volume or
+    Fails-to-Deliver.
+  - A fixed 240px minimum height left unnecessary blank space under charts.
+  - Platform Breakdown omitted Facebook and LinkedIn when their 1D records
+    were absent.
+- Implemented behavior:
+  - Short and Lending Movement now renders six charts in a compact 2-by-3 grid:
+    Short Volume, Borrow Fee, Shortable Shares, Fails-to-Deliver, Utilization,
+    and Days to Cover.
+  - Every chart is filtered to the report date and contains at most the latest
+    seven valid daily observations.
+  - Short Volume uses `totalShortVolumeReported`; Fails-to-Deliver uses
+    `tradeDate` and `shares`.
+  - Chart cards no longer enforce extra minimum height and wrap tightly around
+    their SVG charts.
+  - Platform Breakdown always includes Reddit, X, Facebook, LinkedIn, and
+    Stocktwits. Missing platforms display zero mentions, zero contribution,
+    and `No data` rather than disappearing.
+- Must preserve:
+  - Archived reports must not include history after their report date.
+  - Sentiment remains restricted to the report's 1D window.
+  - The report remains four A4 pages and all other sections retain their
+    accepted layout.
+- Files changed:
+  - `app/monitor/[ticker]/reports/daily-report-data.ts`
+  - `Report Templates/lean-daily-market-close-report/render.js`
+  - `Report Templates/lean-daily-market-close-report/styles.css`
+  - `Report Templates/lean-daily-market-close-report/report-data.json`
+  - `Report Templates/lean-daily-market-close-report/REPORT_DATA_CONTRACT.md`
+  - `Report Templates/lean-daily-market-close-report/preview/currenc-daily-market-close-report-lean-v1.pdf`
+  - `public/report-templates/daily-close/render.js`
+  - `public/report-templates/daily-close/styles.css`
+  - `public/report-templates/daily-close/report-data.json`
+  - `docs/CODEX_CHANGE_LOG.md`
+- Verification:
+  - TypeScript type-check, JSON parsing, template synchronization, and
+    whitespace validation passed.
+  - The regenerated report remains four A4 pages.
+  - Pages 3 and 4 were rendered to PNG and visually checked for clipping,
+    alignment, spacing, chart density, and five-platform coverage.
+- Remaining backend dependency / limitation: The report still composes these
+  datasets from separate APIs until the requested consolidated report API
+  contract is defined in Step 2.
+
+## 2026-08-04 — Add daily trading snapshot to the lean close report
+
+- Area: Report Archive → browser-generated lean Daily Market Close Report.
+- APIs/data:
+  - Existing `GET /market-data/history?ticker={ticker}&category=market-history`.
+  - Existing report-date market fields: `open`, `high`, `low`, `close`, and
+    `tradeVolume`; nested `price.open`, `price.high`, `price.low`, and
+    `price.close` are also accepted.
+- Reported problem and root cause: The lean report presented short and lending
+  closing signals without the day's core trading-range and volume context.
+- Implemented behavior:
+  - Page 2 now begins with a compact five-column Open / High / Low / Close /
+    Trade Volume strip above the eight closing-signal cards.
+  - The strip uses the same eligible report-date market record selected for the
+    rest of the report, so an archived report does not display current values.
+  - The strip displays its actual as-of date, preserves up to four decimal
+    places for prices, rounds volume to whole shares, and uses `N/A` for missing
+    data.
+  - The editable source template, public runtime template, and sample preview
+    data remain synchronized.
+- Must preserve:
+  - The existing eight KPI cards, Short Interest Score, AI Analysis, seven-day
+    charts, sentiment, and SEC filing sections remain unchanged.
+  - Report Archive continues to generate the PDF in the browser.
+- Files changed:
+  - `app/monitor/[ticker]/reports/daily-report-data.ts`
+  - `Report Templates/lean-daily-market-close-report/render.js`
+  - `Report Templates/lean-daily-market-close-report/styles.css`
+  - `Report Templates/lean-daily-market-close-report/report-data.json`
+  - `Report Templates/lean-daily-market-close-report/preview/currenc-daily-market-close-report-lean-v1.pdf`
+  - `public/report-templates/daily-close/render.js`
+  - `public/report-templates/daily-close/styles.css`
+  - `public/report-templates/daily-close/report-data.json`
+  - `docs/CODEX_CHANGE_LOG.md`
+- Verification:
+  - TypeScript type-check and whitespace validation passed.
+  - The generated PDF remains four A4 pages.
+  - Page 2 was rendered to PNG and visually checked for alignment, clipping,
+    spacing, and preservation of the existing content.
+- Remaining backend dependency / limitation: Step 1 still composes report data
+  from the existing portal APIs. The requested consolidated
+  `GET /market-data/reports?ticker={ticker}&date={YYYY-MM-DD}` contract update is
+  intentionally deferred to Step 2 after layout approval.
+
+## 2026-08-04 — Make Report Archive reflect the latest trading day
+
+- Area: User Portal → Report Archive timeline and History Archive.
+- API: Existing `GET /market-data/reports` index; no contract change.
+- Reported problem and root cause:
+  - The top panel was labelled Today's Reports and searched only the current
+    calendar date, even though the available product is a market-close report
+    for the latest completed trading day.
+  - Pre-Market and Midday placeholders looked too similar to real report
+    windows, and Post-Market could incorrectly appear Pending despite the
+    latest indexed report being available.
+- Implemented behavior:
+  - The top panel is now Latest Trading Day Report and uses the newest report
+    date returned by the API.
+  - The latest Post-Market report is active with View PDF and Download actions;
+    it is no longer tied to whether its date equals today's calendar date.
+  - Pre-Market and Midday are visibly muted, use dashed nodes, and are labelled
+    Coming Soon.
+  - History Archive rows now label each window by name and status. Pre-Market
+    and Midday are muted Coming Soon placeholders while Post-Market shows its
+    available time and remains interactive.
+  - Unavailable report-type filter choices are disabled and labelled Coming
+    Soon.
+- Must preserve:
+  - History remains grouped by report date and paginated by 10 trading days.
+  - Post-Market PDF generation and download continue to use the existing
+    browser-rendered lean report.
+- Files changed:
+  - `app/monitor/[ticker]/reports/ReportArchiveCenter.tsx`
+  - `app/globals.css`
+  - `docs/CODEX_CHANGE_LOG.md`
+- Verification: TypeScript type-check, whitespace validation, and local browser
+  inspection passed for the latest-report timeline and archive row.
+
+## 2026-08-04 — Load Report Archive dates from the authenticated reports API
+
+- Area: User Portal → Report Archive.
+- API: `GET /market-data/reports?ticker={ticker}&limit=100&page={page}`.
+- Reported problem and root cause:
+  - Available reports were not appearing from backend data.
+  - The archive page never called the report-index API. It constructed a single
+    synthetic report for the previous calendar day, so real backend report
+    dates could not reach either Today's Reports or History Archive.
+- Implemented behavior:
+  - Signed-in workspaces now load the authenticated paginated report index and
+    convert every returned date into the existing Post-Market report entry.
+  - All available index pages are loaded, duplicate dates are removed, and the
+    archive remains ordered newest first.
+  - The report-specific loading placeholder remains visible until the report
+    index resolves.
+  - API failures are shown on the page instead of silently presenting a fake or
+    empty production archive.
+  - The previous-day showcase report is retained only for the explicit public
+    demo session. It is no longer used as normal-user fallback data.
+- Must preserve:
+  - View PDF and Download continue to render the lean daily-close PDF in the
+    browser from the portal's current authenticated data sources.
+  - Pre-Market and Midday remain marked Coming Soon; current backend report
+    dates are represented as Post-Market reports.
+  - The existing date/type filters and 10-day History Archive pagination remain
+    unchanged.
+- Files changed:
+  - `app/monitor/[ticker]/reports/ReportArchiveBrowserPage.tsx`
+  - `docs/CODEX_CHANGE_LOG.md`
+- Verification:
+  - TypeScript type-check and whitespace validation passed.
+  - Local browser verification confirmed the report loading state resolves and
+    the demo-only Post-Market report appears in History Archive without errors.
+- Remaining backend dependency / limitation:
+  - A signed-in user's production archive reflects only dates returned by
+    `GET /market-data/reports`. If that index returns no dates, the production
+    archive correctly remains empty.
+
 ## 2026-08-03 — Standardize pending states for save and import buttons
 
 - Areas:
@@ -2126,3 +2397,41 @@ completed change.
 - Remaining dependency: The progress endpoint lists active jobs only, so after
   a refresh the frontend can prevent consolidation during active work but cannot
   independently recover the outcome of an older failed job.
+
+## 2026-08-04 - Define the complete backend contract for the lean daily close report
+
+- Area: Report Archive and Lean Daily Market Close Report backend handoff.
+- APIs/data:
+  - `GET /market-data/reports?ticker={ticker}&limit={limit}&page={page}`
+  - `GET /market-data/reports?ticker={ticker}&date={YYYY-MM-DD}`
+  - Current and history categories used to generate the dated report snapshot.
+- Reported problem: The existing dated reports API does not return the complete
+  collection of market, short-lending, sentiment, filing, and AI data required
+  by the current lean PDF layout.
+- Root cause: The browser currently composes the report from several APIs and
+  source files, while the backend report object is an incomplete summary rather
+  than a report-ready immutable snapshot.
+- Intended behavior and invariants:
+  - Preserve the existing paginated report-index behavior when `date` is absent.
+  - Return one complete report-ready payload when `date` is present.
+  - Store shared dated snapshots at
+    `reports/{ticker}/{date}/{ticker}_report_data.json`.
+  - Freeze report-date market, 1D sentiment, and filing data so archived reports
+    do not change when current source files are updated.
+  - Use the previous valid observation independently for each KPI comparison.
+  - Return six aligned seven-observation chart series without forward-filling.
+  - Preserve user-specific AI lookup without writing one user's analysis into
+    the shared ticker report file.
+  - Keep null values as null and never manufacture zero or placeholder data.
+- Files changed:
+  - `Report Templates/lean-daily-market-close-report/BACKEND_REPORT_API_REQUIREMENTS.md`
+  - `docs/CODEX_CHANGE_LOG.md`
+- Verification:
+  - Checked the documented source paths and categories against
+    `docs/INTEGRATION (7).md`.
+  - Checked the contract against the current report composition in
+    `app/monitor/[ticker]/reports/daily-report-data.ts`.
+  - Markdown structure, source tables, response schema, formulas, and acceptance
+    criteria were reviewed; whitespace validation passed.
+- Remaining dependency: The backend must implement and deploy the detailed
+  report contract before the frontend can remove its multi-API composition path.

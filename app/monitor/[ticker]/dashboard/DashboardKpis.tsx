@@ -215,6 +215,8 @@ export function DashboardKpis({
         <ApiSourceTags sources={[
           { endpoint: 'GET /market-data/current?category=market-current', label: 'Current KPIs' },
           { endpoint: 'GET /market-data/history?category=market-history', label: 'Comparisons & consolidated inputs' },
+          { endpoint: 'GET /manual-input/utilization', label: 'Utilization dates' },
+          { endpoint: 'GET /manual-input/margins', label: 'Margin & duration dates' },
         ]} />
       </div>
       <div className="dashboard-kpis">

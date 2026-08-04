@@ -2495,6 +2495,10 @@ body { min-height: 100vh; }
   vertical-align: 1px;
 }
 
+.report-latest-badge.is-empty strong::before {
+  background: #94a3b8;
+}
+
 .report-timeline {
   position: relative;
   display: grid;
@@ -2531,6 +2535,15 @@ body { min-height: 100vh; }
   align-items: center;
   gap: 8px;
   text-align: center;
+}
+
+.report-timeline-step.is-placeholder {
+  opacity: .48;
+}
+
+.report-timeline-step.is-placeholder .report-timeline-node {
+  border-style: dashed;
+  background: #f8fafc;
 }
 
 .report-timeline-node {
@@ -2768,9 +2781,37 @@ body { min-height: 100vh; }
   cursor: pointer;
 }
 
+.report-history-icon.is-placeholder {
+  opacity: .48;
+}
+
 .report-history-icon svg {
   width: 22px;
   height: 22px;
+}
+
+.report-history-window-copy {
+  display: grid;
+  gap: 1px;
+  min-width: 74px;
+  text-align: left;
+}
+
+.report-history-icon .report-history-window-copy strong,
+.report-history-icon .report-history-window-copy small {
+  display: block;
+  margin: 0;
+  color: inherit;
+  font-size: 11px;
+  line-height: 1.25;
+}
+
+.report-history-icon .report-history-window-copy strong {
+  font-weight: 750;
+}
+
+.report-history-icon .report-history-window-copy small {
+  font-weight: 600;
 }
 
 .report-history-popover {
@@ -2874,6 +2915,10 @@ html[data-design-b-theme="dark"] .monitor-portal .report-timeline-step.is-latest
   background: #0d1b2e;
   color: #93c5fd;
   box-shadow: 0 0 0 4px rgba(96, 165, 250, .14);
+}
+
+html[data-design-b-theme="dark"] .monitor-portal .report-timeline-step.is-placeholder .report-timeline-node {
+  background: rgba(148,163,184,.06);
 }
 
 html[data-design-b-theme="dark"] .monitor-portal :where(.report-history-controls input, .report-history-controls select) {

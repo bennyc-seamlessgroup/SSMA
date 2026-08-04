@@ -165,6 +165,14 @@ function pageHeader(kicker, title, badge) {
   return `<div class="page-header"><div><span class="eyebrow">${esc(kicker)}</span><h2>${esc(title)}</h2></div><span class="page-badge">${esc(badge)}</span></div>`;
 }
 
+function tradingSnapshot(snapshot) {
+  const items = Array.isArray(snapshot?.items) ? snapshot.items : [];
+  return `<section class="trading-snapshot" aria-label="Daily trading snapshot">
+    <span class="trading-snapshot-date">As of ${esc(snapshot?.asOfDate || 'N/A')}</span>
+    ${items.map(item => `<div class="trading-snapshot-item"><span>${esc(item.label)}</span><strong>${esc(item.value)}</strong></div>`).join('')}
+  </section>`;
+}
+
 function renderReport(data) {
   const legal = data.legalDisclaimers || {};
   const shortLending = data.shortLending || {};
@@ -182,6 +190,7 @@ function renderReport(data) {
 
 <section class="page">
   ${pageHeader('Daily Snapshot', 'Key Closing Signals', data.status)}
+  ${tradingSnapshot(data.tradingSnapshot)}
   <div class="metric-grid metric-grid-8">${kpiCards(data.snapshotKpis)}</div>
   ${shortScorePanel(data.shortInterestScore)}
   ${reportFooter(2, legal.footer)}
@@ -190,8 +199,10 @@ function renderReport(data) {
 <section class="page">
   ${pageHeader('Seven-Day Trends', 'Short and Lending Movement', shortLending.posture)}
   <div class="two-column chart-grid compact-chart-grid">
+    <div class="card chart-card">${chartSvg(shortLending.shortVolumeChart)}</div>
     <div class="card chart-card">${chartSvg(shortLending.borrowFeeChart)}</div>
     <div class="card chart-card">${chartSvg(shortLending.shortableSharesChart)}</div>
+    <div class="card chart-card">${chartSvg(shortLending.ftdChart)}</div>
     <div class="card chart-card">${chartSvg(shortLending.utilizationChart)}</div>
     <div class="card chart-card">${chartSvg(shortLending.daysToCoverChart)}</div>
   </div>

@@ -197,6 +197,55 @@ body { font-size: 12px; }
   font-size: 10px;
 }
 
+.trading-snapshot {
+  position: relative;
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  min-height: 68px;
+  margin-bottom: 12px;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  background: #fff;
+}
+
+.trading-snapshot-date {
+  position: absolute;
+  top: 7px;
+  right: 11px;
+  color: #657994;
+  font-size: 7.5px;
+  font-weight: 800;
+}
+
+.trading-snapshot-item {
+  min-width: 0;
+  padding: 22px 12px 10px;
+  border-left: 1px solid var(--line);
+}
+
+.trading-snapshot-item:first-of-type { border-left: 0; }
+
+.trading-snapshot-item span {
+  display: block;
+  overflow: hidden;
+  color: #657994;
+  font-size: 7.5px;
+  font-weight: 800;
+  letter-spacing: .12em;
+  text-overflow: ellipsis;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.trading-snapshot-item strong {
+  display: block;
+  margin-top: 5px;
+  color: var(--ink);
+  font-size: 16px;
+  line-height: 1;
+}
+
 .metric-grid { display: grid; gap: 9px; margin-bottom: 12px; }
 .metric-grid-8 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
 
@@ -268,7 +317,7 @@ body { font-size: 12px; }
 .chart-grid { margin: 12px 0; }
 .chart-card { padding: 8px; }
 .compact-chart-grid { gap: 12px; margin: 0; }
-.compact-chart-grid .chart-card { min-height: 240px; }
+.compact-chart-grid .chart-card { min-height: 0; }
 .chart { display: block; width: 100%; height: auto; }
 .chart-title { fill: var(--ink); font-size: 13px; font-weight: 800; }
 .chart-latest { fill: var(--ink); font-size: 12px; font-weight: 800; }

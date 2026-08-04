@@ -62,6 +62,12 @@ function compactNumber(value: number | null) {
   return formatNumber(value, 0);
 }
 
+function formatPrice(value: number | null) {
+  return value === null
+    ? 'N/A'
+    : `$${value.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 4 })}`;
+}
+
 function signed(value: number, suffix: string, digits = 2) {
   const sign = value > 0 ? '+' : '';
   return `${sign}${value.toLocaleString('en-US', { maximumFractionDigits: digits })}${suffix}`;
@@ -160,9 +166,11 @@ function displayDate(value: string) {
 
 export async function buildDailyReportData(report: ReportArchiveRecord) {
   const ticker = report.ticker.toUpperCase();
-  const [current, history, sentimentCurrent, secFilings, aiReport] = await Promise.all([
+  const [current, history, shortVolumeHistory, ftdHistory, sentimentCurrent, secFilings, aiReport] = await Promise.all([
     cachedAuthenticatedFetch<ApiPayload>(`/market-data/current?ticker=${encodeURIComponent(ticker)}&category=market-current`),
     cachedAuthenticatedFetch<ApiPayload>(`/market-data/history?ticker=${encodeURIComponent(ticker)}&category=market-history`),
+    cachedAuthenticatedFetch<ApiPayload>(`/market-data/history?ticker=${encodeURIComponent(ticker)}&category=short-volume-history`).catch(() => ({})),
+    cachedAuthenticatedFetch<ApiPayload>(`/market-data/history?ticker=${encodeURIComponent(ticker)}&category=ftd-history`).catch(() => ({})),
     getSentimentCurrent(ticker).catch(() => ({})),
     cachedAuthenticatedFetch<ApiPayload>(`/manual-input/sec-filings?ticker=${encodeURIComponent(ticker)}`).catch(() => ({})),
     fetchAiReport(ticker, report.reportDate).catch(() => ({})),
@@ -170,11 +178,15 @@ export async function buildDailyReportData(report: ReportArchiveRecord) {
 
   const historyRecords = apiRecords(history, 'market-history');
   const eligibleRecords = latestRows(historyRecords, report.reportDate);
+  const eligibleShortVolumeRecords = latestRows(apiRecords(shortVolumeHistory, 'short-volume-history'), report.reportDate);
+  const eligibleFtdRecords = latestRows(apiRecords(ftdHistory, 'ftd-history'), report.reportDate);
   const latest = latestCompleteMarketPublicationRecord(eligibleRecords as MarketPublicationRecord[]) ?? eligibleRecords[0] ?? {};
   const latestDate = marketRecordDate(latest) || report.reportDate;
   const prior = eligibleRecords.find(row => marketRecordDate(row) < latestDate) ?? {};
   const metric = (field: string, isPercent = false) => isPercent ? percentValue(latest[field], latest) : numberOrNull(latest[field]);
   const priorMetric = (field: string, isPercent = false) => isPercent ? percentValue(prior[field], prior) : numberOrNull(prior[field]);
+  const latestPrice = objectValue(latest.price);
+  const priceMetric = (field: 'open' | 'high' | 'low' | 'close') => numberOrNull(latest[field] ?? latestPrice[field]);
   const currentMarket = category(current, 'market-current') as MarketCurrentSnapshot;
   const currentUtilization = marketCurrentMetricObservation(currentMarket, 'utilization.percent');
   const currentAverageDuration = marketCurrentMetricObservation(currentMarket, 'margins.averageDurationDays');
@@ -215,7 +227,7 @@ export async function buildDailyReportData(report: ReportArchiveRecord) {
   const overallScore = numberOrNull(oneDay.overallSentimentScore ?? oneDay.sentimentScore);
   const previousOverallScore = numberOrNull(oneDay.previousOverallSentimentScore ?? oneDay.previousSentimentScore ?? objectValue(oneDay.comparison).previousScore);
   const sentimentDelta = overallScore !== null && previousOverallScore !== null ? overallScore - previousOverallScore : null;
-  const platformRows = rows(oneDay.platformBreakdown)
+  const reportedPlatformRows = rows(oneDay.platformBreakdown)
     .map(row => {
       const count = numberOrNull(row.count ?? row.mentions ?? row.mentionCount) ?? 0;
       const score = numberOrNull(row.sentimentScore ?? row.score);
@@ -226,9 +238,15 @@ export async function buildDailyReportData(report: ReportArchiveRecord) {
         sharePercent: totalMentions ? count / totalMentions * 100 : 0,
         sentimentLabel: sentimentLabel(score),
       };
-    })
-    .sort((a, b) => b.mentions - a.mentions)
-    .slice(0, 5);
+    });
+  const reportedPlatforms = new Map(reportedPlatformRows.map(row => [row.name, row]));
+  const platformRows = ['Reddit', 'X', 'Facebook', 'LinkedIn', 'Stocktwits'].map(name => reportedPlatforms.get(name) ?? {
+    name,
+    mentions: 0,
+    mentionsDisplay: '0',
+    sharePercent: 0,
+    sentimentLabel: 'No data',
+  });
 
   const percentOfMentions = (count: number) => totalMentions ? count / totalMentions * 100 : 0;
   const scoreDelta = shortScore !== null && previousShortScore !== null
@@ -245,6 +263,16 @@ export async function buildDailyReportData(report: ReportArchiveRecord) {
     status: `${scoreLevel} Short Interest Pressure`,
     legalDisclaimers: {
       footer: 'For informational purposes only. Not investment advice. Market data may be delayed or incomplete.',
+    },
+    tradingSnapshot: {
+      asOfDate: displayDate(latestDate),
+      items: [
+        { label: 'Open', value: formatPrice(priceMetric('open')) },
+        { label: 'High', value: formatPrice(priceMetric('high')) },
+        { label: 'Low', value: formatPrice(priceMetric('low')) },
+        { label: 'Close', value: formatPrice(priceMetric('close')) },
+        { label: 'Trade Volume', value: formatNumber(metric('tradeVolume'), 0) },
+      ],
     },
     snapshotKpis: [
       { label: 'Short Interest %', value: shortInterestPercent === null ? 'N/A' : `${formatNumber(shortInterestPercent)}%`, ...comparison(shortInterestPercent, priorMetric('shortInterestPercent'), 'percent') },
@@ -285,8 +313,10 @@ export async function buildDailyReportData(report: ReportArchiveRecord) {
     },
     shortLending: {
       posture: `${scoreLevel} Short Interest Pressure`,
+      shortVolumeChart: chart(eligibleShortVolumeRecords, 'totalShortVolumeReported', { id: 'shortVolume', title: 'Short Volume Trend', subtitle: 'Latest seven available trading days', color: '#1769e8', unit: 'shares' }),
       borrowFeeChart: chart(eligibleRecords, 'borrowFeePercent', { id: 'borrowFee', title: 'Borrow Fee Trend', subtitle: 'Latest seven available trading days', color: '#cf3e4f', unit: 'percent' }),
       shortableSharesChart: chart(eligibleRecords, 'availableShares', { id: 'shortableShares', title: 'Shortable Shares Trend', subtitle: 'Latest seven available trading days', color: '#e19713', unit: 'shares' }),
+      ftdChart: chart(eligibleFtdRecords, 'shares', { id: 'failsToDeliver', title: 'Fails-to-Deliver Trend', subtitle: 'Latest seven available trading days', color: '#8a5cf5', unit: 'shares' }),
       utilizationChart: chart(eligibleRecords, 'utilizationPercent', { id: 'utilization', title: 'Utilization Trend', subtitle: 'Latest seven available trading days', color: '#15936f', unit: 'percent' }),
       daysToCoverChart: chart(eligibleRecords, 'daysToCover', { id: 'daysToCover', title: 'Days to Cover Trend', subtitle: 'Latest seven available trading days', color: '#6757d8', unit: 'days' }),
     },
