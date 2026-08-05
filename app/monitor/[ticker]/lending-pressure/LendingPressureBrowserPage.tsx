@@ -12,6 +12,7 @@ import {
   marketCurrentMetricObservation,
   marketPublicationRecordFromHistoryForDate,
   marketRecordDate,
+  type MarketCurrentMetricObservation,
   type MarketCurrentSnapshot,
   type MarketPublicationRecord,
 } from '@/lib/market-data-publication';
@@ -135,8 +136,10 @@ function historyRecords(payload: unknown): MarketHistoryRecord[] {
 function buildLendingPayload(historyPayload: unknown, currentPayload: unknown) {
   const history = historyRecords(historyPayload);
   const current = categoryRecord(currentPayload, 'market-current') as MarketCurrentSnapshot;
+  const currentBorrowFeeObservation = marketCurrentMetricObservation(current, 'borrowFee.percent');
+  const currentAvailableSharesObservation = marketCurrentMetricObservation(current, 'availableShares.value');
   const currentUtilizationObservation = marketCurrentMetricObservation(current, 'utilization.percent');
-  const currentAverageDuration = marketCurrentMetricObservation(current, 'margins.averageDurationDays');
+  const currentAverageDurationObservation = marketCurrentMetricObservation(current, 'margins.averageDurationDays');
   const utilizationHistory = history
     .map(row => ({
       date: marketRecordDate(row),
@@ -146,7 +149,8 @@ function buildLendingPayload(historyPayload: unknown, currentPayload: unknown) {
     .sort((a, b) => a.date.localeCompare(b.date));
   if (currentUtilizationObservation) {
     const existing = utilizationHistory.find(row => row.date === currentUtilizationObservation.date);
-    if (!existing) utilizationHistory.push(currentUtilizationObservation);
+    if (existing) existing.value = currentUtilizationObservation.value;
+    else utilizationHistory.push({ date: currentUtilizationObservation.date, value: currentUtilizationObservation.value });
     utilizationHistory.sort((a, b) => a.date.localeCompare(b.date));
   }
   const sortedHistory = [...history]
@@ -155,18 +159,70 @@ function buildLendingPayload(historyPayload: unknown, currentPayload: unknown) {
     .sort((a, b) => String(a.tradeDate ?? '').localeCompare(String(b.tradeDate ?? '')));
   const latestHistory: MarketPublicationRecord = sortedHistory.at(-1) ?? {};
   const currentBorrowFee = firstNumeric(
+    currentBorrowFeeObservation?.value,
     latestHistory.borrowFeePercent,
   );
   const currentAvailableShares = firstNumeric(
+    currentAvailableSharesObservation?.value,
     latestHistory.availableShares,
     latestHistory.availableSharesIbkr,
     latestHistory.availableSharesFutu,
   );
   const currentUtilization = firstNumeric(
-    utilizationHistory.at(-1)?.value,
     currentUtilizationObservation?.value,
+    utilizationHistory.at(-1)?.value,
     latestHistory.utilizationPercent,
   );
+  const daily = sortedHistory.map(row => ({
+    date: row.tradeDate,
+    availability: {
+      shortAvailabilityShares: firstNumeric(row.availableShares, row.availableSharesIbkr, row.availableSharesFutu),
+      shortAvailabilityPct: row.utilizationPercent,
+    },
+    borrowFeeAll: {
+      costToBorrowAll: row.borrowFeePercent,
+    },
+  }));
+  function applyDailyObservation(
+    observation: MarketCurrentMetricObservation | null,
+    target: 'borrowFee' | 'availableShares',
+  ) {
+    if (!observation) return;
+    let row = daily.find(item => item.date === observation.date);
+    if (!row) {
+      row = {
+        date: observation.date,
+        availability: { shortAvailabilityShares: null, shortAvailabilityPct: null },
+        borrowFeeAll: { costToBorrowAll: null },
+      };
+      daily.push(row);
+    }
+    if (target === 'borrowFee') row.borrowFeeAll.costToBorrowAll = observation.value;
+    else row.availability.shortAvailabilityShares = observation.value;
+  }
+  applyDailyObservation(currentBorrowFeeObservation, 'borrowFee');
+  applyDailyObservation(currentAvailableSharesObservation, 'availableShares');
+  daily.sort((a, b) => String(a.date ?? '').localeCompare(String(b.date ?? '')));
+
+  const marginRecords: DashboardMarginRecord[] = sortedHistory
+    .filter(row => row.tradeDate)
+    .map(row => {
+      const averageDurationDays = optionalNumeric(row.averageDurationDays);
+      return {
+        date: String(row.tradeDate),
+        averageDurationDays: averageDurationDays !== null && averageDurationDays > 0
+          ? averageDurationDays
+          : undefined,
+      };
+    });
+  if (currentAverageDurationObservation?.value && currentAverageDurationObservation.value > 0) {
+    const existing = marginRecords.find(row => row.date === currentAverageDurationObservation.date);
+    if (existing) existing.averageDurationDays = currentAverageDurationObservation.value;
+    else marginRecords.push({
+      date: currentAverageDurationObservation.date,
+      averageDurationDays: currentAverageDurationObservation.value,
+    });
+  }
 
   return {
     lendingData: {
@@ -175,16 +231,7 @@ function buildLendingPayload(historyPayload: unknown, currentPayload: unknown) {
         shortAvailabilityShares: currentAvailableShares,
         shortAvailabilityPct: currentUtilization,
       },
-      daily: sortedHistory.map(row => ({
-        date: row.tradeDate,
-        availability: {
-          shortAvailabilityShares: firstNumeric(row.availableShares, row.availableSharesIbkr, row.availableSharesFutu),
-          shortAvailabilityPct: row.utilizationPercent,
-        },
-        borrowFeeAll: {
-          costToBorrowAll: row.borrowFeePercent,
-        },
-      })),
+      daily,
       utilizationHistory,
       derived: {
         lendingPressurePage: {
@@ -193,27 +240,13 @@ function buildLendingPayload(historyPayload: unknown, currentPayload: unknown) {
         },
       },
     },
-    marginRecords: sortedHistory
-      .filter(row => row.tradeDate)
-      .map(row => {
-        const averageDurationDays = optionalNumeric(row.averageDurationDays);
-        return {
-          date: String(row.tradeDate),
-          averageDurationDays: averageDurationDays !== null && averageDurationDays > 0
-            ? averageDurationDays
-            : undefined,
-        };
-      })
-      .concat(
-        currentAverageDuration
-        && currentAverageDuration.value > 0
-        && !sortedHistory.some(row => (
-          marketRecordDate(row) === currentAverageDuration.date
-          && (optionalNumeric(row.averageDurationDays) ?? 0) > 0
-        ))
-          ? [{ date: currentAverageDuration.date, averageDurationDays: currentAverageDuration.value }]
-          : [],
-      ),
+    marginRecords,
+    currentObservations: {
+      borrowFee: currentBorrowFeeObservation,
+      availableShares: currentAvailableSharesObservation,
+      utilization: currentUtilizationObservation,
+      averageDuration: currentAverageDurationObservation,
+    },
   };
 }
 
@@ -224,6 +257,19 @@ function percentageChange(current: number | null, previous: number | null) {
 
 function latest(items: Row[]) {
   return [...items].sort((a, b) => String(b.date ?? '').localeCompare(String(a.date ?? '')))[0] ?? {};
+}
+
+function rowBeforeObservation(items: Row[], observation: MarketCurrentMetricObservation | null) {
+  if (!observation) return items[1] ?? {};
+  return items.find(item => String(item.date ?? '') < observation.date) ?? {};
+}
+
+function observationChangePercent(
+  observation: MarketCurrentMetricObservation | null,
+  current: number | null,
+  previous: number | null,
+) {
+  return observation?.percentChange ?? percentageChange(current, previous);
 }
 
 function formatNumber(value: unknown, _options?: Intl.NumberFormatOptions) {
@@ -489,12 +535,11 @@ export function LendingPressureBrowserPage({ ticker }: { ticker: string }) {
     return <div className="page"><section className="panel"><h2>Lending pressure data unavailable</h2><p>{error}</p></section></div>;
   }
 
-  const { lendingData, marginRecords } = buildLendingPayload(historyPayload, currentPayload);
+  const { lendingData, marginRecords, currentObservations } = buildLendingPayload(historyPayload, currentPayload);
   const sortedMarginRecords = [...marginRecords]
     .filter(row => row.date && optionalNumeric(row.averageDurationDays) !== null)
     .sort((a, b) => b.date.localeCompare(a.date));
   const latestMarginRecord = sortedMarginRecords[0];
-  const previousMarginRecord = sortedMarginRecords[1];
   const current = record(lendingData.current);
   const dailyRows = rows(lendingData.daily);
   const utilizationHistoryRows = rows(lendingData.utilizationHistory)
@@ -503,9 +548,9 @@ export function LendingPressureBrowserPage({ ticker }: { ticker: string }) {
   const availabilitySnapshotRows = sortedDailyRows.filter(row => optionalNumeric(record(row.availability).shortAvailabilityShares) !== null);
   const borrowFeeSnapshotRows = sortedDailyRows.filter(row => optionalNumeric(record(row.borrowFeeAll).costToBorrowAll) !== null);
   const latestAvailabilityRow = availabilitySnapshotRows[0] ?? {};
-  const previousAvailabilityRow = availabilitySnapshotRows[1] ?? {};
+  const previousAvailabilityRow = rowBeforeObservation(availabilitySnapshotRows, currentObservations.availableShares);
   const latestBorrowFeeRow = borrowFeeSnapshotRows[0] ?? {};
-  const previousBorrowFeeSnapshotRow = borrowFeeSnapshotRows[1] ?? {};
+  const previousBorrowFeeSnapshotRow = rowBeforeObservation(borrowFeeSnapshotRows, currentObservations.borrowFee);
   const trendRows = [...dailyRows].sort((a, b) => String(a.date ?? '').localeCompare(String(b.date ?? ''))).slice(-7);
   const availabilityTrendRows = trendRows.filter(row => optionalNumeric(record(row.availability).shortAvailabilityShares) !== null);
   const utilizationTrendRows = [...utilizationHistoryRows].reverse().slice(-7);
@@ -514,15 +559,16 @@ export function LendingPressureBrowserPage({ ticker }: { ticker: string }) {
   const previousAvailability = record(previousAvailabilityRow.availability);
   const latestBorrowFeeSnapshot = record(latestBorrowFeeRow.borrowFeeAll);
   const previousBorrowFeeSnapshot = record(previousBorrowFeeSnapshotRow.borrowFeeAll);
-  const borrowFee = numeric(latestBorrowFeeSnapshot.costToBorrowAll) ?? numeric(current.costToBorrowAll) ?? 0;
-  const sharesAvailable = numeric(latestAvailability.shortAvailabilityShares) ?? numeric(current.shortAvailabilityShares) ?? 0;
-  const utilizationPct = optionalNumeric(utilizationHistoryRows[0]?.value) ?? numeric(current.shortAvailabilityPct) ?? 0;
+  const borrowFee = currentObservations.borrowFee?.value ?? numeric(latestBorrowFeeSnapshot.costToBorrowAll) ?? numeric(current.costToBorrowAll) ?? 0;
+  const sharesAvailable = currentObservations.availableShares?.value ?? numeric(latestAvailability.shortAvailabilityShares) ?? numeric(current.shortAvailabilityShares) ?? 0;
+  const utilizationPct = currentObservations.utilization?.value ?? optionalNumeric(utilizationHistoryRows[0]?.value) ?? numeric(current.shortAvailabilityPct) ?? 0;
   const availabilityPressure = sharesAvailable <= 100000 ? 100 : sharesAvailable <= 500000 ? 78 : sharesAvailable <= 1500000 ? 48 : 12;
   const utilizationPressure = Math.min(100, Math.max(0, utilizationPct));
   const borrowFeePressure = Math.min(100, Math.max(0, borrowFee));
   const borrowDemandScore = Math.round((utilizationPressure * .45) + (borrowFeePressure * .35) + (availabilityPressure * .2));
   const previousSharesAvailable = numeric(previousAvailability.shortAvailabilityShares);
-  const previousUtilizationPct = optionalNumeric(utilizationHistoryRows[1]?.value);
+  const previousUtilizationRow = rowBeforeObservation(utilizationHistoryRows, currentObservations.utilization);
+  const previousUtilizationPct = optionalNumeric(previousUtilizationRow.value);
   const previousBorrowFee = numeric(previousBorrowFeeSnapshot.costToBorrowAll);
   const pressureScore = Math.round((availabilityPressure * .25) + (utilizationPressure * .3) + (borrowFeePressure * .3) + (borrowDemandScore * .15));
   const level = pressureScore >= 81 ? 'Extreme' : pressureScore >= 61 ? 'High' : pressureScore >= 31 ? 'Moderate' : 'Low';
@@ -535,13 +581,14 @@ export function LendingPressureBrowserPage({ ticker }: { ticker: string }) {
   const displayPressureScore = numeric(lendingSummary.pressureScore) ?? pressureScore;
   const displayLevel = String(lendingSummary.level ?? level);
   const utilizationChangePercent = optionalNumeric(utilizationCard.changePercent)
-    ?? percentageChange(utilizationPct, previousUtilizationPct);
+    ?? observationChangePercent(currentObservations.utilization, utilizationPct, previousUtilizationPct);
   const borrowFeeChangePercent = optionalNumeric(borrowFeeCard.changePercent)
-    ?? percentageChange(borrowFee, previousBorrowFee);
+    ?? observationChangePercent(currentObservations.borrowFee, borrowFee, previousBorrowFee);
   const sharesAvailableChangePercent = optionalNumeric(sharesAvailableCard.changePercent)
-    ?? percentageChange(sharesAvailable, previousSharesAvailable);
-  const averageDurationDays = optionalNumeric(latestMarginRecord?.averageDurationDays);
-  const previousAverageDurationDays = optionalNumeric(previousMarginRecord?.averageDurationDays);
+    ?? observationChangePercent(currentObservations.availableShares, sharesAvailable, previousSharesAvailable);
+  const averageDurationDays = currentObservations.averageDuration?.value ?? optionalNumeric(latestMarginRecord?.averageDurationDays);
+  const previousAverageDurationRow = rowBeforeObservation(sortedMarginRecords as unknown as Row[], currentObservations.averageDuration);
+  const previousAverageDurationDays = optionalNumeric(previousAverageDurationRow.averageDurationDays);
   const averageDurationChangePercent = percentageChange(averageDurationDays, previousAverageDurationDays);
   const aiSummary = text(
     record(aiReportPayload).lending_pressure_analysis,
@@ -593,10 +640,10 @@ export function LendingPressureBrowserPage({ ticker }: { ticker: string }) {
           <article className="terminal-card short-executive-card lending-market-snapshot">
             <span>Lending Market Snapshot</span>
             <div className="short-executive-metrics">
-              <ExecutiveMetric label="Utilization" value={formatPercent(utilizationPct)} changePercent={utilizationChangePercent} asOfDate={String(utilizationHistoryRows[0]?.date ?? '')} comparisonDate={String(utilizationHistoryRows[1]?.date ?? '')} />
-              <ExecutiveMetric label="Borrow Fee" value={formatPercent(borrowFee)} changePercent={borrowFeeChangePercent} asOfDate={String(latestBorrowFeeRow.date ?? '')} comparisonDate={String(previousBorrowFeeSnapshotRow.date ?? '')} />
-              <ExecutiveMetric label="Shortable Shares" value={formatNumber(sharesAvailable)} changePercent={sharesAvailableChangePercent} asOfDate={String(latestAvailabilityRow.date ?? '')} comparisonDate={String(previousAvailabilityRow.date ?? '')} />
-              <ExecutiveMetric label="Average Duration" value={averageDurationDays === null ? 'N/A' : `${formatNumber(averageDurationDays)}d`} changePercent={averageDurationChangePercent} asOfDate={String(latestMarginRecord?.date ?? '')} comparisonDate={String(previousMarginRecord?.date ?? '')} />
+              <ExecutiveMetric label="Utilization" value={formatPercent(utilizationPct)} changePercent={utilizationChangePercent} asOfDate={currentObservations.utilization?.date ?? String(utilizationHistoryRows[0]?.date ?? '')} comparisonDate={String(previousUtilizationRow.date ?? '')} />
+              <ExecutiveMetric label="Borrow Fee" value={formatPercent(borrowFee)} changePercent={borrowFeeChangePercent} asOfDate={currentObservations.borrowFee?.date ?? String(latestBorrowFeeRow.date ?? '')} comparisonDate={String(previousBorrowFeeSnapshotRow.date ?? '')} />
+              <ExecutiveMetric label="Shortable Shares" value={formatNumber(sharesAvailable)} changePercent={sharesAvailableChangePercent} asOfDate={currentObservations.availableShares?.date ?? String(latestAvailabilityRow.date ?? '')} comparisonDate={String(previousAvailabilityRow.date ?? '')} />
+              <ExecutiveMetric label="Average Duration" value={averageDurationDays === null ? 'N/A' : `${formatNumber(averageDurationDays)}d`} changePercent={averageDurationChangePercent} asOfDate={currentObservations.averageDuration?.date ?? String(latestMarginRecord?.date ?? '')} comparisonDate={String(previousAverageDurationRow.date ?? '')} />
             </div>
           </article>
 

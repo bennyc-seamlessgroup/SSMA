@@ -70,6 +70,13 @@ The score is the same consolidated `shortScore` displayed on the Short Interest 
 }
 ```
 
+At browser-render time, `aiAnalysis` is overlaid from the authenticated dated
+`GET /market-data/ai-report?ticker={ticker}&date={YYYY-MM-DD}` response. The
+frontend ignores any AI text embedded in the shared report payload so
+user-specific analysis cannot be persisted in or inherited from that shared
+file. When the separate AI response is unavailable, the report displays the
+standard unavailable message and continues rendering the remaining sections.
+
 Use the same score ranges as the portal: `0-39 Low`, `40-64 Moderate`, `65-79 High`, and `80-100 Extreme`. Do not generate or split the AI text in the frontend.
 
 ## Short and Lending

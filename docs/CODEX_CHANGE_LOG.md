@@ -4,6 +4,247 @@ This file is the persistent implementation memory for changes made by Codex.
 Read it before modifying existing portal behavior, and update it after every
 completed change.
 
+## 2026-08-05 — Compact and toggle Exchange Volume chart series
+
+- Area: User Portal → Exchange Volume → Volume by Exchange.
+- API/data:
+  - `GET /market-data/history?ticker={ticker}&category=exchange-volume-history`.
+  - `GET /export/csv?dataset=history&ticker={ticker}&category=exchange-volume-history`.
+- Reported problem and root cause:
+  - Every backend exchange series was drawn simultaneously, making the chart
+    visually dense and difficult to read.
+  - SVG strokes and text scaled with the chart on wide screens, so the 2.25px
+    series lines and bold 11px axis labels appeared substantially larger than
+    the dashboard chart system.
+  - More-specific portal button styling could override the CSV button label
+    colour, producing insufficient contrast on its dark-blue background.
+  - Regression: the first implementation synchronized enabled venues in an
+    effect whose exchange-key array dependency was recreated on every render.
+    Returning another state array from that effect caused a maximum-update-depth
+    loop when history data was present.
+- Intended behavior and invariants:
+  - The legend is an interactive series selector consistent with Dashboard.
+    Every returned exchange is enabled by default and can be toggled
+    independently.
+  - Toggle state records only exchanges the user disabled. It is derived without
+    an effect, so loading or changing history data cannot create a render loop.
+    Selecting another ticker resets all exchanges to visible.
+  - Selecting exchanges changes only which API series are drawn. It does not
+    rank, aggregate, synthesize, or otherwise calculate exchange-volume data.
+  - Series and grid strokes remain visually thin at different viewport widths,
+    and axis typography follows the compact dashboard scale.
+  - An enabled Download CSV action always uses white text on blue. Its disabled
+    state uses a light neutral background with readable dark-grey text.
+- Files changed:
+  - `app/monitor/[ticker]/exchange-volume/ExchangeVolumeBrowserPage.tsx`
+  - `app/globals.css`
+  - `docs/CODEX_CHANGE_LOG.md`
+- Verification:
+  - TypeScript type-check, clean production build, and whitespace validation
+    passed.
+  - Browser regression check confirmed the Exchange Volume route loads without
+    console errors or a maximum-update-depth loop.
+- Remaining backend dependency / limitation:
+  - None for the toggle behavior; it uses only venue fields returned by the
+    history API.
+
+## 2026-08-04 — Use backend `otherDateData` across current market metrics
+
+- Areas:
+  - User Portal → Dashboard → Market Overview.
+  - User Portal → Short Interest → Short Interest Score and Key Short Metrics.
+  - User Portal → Lending Pressure → Lending Market Snapshot.
+  - User Portal → Exchange Volume → Latest Exchange Volume.
+- APIs/data:
+  - Current values, comparison fields, and per-field source dates:
+    `GET /market-data/current?ticker={ticker}&category=market-current`.
+  - Prior observations and chart series:
+    `GET /market-data/history?ticker={ticker}&category=market-history`.
+  - Exchange venue history remains:
+    `GET /market-data/history?ticker={ticker}&category=exchange-volume-history`.
+- Reported problem and root cause:
+  - The backend supports `market-current.otherDateData` for carried-forward
+    values across short interest, borrow fee, availability, utilization, days
+    to cover, margins, scores, short volume, FTD, and exchange volume.
+  - The portal only consumed that metadata for Utilization and Average
+    Duration. Other cards continued choosing the latest populated history row
+    and calculating their current values or dates independently.
+- Intended behavior and invariants:
+  - `market-current` is authoritative for every current KPI value.
+  - A matching `otherDateData[{field, date}]` entry is authoritative for that
+    field's displayed source date. Otherwise the field uses `snapshotDate`.
+  - Backend `numChange` and `percentChange` values are preferred when present.
+    The frontend calculates a comparison only when the backend omits it.
+  - Each field resolves independently; one carried-forward field cannot change
+    another field's source date.
+  - Consolidated Market History remains the source for prior observations and
+    chart series. `otherDateData` must not synthesize or replace a history
+    dataset.
+  - Exchange Volume surfaces the backend source date for the latest
+    `exchangeVolume` object while retaining its dedicated history API.
+  - Dashboard no longer requests manual utilization or margins APIs to infer
+    current source dates. This explicitly supersedes the earlier manual-input
+    provenance workaround documented below.
+- Files changed:
+  - `lib/market-data-publication.ts`
+  - `app/monitor/[ticker]/dashboard/DashboardBrowserPage.tsx`
+  - `app/monitor/[ticker]/dashboard/DashboardClient.tsx`
+  - `app/monitor/[ticker]/dashboard/DashboardDevTables.tsx`
+  - `app/monitor/[ticker]/dashboard/DashboardKpis.tsx`
+  - `app/monitor/[ticker]/short-interest/ShortInterestBrowserPage.tsx`
+  - `app/monitor/[ticker]/lending-pressure/LendingPressureBrowserPage.tsx`
+  - `app/monitor/[ticker]/exchange-volume/ExchangeVolumeBrowserPage.tsx`
+  - `docs/INTEGRATION (7).md`
+  - `docs/data/data_dictionary.md`
+  - `docs/CODEX_CHANGE_LOG.md`
+- Verification:
+  - TypeScript type-check and a clean production build passed after the shared
+    helper and page integrations.
+- Remaining backend dependency / limitation:
+  - The backend must include an exact documented field path in
+    `otherDateData` whenever the returned value predates `snapshotDate`.
+  - Margin objects currently do not expose per-metric change fields in the
+    data dictionary, so their changes continue to use the prior valid history
+    observation until the API supplies authoritative changes.
+
+## 2026-08-04 — Add API-only Exchange Volume portal page
+
+- Area: User Portal → Exchange Volume (`/monitor/{ticker}/exchange-volume`).
+- APIs/data:
+  - Current OHLC values, backend-supplied change fields, and the current
+    exchange-volume object:
+    `GET /market-data/current?ticker={ticker}&category=market-current`.
+  - Daily venue history:
+    `GET /market-data/history?ticker={ticker}&category=exchange-volume-history`.
+  - Raw history download:
+    `GET /export/csv?dataset=history&ticker={ticker}&category=exchange-volume-history`.
+- Reported requirement and root cause:
+  - The backend added exchange-volume history and current exchange-volume data,
+    but the user portal did not have a page that exposed either dataset.
+  - The API integration document registers the new history category but does
+    not yet specify the record-level history schema or the exact shape of
+    `market-current.exchangeVolume`.
+  - Follow-up: Development Data confirmed that the history endpoint returned
+    315 records in a flat schema. Venue fields use the `ex*` prefix, alongside
+    the non-venue fields `totalVolume` and `offExchangeSharePercent`. The first
+    draft's generic parser did not formally map this contract and could fail to
+    produce the intended venue-only chart series.
+- Implemented behavior and invariants:
+  - Added Exchange Volume to the primary workspace navigation and page-status
+    tracking, with a portal-themed responsive page in light and dark modes.
+    As a specialist detail page, its navigation item sits immediately below
+    Social Sentiment rather than near the top of the primary workflow.
+  - The page loads only the two authenticated Market Data API responses. It
+    contains no local JSON, sample data, S3 fallback, AI interpretation, or
+    derived market metrics.
+  - Open, High, Low, and Close use the backend values together with the supplied
+    `*ChangeValue` and `*ChangePerc` fields; the frontend does not reconstruct
+    missing change values.
+  - The history chart plots raw daily venue values and only filters existing
+    API records by the selected period. It does not aggregate dates, calculate
+    market share, rank venues, group venues into Other, or fill missing data.
+  - Historical chart and table mapping now recognizes the backend's
+    case-preserved flat venue fields by their `ex*` prefix, including acronym
+    casing such as `GSM`, `NYSE`, and `EDGX`.
+    `totalVolume` and `offExchangeSharePercent` remain visible in the table but
+    are not misclassified as exchange-volume chart series.
+  - History row extraction now accepts the API's records array through direct,
+    `data`, category, or nested history wrappers. The user-facing history table
+    is placed directly below the history chart instead of below the long
+    current-venue list.
+  - Exchange Volume now follows the portal's compact card rhythm: section and
+    card padding, typography, control height, inter-card spacing, current-venue
+    rows, and the history chart height are aligned with the established pages.
+  - The history table uses explicit human-readable exchange labels, preserves
+    acronyms such as GSM/NYSE/EDGX, prevents header wrapping, and allocates
+    wide columns inside a horizontal scroll area rather than squeezing labels.
+  - The latest venue view displays `market-current.exchangeVolume` values
+    directly. API-provided percentages are labelled as API-supplied; no
+    percentage is calculated in the browser.
+  - The history table keeps absent values unavailable rather than replacing
+    them with zero. CSV download uses the backend export endpoint.
+  - Current and history failures are independent and display the complete API
+    failure reason. Both raw payloads remain available in Development Data.
+  - Navigation, headings, controls, empty states, and explanatory content have
+    English, Traditional Chinese, and Simplified Chinese coverage.
+- Files changed:
+  - `app/monitor/[ticker]/exchange-volume/page.tsx`
+  - `app/monitor/[ticker]/exchange-volume/loading.tsx`
+  - `app/monitor/[ticker]/exchange-volume/ExchangeVolumeBrowserPage.tsx`
+  - `app/globals.css`
+  - `components/ImportDataTable.tsx`
+  - `components/Sidebar.tsx`
+  - `components/DesignBTopbar.tsx`
+  - `components/TickerDataStatusProvider.tsx`
+  - `lib/current-data-sources.ts`
+  - `lib/legal/disclaimers.ts`
+  - `lib/portal-i18n.ts`
+  - `lib/portal-page-translations.ts`
+  - `docs/CODEX_CHANGE_LOG.md`
+- Verification:
+  - TypeScript type-check, production build, and whitespace validation passed.
+  - Confirmed the new dynamic route is included in the production build.
+  - Browser-checked navigation, error/empty states, responsive layout, light
+    mode, dark mode, and Traditional Chinese labels in the local portal.
+- Remaining backend dependency / limitation:
+  - A real authenticated sample payload is still required to verify every
+    possible venue-object shape and field label. The integration document
+    should add record-level examples for both `market-current.exchangeVolume`
+    and `exchange-volume-history`.
+
+## 2026-08-04 — Render archived PDFs from the consolidated report API
+
+- Area: User Portal → Report Archive → View PDF and Download.
+- APIs/data:
+  - Shared dated report:
+    `GET /market-data/reports?ticker={ticker}&date={YYYY-MM-DD}`.
+  - Authenticated dated AI overlay:
+    `GET /market-data/ai-report?ticker={ticker}&date={YYYY-MM-DD}`.
+- Reported problem and root cause:
+  - The archive index already came from the reports API, but opening a PDF
+    still rebuilt the report in the browser by calling market current/history,
+    short-volume, FTD, sentiment, SEC filing, and AI endpoints separately.
+  - The PDF launcher also replaced the dated response's display date and
+    generated timestamp with synthetic archive values.
+  - Backend margin raw values use decimal ratios (`1.5` means `150%`), while
+    their supplied display strings currently show `1.50%`.
+- Implemented behavior:
+  - Opening or downloading a report now fetches the single dated consolidated
+    report payload and separately fetches only the dated AI analysis.
+  - Embedded report AI text is ignored. The renderer overlays
+    `short_interest_current_interpretation` from the authenticated AI endpoint,
+    or displays the standard unavailable message if that call fails.
+  - Initial and Maintenance Margin decimal ratios are normalized to percentage
+    points exactly once for report display and comparison values.
+  - The API's `reportDate`, `generatedAtDisplay`, and KPI comparison labels are
+    retained in the PDF rather than overwritten by archive placeholders.
+  - The FTD chart title is normalized to the accepted
+    `Fails-to-Deliver Trend` label.
+- Must preserve:
+  - Report Archive list pagination and report availability continue to use the
+    reports index endpoint.
+  - The accepted four-page PDF template and browser-side PDF generation remain
+    unchanged.
+  - No market, history, sentiment, or filing endpoint may be called while
+    generating a consolidated archived report.
+  - AI remains user-aware and separate from the shared dated report file.
+- Files changed:
+  - `app/monitor/[ticker]/reports/daily-report-data.ts`
+  - `app/monitor/[ticker]/reports/client-report-pdf.ts`
+  - `public/report-templates/daily-close/render.js`
+  - `Report Templates/lean-daily-market-close-report/render.js`
+  - `Report Templates/lean-daily-market-close-report/REPORT_DATA_CONTRACT.md`
+  - `Report Templates/lean-daily-market-close-report/BACKEND_REPORT_API_CORRECTIONS.md`
+  - `docs/CODEX_CHANGE_LOG.md`
+- Verification:
+  - TypeScript type-check, production build, and whitespace validation passed.
+  - The runtime template rendered four pages with `150.00%` Initial Margin,
+    `140.00%` Maintenance Margin, API comparison labels, and the supplied
+    display timestamp.
+- Remaining backend dependency / limitation:
+  - Margin normalization remains in the frontend while the report API returns
+    decimal-ratio raw values with incorrect percentage display strings.
+
 ## 2026-08-04 — Preserve manual metric source dates on Dashboard
 
 - Area: User Portal → Dashboard → Market Overview, specifically Utilization

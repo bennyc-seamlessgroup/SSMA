@@ -8,7 +8,14 @@ import { PortalPageLoading } from '@/components/PortalPageLoading';
 import { PageDisclaimerNotice } from '@/components/PageDisclaimerNotice';
 import { fetchAiReport } from '@/lib/ai-report-api';
 import { cachedAuthenticatedFetch } from '@/lib/auth-client';
-import { latestCompleteMarketPublicationRecordFromHistory, marketPublicationRecordFromHistoryForDate, marketRecordDate } from '@/lib/market-data-publication';
+import {
+  latestCompleteMarketPublicationRecordFromHistory,
+  marketCurrentMetricObservation,
+  marketPublicationRecordFromHistoryForDate,
+  marketRecordDate,
+  type MarketCurrentMetricObservation,
+  type MarketCurrentSnapshot,
+} from '@/lib/market-data-publication';
 import { normalizeTicker } from '@/lib/ticker-data';
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
 
@@ -66,6 +73,18 @@ function optionalNumeric(value: unknown) {
 
 function latest(items: Row[], dateKey = 'date') {
   return [...items].sort((a, b) => String(b[dateKey] ?? '').localeCompare(String(a[dateKey] ?? '')))[0] ?? {};
+}
+
+function currentObservation(payload: ApiFile, field: string) {
+  return marketCurrentMetricObservation(
+    apiCategory(payload, 'market-current') as MarketCurrentSnapshot,
+    field,
+  );
+}
+
+function rowBeforeObservation(items: Row[], observation: MarketCurrentMetricObservation | null) {
+  if (!observation) return items[1] ?? {};
+  return items.find(item => String(item.date ?? '') < observation.date) ?? {};
 }
 
 function formatNumber(value: unknown, _options?: Intl.NumberFormatOptions) {
@@ -276,6 +295,25 @@ function delta(current: number | null, previous: number | null, options?: Intl.N
     change,
     percent: (change / previous) * 100,
     valueText: signed(change, options),
+  };
+}
+
+function observationDelta(
+  observation: MarketCurrentMetricObservation | null,
+  current: number | null,
+  previous: number | null,
+  options?: Intl.NumberFormatOptions,
+) {
+  if (observation?.numChange === null || observation?.numChange === undefined) {
+    return delta(current, previous, options);
+  }
+  const inferredPrevious = observation.value - observation.numChange;
+  const percent = observation.percentChange
+    ?? (inferredPrevious === 0 ? 0 : (observation.numChange / inferredPrevious) * 100);
+  return {
+    change: observation.numChange,
+    percent,
+    valueText: signed(observation.numChange, options),
   };
 }
 
@@ -963,7 +1001,14 @@ export function ShortInterestBrowserPage({ ticker }: { ticker: string }) {
 
   const marketHistoryRows = apiRecords(apiData.history, 'market-history');
   const publishedRecord = latestCompleteMarketPublicationRecordFromHistory(marketHistoryRows);
-  const shortCurrent = publishedRecord ? marketCurrentToLegacy(publishedRecord as ApiFile) : {};
+  const shortCurrent = marketCurrentToLegacy(apiData.current);
+  const currentShortInterestShares = currentObservation(apiData.current, 'shortInterest.shares');
+  const currentShortInterestPercent = currentObservation(apiData.current, 'shortInterest.percent');
+  const currentBorrowFee = currentObservation(apiData.current, 'borrowFee.percent');
+  const currentAvailableShares = currentObservation(apiData.current, 'availableShares.value');
+  const currentUtilization = currentObservation(apiData.current, 'utilization.percent');
+  const currentDaysToCover = currentObservation(apiData.current, 'daysToCover.value');
+  const currentShortScore = currentObservation(apiData.current, 'scores.shortScore.value');
   const dailyRows = marketHistoryRows
     .filter(row => Boolean(marketRecordDate(row)))
     .map(row => marketPublicationRecordFromHistoryForDate(marketHistoryRows, marketRecordDate(row)))
@@ -986,9 +1031,7 @@ export function ShortInterestBrowserPage({ ticker }: { ticker: string }) {
   const utilizationSnapshotRows = sortedDailyRows.filter(row => optionalNumeric(record(row.availability).shortAvailabilityPct) !== null);
   const shortScoreSnapshotRows = sortedDailyRows.filter(row => optionalNumeric(record(row.shortScore).score) !== null);
   const latestShortInterestRow = shortInterestSnapshotRows[0] ?? {};
-  const twoWeeksAgoShortInterestRow = rowAtOrBeforeDaysAgo(shortInterestSnapshotRows, latestShortInterestRow.date, 14);
   const latestDaysToCoverRow = daysToCoverSnapshotRows[0] ?? {};
-  const twoWeeksAgoDaysToCoverRow = rowAtOrBeforeDaysAgo(daysToCoverSnapshotRows, latestDaysToCoverRow.date, 14);
   const biweeklyShortInterestTrendRows = biweeklyRows(
     dailyRows.filter(row => optionalNumeric(record(row.shortInterest).shortInterestShares) !== null),
   );
@@ -1000,17 +1043,21 @@ export function ShortInterestBrowserPage({ ticker }: { ticker: string }) {
     .slice(-7);
 
   const latestShortInterest = record(latestShortInterestRow.shortInterest);
-  const twoWeeksAgoShortInterest = record(twoWeeksAgoShortInterestRow.shortInterest);
+  const previousShortInterestSharesRow = rowBeforeObservation(shortInterestSnapshotRows, currentShortInterestShares);
+  const previousShortInterestPercentRow = rowBeforeObservation(shortInterestSnapshotRows, currentShortInterestPercent);
+  const previousShortInterestShares = record(previousShortInterestSharesRow.shortInterest);
+  const previousShortInterestPercent = record(previousShortInterestPercentRow.shortInterest);
   const latestDaysToCover = record(latestDaysToCoverRow.daysToCover);
-  const twoWeeksAgoDaysToCover = record(twoWeeksAgoDaysToCoverRow.daysToCover);
+  const previousDaysToCoverRow = rowBeforeObservation(daysToCoverSnapshotRows, currentDaysToCover);
+  const previousDaysToCover = record(previousDaysToCoverRow.daysToCover);
   const latestBorrowFeeRow = borrowFeeSnapshotRows[0] ?? {};
-  const previousBorrowFeeRow = borrowFeeSnapshotRows[1] ?? {};
+  const previousBorrowFeeRow = rowBeforeObservation(borrowFeeSnapshotRows, currentBorrowFee);
   const latestAvailabilityRow = availabilitySnapshotRows[0] ?? {};
-  const previousAvailabilityRow = availabilitySnapshotRows[1] ?? {};
+  const previousAvailabilityRow = rowBeforeObservation(availabilitySnapshotRows, currentAvailableShares);
   const latestUtilizationRow = utilizationSnapshotRows[0] ?? {};
-  const previousUtilizationRow = utilizationSnapshotRows[1] ?? {};
+  const previousUtilizationRow = rowBeforeObservation(utilizationSnapshotRows, currentUtilization);
   const latestShortScoreRow = shortScoreSnapshotRows[0] ?? {};
-  const previousShortScoreRow = shortScoreSnapshotRows[1] ?? {};
+  const previousShortScoreRow = rowBeforeObservation(shortScoreSnapshotRows, currentShortScore);
   const latestBorrowFee = record(latestBorrowFeeRow.borrowFeeAll);
   const previousBorrowFee = record(previousBorrowFeeRow.borrowFeeAll);
   const latestAvailability = record(latestAvailabilityRow.availability);
@@ -1019,26 +1066,30 @@ export function ShortInterestBrowserPage({ ticker }: { ticker: string }) {
   const previousUtilization = record(previousUtilizationRow.availability);
   const latestShortScore = record(latestShortScoreRow.shortScore);
   const previousShortScore = record(previousShortScoreRow.shortScore);
-  const shortInterestShares = numeric(latestShortInterest.shortInterestShares) ?? numeric(shortCurrent.shortInterestShares);
-  const shortInterestPercent = numeric(latestShortInterest.shortInterestPcFreeFloat) ?? numeric(shortCurrent.shortInterestPcFreeFloat);
-  const borrowFee = numeric(latestBorrowFee.costToBorrowAll) ?? numeric(shortCurrent.costToBorrowAll);
-  const sharesAvailable = numeric(latestAvailability.shortAvailabilityShares) ?? numeric(shortCurrent.shortAvailabilityShares);
-  const utilization = numeric(latestUtilization.shortAvailabilityPct) ?? numeric(shortCurrent.shortAvailabilityPct);
-  const shortScoreValue = numeric(latestShortScore.score) ?? numeric(shortCurrent.shortScore);
+  const shortInterestShares = currentShortInterestShares?.value
+    ?? numeric(latestShortInterest.shortInterestShares)
+    ?? numeric(shortCurrent.shortInterestShares);
+  const shortInterestPercent = currentShortInterestPercent?.value
+    ?? numeric(latestShortInterest.shortInterestPcFreeFloat)
+    ?? numeric(shortCurrent.shortInterestPcFreeFloat);
+  const borrowFee = currentBorrowFee?.value ?? numeric(latestBorrowFee.costToBorrowAll) ?? numeric(shortCurrent.costToBorrowAll);
+  const sharesAvailable = currentAvailableShares?.value ?? numeric(latestAvailability.shortAvailabilityShares) ?? numeric(shortCurrent.shortAvailabilityShares);
+  const utilization = currentUtilization?.value ?? numeric(latestUtilization.shortAvailabilityPct) ?? numeric(shortCurrent.shortAvailabilityPct);
+  const shortScoreValue = currentShortScore?.value ?? numeric(latestShortScore.score) ?? numeric(shortCurrent.shortScore);
   const shortScore = shortScoreValue ?? 0;
   const shortScoreLevel = shortScore >= 80 ? 'Extreme' : shortScore >= 65 ? 'High' : shortScore >= 40 ? 'Moderate' : 'Low';
   const shortScoreTone = shortScore >= 80 ? 'extreme' : shortScore >= 65 ? 'high' : shortScore >= 40 ? 'moderate' : 'low';
-  const daysToCover = numeric(latestDaysToCover.daysToCover) ?? numeric(shortCurrent.daysToCoverQuantity);
-  const shortInterestDelta = delta(numeric(latestShortInterest.shortInterestShares), numeric(twoWeeksAgoShortInterest.shortInterestShares), { maximumFractionDigits: 0 });
-  const shortInterestPctDelta = delta(numeric(latestShortInterest.shortInterestPcFreeFloat), numeric(twoWeeksAgoShortInterest.shortInterestPcFreeFloat), { maximumFractionDigits: 2 });
-  const daysToCoverDelta = delta(numeric(latestDaysToCover.daysToCover), numeric(twoWeeksAgoDaysToCover.daysToCover), { maximumFractionDigits: 2 });
-  const borrowFeeDelta = delta(numeric(latestBorrowFee.costToBorrowAll), numeric(previousBorrowFee.costToBorrowAll), { maximumFractionDigits: 2 });
-  const shortScoreDelta = delta(numeric(latestShortScore.score), numeric(previousShortScore.score), {
+  const daysToCover = currentDaysToCover?.value ?? numeric(latestDaysToCover.daysToCover) ?? numeric(shortCurrent.daysToCoverQuantity);
+  const shortInterestDelta = observationDelta(currentShortInterestShares, shortInterestShares, numeric(previousShortInterestShares.shortInterestShares), { maximumFractionDigits: 0 });
+  const shortInterestPctDelta = observationDelta(currentShortInterestPercent, shortInterestPercent, numeric(previousShortInterestPercent.shortInterestPcFreeFloat), { maximumFractionDigits: 2 });
+  const daysToCoverDelta = observationDelta(currentDaysToCover, daysToCover, numeric(previousDaysToCover.daysToCover), { maximumFractionDigits: 2 });
+  const borrowFeeDelta = observationDelta(currentBorrowFee, borrowFee, numeric(previousBorrowFee.costToBorrowAll), { maximumFractionDigits: 2 });
+  const shortScoreDelta = observationDelta(currentShortScore, shortScoreValue, numeric(previousShortScore.score), {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   });
-  const sharesAvailableDelta = delta(numeric(latestAvailability.shortAvailabilityShares), numeric(previousAvailability.shortAvailabilityShares), { maximumFractionDigits: 0 });
-  const utilizationDelta = delta(numeric(latestUtilization.shortAvailabilityPct), numeric(previousUtilization.shortAvailabilityPct), { maximumFractionDigits: 2 });
+  const sharesAvailableDelta = observationDelta(currentAvailableShares, sharesAvailable, numeric(previousAvailability.shortAvailabilityShares), { maximumFractionDigits: 0 });
+  const utilizationDelta = observationDelta(currentUtilization, utilization, numeric(previousUtilization.shortAvailabilityPct), { maximumFractionDigits: 2 });
   const shortCards = {} as Record<string, Row>;
   const shortInterestCard = record(shortCards?.shortInterest);
   const siPercentCard = record(shortCards?.shortInterestPercentFloat);
@@ -1115,11 +1166,11 @@ export function ShortInterestBrowserPage({ ticker }: { ticker: string }) {
           <article className="terminal-card short-executive-card short-key-metrics-card">
             <span>Key Short Metrics</span>
             <div className="short-executive-metrics">
-              <ExecutiveMetric label="Short Interest %" value={formatPercent(shortInterestPercent)} changePercent={numeric(siPercentCard.changePercent) ?? shortInterestPctDelta?.percent} comparisonLabel="vs 2 weeks ago" />
-              <ExecutiveMetric label="Short Interest Shares" value={formatNumber(shortInterestShares)} changePercent={shortInterestChangePercent} comparisonLabel="vs 2 weeks ago" />
-              <ExecutiveMetric label="Days to Cover" value={formatNumber(daysToCover)} changePercent={numeric(daysToCoverCard.changePercent) ?? daysToCoverDelta?.percent} comparisonLabel="vs 2 weeks ago" />
-              <ExecutiveMetric label="Borrow Fee" value={formatPercent(numeric(latestBorrowFee.costToBorrowAll) ?? borrowFee)} changePercent={borrowFeeChangePercent} asOfDate={String(latestBorrowFeeRow.date ?? '')} comparisonLabel={latestAvailableComparisonLabel(latestBorrowFeeRow.date, previousBorrowFeeRow.date)} />
-              <ExecutiveMetric label="Utilization" value={formatPercent(numeric(latestUtilization.shortAvailabilityPct) ?? utilization)} changePercent={numeric(utilizationCard.changePercent) ?? utilizationDelta?.percent} asOfDate={String(latestUtilizationRow.date ?? '')} comparisonLabel={latestAvailableComparisonLabel(latestUtilizationRow.date, previousUtilizationRow.date)} />
+              <ExecutiveMetric label="Short Interest %" value={formatPercent(shortInterestPercent)} changePercent={numeric(siPercentCard.changePercent) ?? shortInterestPctDelta?.percent} asOfDate={currentShortInterestPercent?.date ?? String(latestShortInterestRow.date ?? '')} comparisonLabel={latestAvailableComparisonLabel(currentShortInterestPercent?.date ?? latestShortInterestRow.date, previousShortInterestPercentRow.date)} />
+              <ExecutiveMetric label="Short Interest Shares" value={formatNumber(shortInterestShares)} changePercent={shortInterestChangePercent} asOfDate={currentShortInterestShares?.date ?? String(latestShortInterestRow.date ?? '')} comparisonLabel={latestAvailableComparisonLabel(currentShortInterestShares?.date ?? latestShortInterestRow.date, previousShortInterestSharesRow.date)} />
+              <ExecutiveMetric label="Days to Cover" value={formatNumber(daysToCover)} changePercent={numeric(daysToCoverCard.changePercent) ?? daysToCoverDelta?.percent} asOfDate={currentDaysToCover?.date ?? String(latestDaysToCoverRow.date ?? '')} comparisonLabel={latestAvailableComparisonLabel(currentDaysToCover?.date ?? latestDaysToCoverRow.date, previousDaysToCoverRow.date)} />
+              <ExecutiveMetric label="Borrow Fee" value={formatPercent(borrowFee)} changePercent={borrowFeeChangePercent} asOfDate={currentBorrowFee?.date ?? String(latestBorrowFeeRow.date ?? '')} comparisonLabel={latestAvailableComparisonLabel(currentBorrowFee?.date ?? latestBorrowFeeRow.date, previousBorrowFeeRow.date)} />
+              <ExecutiveMetric label="Utilization" value={formatPercent(utilization)} changePercent={numeric(utilizationCard.changePercent) ?? utilizationDelta?.percent} asOfDate={currentUtilization?.date ?? String(latestUtilizationRow.date ?? '')} comparisonLabel={latestAvailableComparisonLabel(currentUtilization?.date ?? latestUtilizationRow.date, previousUtilizationRow.date)} />
             </div>
           </article>
 

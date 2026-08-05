@@ -17,6 +17,14 @@ type TrendPoint = {
 
 type ManualKpiKey = 'initialMargin' | 'maintenanceMargin' | 'averageDurationDays' | 'utilization';
 type TrendKpiKey = Exclude<keyof TrendPoint, 'date'>;
+export type DashboardKpiMetricKey = TrendKpiKey | ManualKpiKey;
+export type DashboardCurrentMetric = {
+  value: number;
+  date: string;
+  numChange: number | null;
+  percentChange: number | null;
+};
+export type DashboardCurrentMetrics = Partial<Record<DashboardKpiMetricKey, DashboardCurrentMetric>>;
 
 type KpiConfig = {
   key: TrendKpiKey | ManualKpiKey;
@@ -141,13 +149,13 @@ function latestMetricRecord<T extends { date: string }, K extends keyof T>(recor
   return recordsWithMetric(records, key).at(-1) ?? null;
 }
 
-function previousDayMetricRecord<T extends { date: string }, K extends keyof T>(records: T[], key: K) {
+function previousDayMetricRecord<T extends { date: string }, K extends keyof T>(records: T[], key: K, currentDate?: string) {
   const populated = recordsWithMetric(records, key);
-  const latest = populated[populated.length - 1];
-  if (!latest) return null;
-  const target = targetDate(parseDate(latest.date), '1D');
+  const latestDate = currentDate ?? populated[populated.length - 1]?.date;
+  if (!latestDate) return null;
+  const target = targetDate(parseDate(latestDate), '1D');
 
-  return [...populated].reverse().find(record => record.date !== latest.date && parseDate(record.date) <= target) ?? null;
+  return [...populated].reverse().find(record => record.date !== latestDate && parseDate(record.date) <= target) ?? null;
 }
 
 function toNumber(value: unknown) {
@@ -199,10 +207,12 @@ export function DashboardKpis({
   data,
   utilizationRecords,
   marginRecords,
+  currentMetrics,
 }: {
   data: TrendPoint[];
   utilizationRecords: DashboardUtilizationRecord[];
   marginRecords: DashboardMarginRecord[];
+  currentMetrics: DashboardCurrentMetrics;
 }) {
   const cleanData = useMemo(() => data.filter(point => point?.date).sort((a, b) => a.date.localeCompare(b.date)), [data]);
   const cleanUtilizationRecords = useMemo(() => [...utilizationRecords].filter(record => record.date).sort((a, b) => a.date.localeCompare(b.date)), [utilizationRecords]);
@@ -213,39 +223,38 @@ export function DashboardKpis({
       <div className="dashboard-kpi-toolbar">
         <h2>Market Overview</h2>
         <ApiSourceTags sources={[
-          { endpoint: 'GET /market-data/current?category=market-current', label: 'Current KPIs' },
-          { endpoint: 'GET /market-data/history?category=market-history', label: 'Comparisons & consolidated inputs' },
-          { endpoint: 'GET /manual-input/utilization', label: 'Utilization dates' },
-          { endpoint: 'GET /manual-input/margins', label: 'Margin & duration dates' },
+          { endpoint: 'GET /market-data/current?category=market-current', label: 'Current KPIs & source dates' },
+          { endpoint: 'GET /market-data/history?category=market-history', label: 'Comparison history' },
         ]} />
       </div>
       <div className="dashboard-kpis">
         {kpis.map(item => {
           const isManualInput = isManualKpiKey(item.key);
+          const currentMetric = currentMetrics[item.key];
           let currentValue: number | undefined;
           let compareValue: number | undefined;
           let currentDate: string | undefined;
           let compareDate: string | undefined;
           if (item.key === 'utilization') {
             const latestUtilization = latestMetricRecord(cleanUtilizationRecords, 'utilization');
-            const compareUtilization = previousDayMetricRecord(cleanUtilizationRecords, 'utilization');
-            currentValue = toNumber(latestUtilization?.utilization);
+            currentValue = currentMetric?.value ?? toNumber(latestUtilization?.utilization);
+            currentDate = currentMetric?.date ?? latestUtilization?.date;
+            const compareUtilization = previousDayMetricRecord(cleanUtilizationRecords, 'utilization', currentDate);
             compareValue = toNumber(compareUtilization?.utilization);
-            currentDate = latestUtilization?.date;
             compareDate = compareUtilization?.date;
           } else if (isManualKpiKey(item.key)) {
             const latestMargin = latestMetricRecord(cleanMarginRecords, item.key);
-            const compareMargin = previousDayMetricRecord(cleanMarginRecords, item.key);
-            currentValue = toNumber(latestMargin?.[item.key]);
+            currentValue = currentMetric?.value ?? toNumber(latestMargin?.[item.key]);
+            currentDate = currentMetric?.date ?? latestMargin?.date;
+            const compareMargin = previousDayMetricRecord(cleanMarginRecords, item.key, currentDate);
             compareValue = toNumber(compareMargin?.[item.key]);
-            currentDate = latestMargin?.date;
             compareDate = compareMargin?.date;
           } else {
             const latest = latestMetricRecord(cleanData, item.key);
-            const compare = previousDayMetricRecord(cleanData, item.key);
-            currentValue = toNumber(latest?.[item.key]);
+            currentValue = currentMetric?.value ?? toNumber(latest?.[item.key]);
+            currentDate = currentMetric?.date ?? latest?.date;
+            const compare = previousDayMetricRecord(cleanData, item.key, currentDate);
             compareValue = toNumber(compare?.[item.key]);
-            currentDate = latest?.date;
             compareDate = compare?.date;
           }
           let chartValues: number[];
@@ -262,8 +271,8 @@ export function DashboardKpis({
           const calculatedChangePercent = calculatedChange !== null && compareValue
             ? (calculatedChange / compareValue) * 100
             : null;
-          const change = calculatedChange;
-          const changePercent = calculatedChangePercent;
+          const change = currentMetric?.numChange ?? calculatedChange;
+          const changePercent = currentMetric?.percentChange ?? calculatedChangePercent;
           const expectedPreviousDate = currentDate
             ? targetDate(parseDate(currentDate), '1D').toISOString().slice(0, 10)
             : '';

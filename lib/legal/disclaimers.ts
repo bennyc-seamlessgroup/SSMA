@@ -52,6 +52,8 @@ export const finalDisclaimerAcknowledgement =
 export const pageDisclaimerNotices = {
   dashboard:
     'Dashboard insights may include AI-assisted summaries, proprietary scores, and delayed market data.',
+  exchangeVolume:
+    'Exchange and off-exchange volume may be delayed, revised, incomplete, or subject to differences in venue reporting schedules.',
   shortInterest:
     'Short interest metrics may be delayed and may depend on exchange, regulatory, or third-party reporting schedules.',
   lendingPressure:

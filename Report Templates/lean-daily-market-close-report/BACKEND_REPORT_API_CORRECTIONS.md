@@ -16,9 +16,11 @@ GET /market-data/reports?ticker={ticker}&date={YYYY-MM-DD}
 Authorization: <Cognito ID token>
 ```
 
-The endpoint must return one complete payload for the four-page Lean Daily
-Market Close Report. The frontend must not call separate market, history,
-sentiment, filing, or AI APIs after this contract is deployed.
+The endpoint must return the complete shared payload for the four-page Lean
+Daily Market Close Report. The frontend must not call separate market,
+history, sentiment, or filing APIs after this contract is deployed. AI
+analysis is intentionally fetched from the separate authenticated dated
+`GET /market-data/ai-report` endpoint and overlaid in the browser.
 
 The report source template is:
 
@@ -42,7 +44,7 @@ reports/{ticker}/{date}/{ticker}_report_data.json
 | KPI comparison | Compares only with strict T-1 | Compare each metric with its previous non-null observation |
 | KPI audit fields | Returns display strings only | Return raw values and both observation dates |
 | Short Score | `ranges` may be empty | Return all four score ranges and preserve float precision |
-| AI analysis | Ticker-level file only | Apply user-specific then ticker-level fallback at API response time |
+| AI analysis | May be embedded in the shared report | Omit or ignore it; the frontend overlays the separate authenticated AI response |
 | Trend charts | Common seven-date window with null slots | Use the latest seven valid observations independently per chart |
 | Sentiment distribution | Center displays score and Bullish/Bearish | Center displays total mentions and the label `Mentions` |
 | Sentiment detail | Omits counts, prior score, and window boundaries | Return all counts, prior score, and ISO window boundaries |
@@ -64,8 +66,8 @@ All source paths are relative to the centralized V2 data bucket.
 | Current 1D sentiment | `current/{ticker}/sentiment-current.json` | `sentiment-current` | 1D overview, distribution, and platform breakdown |
 | Historical sentiment rebuild | `history/{ticker}/sentiment-events.json` | `sentiment-events` | Timestamp, platform, and sentiment |
 | SEC filings | `manual-input/sec-filings/{ticker}/sec-filings.json` | `GET /manual-input/sec-filings` | Filing fields in Section 11 |
-| User AI analysis | `ai-report/{ticker}/{date}/{user_sub}/ai-report-user.json` | `GET /market-data/ai-report` | `short_interest_current_interpretation` |
-| Ticker AI fallback | `ai-report/{ticker}/{date}/ai-report-ticker.json` | Same endpoint fallback | `short_interest_current_interpretation` |
+| User AI analysis | `ai-report/{ticker}/{date}/{user_sub}/ai-report-user.json` | Separate `GET /market-data/ai-report` request | `short_interest_current_interpretation` |
+| Ticker AI fallback | `ai-report/{ticker}/{date}/ai-report-ticker.json` | Same separate endpoint fallback | `short_interest_current_interpretation` |
 | Final report | `reports/{ticker}/{date}/{ticker}_report_data.json` | Detailed reports endpoint | Complete shared payload |
 
 Generation must read these files directly or use equivalent internal backend
@@ -267,7 +269,7 @@ Margin, Maintenance Margin, Utilization, Average Duration, Days to Cover, and
 Short Score. An increase in Shortable Shares is positive. A decrease reverses
 those tones. Missing or unchanged comparisons use an empty tone.
 
-## 8. Short Interest Score and AI Analysis
+## 8. Short Interest Score and Separate AI Analysis
 
 Use `shortScore` from the report-date market-history row. Preserve its float
 value and display up to two decimals. Missing Short Score is `null`, never `0`.
@@ -303,21 +305,22 @@ Required shape:
       { "range": "65-79", "level": "High", "description": "Elevated squeeze sensitivity.", "active": true },
       { "range": "80-100", "level": "Extreme", "description": "Severe pressure warrants review.", "active": false }
     ],
-    "aiAnalysis": "**Current Interpretation**\n\nDaily AI interpretation text.",
-    "aiSourceScope": "user"
+    "aiAnalysis": null,
+    "aiSourceScope": "none"
   }
 }
 ```
 
-AI response order for an authenticated request:
+The shared report response does not own AI analysis. During PDF generation,
+the frontend separately calls the authenticated dated AI endpoint and uses
+this response order:
 
 1. `ai-report/{ticker}/{date}/{user_sub}/ai-report-user.json`
 2. `ai-report/{ticker}/{date}/ai-report-ticker.json`
 3. Standard unavailable message with `aiSourceScope: "none"`
 
-The shared report file may contain ticker-level AI. User-specific AI must be
-overlaid by the authenticated API response and must never be written into the
-shared or public report file.
+Any AI text embedded in the shared report file is ignored by the frontend.
+User-specific AI must never be written into the shared or public report file.
 
 ## 9. Six Seven-Observation Charts
 
@@ -586,7 +589,7 @@ Index rules:
 3. Load market history and require an exact report-date row.
 4. Build the trading snapshot.
 5. Build eight KPI values and independent previous-value comparisons.
-6. Build Short Interest Score ranges and ticker AI fallback.
+6. Build Short Interest Score ranges without AI text.
 7. Build six latest-seven-valid-observation charts.
 8. Freeze the report-date 1D sentiment result.
 9. Select and deduplicate the latest five eligible SEC filings.
@@ -594,7 +597,8 @@ Index rules:
 11. Validate all reconciliation rules.
 12. Write the dated report atomically.
 13. Update the report index only after the dated file succeeds.
-14. Overlay user AI, when available, while serving an authenticated request.
+14. The frontend separately requests and overlays dated AI analysis when the
+    user opens or downloads the report.
 
 ## 16. Validation and Reconciliation Rules
 

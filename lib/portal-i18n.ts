@@ -14,7 +14,7 @@ export const portalGeneralSettingsChangedEvent = 'currenc-general-settings-chang
 const messages = {
   en: {
     workspace: 'Workspace', development: 'Development', settings: 'Settings',
-    dashboard: 'Dashboard', ownership: 'Ownership', internalFloat: 'Internal Float', shortInterest: 'Short Interest',
+    dashboard: 'Dashboard', exchangeVolume: 'Exchange Volume', ownership: 'Ownership', internalFloat: 'Internal Float', shortInterest: 'Short Interest',
     lendingPressure: 'Lending Pressure', socialSentiment: 'Social Sentiment', secFilings: 'SEC Filings', reportArchive: 'Report Archive',
     general: 'General', userProfile: 'User Profile', companyManagement: 'Company Management', alertRules: 'Alert Rules', deliverySettings: 'Delivery Settings',
     squeezeReadiness: 'Squeeze Readiness', dtcReportUpload: 'DTC Report Upload', priceScenarios: 'Price Scenarios', rolePermissions: 'Role & Permissions',
@@ -33,7 +33,7 @@ const messages = {
   },
   'zh-Hant': {
     workspace: '工作區', development: '開發中', settings: '設定',
-    dashboard: '儀表板', ownership: '股權結構', internalFloat: '內部流通股', shortInterest: '空頭倉位',
+    dashboard: '儀表板', exchangeVolume: '交易所成交量', ownership: '股權結構', internalFloat: '內部流通股', shortInterest: '空頭倉位',
     lendingPressure: '借貸壓力', socialSentiment: '社交媒體情緒', secFilings: 'SEC 文件', reportArchive: '報告存檔',
     general: '一般設定', userProfile: '用戶資料', companyManagement: '公司管理', alertRules: '提醒規則', deliverySettings: '發送設定',
     squeezeReadiness: '軋空準備度', dtcReportUpload: 'DTC 報告上載', priceScenarios: '價格情景', rolePermissions: '角色與權限',
@@ -52,7 +52,7 @@ const messages = {
   },
   'zh-Hans': {
     workspace: '工作区', development: '开发中', settings: '设置',
-    dashboard: '仪表板', ownership: '股权结构', internalFloat: '内部流通股', shortInterest: '空头仓位',
+    dashboard: '仪表板', exchangeVolume: '交易所成交量', ownership: '股权结构', internalFloat: '内部流通股', shortInterest: '空头仓位',
     lendingPressure: '借贷压力', socialSentiment: '社交媒体情绪', secFilings: 'SEC 文件', reportArchive: '报告存档',
     general: '常规设置', userProfile: '用户资料', companyManagement: '公司管理', alertRules: '提醒规则', deliverySettings: '发送设置',
     squeezeReadiness: '轧空准备度', dtcReportUpload: 'DTC 报告上传', priceScenarios: '价格情景', rolePermissions: '角色与权限',

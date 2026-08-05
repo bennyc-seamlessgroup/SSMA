@@ -86,6 +86,7 @@ Aggregates market stats, lending pressure, borrow fees, short interest, utilizat
 | `ticker` | String | - | Ticker symbol of the stock. | Passed in as a runtime parameter. |
 | `snapshotDate` | String (YYYY-MM-DD) | - | Date representing the snapshot. | Passed in as the target `date` parameter. |
 | `generatedAt` | String (ISO 8601) | - | Generation timestamp. | Set to `{date}T23:59:00Z`. |
+| `otherDateData` | Array of Objects | - | Per-field source dates for values carried forward from an earlier observation. | Each item is `{field, date}`. When a matching path is present, consumers must use its `date` instead of `snapshotDate` for that field. |
 | `sourceWatermarks` | Object | - | Updates timestamps of sources (keys: `chartExchangeBorrowFee`, `chartExchangeShortInterest`, `operationsMarketData`). | `chartExchangeBorrowFee` and `operationsMarketData` = `generatedAt`; `chartExchangeShortInterest` = `date`. |
 | `price` | Object | - | Stock price snapshot. | Derived from ChartExchange exchange_volume CSV. |
 | `price.value` | Decimal/Null | **20260709214** | Current stock price. | Last row of `chartexchange/{date}/chartexchange_exchange_volume_{ticker}_{date}.csv` → `close` column. Cast to `float`. `null` if CSV is empty or column absent. |

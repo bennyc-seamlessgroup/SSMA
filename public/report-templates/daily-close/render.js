@@ -85,7 +85,7 @@ function kpiCards(items) {
     <div class="metric-value">${esc(item.value)}</div>
     <div class="metric-delta ${esc(item.tone || '')}">
       <strong>${esc(item.changeValue || '--')}</strong>
-      <span>${esc(item.changePercent || '--')} vs yesterday</span>
+      <span>${esc(item.changePercent || '--')} ${esc(item.comparisonLabel || 'vs previous trading day')}</span>
     </div>
   </div>`).join('');
 }
@@ -183,7 +183,7 @@ function renderReport(data) {
   <div class="cover-brand"><span class="brand-mark">CI</span><span>CURRENC<br/>INTELLIGENCE</span></div>
   <div class="cover-main"><span class="cover-kicker">Post-Market Intelligence</span><h1>Daily Market<br/>Close Report</h1><p>A concise view of short positioning, lending conditions, social sentiment, and recent regulatory filings.</p></div>
   <div class="cover-status single"><div><span>Current posture</span><strong>${esc(data.status)}</strong></div></div>
-  <div class="cover-meta"><div><span>Company</span><strong>${esc(data.company)}</strong><small>${esc(data.ticker)}</small></div><div><span>Report date</span><strong>${esc(data.reportDate)}</strong><small>${esc(data.generatedAt)}</small></div></div>
+  <div class="cover-meta"><div><span>Company</span><strong>${esc(data.company)}</strong><small>${esc(data.ticker)}</small></div><div><span>Report date</span><strong>${esc(data.reportDate)}</strong><small>${esc(data.generatedAtDisplay || data.generatedAt)}</small></div></div>
   <div class="cover-scope"><span>Short positioning</span><span>Lending conditions</span><span>Social sentiment</span><span>SEC filings</span></div>
   ${reportFooter(1, legal.footer)}
 </section>

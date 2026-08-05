@@ -12,6 +12,7 @@ export async function getCurrentDataSourceRows(_rawTicker: string): Promise<Curr
   const rows: CurrentDataSourceRow[] = [];
   const apiRows = [
     ['Dashboard', '/market-data/current + /market-data/history'],
+    ['Exchange Volume', '/market-data/current?category=market-current + /market-data/history?category=exchange-volume-history'],
     ['Ownership', '/market-data/current?category=ownership-current + /market-data/history?category=ownership-history'],
     ['Internal Float', '/market-data/current?category=internal-float-current-user + /manual-input/internal-float-inputs-ticker + /manual-input/internal-float-inputs-user'],
     ['Short Interest', '/market-data/current?category=market-current + /market-data/history'],

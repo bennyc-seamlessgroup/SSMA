@@ -39,12 +39,12 @@ export async function generateClientReportPdf(report: ReportArchiveRecord, repor
   const reportDataUrl = reportData === undefined
     ? report.dataUrl
     : URL.createObjectURL(new Blob([JSON.stringify(reportData)], { type: 'application/json' }));
-  const params = new URLSearchParams({
-    data: reportDataUrl,
-    ticker: report.ticker,
-    reportDate: report.reportDate,
-    generatedAt: report.generatedAt,
-  });
+  const params = new URLSearchParams({ data: reportDataUrl });
+  if (reportData === undefined) {
+    params.set('ticker', report.ticker);
+    params.set('reportDate', report.reportDate);
+    params.set('generatedAt', report.generatedAt);
+  }
   const iframe = document.createElement('iframe');
   iframe.title = 'Daily market close report renderer';
   iframe.src = `${TEMPLATE_URL}?${params.toString()}`;

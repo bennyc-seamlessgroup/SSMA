@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { DashboardChart } from './DashboardChart';
-import { DashboardKpis, type PeriodKey } from './DashboardKpis';
+import { DashboardKpis, type DashboardCurrentMetrics, type PeriodKey } from './DashboardKpis';
 import type { DashboardMarginRecord, DashboardUtilizationRecord } from '@/lib/operations/data-types';
 import { CustomAlertCenter } from './CustomAlertCenter';
 import { PageDisclaimerNotice } from '@/components/PageDisclaimerNotice';
@@ -36,6 +36,7 @@ export function DashboardClient({
   events,
   utilizationRecords,
   marginRecords,
+  currentMetrics,
   dailyMarketSnapshot,
   currentAlertMetrics,
 }: {
@@ -44,6 +45,7 @@ export function DashboardClient({
   events: CompanyEvent[];
   utilizationRecords: DashboardUtilizationRecord[];
   marginRecords: DashboardMarginRecord[];
+  currentMetrics: DashboardCurrentMetrics;
   dailyMarketSnapshot: DailyMarketSnapshotData | null;
   currentAlertMetrics: CurrentAlertMetricValues;
 }) {
@@ -57,6 +59,7 @@ export function DashboardClient({
         data={data}
         utilizationRecords={utilizationRecords}
         marginRecords={marginRecords}
+        currentMetrics={currentMetrics}
       />
       <DailyMarketSnapshot data={dailyMarketSnapshot} />
       <CustomAlertCenter ticker={ticker} currentMetrics={currentAlertMetrics} />

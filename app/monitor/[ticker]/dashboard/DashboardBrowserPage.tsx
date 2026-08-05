@@ -13,6 +13,7 @@ import type { DashboardMarginRecord, DashboardUtilizationRecord, OperationsSecFi
 import { normalizeTicker } from '@/lib/ticker-data';
 import { DashboardClient } from './DashboardClient';
 import { DashboardDevTables } from './DashboardDevTables';
+import type { DashboardCurrentMetric, DashboardCurrentMetrics, DashboardKpiMetricKey } from './DashboardKpis';
 import type { DailyMarketSnapshotData } from './DailyMarketSnapshot';
 import type { CurrentAlertMetricValues } from '@/lib/alerts/ruleCatalogApi';
 
@@ -51,20 +52,31 @@ type MarketCurrentFile = {
     close?: unknown;
   };
   tradeVolume?: unknown;
-  shortInterest?: { percent?: unknown; shares?: unknown };
+  shortInterest?: { percent?: unknown; shares?: unknown; numChange?: unknown; percentChange?: unknown };
   borrowFee?: { percent?: unknown; numChange?: unknown; percentChange?: unknown };
-  availableShares?: { value?: unknown; numChange?: unknown; percentChange?: unknown };
+  availableShares?: {
+    chartExchange?: unknown;
+    ibkr?: unknown;
+    futu?: unknown;
+    value?: unknown;
+    numChange?: unknown;
+    percentChange?: unknown;
+  };
   utilization?: { percent?: unknown; numChange?: unknown; percentChange?: unknown };
   daysToCover?: { value?: unknown; numChange?: unknown; percentChange?: unknown };
   margins?: {
+    initialMarginIbkr?: unknown;
+    initialMarginFutu?: unknown;
     initialMargin?: unknown;
+    maintenanceMarginIbkr?: unknown;
+    maintenanceMarginFutu?: unknown;
     maintenanceMargin?: unknown;
     averageDurationDays?: unknown;
     valueFormat?: string;
     displayFormat?: string;
   };
   otherDateData?: Array<{ field?: unknown; date?: unknown }>;
-  scores?: { shortScore?: { value?: unknown } };
+  scores?: { shortScore?: { value?: unknown; numChange?: unknown; percentChange?: unknown } };
   sourceWatermarks?: Record<string, unknown>;
   _field_provenance?: Record<string, unknown>;
 };
@@ -119,13 +131,12 @@ type DashboardApiData = {
   currentFile: MarketCurrentFile | null;
   historyFile: MarketHistoryFile | null;
   secFilingsFile: SecFilingsHistoryFile | null;
-  utilizationManual: unknown;
-  marginsManual: unknown;
   trendData: TrendPoint[];
   utilizationInputs: DashboardUtilizationRecord[];
   marginInputs: DashboardMarginRecord[];
   events: CompanyEvent[];
   dailyMarketSnapshot: DailyMarketSnapshotData | null;
+  currentMetrics: DashboardCurrentMetrics;
   current: Record<string, unknown> | null;
   currentAlertMetrics: CurrentAlertMetricValues;
 };
@@ -289,59 +300,53 @@ function currentDailyMarketSnapshot(currentFile: MarketCurrentFile | null): Dail
   return hasMarketValue ? snapshot : null;
 }
 
-function currentMetricHasExplicitDate(currentFile: MarketCurrentFile | null, field: string) {
-  return Boolean(currentFile?.otherDateData?.some(item => (
-    plainText(item.field) === field && Boolean(plainText(item.date))
-  )));
+function dashboardCurrentMetric(
+  currentFile: MarketCurrentFile | null,
+  field: string,
+  normalizeValue: (value: number) => number = value => value,
+): DashboardCurrentMetric | null {
+  const observation = marketCurrentMetricObservation(currentFile, field);
+  if (!observation) return null;
+  return {
+    value: normalizeValue(observation.value),
+    date: observation.date,
+    numChange: observation.numChange === null ? null : normalizeValue(observation.numChange),
+    percentChange: observation.percentChange,
+  };
 }
 
-function resolveManualMetricDate(
-  observation: { date: string; value: number } | null,
-  currentFile: MarketCurrentFile | null,
-  currentField: string,
-  manualPayload: unknown,
-  manualField: keyof MarketHistoryRecord,
-) {
-  if (!observation || currentMetricHasExplicitDate(currentFile, currentField)) return observation;
-  const matchingRecord = asApiArray<MarketHistoryRecord>(manualPayload)
-    .filter(record => {
-      const date = plainText(record.tradeDate ?? record.date);
-      const value = numericOrNull(record[manualField]);
-      return Boolean(date)
-        && date <= observation.date
-        && value !== null
-        && value === observation.value;
-    })
-    .sort((a, b) => plainText(a.tradeDate ?? a.date).localeCompare(plainText(b.tradeDate ?? b.date)))
-    .at(-1);
-  const sourceDate = plainText(matchingRecord?.tradeDate ?? matchingRecord?.date);
-  return sourceDate ? { ...observation, date: sourceDate } : observation;
+function dashboardCurrentMetrics(currentFile: MarketCurrentFile | null): DashboardCurrentMetrics {
+  const marginNormalizer = (value: number) => normalizeMarginPercent(
+    value,
+    currentFile?.margins?.valueFormat,
+    currentFile?.margins?.displayFormat,
+  ) ?? value;
+  const definitions: Array<[DashboardKpiMetricKey, string, ((value: number) => number)?]> = [
+    ['feeRate', 'borrowFee.percent'],
+    ['shortableShares', 'availableShares.value'],
+    ['daysToCover', 'daysToCover.value'],
+    ['utilization', 'utilization.percent'],
+    ['initialMargin', 'margins.initialMargin', marginNormalizer],
+    ['maintenanceMargin', 'margins.maintenanceMargin', marginNormalizer],
+    ['averageDurationDays', 'margins.averageDurationDays'],
+  ];
+  return Object.fromEntries(definitions.flatMap(([key, field, normalizeValue]) => {
+    const metric = dashboardCurrentMetric(currentFile, field, normalizeValue);
+    return metric ? [[key, metric]] : [];
+  })) as DashboardCurrentMetrics;
 }
 
 function marketHistoryToDashboardData(
   currentFile: MarketCurrentFile | null,
   historyFile: MarketHistoryFile | null,
   secFilingsFile: SecFilingsHistoryFile | null,
-  utilizationManual: unknown,
-  marginsManual: unknown,
 ): DashboardApiData {
   const historyRecords = Array.isArray(historyFile?.records) ? historyFile.records : [];
   const publishedRecord = latestCompleteMarketPublicationRecordFromHistory(historyRecords);
   const publishedDate = publishedRecord ? marketRecordDate(publishedRecord) : '';
-  const currentUtilization = resolveManualMetricDate(
-    marketCurrentMetricObservation(currentFile, 'utilization.percent'),
-    currentFile,
-    'utilization.percent',
-    utilizationManual,
-    'utilizationPercent',
-  );
-  const currentAverageDuration = resolveManualMetricDate(
-    marketCurrentMetricObservation(currentFile, 'margins.averageDurationDays'),
-    currentFile,
-    'margins.averageDurationDays',
-    marginsManual,
-    'averageDurationDays',
-  );
+  const currentMetrics = dashboardCurrentMetrics(currentFile);
+  const currentUtilization = currentMetrics.utilization;
+  const currentAverageDuration = currentMetrics.averageDurationDays;
   const secFilingRows = asApiArray<OperationsSecFilingRecord>(secFilingsFile);
   const marketTrendData = historyRecords
     .map((row): TrendPoint | null => {
@@ -378,13 +383,13 @@ function marketHistoryToDashboardData(
   }
 
   function applyCurrentObservation(
-    observation: { date: string; value: number } | null,
-    key: 'utilization' | 'averageDuration',
+    observation: DashboardCurrentMetric | undefined,
+    key: Exclude<keyof TrendPoint, 'date'>,
   ) {
     if (!observation) return;
     const existing = marketTrendData.find(row => row.date === observation.date);
     if (existing) {
-      if (existing[key] === null) existing[key] = observation.value;
+      existing[key] = observation.value;
       return;
     }
     marketTrendData.push({
@@ -396,11 +401,15 @@ function marketHistoryToDashboardData(
       daysToCover: null,
       utilization: key === 'utilization' ? observation.value : null,
       averageDuration: key === 'averageDuration' ? observation.value : null,
-      margin: null,
+      margin: key === 'margin' ? observation.value : null,
     });
   }
+  applyCurrentObservation(currentMetrics.feeRate, 'feeRate');
+  applyCurrentObservation(currentMetrics.shortableShares, 'shortableShares');
+  applyCurrentObservation(currentMetrics.daysToCover, 'daysToCover');
   applyCurrentObservation(currentUtilization, 'utilization');
   applyCurrentObservation(currentAverageDuration, 'averageDuration');
+  applyCurrentObservation(currentMetrics.initialMargin, 'margin');
   marketTrendData.sort((a, b) => a.date.localeCompare(b.date));
 
   const recordTicker = plainText(historyFile?.ticker ?? currentFile?.ticker, 'CURR').toUpperCase();
@@ -410,7 +419,9 @@ function marketHistoryToDashboardData(
   const utilizationInputs = historyUtilizationRecords(historyRecords, recordTicker);
   if (currentUtilization) {
     const existing = utilizationInputs.find(row => row.date === currentUtilization.date);
-    if (!existing) {
+    if (existing) {
+      existing.utilization = currentUtilization.value;
+    } else {
       utilizationInputs.push({
         id: `market-current-utilization-${currentUtilization.date}`,
         ticker: recordTicker,
@@ -423,62 +434,72 @@ function marketHistoryToDashboardData(
     utilizationInputs.sort((a, b) => a.date.localeCompare(b.date));
   }
   const marginInputs = historyMarginRecords(historyRecords, recordTicker);
-  if (currentAverageDuration && currentAverageDuration.value > 0) {
-    const existing = marginInputs.find(row => row.date === currentAverageDuration.date);
-    if (!existing || !(Number(existing.averageDurationDays) > 0)) {
-      if (existing) {
-        existing.averageDurationDays = currentAverageDuration.value;
-      } else {
-        marginInputs.push({
-          id: `market-current-average-duration-${currentAverageDuration.date}`,
-          ticker: recordTicker,
-          date: currentAverageDuration.date,
-          initialMargin: null,
-          maintenanceMargin: null,
-          averageDurationDays: currentAverageDuration.value,
-          updatedAt: currentAverageDuration.date,
-          updatedBy: 'market-data-current-api',
-        });
-      }
+  const currentMarginFields: Array<[
+    keyof Pick<DashboardMarginRecord, 'initialMargin' | 'maintenanceMargin' | 'averageDurationDays'>,
+    DashboardCurrentMetric | undefined,
+  ]> = [
+    ['initialMargin', currentMetrics.initialMargin],
+    ['maintenanceMargin', currentMetrics.maintenanceMargin],
+    ['averageDurationDays', currentAverageDuration],
+  ];
+  currentMarginFields.forEach(([field, metric]) => {
+    if (!metric) return;
+    let existing = marginInputs.find(row => row.date === metric.date);
+    if (!existing) {
+      existing = {
+        id: `market-current-margins-${metric.date}`,
+        ticker: recordTicker,
+        date: metric.date,
+        initialMargin: null,
+        maintenanceMargin: null,
+        averageDurationDays: null,
+        updatedAt: metric.date,
+        updatedBy: 'market-data-current-api',
+      };
+      marginInputs.push(existing);
     }
-    marginInputs.sort((a, b) => a.date.localeCompare(b.date));
-  }
+    existing[field] = metric.value;
+  });
+  marginInputs.sort((a, b) => a.date.localeCompare(b.date));
   const trendData = marketTrendData;
+
+  const currentShortInterestPercent = marketCurrentMetricObservation(currentFile, 'shortInterest.percent');
+  const currentShortInterestShares = marketCurrentMetricObservation(currentFile, 'shortInterest.shares');
+  const currentShortScore = marketCurrentMetricObservation(currentFile, 'scores.shortScore.value');
 
   const current = publishedRecord ? {
     publishedTradeDate: publishedDate,
-    shortInterestPcFreeFloat: marketNumber(publishedRecord.shortInterestPercent),
-    shortInterestShares: marketNumber(publishedRecord.shortInterestShares),
-    shortScore: marketNumber(publishedRecord.shortScore),
-    borrowFee: marketNumber(publishedRecord.borrowFeePercent),
-    feeRate: marketNumber(publishedRecord.borrowFeePercent),
+    shortInterestPcFreeFloat: currentShortInterestPercent?.value ?? marketNumber(publishedRecord.shortInterestPercent),
+    shortInterestShares: currentShortInterestShares?.value ?? marketNumber(publishedRecord.shortInterestShares),
+    shortScore: currentShortScore?.value ?? marketNumber(publishedRecord.shortScore),
+    borrowFee: currentMetrics.feeRate?.value ?? marketNumber(publishedRecord.borrowFeePercent),
+    feeRate: currentMetrics.feeRate?.value ?? marketNumber(publishedRecord.borrowFeePercent),
     utilization: currentUtilization?.value ?? marketNumber(publishedRecord.utilizationPercent),
-    availableShares: marketNumber(publishedRecord.availableShares),
-    daysToCover: marketNumber(publishedRecord.daysToCover),
-    price: marketNumber(publishedRecord.price),
+    availableShares: currentMetrics.shortableShares?.value ?? marketNumber(publishedRecord.availableShares),
+    daysToCover: currentMetrics.daysToCover?.value ?? marketNumber(publishedRecord.daysToCover),
+    price: marketNumber(currentFile?.price?.value) ?? marketNumber(publishedRecord.price),
     sourceRecords: {
       marketHistory: publishedRecord,
     },
   } : null;
 
   const currentAlertMetrics: CurrentAlertMetricValues = {
-    shortInterestFloatPercent: publishedRecord ? marketNumber(publishedRecord.shortInterestPercent) : null,
-    shortScore: publishedRecord ? marketNumber(publishedRecord.shortScore) : null,
-    borrowFeeRate: publishedRecord ? marketNumber(publishedRecord.borrowFeePercent) : null,
+    shortInterestFloatPercent: currentShortInterestPercent?.value ?? (publishedRecord ? marketNumber(publishedRecord.shortInterestPercent) : null),
+    shortScore: currentShortScore?.value ?? (publishedRecord ? marketNumber(publishedRecord.shortScore) : null),
+    borrowFeeRate: currentMetrics.feeRate?.value ?? (publishedRecord ? marketNumber(publishedRecord.borrowFeePercent) : null),
     utilization: currentUtilization?.value ?? (publishedRecord ? marketNumber(publishedRecord.utilizationPercent) : null),
-    availableShares: publishedRecord ? marketNumber(publishedRecord.availableShares) : null,
+    availableShares: currentMetrics.shortableShares?.value ?? (publishedRecord ? marketNumber(publishedRecord.availableShares) : null),
   };
   return {
     currentFile,
     historyFile,
     secFilingsFile,
-    utilizationManual,
-    marginsManual,
     trendData,
     utilizationInputs,
     marginInputs,
     events: secFilingEvents(secFilingRows),
     dailyMarketSnapshot: currentDailyMarketSnapshot(currentFile),
+    currentMetrics,
     current,
     currentAlertMetrics,
   };
@@ -497,12 +518,10 @@ export function DashboardBrowserPage({ ticker }: { ticker: string }) {
       setApiLoading(true);
       setApiError(null);
       try {
-        const [currentResponse, historyResponse, secFilingsResponse, utilizationManual, marginsManual] = await Promise.all([
+        const [currentResponse, historyResponse, secFilingsResponse] = await Promise.all([
           cachedAuthenticatedFetch<Record<string, unknown>>(`/market-data/current?ticker=${encodeURIComponent(normalizedTicker)}&category=market-current`),
           cachedAuthenticatedFetch<Record<string, unknown>>(`/market-data/history?ticker=${encodeURIComponent(normalizedTicker)}&category=market-history`),
           cachedAuthenticatedFetch<Record<string, unknown>>(`/manual-input/sec-filings?ticker=${encodeURIComponent(normalizedTicker)}`),
-          cachedAuthenticatedFetch<unknown>(`/manual-input/utilization?ticker=${encodeURIComponent(normalizedTicker)}`).catch(() => []),
-          cachedAuthenticatedFetch<unknown>(`/manual-input/margins?ticker=${encodeURIComponent(normalizedTicker)}`).catch(() => []),
         ]);
         const currentFile = categoryPayload<MarketCurrentFile>(currentResponse, 'market-current');
         const historyFile = categoryPayload<MarketHistoryFile>(historyResponse, 'market-history');
@@ -511,8 +530,6 @@ export function DashboardBrowserPage({ ticker }: { ticker: string }) {
           currentFile,
           historyFile,
           secFilingsFile,
-          utilizationManual,
-          marginsManual,
         ));
       } catch (err) {
         if (!cancelled) {
@@ -554,6 +571,7 @@ export function DashboardBrowserPage({ ticker }: { ticker: string }) {
         events={events}
         utilizationRecords={utilizationInputs}
         marginRecords={marginInputs}
+        currentMetrics={apiData.currentMetrics}
         dailyMarketSnapshot={apiData.dailyMarketSnapshot}
         currentAlertMetrics={apiData.currentAlertMetrics}
       />
@@ -561,8 +579,6 @@ export function DashboardBrowserPage({ ticker }: { ticker: string }) {
         marketCurrent={apiData.currentFile as Record<string, unknown> | null}
         marketHistory={apiData.historyFile as Record<string, unknown> | null}
         secFilingsHistory={apiData.secFilingsFile as Record<string, unknown> | null}
-        utilizationManual={apiData.utilizationManual}
-        marginsManual={apiData.marginsManual}
       />
     </div>
   );

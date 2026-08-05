@@ -1257,6 +1257,63 @@ Returns the raw JSON content of the S3 file for that category.
 }
 ```
 
+#### `market-current.otherDateData` source-date contract
+
+`market-current` may carry the latest available value for an individual field
+when that field has no observation on `snapshotDate`. In that case,
+`otherDateData` identifies the actual date represented by the returned value.
+The portal treats this backend date as authoritative and must not infer a newer
+date from `snapshotDate` or from another field.
+
+```json
+{
+  "snapshotDate": "2026-08-03",
+  "utilization": {
+    "percent": 69.52,
+    "numChange": -2.18,
+    "percentChange": -3.04
+  },
+  "margins": {
+    "averageDurationDays": 6.4
+  },
+  "otherDateData": [
+    { "field": "utilization.percent", "date": "2026-07-31" },
+    { "field": "margins.averageDurationDays", "date": "2026-07-31" }
+  ]
+}
+```
+
+Supported `otherDateData.field` values are:
+
+- `shortInterest.shares`
+- `shortInterest.percent`
+- `borrowFee.percent`
+- `availableShares.chartExchange`
+- `availableShares.ibkr`
+- `availableShares.futu`
+- `availableShares.value`
+- `utilization.percent`
+- `daysToCover.value`
+- `margins.initialMarginIbkr`
+- `margins.initialMarginFutu`
+- `margins.initialMargin`
+- `margins.maintenanceMarginIbkr`
+- `margins.maintenanceMarginFutu`
+- `margins.maintenanceMargin`
+- `margins.averageDurationDays`
+- `scores.shortScore.value`
+- `shortVolume.totalShortVolumeReported`
+- `shortVolume.totalVolumeReported`
+- `ftd.shares`
+- `ftd.value`
+- `exchangeVolume`
+
+When a matching entry is absent, the field is dated to `snapshotDate`. Change
+fields supplied alongside a current metric, such as `numChange` and
+`percentChange`, remain the authoritative comparison values. Historical charts
+and tables continue to use their corresponding `/market-data/history`
+category; `otherDateData` does not create a synthetic historical observation.
+
 **Response** `200 OK` — All categories (no `category` param):
 Returns a combined object with all category names as keys. Missing files are returned as `null`.
 
@@ -1304,6 +1361,7 @@ Authorization: <id_token>
 | `ownership-summary-history` | `history/{ticker}/ownership-summary-history.json` | Historical institutional ownership summary records |
 | `sec-filings-history` | `history/{ticker}/sec-filings-history.json` | Historical SEC filing records |
 | `short-volume-history` | `history/{ticker}/short-volume-history.json` | Historical short volume by exchange |
+| `exchange-volume-history` | `history/{ticker}/exchange_volume_history.json` | Historical total volume by exchange |
 | `sentiment-events` | `history/{ticker}/sentiment-events.json` | Historical social sentiment event logs |
 
 **Response** `200 OK` — Single category (e.g. `?category=market-history`):
@@ -1334,6 +1392,7 @@ Returns a combined object with all history category names as keys. Missing files
   "ownership-summary-history": { "schemaVersion": 1, "ticker": "CURR", "records": [...] },
   "sec-filings-history": { "schemaVersion": 1, "ticker": "CURR", "records": [...] },
   "short-volume-history": { "schemaVersion": 1, "ticker": "CURR", "records": [...] },
+  "exchange-volume-history": { "schemaVersion": 1, "ticker": "CURR", "records": [...] },
   "sentiment-events": { "schemaVersion": 1, "ticker": "CURR", "records": [...] }
 }
 ```
@@ -2733,7 +2792,7 @@ Authorization: <id_token>
 |---|---|---|---|
 | `dataset` | String | Yes | Target dataset name: `chartexchange` \| `fintel` \| `history` \| `manual-input` \| `kwatch`. |
 | `ticker` | String | Yes | Stock ticker symbol (e.g. `CURR`). Case-insensitive. |
-| `category` | String | Conditional | Category name or template name (required for `manual-input` and `kwatch`). Examples: `profile`, `issued-share`, `short-score`, `institutional-owner`, `management-holdings`, `internal-float-inputs`, `internal-float-inputs-ticker`, `internal-float-inputs-user`, `manual-availability`, `utilization`, `sec-filings`, `margins`, `market-history`, `ftd-history`, `reddit`, `twitter`, `stocktwits`, etc. |
+| `category` | String | Conditional | Category name or template name (required for `manual-input` and `kwatch`). Examples: `profile`, `issued-share`, `short-score`, `institutional-owner`, `management-holdings`, `internal-float-inputs`, `internal-float-inputs-ticker`, `internal-float-inputs-user`, `manual-availability`, `utilization`, `sec-filings`, `margins`, `market-history`, `ftd-history`, `exchange-volume-history`, `reddit`, `twitter`, `stocktwits`, etc. |
 | `startDate` | String | No | Date filter lower bound in `YYYY-MM-DD` format. |
 | `endDate` | String | No | Date filter upper bound in `YYYY-MM-DD` format. |
 

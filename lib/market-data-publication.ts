@@ -33,6 +33,15 @@ export type MarketCurrentSnapshot = {
   [key: string]: unknown;
 };
 
+export type MarketCurrentMetricObservation = {
+  field: string;
+  date: string;
+  value: number;
+  numChange: number | null;
+  percentChange: number | null;
+  isCarriedForward: boolean;
+};
+
 export type MarketPublicationField = {
   key: string;
   label: string;
@@ -56,24 +65,42 @@ export function marketRecordDate(record: MarketPublicationRecord) {
   return String(record.tradeDate ?? record.date ?? '').slice(0, 10);
 }
 
-export function marketCurrentMetricObservation(
+export function marketCurrentFieldDate(
   current: MarketCurrentSnapshot | null | undefined,
   field: string,
-): { date: string; value: number } | null {
-  if (!current) return null;
-  const path = field.split('.').filter(Boolean);
-  let cursor: unknown = current;
-  for (const key of path) {
-    if (!cursor || typeof cursor !== 'object' || Array.isArray(cursor)) return null;
-    cursor = (cursor as Record<string, unknown>)[key];
-  }
-  const value = marketNumber(cursor);
-  if (value === null) return null;
+) {
+  if (!current) return '';
   const datedField = Array.isArray(current.otherDateData)
     ? current.otherDateData.find(item => String(item?.field ?? '').trim() === field)
     : undefined;
-  const date = String(datedField?.date ?? current.snapshotDate ?? '').slice(0, 10);
-  return date ? { date, value } : null;
+  return String(datedField?.date ?? current.snapshotDate ?? '').slice(0, 10);
+}
+
+export function marketCurrentMetricObservation(
+  current: MarketCurrentSnapshot | null | undefined,
+  field: string,
+): MarketCurrentMetricObservation | null {
+  if (!current) return null;
+  const path = field.split('.').filter(Boolean);
+  let cursor: unknown = current;
+  let parent: Record<string, unknown> | null = null;
+  for (const key of path) {
+    if (!cursor || typeof cursor !== 'object' || Array.isArray(cursor)) return null;
+    parent = cursor as Record<string, unknown>;
+    cursor = parent[key];
+  }
+  const value = marketNumber(cursor);
+  if (value === null) return null;
+  const snapshotDate = String(current.snapshotDate ?? '').slice(0, 10);
+  const date = marketCurrentFieldDate(current, field);
+  return date ? {
+    field,
+    date,
+    value,
+    numChange: marketNumber(parent?.numChange),
+    percentChange: marketNumber(parent?.percentChange),
+    isCarriedForward: date !== snapshotDate,
+  } : null;
 }
 
 export function marketPublicationFields(record: MarketPublicationRecord | null | undefined): MarketPublicationField[] {

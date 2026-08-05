@@ -18,6 +18,7 @@ const themeStorageKey = 'monitor-design-b-theme';
 
 const routeLabels: Record<string, { section: PortalMessageKey; page: PortalMessageKey }> = {
   'dashboard': { section: 'workspace', page: 'dashboard' },
+  'exchange-volume': { section: 'workspace', page: 'exchangeVolume' },
   institutional: { section: 'workspace', page: 'ownership' },
   'short-interest': { section: 'workspace', page: 'shortInterest' },
   'lending-pressure': { section: 'workspace', page: 'lendingPressure' },

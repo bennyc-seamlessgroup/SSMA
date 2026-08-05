@@ -7,6 +7,7 @@ type ImportDataTableProps = {
   rows: Array<Record<string, string>>;
   pageSize?: number;
   expandableColumns?: string[];
+  columnLabels?: Record<string, string>;
 };
 
 const expandablePreviewLength = 800;
@@ -38,7 +39,13 @@ function formatLabel(value: string) {
   return value.replace(/([A-Z])/g, ' $1').replace(/^./, char => char.toUpperCase());
 }
 
-export function ImportDataTable({ columns, rows, pageSize = 25, expandableColumns = [] }: ImportDataTableProps) {
+export function ImportDataTable({
+  columns,
+  rows,
+  pageSize = 25,
+  expandableColumns = [],
+  columnLabels = {},
+}: ImportDataTableProps) {
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(1);
   const [sort, setSort] = useState<{ column: string; direction: 'asc' | 'desc' } | null>(null);
@@ -117,7 +124,7 @@ export function ImportDataTable({ columns, rows, pageSize = 25, expandableColumn
               {columns.map(column => (
                 <th key={column}>
                   <button className="table-sort-button" type="button" onClick={() => toggleSort(column)}>
-                    {formatLabel(column)} <span>{sortLabel(column)}</span>
+                    {columnLabels[column] ?? formatLabel(column)} <span>{sortLabel(column)}</span>
                   </button>
                 </th>
               ))}

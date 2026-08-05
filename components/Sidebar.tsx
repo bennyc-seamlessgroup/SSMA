@@ -15,6 +15,7 @@ const workspaceItems = [
   ['shortInterest', 'short-interest'],
   ['lendingPressure', 'lending-pressure'],
   ['socialSentiment', 'sentiment'],
+  ['exchangeVolume', 'exchange-volume'],
   ['secFilings', 'event-calendar'],
   ['reportArchive', 'reports'],
 ] as const;
@@ -41,6 +42,9 @@ function pageImportSeenKey(ticker: string, slug: string) {
 function NavigationIcon({ slug }: { slug: string }) {
   if (slug === 'dashboard') {
     return <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1.5" /><rect x="14" y="3" width="7" height="7" rx="1.5" /><rect x="3" y="14" width="7" height="7" rx="1.5" /><rect x="14" y="14" width="7" height="7" rx="1.5" /></svg>;
+  }
+  if (slug === 'exchange-volume') {
+    return <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20V10M9 20V5M14 20v-8M19 20V3" /><path d="M2 20h20" /></svg>;
   }
   if (slug === 'institutional') {
     return <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20h16M6 17V9m4 8V9m4 8V9m4 8V9M3 7h18L12 3 3 7Z" /></svg>;

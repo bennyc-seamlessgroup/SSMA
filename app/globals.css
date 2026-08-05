@@ -29366,3 +29366,470 @@ button[aria-busy="true"]::before {
     animation-duration: 1.4s;
   }
 }
+
+/* Exchange Volume — API-only market activity page. */
+.exchange-volume-page {
+  gap: 14px;
+}
+
+.exchange-volume-overview {
+  background:
+    radial-gradient(circle at 92% 4%, rgba(37, 99, 235, .09), transparent 26%),
+    linear-gradient(180deg, #fff, #f8fbff);
+}
+
+.exchange-volume-price-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.exchange-volume-price-card {
+  min-height: 104px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 7px;
+  padding: 14px;
+  border-radius: 8px;
+  box-shadow: none;
+}
+
+.exchange-volume-price-card > span {
+  color: #64748d;
+  font-size: 10.5px;
+  font-weight: 650;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+
+.exchange-volume-price-card > strong {
+  color: #061b31;
+  font-size: clamp(23px, 2.5vw, 27px);
+  font-weight: 650;
+  line-height: 1.05;
+}
+
+.exchange-volume-price-card > small {
+  color: #5d7089;
+  font-size: 11px;
+  font-weight: 650;
+}
+
+.exchange-volume-history-section {
+  background:
+    radial-gradient(circle at 8% 4%, rgba(14, 165, 233, .07), transparent 26%),
+    linear-gradient(180deg, #fff, #f8fbff);
+}
+
+.exchange-volume-actions,
+.exchange-volume-periods {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.exchange-volume-periods {
+  padding: 3px;
+  border: 1px solid #dbe6f3;
+  border-radius: 8px;
+  background: #f7faff;
+}
+
+.exchange-volume-periods button,
+.exchange-volume-download {
+  min-height: 30px;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  padding: 5px 10px;
+  color: #53677f;
+  background: transparent;
+  font: inherit;
+  font-size: 11px;
+  font-weight: 650;
+  cursor: pointer;
+}
+
+.exchange-volume-periods button:hover,
+.exchange-volume-periods button.active {
+  border-color: #bdd3f4;
+  color: #174ea6;
+  background: #fff;
+  box-shadow: 0 5px 14px rgba(37, 99, 235, .09);
+}
+
+.exchange-volume-download {
+  border-color: #3152b4;
+  color: #fff;
+  background: #3152b4;
+}
+
+.exchange-volume-download:hover:not(:disabled) {
+  background: #24439b;
+}
+
+.exchange-volume-download:disabled {
+  border-color: #d7e0eb;
+  color: #637187;
+  background: #e8eef6;
+  opacity: 1;
+  cursor: not-allowed;
+}
+
+html[data-portal-design="b"] .monitor-portal .exchange-volume-download:not(:disabled) {
+  color: #fff;
+  background: #3152b4;
+}
+
+.exchange-volume-download-error {
+  margin: -4px 0 14px;
+  color: #be123c;
+  font-size: 13px;
+  font-weight: 750;
+}
+
+.exchange-volume-chart-card {
+  min-height: 330px;
+  padding: 12px;
+  border-radius: 8px;
+  box-shadow: none;
+}
+
+.exchange-volume-chart-shell {
+  min-width: 0;
+}
+
+.exchange-volume-legend {
+  display: flex;
+  align-items: center;
+  gap: 4px 12px;
+  flex-wrap: wrap;
+  margin-bottom: 8px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid #edf1f5;
+}
+
+.exchange-volume-legend button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 0;
+  border: 0;
+  color: #52657c;
+  background: transparent;
+  font: inherit;
+  font-size: 10.5px;
+  font-weight: 550;
+  line-height: 1.2;
+  cursor: pointer;
+}
+
+.exchange-volume-legend button.is-muted {
+  opacity: .34;
+}
+
+.exchange-volume-legend i,
+.exchange-volume-current-row span i {
+  width: 11px;
+  height: 3px;
+  border-radius: 999px;
+  flex: 0 0 auto;
+}
+
+.exchange-volume-chart-scroll {
+  min-width: 0;
+  overflow-x: auto;
+  overscroll-behavior-inline: contain;
+}
+
+.exchange-volume-chart {
+  display: block;
+  width: 100%;
+  min-width: 760px;
+  height: auto;
+}
+
+.exchange-volume-grid-line {
+  stroke: #e8eef5;
+  stroke-width: .65;
+}
+
+.exchange-volume-axis-label {
+  fill: #718198;
+  font-size: 8.5px;
+  font-weight: 550;
+}
+
+.exchange-volume-chart-empty {
+  min-height: 250px;
+}
+
+.exchange-volume-current-card {
+  padding: 14px;
+  border-radius: 8px;
+  box-shadow: none;
+}
+
+.exchange-volume-current-list {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 13px 18px;
+}
+
+.exchange-volume-current-row {
+  min-width: 0;
+}
+
+.exchange-volume-current-row > div:first-child {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 5px;
+}
+
+.exchange-volume-current-row span {
+  min-width: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  color: #52657c;
+  font-size: 11px;
+  font-weight: 650;
+}
+
+.exchange-volume-current-row strong {
+  color: #10233b;
+  font-size: 12px;
+  font-weight: 650;
+  white-space: nowrap;
+}
+
+.exchange-volume-current-track {
+  height: 6px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: #e9eff7;
+}
+
+.exchange-volume-current-track i {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+}
+
+.exchange-volume-current-row small {
+  display: block;
+  margin-top: 4px;
+  color: #718198;
+  font-size: 10px;
+}
+
+.exchange-volume-table-section .import-table-shell {
+  min-width: 0;
+}
+
+.exchange-volume-table-section .import-record-table-wrap {
+  max-height: 620px;
+  overflow-x: auto;
+}
+
+.exchange-volume-table-section .import-record-table {
+  width: max-content;
+  min-width: 100%;
+  table-layout: auto;
+}
+
+.exchange-volume-table-section .import-record-table th,
+.exchange-volume-table-section .import-record-table td {
+  min-width: 118px;
+  white-space: nowrap;
+}
+
+.exchange-volume-table-section .import-record-table th {
+  padding: 10px 12px;
+}
+
+.exchange-volume-table-section .import-record-table td {
+  padding: 9px 12px;
+}
+
+.exchange-volume-table-section .table-sort-button {
+  white-space: nowrap;
+}
+
+.exchange-volume-table-section .import-record-table th:first-child,
+.exchange-volume-table-section .import-record-table td:first-child {
+  min-width: 104px;
+  position: sticky;
+  left: 0;
+  z-index: 2;
+  background: #fff;
+}
+
+.exchange-volume-table-section .import-record-table th:first-child {
+  z-index: 3;
+  background: #f5f8fc;
+}
+
+.exchange-volume-empty {
+  min-height: 180px;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  border: 1px dashed #cbd8e8;
+  border-radius: 8px;
+  color: #64748d;
+  background: #f8fbff;
+  text-align: center;
+  font-size: 12px;
+  font-weight: 650;
+}
+
+.exchange-volume-page .terminal-section {
+  padding: 16px;
+  border-radius: 10px;
+}
+
+.exchange-volume-page .terminal-section__head {
+  margin-bottom: 12px;
+}
+
+.exchange-volume-page .terminal-section__head > div:first-child > span {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: .12em;
+}
+
+.exchange-volume-page .terminal-section__head h2 {
+  font-size: 15px;
+  font-weight: 650;
+}
+
+.exchange-volume-page .section-subtitle {
+  margin-top: 4px;
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.exchange-volume-api-errors {
+  display: grid;
+  gap: 7px;
+  padding: 14px 16px;
+  border: 1px solid #fecdd3;
+  border-radius: 14px;
+  color: #9f1239;
+  background: #fff1f2;
+  font-size: 13px;
+}
+
+.exchange-volume-api-errors p {
+  margin: 0;
+  line-height: 1.45;
+}
+
+html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .exchange-volume-overview,
+html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .exchange-volume-history-section {
+  border-color: #334155;
+  background: #1e293b;
+}
+
+html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .exchange-volume-price-card > strong,
+html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .exchange-volume-current-row strong {
+  color: #edf4ff;
+}
+
+html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal :where(
+  .exchange-volume-price-card > span,
+  .exchange-volume-price-card > small,
+  .exchange-volume-legend button,
+  .exchange-volume-current-row span,
+  .exchange-volume-current-row small
+) {
+  color: #aebdd0;
+}
+
+html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .exchange-volume-periods {
+  border-color: #3b4b61;
+  background: #162235;
+}
+
+html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .exchange-volume-periods button {
+  color: #aebdd0;
+}
+
+html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .exchange-volume-periods button:hover,
+html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .exchange-volume-periods button.active {
+  border-color: #4b6486;
+  color: #91c1ff;
+  background: #243750;
+  box-shadow: none;
+}
+
+html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .exchange-volume-grid-line {
+  stroke: #334155;
+}
+
+html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .exchange-volume-legend {
+  border-bottom-color: #334155;
+}
+
+html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .exchange-volume-download:not(:disabled) {
+  color: #fff;
+}
+
+html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .exchange-volume-axis-label {
+  fill: #93a4ba;
+}
+
+html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .exchange-volume-current-track {
+  background: #334155;
+}
+
+html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .exchange-volume-empty {
+  border-color: #3b4b61;
+  color: #aebdd0;
+  background: #162235;
+}
+
+html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .exchange-volume-table-section .import-record-table td:first-child {
+  background: #1e293b;
+}
+
+html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .exchange-volume-table-section .import-record-table th:first-child {
+  background: #162235;
+}
+
+html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .exchange-volume-api-errors {
+  border-color: #7f1d1d;
+  color: #fecaca;
+  background: #3f1d28;
+}
+
+@media (max-width: 1050px) {
+  .exchange-volume-price-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 760px) {
+  .exchange-volume-current-list {
+    grid-template-columns: 1fr;
+  }
+
+  .exchange-volume-actions {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .exchange-volume-periods {
+    justify-content: space-between;
+  }
+}
+
+@media (max-width: 520px) {
+  .exchange-volume-price-grid {
+    grid-template-columns: 1fr;
+  }
+}

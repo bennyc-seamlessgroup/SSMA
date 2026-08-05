@@ -106,6 +106,7 @@ async function getApiTickerDataStatus(ticker: string): Promise<Pick<TickerDataSt
   const sentimentCurrent = current['sentiment-current'];
   const secFilingsHistory = history['sec-filings-history'];
   const shortVolumeHistory = history['short-volume-history'];
+  const exchangeVolumeHistory = history['exchange-volume-history'];
   const ftdHistory = history['ftd-history'];
   const sentimentEvents = history['sentiment-events'];
   const latestSocialRecord = social.records?.[0];
@@ -121,6 +122,7 @@ async function getApiTickerDataStatus(ticker: string): Promise<Pick<TickerDataSt
     .sort((a, b) => b.localeCompare(a))[0] ?? null;
   const pages = {
     'dashboard': snapshotApiStatus(marketCurrent, 'market-close', marketCurrent, marketHistory, secFilingsHistory),
+    'exchange-volume': snapshotApiStatus(marketCurrent, 'market-close', marketCurrent, exchangeVolumeHistory),
     institutional: snapshotApiStatus(ownershipCurrent, 'snapshot', ownershipCurrent, ownershipHistory),
     'internal-float': snapshotApiStatus(internalFloatCurrent, 'snapshot', internalFloatCurrent, ownershipCurrent),
     'short-interest': snapshotApiStatus(marketCurrent, 'market-close', marketCurrent, marketHistory, shortVolumeHistory, ftdHistory),
