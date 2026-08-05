@@ -22,6 +22,8 @@ completed change.
     effect whose exchange-key array dependency was recreated on every render.
     Returning another state array from that effect caused a maximum-update-depth
     loop when history data was present.
+  - The chart initially lacked the Dashboard chart's date-hover interaction,
+    so users could not inspect the exact venue volumes behind a plotted date.
 - Intended behavior and invariants:
   - The legend is an interactive series selector consistent with Dashboard.
     Every returned exchange is enabled by default and can be toggled
@@ -35,6 +37,10 @@ completed change.
     and axis typography follows the compact dashboard scale.
   - An enabled Download CSV action always uses white text on blue. Its disabled
     state uses a light neutral background with readable dark-grey text.
+  - Hovering the chart resolves the nearest returned trade date and shows a
+    vertical guide, venue markers, and a compact tooltip containing that
+    record's exact API volumes for all enabled exchanges. Missing values are
+    omitted and are never converted to zero.
 - Files changed:
   - `app/monitor/[ticker]/exchange-volume/ExchangeVolumeBrowserPage.tsx`
   - `app/globals.css`
@@ -43,7 +49,8 @@ completed change.
   - TypeScript type-check, clean production build, and whitespace validation
     passed.
   - Browser regression check confirmed the Exchange Volume route loads without
-    console errors or a maximum-update-depth loop.
+    console errors or a maximum-update-depth loop after the hover interaction
+    was added.
 - Remaining backend dependency / limitation:
   - None for the toggle behavior; it uses only venue fields returned by the
     history API.

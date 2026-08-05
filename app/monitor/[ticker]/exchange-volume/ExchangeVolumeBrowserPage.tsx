@@ -9,7 +9,7 @@ import { PortalPageLoading } from '@/components/PortalPageLoading';
 import { authenticatedFileDownload, cachedAuthenticatedFetch } from '@/lib/auth-client';
 import { marketCurrentFieldDate, type MarketCurrentSnapshot } from '@/lib/market-data-publication';
 import { normalizeTicker } from '@/lib/ticker-data';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, type MouseEvent as ReactMouseEvent } from 'react';
 
 type Row = Record<string, unknown>;
 type PeriodKey = '1M' | '3M' | '6M' | '1Y' | 'All';
@@ -293,6 +293,17 @@ function formatShortDate(value: string) {
   return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', timeZone: 'UTC' });
 }
 
+function formatFullDate(value: string) {
+  const date = parseTradeDate(value);
+  if (!date) return value;
+  return date.toLocaleDateString('en-US', {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+    timeZone: 'UTC',
+  });
+}
+
 function priceMetric(current: Row, key: 'open' | 'high' | 'low' | 'close') {
   const price = record(current.price);
   const labels = { open: 'Opening Price', high: 'Day High', low: 'Day Low', close: 'Closing Price' } as const;
@@ -349,6 +360,7 @@ function ExchangeVolumeChart({
   enabledKeys: string[];
   onToggle: (key: string) => void;
 }) {
+  const [hoverIndex, setHoverIndex] = useState<number | null>(null);
   const activeKeys = availableKeys.filter(key => enabledKeys.includes(key));
   const values = points.flatMap(point => activeKeys.map(key => point.values[key])).filter(Number.isFinite);
   const max = Math.max(...values, 0);
@@ -362,6 +374,15 @@ function ExchangeVolumeChart({
   const xLabelIndexes = Array.from(new Set(Array.from({ length: Math.min(6, points.length) }, (_, index) => (
     points.length <= 1 ? 0 : Math.round(index * (points.length - 1) / (Math.min(6, points.length) - 1))
   ))));
+  const hoveredPoint = hoverIndex === null ? null : points[hoverIndex] ?? null;
+
+  function setHoverPosition(event: ReactMouseEvent<SVGSVGElement>) {
+    const rect = event.currentTarget.getBoundingClientRect();
+    const pointerX = (event.clientX - rect.left) / Math.max(rect.width, 1) * width;
+    const ratio = Math.min(1, Math.max(0, (pointerX - pad.left) / plotWidth));
+    const nextIndex = points.length <= 1 ? 0 : Math.round(ratio * (points.length - 1));
+    setHoverIndex(nextIndex);
+  }
 
   if (!points.length || !availableKeys.length) {
     return <div className="exchange-volume-empty">No exchange-volume history was returned by the API for this range.</div>;
@@ -388,7 +409,14 @@ function ExchangeVolumeChart({
           Select at least one exchange with data for this range.
         </div>
       ) : <div className="exchange-volume-chart-scroll">
-        <svg className="exchange-volume-chart" viewBox={`0 0 ${width} ${height}`} role="img" aria-label="Daily exchange volume history">
+        <svg
+          className="exchange-volume-chart"
+          viewBox={`0 0 ${width} ${height}`}
+          role="img"
+          aria-label="Daily exchange volume history"
+          onMouseMove={setHoverPosition}
+          onMouseLeave={() => setHoverIndex(null)}
+        >
           {[0, .25, .5, .75, 1].map(ratio => {
             const chartY = pad.top + plotHeight - ratio * plotHeight;
             return (
@@ -420,7 +448,55 @@ function ExchangeVolumeChart({
               {formatShortDate(points[index].date)}
             </text>
           ))}
+          {hoveredPoint && hoverIndex !== null ? (
+            <g className="exchange-volume-hover-layer">
+              <line
+                className="exchange-volume-hover-line"
+                x1={x(hoverIndex)}
+                x2={x(hoverIndex)}
+                y1={pad.top}
+                y2={height - pad.bottom}
+                vectorEffect="non-scaling-stroke"
+              />
+              {activeKeys.map(key => {
+                const value = hoveredPoint.values[key];
+                if (!Number.isFinite(value)) return null;
+                const colorIndex = availableKeys.indexOf(key);
+                return (
+                  <circle
+                    className="exchange-volume-hover-dot"
+                    key={`hover-${key}`}
+                    cx={x(hoverIndex)}
+                    cy={y(value)}
+                    r="3"
+                    fill={chartColors[colorIndex % chartColors.length]}
+                    vectorEffect="non-scaling-stroke"
+                  />
+                );
+              })}
+            </g>
+          ) : null}
         </svg>
+        {hoveredPoint && hoverIndex !== null ? (
+          <div
+            className={`exchange-volume-tooltip${x(hoverIndex) > width * .62 ? ' is-right' : ''}`}
+            style={{ left: `${x(hoverIndex) / width * 100}%` }}
+          >
+            <strong>{formatFullDate(hoveredPoint.date)}</strong>
+            {activeKeys.map(key => {
+              const value = hoveredPoint.values[key];
+              if (!Number.isFinite(value)) return null;
+              const colorIndex = availableKeys.indexOf(key);
+              return (
+                <span key={`tooltip-${key}`}>
+                  <i style={{ background: chartColors[colorIndex % chartColors.length] }} />
+                  <em>{displayLabel(key)}</em>
+                  <b>{formatVolume(value)}</b>
+                </span>
+              );
+            })}
+          </div>
+        ) : null}
       </div>}
     </div>
   );
