@@ -24,6 +24,12 @@ type Invitation = {
 
 type RegistrationFilter = 'all' | 'registered' | 'pending';
 type SortDirection = 'newest' | 'oldest';
+type InviteAttempt = {
+  state: 'requesting' | 'success' | 'error';
+  request: { email: string; ticker: string };
+  response?: unknown;
+  error?: string;
+};
 
 const pageSize = 15;
 
@@ -76,6 +82,7 @@ export function UserAccessOperationsClient() {
   const [message, setMessage] = useState('');
   const [email, setEmail] = useState('');
   const [ticker, setTicker] = useState('CURR');
+  const [inviteAttempt, setInviteAttempt] = useState<InviteAttempt | null>(null);
   const [search, setSearch] = useState('');
   const [registrationFilter, setRegistrationFilter] = useState<RegistrationFilter>('all');
   const [tickerFilter, setTickerFilter] = useState('all');
@@ -149,6 +156,13 @@ export function UserAccessOperationsClient() {
     if (page > pageCount) setPage(pageCount);
   }, [page, pageCount]);
 
+  function clearFormFeedback() {
+    if (status === 'error' || message) {
+      setStatus('idle');
+      setMessage('');
+    }
+  }
+
   async function createInvitation(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const normalizedEmail = email.trim().toLowerCase();
@@ -157,18 +171,23 @@ export function UserAccessOperationsClient() {
 
     setStatus('saving');
     setMessage('');
+    const request = { email: normalizedEmail, ticker: normalizedTicker };
+    setInviteAttempt({ state: 'requesting', request });
     try {
-      await authenticatedFetch('/tickers/invite', {
+      const response = await authenticatedFetch('/tickers/invite', {
         method: 'POST',
-        body: JSON.stringify({ email: normalizedEmail, ticker: normalizedTicker }),
+        body: JSON.stringify(request),
       });
+      setInviteAttempt({ state: 'success', request, response });
       setEmail('');
       setTicker(normalizedTicker);
       await loadInvitations();
       setMessage(`Invitation created for ${normalizedEmail} with access to ${normalizedTicker}.`);
     } catch (error) {
+      const reason = error instanceof Error ? error.message : 'Unable to create invitation.';
+      setInviteAttempt({ state: 'error', request, error: reason });
       setStatus('error');
-      setMessage(error instanceof Error ? error.message : 'Unable to create invitation.');
+      setMessage(`Invitation for ${normalizedEmail} failed. ${reason}`);
     }
   }
 
@@ -191,7 +210,7 @@ export function UserAccessOperationsClient() {
             <h2>Invite User</h2>
           </div>
           <span className={`ops-status ${status === 'error' ? 'bad' : ''}`}>
-            {status === 'loading' ? 'loading' : status === 'saving' ? 'sending' : 'operator'}
+            {status === 'loading' ? 'loading' : status === 'saving' ? 'sending' : status === 'error' ? 'error' : 'operator'}
           </span>
         </div>
         <form className="ops-access-invite-form" onSubmit={createInvitation}>
@@ -202,7 +221,10 @@ export function UserAccessOperationsClient() {
               type="email"
               required
               value={email}
-              onChange={event => setEmail(event.target.value)}
+              onChange={event => {
+                setEmail(event.target.value);
+                clearFormFeedback();
+              }}
               placeholder="user@example.com"
             />
           </label>
@@ -213,17 +235,29 @@ export function UserAccessOperationsClient() {
               required
               maxLength={10}
               value={ticker}
-              onChange={event => setTicker(event.target.value.toUpperCase())}
+              onChange={event => {
+                setTicker(event.target.value.toUpperCase());
+                clearFormFeedback();
+              }}
               placeholder="CURR"
             />
+          </label>
+          <label>
+            <span>Account role</span>
+            <select value="USER" disabled aria-label="Account role assigned by the invitation API">
+              <option value="USER">USER (API default)</option>
+            </select>
           </label>
           <button className="ops-primary-button" type="submit" disabled={status === 'saving' || status === 'loading'}>
             {status === 'saving' ? 'Sending...' : 'Send Invitation'}
           </button>
         </form>
         {message && (
-          <p className={`ops-form-message ${status === 'error' ? 'bad' : 'good'}`}>{message}</p>
+          <p className={`ops-form-message ${status === 'error' ? 'bad' : 'good'}`} role="status" aria-live="polite">{message}</p>
         )}
+        <p className="ops-access-contract-note">
+          <strong>Invitation API limits:</strong> New invitations use the backend&apos;s default USER role. Role selection and invitation deletion are not supported by /tickers/invite.
+        </p>
       </section>
 
       <section className="ops-panel ops-access-history-panel">
@@ -308,13 +342,29 @@ export function UserAccessOperationsClient() {
       <OperationsDevelopmentData
         title="Ticker Invitation API Response"
         description="Operator-only invitation records returned by the access API."
-        rows={[{
-          endpoint: 'GET /tickers/invite',
-          source: 'Backend API',
-          state: status,
-          recordCount: invitations.length,
-          payload: rawPayload ?? { status, message },
-        }]}
+        rows={[
+          {
+            endpoint: 'GET /tickers/invite',
+            source: 'Backend API',
+            state: status,
+            recordCount: invitations.length,
+            payload: rawPayload ?? { status, message },
+          },
+          ...(inviteAttempt ? [{
+            endpoint: 'POST /tickers/invite',
+            source: 'Backend API',
+            state: inviteAttempt.state,
+            payload: {
+              request: inviteAttempt.request,
+              response: inviteAttempt.response,
+              error: inviteAttempt.error,
+              apiCapabilities: {
+                roleSelection: false,
+                invitationDeletion: false,
+              },
+            },
+          }] : []),
+        ]}
       />
     </>
   );

@@ -5582,6 +5582,20 @@ html[data-design-b-theme="dark"] :where(
   color: #e8eff8;
 }
 
+html[data-design-b-theme="dark"] .ops-access-invite-form select:disabled {
+  border-color: #334155;
+  color: #9fb0c5;
+  background: #202c3d;
+}
+
+html[data-design-b-theme="dark"] .ops-access-contract-note {
+  color: #9fb0c5;
+}
+
+html[data-design-b-theme="dark"] .ops-access-contract-note strong {
+  color: #d7e1ed;
+}
+
 html[data-design-b-theme="dark"] :where(.ops-table, .ops-record-table, .ops-access-table) th {
   border-color: #334155;
   background: #172235;
@@ -6083,7 +6097,7 @@ html[data-design-b-theme="dark"] .ops-import-refreshed {
 
 .ops-access-invite-form {
   display: grid;
-  grid-template-columns: minmax(260px, 1.5fr) minmax(160px, .6fr) auto;
+  grid-template-columns: minmax(260px, 1.5fr) minmax(150px, .55fr) minmax(130px, .45fr) auto;
   align-items: end;
   gap: 12px;
 }
@@ -6105,6 +6119,7 @@ html[data-design-b-theme="dark"] .ops-import-refreshed {
 }
 
 .ops-access-invite-form input,
+.ops-access-invite-form select,
 .ops-access-toolbar input,
 .ops-access-toolbar select {
   min-height: 36px;
@@ -6120,10 +6135,30 @@ html[data-design-b-theme="dark"] .ops-import-refreshed {
 }
 
 .ops-access-invite-form input:focus,
+.ops-access-invite-form select:focus,
 .ops-access-toolbar input:focus,
 .ops-access-toolbar select:focus {
   border-color: #93c5fd;
   box-shadow: 0 0 0 3px rgba(37, 99, 235, .1);
+}
+
+.ops-access-invite-form select:disabled {
+  color: #516178;
+  background: #f2f5f9;
+  cursor: not-allowed;
+  opacity: 1;
+}
+
+.ops-access-contract-note {
+  margin: 11px 0 0;
+  color: #64748b;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1.45;
+}
+
+.ops-access-contract-note strong {
+  color: #334155;
 }
 
 .ops-access-toolbar {

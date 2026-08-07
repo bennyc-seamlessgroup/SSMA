@@ -7,7 +7,7 @@ export type SocialPlatform = 'Reddit' | 'X' | 'Facebook' | 'Linkedin' | 'Stocktw
 export type SocialMention = {
   id: string;
   key: string;
-  tradeDate: string;
+  postDate: string;
   platform: SocialPlatform;
   query: string;
   timestamp: string;
@@ -85,32 +85,20 @@ function timestampFromKey(value: unknown) {
   const key = text(value);
   const timestampMatch = key.match(/(\d{4}-\d{2}-\d{2}T\d{2})_(\d{2})_(\d{2}(?:\.\d+)?Z)/i);
   if (timestampMatch) return `${timestampMatch[1]}:${timestampMatch[2]}:${timestampMatch[3]}`;
-  const dateMatch = key.match(/(?:^|\/)(\d{4}-\d{2}-\d{2})(?:\/|_)/);
-  return dateMatch ? `${dateMatch[1]}T00:00:00Z` : '';
+  return '';
 }
 
-function tradeDateFromKey(value: unknown) {
-  const segments = text(value).split('/');
-  return segments.find(segment => /^\d{4}-\d{2}-\d{2}$/.test(segment)) ?? '';
-}
-
-function normalizedTradeDate(row: Record<string, unknown>, key: string) {
+function normalizedPostDate(row: Record<string, unknown>, timestamp: string) {
   const candidate = text(
-    row.tradeDate
-    ?? row.trade_date
-    ?? row.tradingDay
-    ?? row.trading_day
-    ?? row.assignedTradeDate
-    ?? row.assigned_trade_date
-    ?? row.targetDate
-    ?? row.target_date
-    ?? row.calculatedTargetDate
-    ?? row.calculated_target_date
-    ?? row.bucketStart
-    ?? row.bucket_start,
+    row.postDate
+    ?? row.post_date
+    ?? row.actualDate
+    ?? row.actual_date
+    ?? row.publishedDate
+    ?? row.published_date,
   ).trim();
   const datePrefix = candidate.match(/^\d{4}-\d{2}-\d{2}/)?.[0] ?? '';
-  return datePrefix || tradeDateFromKey(key);
+  return datePrefix || timestamp.match(/^\d{4}-\d{2}-\d{2}/)?.[0] || '';
 }
 
 function normalizedTimestamp(values: unknown[], key: string) {
@@ -160,8 +148,6 @@ export function normalizeSocialMention(value: unknown): SocialMention {
     row.timestamp,
     row.eventDate,
     row.event_date,
-    row.bucketStart,
-    row.bucket_start,
     row.createdAt,
     row.created_at,
     row.created_utc,
@@ -171,12 +157,14 @@ export function normalizeSocialMention(value: unknown): SocialMention {
     sourceRow.created_utc,
     row.date,
     sourceRow.date,
+    row.bucketStart,
+    row.bucket_start,
   ], key);
 
   return {
     id,
     key,
-    tradeDate: normalizedTradeDate(row, key),
+    postDate: normalizedPostDate(row, timestamp),
     platform: normalizeSocialPlatform(platformSource),
     query: text(row.query),
     timestamp,
@@ -268,17 +256,10 @@ export async function getSocialDataPage({
         ? data.records
         : [];
     records = recordValues.length
-      ? recordValues.map(value => {
-        const mention = normalizeSocialMention(value);
-        return {
-          ...mention,
-          ...(platform ? { platform } : {}),
-          // A date-scoped /social-data response is partitioned by the
-          // backend-assigned trading day. Keep that canonical assignment
-          // separate from the post's original timestamp.
-          ...(date ? { tradeDate: date } : {}),
-        };
-      })
+      ? recordValues.map(value => ({
+        ...normalizeSocialMention(value),
+        ...(platform ? { platform } : {}),
+      }))
       : [];
     const pagePayload = Object.keys(record(payload.pagination)).length
       ? payload.pagination

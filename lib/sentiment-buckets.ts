@@ -4,7 +4,6 @@ export type SentimentTone = 'positive' | 'neutral' | 'negative';
 
 export type SentimentBucketInput = {
   timestampMs: number;
-  tradeDate?: string;
   platform: Exclude<SentimentPlatformFilter, 'All'>;
   score: number;
   sentiment: SentimentTone;
@@ -16,9 +15,6 @@ export type SentimentBucket = {
   tooltipLabel: string;
   startMs: number;
   endMs: number;
-  apiDateZone?: 'utc';
-  tradeDateFrom?: string;
-  tradeDateTo?: string;
 };
 
 export type AggregatedSentimentBucket = SentimentBucket & {
@@ -35,39 +31,35 @@ const hourMs = 60 * 60 * 1000;
 
 function startOfHour(value: number) {
   const date = new Date(value);
-  date.setMinutes(0, 0, 0);
+  date.setUTCMinutes(0, 0, 0);
   return date.getTime();
 }
 
 function startOfDay(value: number) {
   const date = new Date(value);
-  date.setHours(0, 0, 0, 0);
+  date.setUTCHours(0, 0, 0, 0);
   return date.getTime();
 }
 
 function startOfMonth(value: number) {
   const date = new Date(value);
-  date.setDate(1);
-  date.setHours(0, 0, 0, 0);
+  date.setUTCDate(1);
+  date.setUTCHours(0, 0, 0, 0);
   return date.getTime();
 }
 
 function addMonths(value: number, months: number) {
   const date = new Date(value);
-  date.setMonth(date.getMonth() + months);
+  date.setUTCMonth(date.getUTCMonth() + months);
   return date.getTime();
 }
 
 function fmt(value: number, options: Intl.DateTimeFormatOptions) {
-  return new Intl.DateTimeFormat('en-US', options).format(new Date(value));
+  return new Intl.DateTimeFormat('en-US', { ...options, timeZone: 'UTC' }).format(new Date(value));
 }
 
 function bucket(id: string, startMs: number, endMs: number, label: string, tooltipLabel = label): SentimentBucket {
   return { id, startMs, endMs, label, tooltipLabel };
-}
-
-function isoDate(value: number) {
-  return new Date(value).toISOString().slice(0, 10);
 }
 
 export function alignSentimentBucketsToTimeline(
@@ -90,9 +82,6 @@ export function alignSentimentBucketsToTimeline(
       ...item,
       startMs,
       endMs: startMs + (item.endMs - item.startMs),
-      apiDateZone: 'utc' as const,
-      tradeDateFrom: isoDate(startMs),
-      tradeDateTo: isoDate(matchingStarts[matchingStarts.length - 1]),
     };
   });
 }
@@ -167,16 +156,7 @@ export function aggregateSentimentByBucket(
     let low = 0;
     let high = buckets.length - 1;
     let matchingIndex = -1;
-    if (feed.tradeDate && /^\d{4}-\d{2}-\d{2}$/.test(feed.tradeDate)) {
-      matchingIndex = buckets.findIndex(candidate => (
-        Boolean(candidate.tradeDateFrom && candidate.tradeDateTo)
-        && candidate.endMs - candidate.startMs >= dayMs
-        && feed.tradeDate! >= candidate.tradeDateFrom!
-        && feed.tradeDate! <= candidate.tradeDateTo!
-      ));
-    }
     while (low <= high) {
-      if (matchingIndex >= 0) break;
       const middle = Math.floor((low + high) / 2);
       const candidate = buckets[middle];
       const isLast = middle === buckets.length - 1;

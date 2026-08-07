@@ -4,6 +4,52 @@ This file is the persistent implementation memory for changes made by Codex.
 Read it before modifying existing portal behavior, and update it after every
 completed change.
 
+## 2026-08-07 — Clarify Team Access invitation errors and API capabilities
+
+- Area: Operations Portal → Team Access.
+- APIs/data:
+  - `POST /tickers/invite`
+  - `GET /tickers/invite`
+- Reported problem and root cause:
+  - A `409 Conflict: User already exists in the system` message appeared to
+    apply to every email entered.
+  - The form retained the previous submission or loading error while the email
+    and ticker were edited, so a fresh value looked rejected before another
+    request had been made.
+  - The documented invitation request accepts only `email` and `ticker`; it
+    exposes neither a role field nor a delete operation.
+- Implemented behavior and invariants:
+  - Editing the email or ticker immediately clears stale feedback. A subsequent
+    failure identifies the exact submitted email and retains the backend's full
+    status and reason.
+  - Development Data now records the exact POST request, response or error, and
+    the known role/delete capability flags separately from the invitation list.
+  - The form displays `USER (API default)` as a disabled role value and states
+    that role selection and invitation deletion are not supported by the
+    current `/tickers/invite` contract.
+  - No undocumented `role` property is sent and no guessed DELETE request is
+    exposed. `DELETE /profile` remains self-service profile deletion and is not
+    treated as an operator invitation-delete API.
+  - The panel status badge now reports `error` instead of continuing to say
+    `operator` when a request fails.
+- Files changed:
+  - `app/operations/user-access/UserAccessOperationsClient.tsx`
+  - `app/globals.css`
+  - `lib/portal-page-translations.ts`
+  - `docs/CODEX_CHANGE_LOG.md`
+- Verification:
+  - TypeScript type-check and whitespace validation passed.
+  - Browser verification confirmed the API-default role field, capability note,
+    responsive form layout, and immediate removal of stale feedback when a new
+    email is entered. The page produced no console errors.
+- Remaining backend dependency / limitation:
+  - If a newly generated email still receives `409` after submission, the
+    Cognito/user duplicate check in `POST /tickers/invite` must be corrected by
+    the backend.
+  - Selectable roles require a documented role field and allowed-role rules on
+    POST. Invitation removal requires a dedicated operator-authorized DELETE
+    endpoint and defined behavior for pending versus registered users.
+
 ## 2026-08-07 - Document the user-scoped Strategic Entities backend fix
 
 - Area: Backend handoff -> Internal Float and Ownership consolidation.
@@ -3763,3 +3809,66 @@ completed change.
   - Consolidation remains asynchronous and has no job-status endpoint. The
     frontend can verify a subsequent ownership output change but cannot inspect
     the backend job itself.
+
+## 2026-08-07 - Group Social Sentiment by actual post date
+
+- Area: User Portal → Social Sentiment → Sentiment Timeline & Social Feed.
+- APIs/data:
+  - `GET /social-data?ticker={ticker}&date={YYYY-MM-DD}&sort=datetime&order=desc`
+  - `GET /social-data?ticker={ticker}&platform={platform}&page=1&limit=100&sort=datetime&order=desc`
+  - `GET /market-data/current?ticker={ticker}&category=sentiment-current`
+  - `GET /market-data/history?ticker={ticker}&category=sentiment-events`
+- User-reported problem and root cause:
+  - The portal grouped and filtered social records by an assigned U.S. trading
+    day. The teams decided that social sentiment must instead use each feed's
+    actual posting date.
+  - The frontend stored a separate `tradeDate`, rejected weekend and holiday
+    filter dates, remapped posts into trading-day buckets, and could fall back
+    to the date embedded in the S3 directory even when the source `datetime`
+    represented a different calendar date.
+- Intended behavior and invariants:
+  - A record's canonical `postDate` comes from an explicit backend actual-date
+    field when present, otherwise from its normalized source `datetime` in UTC.
+    It never comes from `tradeDate`, `targetDate`, `calculatedTargetDate`,
+    `bucketStart`, or an S3 folder date.
+  - Timeline fallback buckets, date filters, and Development Data all use
+    actual post date. Weekend and market-holiday dates are valid and remain
+    separate calendar dates.
+  - Feed cards show only the full posting timestamp in the timezone selected in
+    Settings. They do not show a separate UTC post-date badge, which would be
+    redundant and can display a different calendar day near midnight UTC.
+  - The default feed range is seven calendar dates inclusive, and `See previous
+    7 days` extends the range by seven earlier calendar dates.
+  - The selected portal timezone continues to control the visible post time
+    only; changing it does not move a feed to a different date container.
+  - `sentiment-current` remains authoritative for Timeline totals and platform
+    button counts in the selected 1D/1W/1M/6M/1Y range. `sentiment-events`
+    remains a fallback for missing bucket breakdowns, and raw `/social-data`
+    rows do not resize consolidated totals.
+  - Newest/oldest sorting, request-race protection, deduplication, platform
+    normalization, and existing paging behavior remain intact.
+  - Because the current API contract allows `date` to match legacy S3 target or
+    calculated dates as well as post date, each date-scoped response is
+    defensively filtered by the normalized canonical `postDate` before display.
+- Files changed:
+  - `app/monitor/[ticker]/sentiment/SentimentBrowserPage.tsx`
+  - `app/monitor/[ticker]/sentiment/MentionFeedCards.tsx`
+  - `app/monitor/[ticker]/sentiment/SentimentTimeline.tsx`
+  - `lib/social-data-api.ts`
+  - `lib/sentiment-buckets.ts`
+  - `lib/portal-page-translations.ts`
+  - `docs/SOCIAL_SENTIMENT_POST_DATE_RULES.md`
+  - `docs/SOCIAL_SENTIMENT_TRADING_DAY_RULES.md` (removed)
+  - `docs/CODEX_CHANGE_LOG.md`
+- Verification:
+  - TypeScript type-check passed.
+  - Production build passed, including static generation for all 29 pages.
+  - Whitespace validation passed.
+  - Browser inspection reached the local portal but the session required a new
+    sign-in, so authenticated live-data visual verification was not available
+    in that browser session.
+- Remaining backend dependency / limitation:
+  - `docs/INTEGRATION (7).md` still documents `GET /social-data?date=` as
+    matching post date, S3 target-bucket date, or calculated target date. The
+    final backend contract should make this filter actual-post-date-only and
+    return an explicit canonical post-date field alongside `datetime`.

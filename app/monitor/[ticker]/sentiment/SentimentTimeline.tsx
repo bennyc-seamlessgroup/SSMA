@@ -90,7 +90,7 @@ export function SentimentTimeline({
         <svg
           viewBox={`0 0 ${chartWidth} ${chart.height}`}
           role="img"
-          aria-label={`${platformLabel(selectedPlatform)} mention volume by assigned U.S. trading day`}
+          aria-label={`${platformLabel(selectedPlatform)} mention volume by actual post date`}
           onMouseLeave={() => setHoveredBucketId(null)}
         >
           {yTicks.map(tick => (
@@ -140,7 +140,7 @@ export function SentimentTimeline({
             className={`narrative-line-tooltip ${tooltipX > chartWidth * .68 ? 'is-right' : ''}`}
             style={{ left: `${(tooltipX / chartWidth) * 100}%` }}
           >
-            <strong>Trading-day bucket: {buckets[tooltipIndex].tooltipLabel}</strong>
+            <strong>Post-date bucket: {buckets[tooltipIndex].tooltipLabel}</strong>
             <span className="focused">
               <i style={{ background: selectedColor }} />
               {platformLabel(selectedPlatform)}

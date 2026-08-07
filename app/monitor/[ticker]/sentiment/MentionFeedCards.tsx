@@ -1,12 +1,10 @@
 'use client';
 
 import { useMemo, useState } from 'react';
-import { isUsMarketTradingDay } from '@/lib/us-market-calendar';
 
 export type MentionFeedRow = {
   timestamp: string;
   timestampMs: number;
-  tradeDate: string;
   platform: string;
   author: string;
   sentiment: 'positive' | 'negative' | 'neutral';
@@ -31,16 +29,6 @@ function sentimentLabel(sentiment: MentionFeedRow['sentiment']) {
   if (sentiment === 'positive') return 'Bullish';
   if (sentiment === 'negative') return 'Bearish';
   return 'Neutral';
-}
-
-function tradingDayLabel(value: string) {
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return 'N/A';
-  return new Intl.DateTimeFormat('en-US', {
-    timeZone: 'UTC',
-    year: 'numeric',
-    month: 'short',
-    day: 'numeric',
-  }).format(new Date(`${value}T00:00:00Z`));
 }
 
 function engagement(row: MentionFeedRow) {
@@ -121,7 +109,7 @@ export function MentionFeedCards({
 }) {
   const [sentimentFilter, setSentimentFilter] = useState<(typeof sentimentFilters)[number]>('All Sentiment');
   const [sortMode, setSortMode] = useState<'recent' | 'oldest' | 'followers' | 'likes' | 'engagement'>('recent');
-  const [tradeDateError, setTradeDateError] = useState('');
+  const [dateRangeError, setDateRangeError] = useState('');
   const filteredRows = useMemo(() => {
     return rows
       .filter(row => sentimentFilter === 'All Sentiment' || sentimentLabel(row.sentiment) === sentimentFilter)
@@ -139,7 +127,7 @@ export function MentionFeedCards({
         {!hidePlatformFilter && <span className="narrative-feed-filter-label">Feed filters</span>}
         <div className="narrative-filter-selects">
           <label className="narrative-date-range-field">
-            <span>Trading day from</span>
+            <span>Post date from</span>
             <input
               type="date"
               value={fromDate}
@@ -147,18 +135,18 @@ export function MentionFeedCards({
               max={toDate}
               onChange={event => {
                 if (!event.target.value) return;
-                if (!isUsMarketTradingDay(event.target.value)) {
-                  setTradeDateError('Select a valid U.S. trading day. Weekends and market holidays are assigned to the preceding trading day.');
+                if (event.target.value > toDate) {
+                  setDateRangeError('Select a valid post-date range.');
                   return;
                 }
-                setTradeDateError('');
+                setDateRangeError('');
                 void onDateRangeChange(event.target.value, toDate);
               }}
-              aria-label="Social feed starting trading day"
+              aria-label="Social feed starting post date"
             />
           </label>
           <label className="narrative-date-range-field">
-            <span>Trading day to</span>
+            <span>Post date to</span>
             <input
               type="date"
               value={toDate}
@@ -166,14 +154,14 @@ export function MentionFeedCards({
               max={maxDate}
               onChange={event => {
                 if (!event.target.value) return;
-                if (!isUsMarketTradingDay(event.target.value)) {
-                  setTradeDateError('Select a valid U.S. trading day. Weekends and market holidays are assigned to the preceding trading day.');
+                if (event.target.value < fromDate) {
+                  setDateRangeError('Select a valid post-date range.');
                   return;
                 }
-                setTradeDateError('');
+                setDateRangeError('');
                 void onDateRangeChange(fromDate, event.target.value);
               }}
-              aria-label="Social feed ending trading day"
+              aria-label="Social feed ending post date"
             />
           </label>
           <select value={sentimentFilter} onChange={event => setSentimentFilter(event.target.value as (typeof sentimentFilters)[number])} aria-label="Sentiment filter">
@@ -188,7 +176,7 @@ export function MentionFeedCards({
           </select>
         </div>
       </div>
-      {tradeDateError && <div className="narrative-trade-date-error" role="alert">{tradeDateError}</div>}
+      {dateRangeError && <div className="narrative-trade-date-error" role="alert">{dateRangeError}</div>}
 
       <div
         className={`narrative-intel-feed${isLoadingRange ? ' is-loading' : ''}`}
@@ -204,7 +192,6 @@ export function MentionFeedCards({
             <div className="narrative-intel-body">
               <div className="narrative-intel-meta">
                 <span className={`narrative-sentiment-pill ${sentimentTone(row.sentiment)}`}>{sentimentLabel(row.sentiment)}</span>
-                <span className="narrative-trade-day-label">Trading day {tradingDayLabel(row.tradeDate)}</span>
                 <time>{row.timestamp}</time>
               </div>
               <h3><HighlightedText text={headline(row)} /></h3>
@@ -235,17 +222,17 @@ export function MentionFeedCards({
             <div className="narrative-feed-loading-message">
               <span className="narrative-feed-loading-spinner" aria-hidden="true" />
               <strong>Loading social feeds…</strong>
-              <small>Updating posts assigned to the selected trading-day range.</small>
+              <small>Updating posts published in the selected post-date range.</small>
             </div>
           </div>
         )}
       </div>
 
       <div className="narrative-feed-pagination" aria-label={`${rows[0]?.platform ?? 'Mention'} feed count`}>
-        <span>Showing {filteredRows.length} posts assigned to selected trading-day range</span>
+        <span>Showing {filteredRows.length} posts in selected post-date range</span>
         {showSeeMore && (
           <button type="button" onClick={() => void onSeeMore()} disabled={!canSeeMore || isLoadingRange}>
-            {isLoadingRange ? 'Loading…' : 'See earlier trading days'}
+            {isLoadingRange ? 'Loading…' : 'See previous 7 days'}
           </button>
         )}
       </div>
