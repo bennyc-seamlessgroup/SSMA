@@ -11,6 +11,7 @@ const zhHant: Record<string, string> = {
   'Source:': '來源：', 'Author:': '作者：', 'Date': '日期', 'Ticker': '股票代碼', 'Category': '類別', 'Notes': '備註',
   'Status': '狀態', 'Role': '角色', 'Account': '帳戶', 'Governance': '管治', 'Policy': '政策', 'Professional': '專業版',
   'Reset Defaults': '重設預設值', 'Rows per page': '每頁列數', 'Page number': '頁碼', 'Open source': '開啟來源',
+  'Reporting Quarter': '申報季度', 'Reporting period unavailable': '申報季度不可用',
   'Start Monitoring': '開始監察', 'Start Exploring': '開始探索', 'Skip tour': '略過導覽', 'Back to Internal Float': '返回內部流通股',
 
   // Operations portal shell
@@ -70,6 +71,9 @@ const zhHant: Record<string, string> = {
   'Ownership %': '持股比例', 'Ownership Change': '持股變動', 'Shares Held (x1000)': '持有股數（千股）',
   'Shares Change': '股數變動', 'Shares Change %': '股數變動百分比', 'File Date': '申報日期', 'Effective Date': '生效日期',
   'Form': '表格', 'Investor': '投資者', 'Activist Filings': '積極投資者申報', 'Search ownership records': '搜尋持股記錄',
+  'Type': '類型', 'Option Type': '期權類型', 'Avg Price Est.': '估算平均價格', 'Shares %': '股份比例',
+  'Reported Value': '申報價值', 'Value Change %': '價值變動百分比', 'Portfolio Allocation': '投資組合配置',
+  'Imported ownership records': '已匯入持股記錄', 'Insider filings': '內部人士申報',
   'Search activist filings': '搜尋積極投資者申報', 'All form types': '所有表格類型',
   'Institutional ownership filings are generally updated quarterly as new 13F and major-holder records become available.': '機構持股申報一般按季更新，並在新的 13F 及主要股東記錄可用時加入。',
   'Schedule 13D / 13G style activist or major-holder filings': 'Schedule 13D／13G 類積極投資者或主要股東申報',
@@ -93,8 +97,7 @@ const zhHant: Record<string, string> = {
   'Collateralized Shares & DeFi Exposure': '抵押股份及 DeFi 風險承擔', 'Collateralized Shares by Chain': '按鏈劃分的抵押股份',
   'DeFi Protocol Exposure': 'DeFi 協議風險承擔', 'Protocol': '協議', 'Provider': '供應商', 'Chain': '區塊鏈',
   'Float Impact': '對流通股的影響', 'Float Reduction': '流通股扣減', 'Outstanding Impact': '尚未處理的影響',
-  'Deducted Holdings': '已扣減持股', 'Internal float activity log': '內部流通股活動記錄', 'Activity Log': '活動記錄',
-  'Permanent audit history for saved workspace input changes.': '已儲存工作區輸入變更的永久審計記錄。',
+  'Deducted Holdings': '已扣減持股',
   'No strategic holders added yet.': '尚未加入策略股東。', 'No tokenized share rows added yet.': '尚未加入代幣化股份列。',
   'No collateralized share rows added yet.': '尚未加入抵押股份列。', 'Sample': '範例', 'Internal Float API Data': '內部流通股 API 資料',
   'Internal Float data unavailable': '內部流通股資料暫時無法使用', 'New to Internal Float?': '初次使用內部流通股頁面？',

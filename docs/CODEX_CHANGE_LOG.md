@@ -4,6 +4,249 @@ This file is the persistent implementation memory for changes made by Codex.
 Read it before modifying existing portal behavior, and update it after every
 completed change.
 
+## 2026-08-07 — Group SEC institution filings into quarterly tables
+
+- Area: User Portal → Ownership → Institutions table.
+- APIs/data:
+  - `GET /manual-input/manual-security-ownership?ticker={ticker}&action=available-dates`
+  - `GET /manual-input/manual-security-ownership?ticker={ticker}&effectiveDate={YYYY-MM-DD}`
+- Reported problem and root cause:
+  - SEC institution filings were displayed as one continuous row-paginated
+    table even though the source records represent quarterly reporting periods.
+  - Column sort controls could also break the intended quarter chronology once
+    records were divided into reporting-period sections.
+- Intended behavior and invariants:
+  - Institution records are grouped by the quarter of `effectiveDate`, with
+    `fileDate` used only when an effective date is unavailable.
+  - Quarter sections are ordered newest first and exactly two quarters are
+    shown per page; rows inside each section are ordered by filing date newest
+    first.
+  - Each quarter has its own header and table surface with a visible gap between
+    adjacent quarters.
+  - Column titles are static labels without sorting controls.
+  - Search continues to cover the complete loaded dataset and then displays
+    matching records in the same quarter-grouped structure.
+  - Institutions continue to use Manual Security Ownership exclusively, all
+    effective-date partitions remain loaded, and Insiders remain unchanged.
+- Files changed:
+  - `app/monitor/[ticker]/institutional/OwnershipTable.tsx`
+  - `app/globals.css`
+  - `lib/portal-page-translations.ts`
+  - `docs/CODEX_CHANGE_LOG.md`
+- Verification:
+  - TypeScript type-check passed.
+  - All seven focused ownership helper tests passed.
+  - Production build passed, including all 29 statically generated pages.
+  - Whitespace validation passed.
+- Remaining backend dependency / limitation:
+  - Accurate quarter grouping depends on the API continuing to provide valid
+    `effectiveDate` values (or `fileDate` where an effective date is absent).
+
+## 2026-08-07 — Load complete Institutions history across effective dates
+
+- Area: User Portal → Ownership → Institutions table.
+- APIs/data:
+  - `GET /manual-input/manual-security-ownership?ticker={ticker}&action=available-dates`
+  - `GET /manual-input/manual-security-ownership?ticker={ticker}&effectiveDate={YYYY-MM-DD}`
+- Reported problem and root cause:
+  - The Institutions table showed only 15 records with the `31 Mar 2026`
+    effective date even though the imported history contains roughly 80
+    records.
+  - The frontend resolved the available-date index but fetched only its newest
+    partition instead of loading the complete imported history.
+- Intended behavior and invariants:
+  - Ownership loads every effective-date partition listed by the Manual
+    Security Ownership API and combines them into one paginated history table.
+  - Historical rows remain distinct across effective dates and are sorted by
+    effective date, then filing date, newest first.
+  - A failed partition does not discard successfully loaded partitions; the
+    Development Data status reports a partial-load warning.
+  - `Option Type` is retained in the raw API data but is removed from the
+    visible Institutions table.
+  - Institutions continue to use Manual Security Ownership exclusively, with
+    no ownership-history fallback. Insiders remain unchanged.
+- Files changed:
+  - `app/monitor/[ticker]/institutional/InstitutionalBrowserPage.tsx`
+  - `app/monitor/[ticker]/institutional/OwnershipTable.tsx`
+  - `docs/CODEX_CHANGE_LOG.md`
+- Verification:
+  - TypeScript type-check passed.
+  - Whitespace validation passed.
+  - All seven focused ownership helper tests passed.
+- Remaining backend dependency / limitation:
+  - Complete history requires the available-date metadata to list every stored
+    effective-date partition.
+
+## 2026-08-07 — Make Manual Security Ownership the exclusive Institutions source
+
+- Area: User Portal → Ownership → Institutions table.
+- APIs/data:
+  - `GET /manual-input/manual-security-ownership?ticker={ticker}&action=available-dates`
+  - `GET /manual-input/manual-security-ownership?ticker={ticker}&effectiveDate={YYYY-MM-DD}`
+  - `GET /market-data/history?category=ownership-history` (Insiders only)
+- Reported problem and root cause:
+  - The first Manual Security Ownership integration still substituted
+    ownership-history institution records when the newest manual partition was
+    empty or unavailable.
+  - That fallback obscured whether the imported Manual Input dataset was
+    actually present and retained the older institution source implicitly.
+- Intended behavior and invariants:
+  - The Institutions table reads only the newest Manual Security Ownership
+    partition and never substitutes ownership-history institution rows.
+  - If the Manual Input endpoint fails or has no records, the Institutions tab
+    stays empty and displays the specific API reason or an explicit no-imported-
+    records message.
+  - The Manual Input table schema remains active even when empty. Its frontend
+    columns explicitly include `Type` and `Avg Price Est.` along with the other
+    imported CSV fields.
+  - The Ownership Development Data panel no longer presents a separate
+    Security Ownership History institution table.
+  - Insiders temporarily continue to read activist/major-holder records from
+    ownership-history until an alternative source is approved.
+  - Ownership Current KPIs, Institution Holdings Breakdown, Strategic
+    Entities, and all raw Manual Input fields remain unchanged.
+- Files changed:
+  - `app/monitor/[ticker]/institutional/InstitutionalBrowserPage.tsx`
+  - `app/monitor/[ticker]/institutional/InstitutionalDevTables.tsx`
+  - `app/monitor/[ticker]/institutional/InstitutionalTabs.tsx`
+  - `app/monitor/[ticker]/institutional/OwnershipTable.tsx`
+  - `lib/portal-page-translations.ts`
+  - `docs/CODEX_CHANGE_LOG.md`
+- Verification:
+  - TypeScript type-check and whitespace validation passed.
+  - All seven focused ownership helper tests passed.
+  - The production build passed, including all 29 statically generated pages.
+- Remaining backend dependency / limitation:
+  - Insiders still depend on ownership-history by explicit temporary decision.
+  - Older Manual Security Ownership partitions are not yet selectable from the
+    user-facing Ownership page.
+
+## 2026-08-07 — Stop zeroing Strategic Entities during snapshot refresh
+
+- Area: User Portal → Ownership → Ownership Structure and Strategic Entities.
+- APIs/data:
+  - `GET /market-data/current?ticker={ticker}&category=internal-float-current-user`
+  - `GET /manual-input/internal-float-inputs-user?ticker={ticker}`
+- Reported problem and root cause:
+  - The Strategic Entities detail panel correctly showed the current user's
+    holding records, but the Ownership Structure donut showed zero.
+  - A frontend equality gate accepted the consolidated total only when it
+    exactly matched the separately fetched raw input total. During normal
+    consolidation or cache delay, any mismatch was converted to zero even when
+    the consolidated endpoint contained a valid value.
+- Intended behavior and invariants:
+  - The donut and calculated Public Float use the consolidated
+    `internal-float-current-user` snapshot directly.
+  - The page never substitutes `ownership-current.strategicEntities` or raw
+    manual-input holdings into the donut calculation.
+  - Raw user holdings continue to populate the Strategic Entities detail panel
+    and to detect whether the consolidated snapshot needs polling.
+  - A temporary mismatch remains visible in Development Data and triggers the
+    existing refresh polling; it does not synthesize a zero value.
+  - User isolation continues to depend on the authenticated current-user API
+    contract and must not fall back to a ticker-wide snapshot.
+- Files changed:
+  - `app/monitor/[ticker]/institutional/InstitutionalBrowserPage.tsx`
+  - `app/monitor/[ticker]/institutional/InstitutionalDevTables.tsx`
+  - `docs/CODEX_CHANGE_LOG.md`
+- Verification:
+  - TypeScript type-check passed.
+  - Whitespace validation passed.
+- Remaining backend dependency / limitation:
+  - `internal-float-current-user` must return the requesting user's snapshot.
+    The current response has no explicit scope metadata, so the frontend cannot
+    independently detect an incorrect ticker-wide backend fallback.
+
+## 2026-08-07 — Display imported Manual Security Ownership records
+
+- Area: User Portal → Ownership → Institutions and Development Data.
+- APIs/data:
+  - `GET /manual-input/manual-security-ownership?ticker={ticker}&action=available-dates`
+  - `GET /manual-input/manual-security-ownership?ticker={ticker}&effectiveDate={YYYY-MM-DD}`
+  - `GET /market-data/history?category=ownership-history`
+- Reported problem and root cause:
+  - Operations can import the complete Manual Security Ownership CSV, including
+    filing and effective dates, but the user-facing Institutions table read
+    only the consolidated ownership-history dataset.
+  - The imported records are date-partitioned and therefore require resolving
+    the latest available effective date before reading the corresponding raw
+    records.
+- Intended behavior and invariants:
+  - Ownership resolves the latest available Manual Security Ownership effective
+    date and reads that partition directly from the authenticated Manual Input
+    API with cache disabled.
+  - When imported rows are present, they become the Institutions table's
+    primary source. CSV fields are mapped without frontend-derived replacement
+    values: `investor` to Investor, `source` to Source, `avgPriceEst` to Average
+    Price Est., `sharesPct` to Shares %, `reportedValue` to Reported Value, and
+    the remaining template fields to their matching columns.
+  - The source endpoint includes the selected effective date, and Development
+    Data exposes all 12 raw CSV-contract columns plus any API error.
+  - If no imported partition is available, the existing ownership-history
+    institution rows remain as a compatibility fallback rather than leaving
+    the page empty.
+  - Insiders continue to use ownership-history because the Manual Security
+    Ownership contract is institutional and provides no reliable insider or
+    activist classification field.
+  - Ownership Current KPIs, ownership structure, user-scoped Strategic
+    Entities, and the previously accepted zero/Put/Call filtering of the
+    Institution Holdings Breakdown remain unchanged.
+- Files changed:
+  - `app/monitor/[ticker]/institutional/InstitutionalBrowserPage.tsx`
+  - `app/monitor/[ticker]/institutional/InstitutionalDevTables.tsx`
+  - `app/monitor/[ticker]/institutional/InstitutionalTabs.tsx`
+  - `app/monitor/[ticker]/institutional/OwnershipTable.tsx`
+  - `lib/current-data-sources.ts`
+  - `lib/portal-page-translations.ts`
+  - `lib/types.ts`
+  - `docs/CODEX_CHANGE_LOG.md`
+- Verification:
+  - TypeScript type-check and whitespace validation passed.
+  - All seven focused ownership helper tests passed.
+  - The production build passed, including all 29 statically generated pages.
+  - The local Ownership route compiled, returned HTTP 200, and produced no
+    page-level console errors. The public demo session remained unauthenticated
+    for centralized APIs, so populated Manual Input rows could not be visually
+    inspected in that browser session.
+- Remaining backend dependency / limitation:
+  - The API exposes records in effective-date partitions. This first Ownership
+    view intentionally displays the newest imported partition; browsing older
+    imported partitions would require a future reporting-date selector.
+
+## 2026-08-07 — Remove the Internal Float Activity Log
+
+- Area: User Portal → Internal Float.
+- API/data:
+  - `GET /market-data/current?category=internal-float-current-user`
+  - `GET/PUT /manual-input/internal-float-inputs-user?ticker={ticker}`
+  - `GET/PUT /manual-input/internal-float-inputs-ticker?ticker={ticker}`
+- Reported problem and root cause:
+  - The page presented an Activity Log as permanent audit history even though
+    its UI also generated browser-only demo/session entries and there is no
+    approved audit-log product contract for this page.
+  - This could imply durable history where none was guaranteed.
+- Intended behavior and invariants:
+  - Internal Float no longer renders, builds, merges, or stores activity-log
+    entries in frontend state.
+  - API `auditLog` fields, if present, are ignored by this page.
+  - Management/Strategic, tokenized, collateralized, suggestion-decision, and
+    consolidation behavior remains unchanged.
+- Files changed:
+  - `app/monitor/[ticker]/internal-float/InternalFloatClient.tsx`
+  - `app/monitor/[ticker]/internal-float/InternalFloatRoleView.tsx`
+  - `app/monitor/[ticker]/internal-float/InternalFloatPageTour.tsx`
+  - `app/globals.css`
+  - `app/portal-theme.css`
+  - `lib/internal-float-types.ts`
+  - `lib/internal-float-audit.ts` (removed)
+  - `lib/portal-page-translations.ts`
+  - `docs/CODEX_CHANGE_LOG.md`
+- Verification:
+  - TypeScript type-check and whitespace validation performed.
+- Remaining backend dependency / limitation:
+  - A future audit feature should be reintroduced only with a documented,
+    durable, user-attributed backend audit API.
+
 ## 2026-08-07 — Restore ordinary Internal Float holding saves on the current API
 
 - Area: User Portal → Internal Float → Management / Strategic Holdings.

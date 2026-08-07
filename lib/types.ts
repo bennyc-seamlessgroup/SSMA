@@ -1,4 +1,4 @@
-export type SourceType = 'mock' | 'pending_api' | 'free_data' | 'fintel';
+export type SourceType = 'mock' | 'pending_api' | 'free_data' | 'fintel' | 'manual-security-ownership';
 
 export type SourceMeta = {
   source_type: SourceType;
@@ -72,6 +72,9 @@ export type InstitutionalHolding = SourceMeta & {
   effective_date?: string;
   owner_url?: string;
   cost_basis?: string;
+  option_type?: string;
+  holding_type?: string;
+  portfolio_allocation?: string;
 };
 
 export type OptionsData = SourceMeta & {

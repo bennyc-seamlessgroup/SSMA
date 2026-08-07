@@ -2,14 +2,10 @@
 
 import { InfoTooltip } from '@/components/InfoTooltip';
 import { PortalPageLoading } from '@/components/PortalPageLoading';
-import { authenticatedFetch, getCurrentUser, invalidateAuthenticatedFetchCache } from '@/lib/auth-client';
+import { authenticatedFetch, invalidateAuthenticatedFetchCache } from '@/lib/auth-client';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import type { FloatAdjustments, InternalFloatUserInput, ManagementSuggestionDecision, ManualHolding } from '@/lib/internal-float-types';
-import {
-  buildInternalFloatActivity,
-  type InternalFloatActivityItem,
-} from '@/lib/internal-float-audit';
 import { signedRecordDifference } from '@/lib/operations/ownership-entry.js';
 import { formatCompactQuantity as compact } from '@/lib/number-format';
 
@@ -118,30 +114,8 @@ function rowsMatch(left: unknown[], right: unknown[]) {
   return JSON.stringify(left.map(canonicalize)) === JSON.stringify(right.map(canonicalize));
 }
 
-function mergeActivityLogs(
-  current: InternalFloatActivityItem[],
-  incoming: InternalFloatActivityItem[],
-) {
-  const unique = new Map<string, InternalFloatActivityItem>();
-  [...incoming, ...current].forEach((item, index) => {
-    unique.set(item.id || `${item.createdAt}-${item.section}-${index}`, item);
-  });
-  return Array.from(unique.values()).sort((left, right) => right.createdAt.localeCompare(left.createdAt));
-}
-
 function id(prefix: string) {
   return `${prefix}-${Date.now()}-${Math.random().toString(16).slice(2)}`;
-}
-
-function formatActivityTime(value: string) {
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return value;
-  return date.toLocaleString('en-US', {
-    month: 'short',
-    day: 'numeric',
-    hour: 'numeric',
-    minute: '2-digit',
-  });
 }
 
 function sectionLabel(panel: Exclude<EditPanel, null>) {
@@ -423,7 +397,6 @@ export function InternalFloatClient({
   const [savedCollateralChains, setSavedCollateralChains] = useState<CollateralChain[]>(() => initialUserInputs.collateralChains);
   const [apiStatus, setApiStatus] = useState<'idle' | 'loading' | 'saving' | 'saved' | 'error'>('idle');
   const [apiMessage, setApiMessage] = useState('');
-  const [activityLog, setActivityLog] = useState<InternalFloatActivityItem[]>(() => initialUserInputs.activityLog ?? []);
   const [expandedPrivateNotes, setExpandedPrivateNotes] = useState<string[]>([]);
   const [tokenizationReminder, setTokenizationReminder] = useState<TokenizationReminder | null>(null);
   const [ownershipUpdatePrompt, setOwnershipUpdatePrompt] = useState<OwnershipUpdatePrompt | null>(null);
@@ -471,10 +444,6 @@ export function InternalFloatClient({
       custodyRows: [],
       tokenChains: tokenized?.records ?? [],
       collateralChains: collateralized?.records ?? [],
-      activityLog: mergeActivityLogs(
-        activityLog,
-        Array.isArray(responsePayload.auditLog) ? responsePayload.auditLog as InternalFloatActivityItem[] : [],
-      ),
     };
   }
 
@@ -528,11 +497,6 @@ export function InternalFloatClient({
     setCollateralChains(current => current.map(row => row.id === id ? { ...row, ...patch } : row));
   }
 
-  function activityActor() {
-    const user = getCurrentUser();
-    return String(user?.email || user?.name || user?.nickname || user?.sub || 'Demo user');
-  }
-
   async function dismissInsiderSuggestion(row: InsiderSuggestionSource) {
     const suggestionId = sourceSuggestionId(row);
     const nextDecision = suggestionDecision(row, 'discarded');
@@ -552,7 +516,6 @@ export function InternalFloatClient({
         throw new Error('The backend did not persist this user-specific suggestion decision. Deploy managementSuggestionDecisions support before retrying.');
       }
       setSuggestionDecisions(updated.managementSuggestionDecisions ?? []);
-      setActivityLog(updated.activityLog ?? []);
       setApiStatus('saved');
       setApiMessage('Suggestion dismissed for your account.');
     } catch (error) {
@@ -614,10 +577,6 @@ export function InternalFloatClient({
       setSuggestionDecisions(nextDecisions);
       setApiStatus('saved');
       setApiMessage(`${holderName} was updated for this demo session. Changes will reset when the page reloads.`);
-      setActivityLog(current => [
-        ...buildInternalFloatActivity('privateHoldings', privateHoldings, nextRows, activityActor()),
-        ...current,
-      ]);
       setSuggestionActionId(null);
       setActiveSuggestion(null);
       return;
@@ -635,7 +594,6 @@ export function InternalFloatClient({
       setPrivateHoldings(updated.privateHoldings);
       setSavedPrivateHoldings(updated.privateHoldings);
       setSuggestionDecisions(updated.managementSuggestionDecisions ?? []);
-      setActivityLog(updated.activityLog ?? []);
       setApiStatus('saved');
       setApiMessage(`${holderName} was updated in Management / Strategic Holdings.`);
       setActiveSuggestion(null);
@@ -822,23 +780,7 @@ export function InternalFloatClient({
       setApiStatus('saved');
       setApiMessage('Demo changes applied for this session only. No data was saved.');
       setEditPanel(null);
-      if (diff.changed > 0) {
-        const beforeRows = savedPanel === 'private'
-          ? savedPrivateHoldings
-          : savedPanel === 'tokenized'
-            ? savedTokenChains
-            : savedCollateralChains;
-        setActivityLog(current => [
-          ...buildInternalFloatActivity(
-            userInputSections[savedPanel],
-            beforeRows,
-            payload,
-            activityActor(),
-          ),
-          ...current,
-        ]);
-        if (savedPanel === 'tokenized') setTokenizationReminder(tokenizationReminderFor(diff));
-      }
+      if (diff.changed > 0 && savedPanel === 'tokenized') setTokenizationReminder(tokenizationReminderFor(diff));
       return;
     }
 
@@ -872,7 +814,6 @@ export function InternalFloatClient({
 
       setApiStatus('saved');
       setApiMessage('Saved.');
-      setActivityLog(updated.activityLog ?? []);
       setEditPanel(null);
       if (diff.changed > 0) {
         if (savedPanel === 'tokenized') setTokenizationReminder(tokenizationReminderFor(diff));
@@ -887,36 +828,6 @@ export function InternalFloatClient({
       setApiStatus('error');
       setApiMessage(error instanceof Error ? error.message : 'Unable to save user inputs.');
     }
-  }
-
-  function renderActivityLog() {
-    return (
-      <aside className="terminal-card internal-float-activity-card" aria-label="Internal float activity log">
-        <div className="internal-float-activity-list">
-          {activityLog.length ? (
-            activityLog.map(item => (
-              <article key={item.id} className={`internal-float-activity-item ${item.action.toLowerCase()}`}>
-                <i aria-hidden="true" />
-                <div>
-                  <div>
-                    <strong>{item.label}</strong>
-                    <time>{formatActivityTime(item.createdAt)}</time>
-                  </div>
-                  <p>{item.section}</p>
-                  <small>{item.detail}</small>
-                  <small className="internal-float-activity-actor">By {item.actor || 'Unknown user'}</small>
-                </div>
-              </article>
-            ))
-          ) : (
-            <div className="internal-float-activity-empty">
-              <strong>No saved changes yet</strong>
-              <p>Saved record changes will appear here after you update an input section.</p>
-            </div>
-          )}
-        </div>
-      </aside>
-    );
   }
 
   function renderEditModal() {
@@ -1380,15 +1291,6 @@ export function InternalFloatClient({
         </div>
       </section>
 
-      <section className="terminal-section internal-float-activity-section">
-        <div className="terminal-section__head">
-          <div>
-            <h2>Activity Log</h2>
-            <p className="section-subtitle">Permanent audit history for saved workspace input changes.</p>
-          </div>
-        </div>
-        {renderActivityLog()}
-      </section>
       {renderEditModal()}
       {tokenizationReminder && (
         <div className="modal-backdrop" role="presentation" onMouseDown={() => setTokenizationReminder(null)}>

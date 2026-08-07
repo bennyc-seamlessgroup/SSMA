@@ -23151,6 +23151,49 @@ html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .dashbo
   border-radius: 10px;
   background: #fff;
 }
+.ownership-quarter-groups {
+  display: grid;
+  gap: 18px;
+}
+.ownership-quarter-group {
+  overflow: hidden;
+  border: 1px solid #dbe6f3;
+  border-radius: 10px;
+  background: #fff;
+}
+.ownership-quarter-group__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 11px 14px;
+  background: #f7faff;
+}
+.ownership-quarter-group__head span {
+  display: block;
+  color: #64748b;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+}
+.ownership-quarter-group__head h3 {
+  margin: 3px 0 0;
+  color: #10251b;
+  font-size: 15px;
+  line-height: 1.2;
+}
+.ownership-quarter-group__head small {
+  color: #5d7089;
+  font-size: 12px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+.ownership-quarter-group .ownership-table-wrap {
+  border: 0;
+  border-top: 1px solid #e3e8ef;
+  border-radius: 0;
+}
 .ownership-table {
   width: 100%;
   min-width: 920px;
@@ -24219,6 +24262,28 @@ html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .instit
 
 html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .institutional-page .ownership-table {
   background: rgba(10, 21, 38, .86);
+}
+
+html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .institutional-page .ownership-quarter-group {
+  border-color: rgba(148, 163, 184, .18);
+  background: rgba(10, 21, 38, .86);
+}
+
+html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .institutional-page .ownership-quarter-group__head {
+  background: #101d31;
+}
+
+html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .institutional-page .ownership-quarter-group__head span,
+html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .institutional-page .ownership-quarter-group__head small {
+  color: #8fa3bd;
+}
+
+html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .institutional-page .ownership-quarter-group__head h3 {
+  color: #d8e4f2;
+}
+
+html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .institutional-page .ownership-quarter-group .ownership-table-wrap {
+  border-color: rgba(148, 163, 184, .12);
 }
 
 html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .institutional-page .ownership-table th {
@@ -26232,15 +26297,13 @@ html[data-portal-design="b"] .monitor-portal .internal-float-page .terminal-sect
 
 html[data-portal-design="b"] .monitor-portal .internal-float-page .terminal-section__head h2,
 html[data-portal-design="b"] .monitor-portal .internal-float-story-card h3,
-html[data-portal-design="b"] .monitor-portal .internal-float-embedded-panel h3,
-html[data-portal-design="b"] .monitor-portal .internal-float-activity-head h3 {
+html[data-portal-design="b"] .monitor-portal .internal-float-embedded-panel h3 {
   font-size: 15px;
   font-weight: 600;
   letter-spacing: 0;
 }
 
 html[data-portal-design="b"] .monitor-portal .internal-float-page .terminal-section__head > div > span,
-html[data-portal-design="b"] .monitor-portal .internal-float-activity-head span,
 html[data-portal-design="b"] .monitor-portal .internal-float-waterfall span,
 html[data-portal-design="b"] .monitor-portal .internal-float-value-legend span,
 html[data-portal-design="b"] .monitor-portal .internal-float-ranked-bars span,
@@ -26312,196 +26375,8 @@ html[data-portal-design="b"] .monitor-portal .internal-float-bottom-layout > .te
   height: 100%;
 }
 
-html[data-portal-design="b"] .monitor-portal .internal-float-bottom-layout .internal-float-tree,
-html[data-portal-design="b"] .monitor-portal .internal-float-activity-section .internal-float-activity-card {
+html[data-portal-design="b"] .monitor-portal .internal-float-bottom-layout .internal-float-tree {
   min-height: 430px;
-}
-
-html[data-portal-design="b"] .monitor-portal .internal-float-activity-card {
-  display: grid;
-  grid-template-rows: auto minmax(0, 1fr);
-  min-height: 128px;
-  max-height: 260px;
-  padding: 13px;
-  border-radius: 7px;
-  overflow: hidden;
-}
-
-html[data-portal-design="b"] .monitor-portal .internal-float-activity-section .internal-float-activity-card {
-  min-height: 430px;
-  max-height: 520px;
-  padding: 0;
-  border: 0;
-  background: transparent;
-  grid-template-rows: minmax(0, 1fr);
-}
-
-html[data-portal-design="b"] .monitor-portal .internal-float-activity-section .internal-float-activity-head {
-  padding: 0 0 12px;
-}
-
-html[data-portal-design="b"] .monitor-portal .internal-float-activity-section .internal-float-activity-head h3 {
-  display: none;
-}
-
-html[data-portal-design="b"] .monitor-portal .internal-float-activity-section .internal-float-activity-list {
-  gap: 0;
-  padding: 4px 6px 4px 0;
-}
-
-html[data-portal-design="b"] .monitor-portal .internal-float-activity-head {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 10px;
-  padding-bottom: 10px;
-  border-bottom: 1px solid #e5e7eb;
-}
-
-html[data-portal-design="b"] .monitor-portal .internal-float-activity-head > div {
-  display: grid;
-  gap: 4px;
-}
-
-html[data-portal-design="b"] .monitor-portal .internal-float-activity-head span {
-  color: #64748d;
-  font-size: 10px;
-  letter-spacing: .09em;
-  text-transform: uppercase;
-}
-
-html[data-portal-design="b"] .monitor-portal .internal-float-activity-head h3 {
-  margin: 0;
-}
-
-html[data-portal-design="b"] .monitor-portal .internal-float-activity-head .button {
-  min-height: 28px;
-  padding: 5px 9px;
-  font-size: 11px;
-}
-
-html[data-portal-design="b"] .monitor-portal .internal-float-activity-list {
-  display: grid;
-  align-content: start;
-  grid-auto-rows: max-content;
-  gap: 0;
-  min-height: 0;
-  overflow: auto;
-  padding-top: 8px;
-}
-
-html[data-portal-design="b"] .monitor-portal .internal-float-activity-item {
-  display: grid;
-  grid-template-columns: 24px minmax(0, 1fr);
-  gap: 10px;
-  position: relative;
-  padding: 0 0 16px;
-}
-
-html[data-portal-design="b"] .monitor-portal .internal-float-activity-item:not(:last-child)::after {
-  content: "";
-  position: absolute;
-  top: 20px;
-  bottom: 0;
-  left: 6px;
-  border-left: 1px dashed #cfd8e5;
-}
-
-html[data-portal-design="b"] .monitor-portal .internal-float-activity-item > i {
-  position: relative;
-  z-index: 1;
-  width: 14px;
-  height: 14px;
-  margin-top: 3px;
-  border: 3px solid #e8f0fb;
-  border-radius: 999px;
-  background: #3b82f6;
-}
-
-html[data-portal-design="b"] .monitor-portal .internal-float-activity-item.deleted > i {
-  background: #ef4444;
-}
-
-html[data-portal-design="b"] .monitor-portal .internal-float-activity-item.saved > i {
-  background: #10b981;
-}
-
-html[data-portal-design="b"] .monitor-portal .internal-float-activity-item.loaded > i {
-  background: #64748b;
-}
-
-html[data-portal-design="b"] .monitor-portal .internal-float-activity-item > div {
-  display: grid;
-  gap: 3px;
-  min-width: 0;
-}
-
-html[data-portal-design="b"] .monitor-portal .internal-float-activity-item > div > div {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 8px;
-}
-
-html[data-portal-design="b"] .monitor-portal .internal-float-activity-item strong {
-  min-width: 0;
-  color: #16243a;
-  font-size: 13px;
-  font-weight: 600;
-  overflow-wrap: anywhere;
-}
-
-html[data-portal-design="b"] .monitor-portal .internal-float-activity-item time {
-  color: #8a99ad;
-  font-size: 10.5px;
-  font-weight: 600;
-  white-space: nowrap;
-}
-
-html[data-portal-design="b"] .monitor-portal .internal-float-activity-item p,
-html[data-portal-design="b"] .monitor-portal .internal-float-activity-item small {
-  margin: 0;
-  color: #64748d;
-  font-size: 12px;
-  line-height: 1.45;
-}
-
-html[data-portal-design="b"] .monitor-portal .internal-float-activity-item .internal-float-activity-actor {
-  margin-top: 2px;
-  color: #3152b4;
-  font-size: 10.5px;
-  font-weight: 600;
-}
-
-html[data-portal-design="b"] .monitor-portal .internal-float-activity-item.removed > i {
-  background: #ef4444;
-}
-
-html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .internal-float-activity-item .internal-float-activity-actor {
-  color: #7eb6f3;
-}
-
-html[data-portal-design="b"] .monitor-portal .internal-float-activity-empty {
-  display: grid;
-  align-content: start;
-  gap: 6px;
-  min-height: 120px;
-  border: 1px dashed #cfd8e5;
-  border-radius: 8px;
-  padding: 14px;
-  color: #64748d;
-}
-
-html[data-portal-design="b"] .monitor-portal .internal-float-activity-empty strong {
-  color: #16243a;
-  font-size: 13px;
-  font-weight: 600;
-}
-
-html[data-portal-design="b"] .monitor-portal .internal-float-activity-empty p {
-  margin: 0;
-  font-size: 12px;
-  line-height: 1.45;
 }
 
 html[data-portal-design="b"] .monitor-portal .internal-float-two-col,
@@ -27681,7 +27556,6 @@ html[data-portal-design="b"] .monitor-portal .internal-float-holder-empty {
 html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .internal-float-tips,
 html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .internal-float-page .terminal-section,
 html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .internal-float-edit-modal,
-html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .internal-float-activity-card,
 html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .internal-float-api-message,
 html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .internal-float-edit-modal .internal-float-manual-list article,
 html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .internal-float-edit-modal .internal-float-manual-list .internal-float-checkbox-field,
@@ -27703,7 +27577,6 @@ html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .intern
 html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .internal-float-page .terminal-section__head,
 html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .internal-float-edit-modal .modal-card__head,
 html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .internal-float-edit-modal .modal-actions,
-html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .internal-float-activity-head,
 html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .internal-float-value-legend div,
 html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .internal-float-tree div {
   border-color: rgba(148, 163, 184, .16);
@@ -27711,8 +27584,6 @@ html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .intern
 
 html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .internal-float-tips,
 html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .internal-float-tips li,
-html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .internal-float-activity-item p,
-html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .internal-float-activity-item small,
 html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .internal-float-api-message,
 html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .internal-float-value-legend span,
 html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .internal-float-ranked-bars span,
@@ -27727,17 +27598,13 @@ html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .intern
 
 html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .internal-float-tips strong,
 html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .internal-float-edit-modal .modal-card__head h2,
-html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .internal-float-activity-item strong,
 html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .internal-float-story-card h3,
 html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .internal-float-embedded-panel h3,
-html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .internal-float-activity-head h3,
 html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .internal-float-value-legend strong,
 html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .internal-float-tree strong {
   color: #f4f8ff;
 }
 
-html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .internal-float-activity-head span,
-html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .internal-float-activity-item time,
 html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .internal-float-ranked-meter small {
   color: #8fa3bd;
 }
@@ -27749,14 +27616,6 @@ html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .float-
 
 html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .float-donut span {
   color: #93a8c2;
-}
-
-html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .internal-float-activity-item:not(:last-child)::after {
-  border-color: rgba(148, 163, 184, .24);
-}
-
-html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .internal-float-activity-item > i {
-  border-color: #0f1b2e;
 }
 
 html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .internal-float-edit-modal .modal-actions {
@@ -27870,7 +27729,6 @@ html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .intern
 html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .internal-float-modal-impact-summary div,
 html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .internal-float-holder-grid-shell,
 html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .internal-float-holder-grid__header,
-html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .internal-float-activity-empty,
 html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .internal-float-holder-row .input:focus,
 html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .internal-float-holder-row .select:focus,
 html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .internal-float-holder-notes,
@@ -27884,13 +27742,11 @@ html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .intern
 html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .internal-float-modal-impact-summary span,
 html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .internal-float-holder-grid__header span,
 html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .internal-float-holder-notes span,
-html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .internal-float-activity-empty,
 html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .internal-float-holder-empty {
   color: #8fa3bd;
 }
 
-html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .internal-float-modal-impact-summary strong,
-html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .internal-float-activity-empty strong {
+html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .internal-float-modal-impact-summary strong {
   color: #f4f8ff;
 }
 
@@ -27973,10 +27829,6 @@ html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .intern
   html[data-portal-design="b"] .monitor-portal .readiness-summary-strip,
   html[data-portal-design="b"] .monitor-portal .readiness-checklist-grid {
     grid-template-columns: 1fr;
-  }
-
-  html[data-portal-design="b"] .monitor-portal .internal-float-activity-card {
-    max-height: none;
   }
 
   html[data-portal-design="b"] .monitor-portal .internal-float-edit-modal .internal-float-manual-list article,

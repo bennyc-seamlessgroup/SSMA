@@ -7,18 +7,18 @@ type OwnershipTableProps = {
   holdings: InstitutionalHolding[];
   ticker: string;
   companyName: string;
+  manualSchema?: boolean;
+  emptyMessage?: string;
 };
 
-const PAGE_SIZE_OPTIONS = [25, 50, 100];
+const QUARTERS_PER_PAGE = 2;
 
-export function OwnershipTable({ holdings, ticker, companyName }: OwnershipTableProps) {
+export function OwnershipTable({ holdings, ticker, companyName, manualSchema = false, emptyMessage = 'No ownership records are available.' }: OwnershipTableProps) {
   const [search, setSearch] = useState('');
-  const [pageSize, setPageSize] = useState(25);
   const [page, setPage] = useState(1);
-  const [sort, setSort] = useState<{ column: string; direction: 'asc' | 'desc' } | null>(null);
   const [selectedHolding, setSelectedHolding] = useState<InstitutionalHolding | null>(null);
 
-  const filteredHoldings = useMemo(() => {
+  const quarterGroups = useMemo(() => {
     const query = search.trim().toLowerCase();
     const filtered = !query ? holdings : holdings.filter(row => [
       row.filing_date,
@@ -29,43 +29,47 @@ export function OwnershipTable({ holdings, ticker, companyName }: OwnershipTable
       row.shares_change_percent,
       row.market_value,
       row.value_change_percent,
+      row.holding_type,
+      row.option_type,
+      row.cost_basis,
+      row.ownership_percent,
+      row.portfolio_allocation,
     ].some(value => String(value ?? '').toLowerCase().includes(query)));
 
-    if (!sort) return filtered;
+    const groups = new Map<string, {
+      key: string;
+      label: string;
+      sortValue: number;
+      rows: InstitutionalHolding[];
+    }>();
 
-    return [...filtered].sort((a, b) => {
-      const aValue = ownershipSortValue(a, sort.column);
-      const bValue = ownershipSortValue(b, sort.column);
-      const comparison = compareValues(aValue, bValue);
-      return sort.direction === 'asc' ? comparison : -comparison;
+    filtered.forEach(row => {
+      const quarter = ownershipReportingQuarter(row.effective_date || row.filing_date);
+      const group = groups.get(quarter.key);
+      if (group) {
+        group.rows.push(row);
+      } else {
+        groups.set(quarter.key, { ...quarter, rows: [row] });
+      }
     });
-  }, [holdings, search, sort]);
 
-  const totalPages = Math.max(1, Math.ceil(filteredHoldings.length / pageSize));
+    return [...groups.values()]
+      .map(group => ({
+        ...group,
+        rows: [...group.rows].sort(compareOwnershipRowsNewestFirst),
+      }))
+      .sort((a, b) => b.sortValue - a.sortValue);
+  }, [holdings, search]);
+
+  const totalPages = Math.max(1, Math.ceil(quarterGroups.length / QUARTERS_PER_PAGE));
   const safePage = Math.min(page, totalPages);
-  const pageRows = filteredHoldings.slice((safePage - 1) * pageSize, safePage * pageSize);
+  const pageQuarterGroups = quarterGroups.slice(
+    (safePage - 1) * QUARTERS_PER_PAGE,
+    safePage * QUARTERS_PER_PAGE,
+  );
 
   function goToPage(nextPage: number) {
     setPage(Math.min(Math.max(1, nextPage), totalPages));
-  }
-
-  function updatePageSize(nextPageSize: number) {
-    setPageSize(nextPageSize);
-    setPage(1);
-  }
-
-  function toggleSort(column: string) {
-    setSort(current => {
-      if (!current || current.column !== column) return { column, direction: 'asc' };
-      if (current.direction === 'asc') return { column, direction: 'desc' };
-      return null;
-    });
-    setPage(1);
-  }
-
-  function sortLabel(column: string) {
-    if (sort?.column !== column) return '↕';
-    return sort.direction === 'asc' ? '↑' : '↓';
   }
 
   return (
@@ -90,74 +94,90 @@ export function OwnershipTable({ holdings, ticker, companyName }: OwnershipTable
         </div>
       </div>
 
-      <div className="ownership-table-wrap">
-        <table className="ownership-table">
-          <thead>
-            <tr>
-              <th><button className="table-sort-button" type="button" onClick={() => toggleSort('filingDate')}>File Date <span>{sortLabel('filingDate')}</span></button></th>
-              <th><button className="table-sort-button" type="button" onClick={() => toggleSort('effectiveDate')}>Effective Date <span>{sortLabel('effectiveDate')}</span></button></th>
-              <th><button className="table-sort-button" type="button" onClick={() => toggleSort('form')}>Form <span>{sortLabel('form')}</span></button></th>
-              <th><button className="table-sort-button" type="button" onClick={() => toggleSort('investor')}>Investor <span>{sortLabel('investor')}</span></button></th>
-              <th>View on chart</th>
-              <th><button className="table-sort-button" type="button" onClick={() => toggleSort('shares')}>Shares (x1000) <span>{sortLabel('shares')}</span></button></th>
-              <th><button className="table-sort-button" type="button" onClick={() => toggleSort('sharesChanged')}>Shares Changed (%) <span>{sortLabel('sharesChanged')}</span></button></th>
-              <th><button className="table-sort-button" type="button" onClick={() => toggleSort('value')}>Value (x1000) <span>{sortLabel('value')}</span></button></th>
-              <th><button className="table-sort-button" type="button" onClick={() => toggleSort('valueChanged')}>Value Changed (%) <span>{sortLabel('valueChanged')}</span></button></th>
-            </tr>
-          </thead>
-          <tbody>
-            {pageRows.map(row => {
-              const rowClass = row.change_type === 'new' || row.change_type === 'increased'
-                ? 'is-new'
-                : row.change_type === 'exited' || row.shares_change_percent === '-100%'
-                  ? 'is-closed'
-                  : '';
-              return (
-                <tr key={row.id} className={rowClass}>
-                  <td>{formatOwnershipDate(row.filing_date)}</td>
-                  <td>{formatOwnershipDate(row.effective_date)}</td>
-                  <td>{row.form_type ?? row.source}</td>
-                  <td className="investor-cell">{row.fund_name}</td>
-                  <td>
-                    <button className="ownership-link ownership-chart-icon-button" type="button" onClick={() => setSelectedHolding(row)} aria-label={`Open ownership chart for ${row.fund_name}`} title="View on chart">
-                      <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                        <path d="M4 19h16" />
-                        <path d="M7 16V9" />
-                        <path d="M12 16V5" />
-                        <path d="M17 16v-4" />
-                      </svg>
-                    </button>
-                  </td>
-                  <td className="num">{row.shares}</td>
-                  <td className="num">{row.shares_change_percent ?? row.shares_change ?? 'N/A'}</td>
-                  <td className="num">{row.market_value}</td>
-                  <td className="num">{row.value_change_percent ?? row.value_change ?? 'N/A'}</td>
+      <div className="ownership-quarter-groups">
+        {!pageQuarterGroups.length && (
+          <div className="ownership-table-wrap">
+            <table className="ownership-table">
+              <OwnershipTableHeader manualSchema={manualSchema} />
+              <tbody>
+                <tr>
+                  <td colSpan={manualSchema ? 11 : 9} className="ownership-table-empty">{emptyMessage}</td>
                 </tr>
-              );
-            })}
-          </tbody>
-        </table>
+              </tbody>
+            </table>
+          </div>
+        )}
+
+        {pageQuarterGroups.map(group => (
+          <section className="ownership-quarter-group" key={group.key} aria-labelledby={`ownership-quarter-${group.key}`}>
+            <div className="ownership-quarter-group__head">
+              <div>
+                <span>Reporting Quarter</span>
+                <h3 id={`ownership-quarter-${group.key}`}>{group.label}</h3>
+              </div>
+              <small>{group.rows.length.toLocaleString()} records</small>
+            </div>
+            <div className="ownership-table-wrap">
+              <table className="ownership-table">
+                <OwnershipTableHeader manualSchema={manualSchema} />
+                <tbody>
+                  {group.rows.map((row, rowIndex) => {
+                    const rowClass = row.change_type === 'new' || row.change_type === 'increased'
+                      ? 'is-new'
+                      : row.change_type === 'exited' || row.shares_change_percent === '-100%'
+                        ? 'is-closed'
+                        : '';
+                    return (
+                      <tr key={`${group.key}-${row.id}-${rowIndex}`} className={rowClass}>
+                        <td>{formatOwnershipDate(row.filing_date)}</td>
+                        <td>{formatOwnershipDate(row.effective_date)}</td>
+                        <td>{row.form_type ?? row.source}</td>
+                        <td className="investor-cell">{row.fund_name}</td>
+                        {manualSchema ? (
+                          <>
+                            <td>{row.holding_type ?? 'N/A'}</td>
+                            <td className="num">{row.cost_basis ?? 'N/A'}</td>
+                            <td className="num">{row.shares}</td>
+                            <td className="num">{row.ownership_percent ?? 'N/A'}</td>
+                            <td className="num">{row.market_value}</td>
+                            <td className="num">{row.value_change_percent ?? 'N/A'}</td>
+                            <td className="num">{row.portfolio_allocation ?? 'N/A'}</td>
+                          </>
+                        ) : (
+                          <>
+                            <td>
+                              <button className="ownership-link ownership-chart-icon-button" type="button" onClick={() => setSelectedHolding(row)} aria-label={`Open ownership chart for ${row.fund_name}`} title="View on chart">
+                                <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                                  <path d="M4 19h16" />
+                                  <path d="M7 16V9" />
+                                  <path d="M12 16V5" />
+                                  <path d="M17 16v-4" />
+                                </svg>
+                              </button>
+                            </td>
+                            <td className="num">{row.shares}</td>
+                            <td className="num">{row.shares_change_percent ?? row.shares_change ?? 'N/A'}</td>
+                            <td className="num">{row.market_value}</td>
+                            <td className="num">{row.value_change_percent ?? row.value_change ?? 'N/A'}</td>
+                          </>
+                        )}
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </section>
+        ))}
       </div>
 
-      <div className="ownership-pagination" aria-label="Ownership table pagination">
+      {quarterGroups.length > 0 && <div className="ownership-pagination" aria-label="Ownership quarter pagination">
         <button type="button" onClick={() => goToPage(1)} disabled={safePage === 1}>First</button>
         <button type="button" onClick={() => goToPage(safePage - 1)} disabled={safePage === 1}>Previous</button>
-        <span className="ownership-page-count">Page {safePage} of {totalPages}</span>
-        <input
-          aria-label="Page number"
-          className="ownership-page-input"
-          type="number"
-          min={1}
-          max={totalPages}
-          value={safePage}
-          onChange={event => goToPage(Number(event.target.value) || 1)}
-        />
-        <select aria-label="Rows per page" value={pageSize} onChange={event => updatePageSize(Number(event.target.value))}>
-          {PAGE_SIZE_OPTIONS.map(option => <option key={option} value={option}>Show {option}</option>)}
-        </select>
+        <span className="ownership-page-count">Page {safePage} of {totalPages} · 2 quarters per page</span>
         <button type="button" onClick={() => goToPage(safePage + 1)} disabled={safePage === totalPages}>Next</button>
         <button type="button" onClick={() => goToPage(totalPages)} disabled={safePage === totalPages}>Last</button>
-      </div>
+      </div>}
 
       {selectedHolding && (
         <div className="ownership-chart-modal-backdrop" role="presentation" onMouseDown={() => setSelectedHolding(null)}>
@@ -169,6 +189,63 @@ export function OwnershipTable({ holdings, ticker, companyName }: OwnershipTable
       )}
     </>
   );
+}
+
+function OwnershipTableHeader({ manualSchema }: { manualSchema: boolean }) {
+  return (
+    <thead>
+      <tr>
+        <th>File Date</th>
+        <th>Effective Date</th>
+        <th>{manualSchema ? 'Source' : 'Form'}</th>
+        <th>Investor</th>
+        {manualSchema ? (
+          <>
+            <th>Type</th>
+            <th>Avg Price Est.</th>
+            <th>Shares</th>
+            <th>Shares %</th>
+            <th>Reported Value</th>
+            <th>Value Change %</th>
+            <th>Portfolio Allocation</th>
+          </>
+        ) : (
+          <>
+            <th>View on chart</th>
+            <th>Shares (x1000)</th>
+            <th>Shares Changed (%)</th>
+            <th>Value (x1000)</th>
+            <th>Value Changed (%)</th>
+          </>
+        )}
+      </tr>
+    </thead>
+  );
+}
+
+function ownershipReportingQuarter(value: string | undefined) {
+  const match = String(value ?? '').match(/^(\d{4})-(\d{2})/);
+  if (!match) {
+    return {
+      key: 'unknown',
+      label: 'Reporting period unavailable',
+      sortValue: Number.NEGATIVE_INFINITY,
+    };
+  }
+
+  const year = Number(match[1]);
+  const quarter = Math.ceil(Number(match[2]) / 3);
+  return {
+    key: `${year}-Q${quarter}`,
+    label: `Q${quarter} ${year}`,
+    sortValue: year * 10 + quarter,
+  };
+}
+
+function compareOwnershipRowsNewestFirst(a: InstitutionalHolding, b: InstitutionalHolding) {
+  const filingDateComparison = String(b.filing_date ?? '').localeCompare(String(a.filing_date ?? ''));
+  if (filingDateComparison !== 0) return filingDateComparison;
+  return a.fund_name.localeCompare(b.fund_name, undefined, { numeric: true, sensitivity: 'base' });
 }
 
 function investorSeed(value: string) {
@@ -365,24 +442,4 @@ function OwnershipHistoryChart({ holding, ticker, companyName }: { holding: Inst
 function numericValue(value: string | undefined) {
   const numeric = Number(String(value ?? '').replace(/[$,%]/g, '').replace(/,/g, ''));
   return Number.isFinite(numeric) ? numeric : null;
-}
-
-function compareValues(aValue: string | number, bValue: string | number) {
-  if (typeof aValue === 'number' && typeof bValue === 'number') return aValue - bValue;
-  return String(aValue).localeCompare(String(bValue), undefined, { numeric: true, sensitivity: 'base' });
-}
-
-function ownershipSortValue(row: InstitutionalHolding, column: string): string | number {
-  const map: Record<string, string | undefined> = {
-    filingDate: row.filing_date,
-    effectiveDate: row.effective_date,
-    form: row.form_type ?? row.source,
-    investor: row.fund_name,
-    shares: row.shares,
-    sharesChanged: row.shares_change_percent ?? row.shares_change,
-    value: row.market_value,
-    valueChanged: row.value_change_percent ?? row.value_change,
-  };
-  const value = map[column] ?? '';
-  return numericValue(value) ?? value;
 }

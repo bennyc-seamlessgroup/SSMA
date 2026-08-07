@@ -44,11 +44,6 @@ const tourSteps: TourStep[] = [
     title: 'Reconcile custody information',
     body: 'Use a processed DTC position report to compare traditional broker and custodian positions with the internal assumptions shown above.',
   },
-  {
-    heading: 'Activity Log',
-    title: 'Monitor and audit changes',
-    body: 'Review saved changes, dates, and users here. Investigate material movements and reconcile the estimate regularly with current filings and provider data.',
-  },
 ];
 
 const storageKey = 'currenc-internal-float-tour-v1';

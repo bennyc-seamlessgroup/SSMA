@@ -5,33 +5,23 @@ import { ImportDataTabs } from '@/components/ImportDataTabs';
 
 type InstitutionalDevTablesProps = {
   overviewFile: string;
-  securityFile: string;
   activistFile: string;
+  manualOwnershipFile: string;
+  manualOwnershipDate: string | null;
+  manualOwnershipError: string;
   ownershipCurrent: Record<string, unknown> | null;
   overview: Record<string, unknown> | null;
   internalFloatCurrent: Record<string, unknown> | null;
   expectedUserStrategicShares: number;
-  userScopedStrategicShares: number | null;
+  displayedStrategicShares: number;
   ownershipStructure: Array<Record<string, unknown>>;
   insiderBars: Array<Record<string, unknown>>;
   institutionBars: Array<Record<string, unknown>>;
   publicFloatBreakdown: Array<Record<string, unknown>>;
-  securityRows: Array<Record<string, unknown>>;
+  manualOwnershipRows: Array<Record<string, unknown>>;
   activistRows: Array<Record<string, unknown>>;
   managementHoldings: Array<Record<string, unknown>>;
 };
-
-const securityColumns = [
-  'holderName',
-  'formType',
-  'fileDate',
-  'effectiveDate',
-  'shares',
-  'percentChange',
-  'value',
-  'percentValueChange',
-  'sourceType',
-];
 
 const activistColumns = [
   'holderName',
@@ -79,7 +69,7 @@ function flattenedRows(value: unknown, prefix = ''): Array<{ field: string; valu
 function consolidatedStrategicRows(
   snapshot: Record<string, unknown> | null,
   expectedUserStrategicShares: number,
-  userScopedStrategicShares: number | null,
+  displayedStrategicShares: number,
 ) {
   const holdings = snapshot?.managementStrategicHoldings;
   const holdingsRecord = holdings && typeof holdings === 'object' && !Array.isArray(holdings)
@@ -91,7 +81,11 @@ function consolidatedStrategicRows(
     { field: 'managementStrategicHoldings.shares', value: formatValue(holdingsRecord?.shares) },
     { field: 'managementStrategicHoldings.records', value: formatValue(holdingsRecord?.records) },
     { field: 'frontend.expectedUserInputShares', value: formatValue(expectedUserStrategicShares) },
-    { field: 'frontend.acceptedAsUserScoped', value: userScopedStrategicShares == null ? 'No' : 'Yes' },
+    { field: 'frontend.displayedConsolidatedShares', value: formatValue(displayedStrategicShares) },
+    {
+      field: 'frontend.matchesCurrentUserInput',
+      value: Math.abs(displayedStrategicShares - expectedUserStrategicShares) <= 0.5 ? 'Yes' : 'No',
+    },
   ];
 }
 
@@ -102,18 +96,20 @@ function columnsFor(rows: Array<Record<string, unknown>>, fallback: string[]) {
 
 export function InstitutionalDevTables({
   overviewFile,
-  securityFile,
   activistFile,
+  manualOwnershipFile,
+  manualOwnershipDate,
+  manualOwnershipError,
   ownershipCurrent,
   overview,
   internalFloatCurrent,
   expectedUserStrategicShares,
-  userScopedStrategicShares,
+  displayedStrategicShares,
   ownershipStructure,
   insiderBars,
   institutionBars,
   publicFloatBreakdown,
-  securityRows,
+  manualOwnershipRows,
   activistRows,
   managementHoldings,
 }: InstitutionalDevTablesProps) {
@@ -122,6 +118,20 @@ export function InstitutionalDevTables({
   const institutionBarColumns = columnsFor(institutionBars, ['name', 'shares', 'value', 'ownershipPercentOfInstitutional', 'ownershipPercentOfSharesOutstanding']);
   const publicFloatBreakdownColumns = columnsFor(publicFloatBreakdown, ['key', 'label', 'shares', 'percent', 'color', 'source']);
   const managementHoldingColumns = columnsFor(managementHoldings, ['holderName', 'category', 'shares', 'action', 'effectiveDate', 'showInOwnership', 'status']);
+  const manualOwnershipColumns = columnsFor(manualOwnershipRows, [
+    'fileDate',
+    'effectiveDate',
+    'source',
+    'investor',
+    'optionType',
+    'type',
+    'avgPriceEst',
+    'shares',
+    'sharesPct',
+    'reportedValue',
+    'valueChangePct',
+    'portAlloc',
+  ]);
   const tabs = [
     {
       id: 'ownership-current-raw',
@@ -188,12 +198,12 @@ export function InstitutionalDevTables({
       status: 'ready',
     },
     {
-      id: 'security-ownership',
-      title: 'Security Ownership History',
-      file: securityFile,
-      sourcePlatform: securityFile,
-      recordCount: securityRows.length,
-      status: 'ready',
+      id: 'manual-security-ownership',
+      title: 'Manual Security Ownership',
+      file: manualOwnershipFile,
+      sourcePlatform: 'Manual Input API',
+      recordCount: manualOwnershipRows.length,
+      status: manualOwnershipError ? `error: ${manualOwnershipError}` : manualOwnershipDate ? `ready · ${manualOwnershipDate}` : 'missing',
     },
     {
       id: 'activist-filings',
@@ -213,8 +223,8 @@ export function InstitutionalDevTables({
           <h2>Institutional Ownership API Tables</h2>
           <p className="section-subtitle">Current and historical records returned by the centralized APIs. No local or S3 JSON fallback is used.</p>
           <span className="import-file-tag">{overviewFile}</span>
-          <span className="import-file-tag">{securityFile}</span>
           <span className="import-file-tag">{activistFile}</span>
+          <span className="import-file-tag">{manualOwnershipFile}</span>
           <span className="import-file-tag">GET /market-data/current?category=internal-float-current-user</span>
           <span className="import-file-tag">GET /manual-input/internal-float-inputs-user</span>
         </div>
@@ -226,14 +236,14 @@ export function InstitutionalDevTables({
         <ImportDataTable columns={managementHoldingColumns} rows={toTableRows(managementHoldings, managementHoldingColumns)} pageSize={25} />
         <ImportDataTable
           columns={['field', 'value']}
-          rows={consolidatedStrategicRows(internalFloatCurrent, expectedUserStrategicShares, userScopedStrategicShares)}
+          rows={consolidatedStrategicRows(internalFloatCurrent, expectedUserStrategicShares, displayedStrategicShares)}
           pageSize={25}
         />
         <ImportDataTable columns={ownershipStructureColumns} rows={toTableRows(ownershipStructure, ownershipStructureColumns)} pageSize={25} />
         <ImportDataTable columns={insiderBarColumns} rows={toTableRows(insiderBars, insiderBarColumns)} pageSize={25} />
         <ImportDataTable columns={institutionBarColumns} rows={toTableRows(institutionBars, institutionBarColumns)} pageSize={25} />
         <ImportDataTable columns={publicFloatBreakdownColumns} rows={toTableRows(publicFloatBreakdown, publicFloatBreakdownColumns)} pageSize={25} />
-        <ImportDataTable columns={securityColumns} rows={toTableRows(securityRows, securityColumns)} pageSize={25} />
+        <ImportDataTable columns={manualOwnershipColumns} rows={toTableRows(manualOwnershipRows, manualOwnershipColumns)} pageSize={25} />
         <ImportDataTable columns={activistColumns} rows={toTableRows(activistRows, activistColumns)} pageSize={25} />
       </ImportDataTabs>
     </section>

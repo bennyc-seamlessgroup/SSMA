@@ -1,5 +1,3 @@
-import type { InternalFloatActivityItem } from '@/lib/internal-float-audit';
-
 export type ManualHolding = {
   id: string; holderName: string; holderType: string; accountType: string;
   brokerCustodian: string; numberOfShares: number; tradabilityStatus: string;
@@ -34,5 +32,4 @@ export type InternalFloatUserInput = {
   custodyRows: Array<{ id: string; name: string; shares: number }>;
   tokenChains: Array<{ id: string; chain: string; shares: number; provider: string }>;
   collateralChains: Array<{ id: string; chain: string; shares: number; protocol: string }>;
-  activityLog?: InternalFloatActivityItem[];
 };

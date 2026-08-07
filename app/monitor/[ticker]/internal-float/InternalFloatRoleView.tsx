@@ -33,7 +33,6 @@ type InternalFloatCurrent = {
   tokenizedShares?: { shares?: number; records?: Array<Record<string, unknown>> };
   collateralizedShares?: { shares?: number; records?: Array<Record<string, unknown>> };
   suggestedChanges?: InsiderSuggestionSource[];
-  auditLog?: InternalFloatUserInput['activityLog'];
 };
 
 type InternalFloatInputs = {
@@ -42,7 +41,6 @@ type InternalFloatInputs = {
   tokenizedShares?: { records?: Array<Record<string, unknown>> };
   collateralizedShares?: { records?: Array<Record<string, unknown>> };
   privateFriendlyHolders?: { shares?: number; ratio?: number };
-  auditLog?: InternalFloatUserInput['activityLog'];
 };
 
 type ManagementHoldingsResponse =
@@ -54,14 +52,6 @@ function managementHoldingRecords(payload: ManagementHoldingsResponse) {
   if (Array.isArray(payload.records)) return payload.records;
   if (Array.isArray(payload.data?.records)) return payload.data.records;
   return [];
-}
-
-function mergeActivityLogs(...logs: Array<InternalFloatUserInput['activityLog']>) {
-  const unique = new Map<string, NonNullable<InternalFloatUserInput['activityLog']>[number]>();
-  logs.flatMap(log => log ?? []).forEach((item, index) => {
-    unique.set(item.id || `${item.createdAt}-${item.section}-${index}`, item);
-  });
-  return Array.from(unique.values()).sort((left, right) => right.createdAt.localeCompare(left.createdAt));
 }
 
 function settledValue<T>(result: PromiseSettledResult<T>, fallback: T) {
@@ -170,11 +160,6 @@ function LiveInternalFloat({ ticker }: { ticker: string }) {
     custodyRows: sampleTraditionalCustodyRows,
     tokenChains: tokenRecords.map((row, index) => ({ id: String(row.id ?? `token-${index}`), chain: String(row.chain ?? ''), shares: Number(row.shares ?? 0), provider: String(row.provider ?? '') })),
     collateralChains: collateralRecords.map((row, index) => ({ id: String(row.id ?? `collateral-${index}`), chain: String(row.chain ?? ''), shares: Number(row.shares ?? 0), protocol: String(row.protocol ?? '') })),
-    activityLog: mergeActivityLogs(
-      payloads.userInputs.auditLog,
-      payloads.tickerInputs.auditLog,
-      payloads.current.auditLog,
-    ),
   };
   const institutionalOverview: InstitutionalOwnershipOverview = {
     shares_outstanding: payloads.current.issuedShare ?? payloads.ownership.issuedShare,

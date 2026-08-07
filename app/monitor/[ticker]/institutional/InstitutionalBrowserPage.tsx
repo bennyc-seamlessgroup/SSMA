@@ -32,7 +32,33 @@ type SecurityOwnershipRow = {
   valuePercentChange?: number | string | null;
   percentValueChange?: number | string | null;
   costBasis?: number | string | null;
+  optionType?: string | null;
+  type?: string | null;
+  portAlloc?: number | string | null;
   url?: string | null;
+};
+
+type ManualSecurityOwnershipRow = {
+  fileDate?: string | null;
+  effectiveDate?: string | null;
+  source?: string | null;
+  investor?: string | null;
+  optionType?: string | null;
+  type?: string | null;
+  avgPriceEst?: number | string | null;
+  shares?: number | string | null;
+  sharesPct?: number | string | null;
+  reportedValue?: number | string | null;
+  valueChangePct?: number | string | null;
+  portAlloc?: number | string | null;
+};
+
+type ManualSecurityOwnershipDataset = {
+  availableDates: string[];
+  effectiveDate: string | null;
+  endpoint: string;
+  rows: ManualSecurityOwnershipRow[];
+  error: string;
 };
 
 type ActivistFilingRow = {
@@ -85,6 +111,83 @@ type InternalFloatInputsResponse = {
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return Boolean(value) && typeof value === 'object' && !Array.isArray(value);
+}
+
+function availableOwnershipDates(payload: unknown) {
+  if (!isRecord(payload)) return [];
+  const nestedData = isRecord(payload.data) ? payload.data : null;
+  const values = Array.isArray(payload.availableDates)
+    ? payload.availableDates
+    : Array.isArray(nestedData?.availableDates)
+      ? nestedData.availableDates
+      : [];
+  return Array.from(new Set(values.map(value => String(value).trim()).filter(Boolean))).sort();
+}
+
+function manualOwnershipRows(payload: unknown): ManualSecurityOwnershipRow[] {
+  if (Array.isArray(payload)) return payload.filter(isRecord) as ManualSecurityOwnershipRow[];
+  if (!isRecord(payload)) return [];
+  if (Array.isArray(payload.records)) return payload.records.filter(isRecord) as ManualSecurityOwnershipRow[];
+  if (Array.isArray(payload.data)) return payload.data.filter(isRecord) as ManualSecurityOwnershipRow[];
+  if (isRecord(payload.data) && Array.isArray(payload.data.records)) {
+    return payload.data.records.filter(isRecord) as ManualSecurityOwnershipRow[];
+  }
+  return [];
+}
+
+async function loadAllManualSecurityOwnership(ticker: string): Promise<ManualSecurityOwnershipDataset> {
+  const availableDatesEndpoint = `/manual-input/manual-security-ownership?ticker=${encodeURIComponent(ticker)}&action=available-dates`;
+  try {
+    const datesPayload = await authenticatedFetch(availableDatesEndpoint, { cache: 'no-store' });
+    const availableDates = availableOwnershipDates(datesPayload);
+    const effectiveDate = availableDates.at(-1) ?? null;
+    if (!effectiveDate) {
+      return { availableDates, effectiveDate: null, endpoint: availableDatesEndpoint, rows: [], error: '' };
+    }
+
+    const partitions = await Promise.allSettled(availableDates.map(async date => {
+      const endpoint = `/manual-input/manual-security-ownership?ticker=${encodeURIComponent(ticker)}&effectiveDate=${encodeURIComponent(date)}`;
+      const payload = await authenticatedFetch(endpoint, { cache: 'no-store' });
+      return manualOwnershipRows(payload);
+    }));
+    const rows = partitions.flatMap(result => result.status === 'fulfilled' ? result.value : []);
+    const failedPartitions = partitions.filter(result => result.status === 'rejected').length;
+    const endpoint = `/manual-input/manual-security-ownership?ticker=${encodeURIComponent(ticker)}&effectiveDate={all-available-dates}`;
+    return {
+      availableDates,
+      effectiveDate,
+      endpoint,
+      rows,
+      error: failedPartitions
+        ? `${failedPartitions} of ${availableDates.length} ownership history partitions could not be loaded.`
+        : '',
+    };
+  } catch (cause) {
+    return {
+      availableDates: [],
+      effectiveDate: null,
+      endpoint: availableDatesEndpoint,
+      rows: [],
+      error: cause instanceof Error ? cause.message : 'Unable to load manual security ownership data.',
+    };
+  }
+}
+
+function normalizeManualSecurityOwnershipRow(row: ManualSecurityOwnershipRow): SecurityOwnershipRow {
+  return {
+    holderName: row.investor,
+    formType: row.source,
+    fileDate: row.fileDate,
+    effectiveDate: row.effectiveDate,
+    ownershipPercent: row.sharesPct,
+    shares: row.shares,
+    value: row.reportedValue,
+    valuePercentChange: row.valueChangePct,
+    costBasis: row.avgPriceEst,
+    optionType: row.optionType,
+    type: row.type,
+    portAlloc: row.portAlloc,
+  };
 }
 
 function normalizeInternalFloatCurrent(payload: unknown): InternalFloatCurrent {
@@ -160,6 +263,7 @@ export function InstitutionalBrowserPage({ ticker }: { ticker: string }) {
   const normalizedTicker = normalizeTicker(ticker);
   const [current, setCurrent] = useState<OwnershipCurrent | null>(null);
   const [history, setHistory] = useState<OwnershipHistory | null>(null);
+  const [manualOwnership, setManualOwnership] = useState<ManualSecurityOwnershipDataset | null>(null);
   const [internalFloatCurrent, setInternalFloatCurrent] = useState<InternalFloatCurrent | null>(null);
   const [strategicHoldings, setStrategicHoldings] = useState<InternalFloatPrivateHolding[]>([]);
   const [error, setError] = useState('');
@@ -168,10 +272,6 @@ export function InstitutionalBrowserPage({ ticker }: { ticker: string }) {
   const expectedUserStrategicShares = strategicHoldings
     .filter(row => row.includeInDeduction !== false)
     .reduce((sum, row) => sum + Number(row.shares ?? 0), 0);
-  const userScopedStrategicShares = consolidatedStrategicShares != null
-    && Math.abs(consolidatedStrategicShares - expectedUserStrategicShares) <= 0.5
-    ? consolidatedStrategicShares
-    : null;
 
   useEffect(() => {
     let cancelled = false;
@@ -182,7 +282,8 @@ export function InstitutionalBrowserPage({ ticker }: { ticker: string }) {
       cachedAuthenticatedFetch<OwnershipHistory>(`/market-data/history?ticker=${encodeURIComponent(normalizedTicker)}&category=ownership-history`),
       cachedAuthenticatedFetch<unknown>(`/market-data/current?ticker=${encodeURIComponent(normalizedTicker)}&category=internal-float-current-user`),
       cachedAuthenticatedFetch<InternalFloatInputsResponse>(`/manual-input/internal-float-inputs-user?ticker=${encodeURIComponent(normalizedTicker)}`),
-    ]).then(([nextCurrent, nextHistory, nextInternalFloatCurrent, nextInternalFloatInputs]) => {
+      loadAllManualSecurityOwnership(normalizedTicker),
+    ]).then(([nextCurrent, nextHistory, nextInternalFloatCurrent, nextInternalFloatInputs, nextManualOwnership]) => {
       if (cancelled) return;
       setCurrent(nextCurrent);
       setHistory(nextHistory);
@@ -190,6 +291,7 @@ export function InstitutionalBrowserPage({ ticker }: { ticker: string }) {
       setStrategicHoldings(mergeInternalFloatHoldings(
         nextInternalFloatInputs.managementStrategicHoldings?.records ?? [],
       ));
+      setManualOwnership(nextManualOwnership);
     }).catch(cause => {
       if (!cancelled) setError(cause instanceof Error ? cause.message : 'Unable to load ownership data.');
     }).finally(() => {
@@ -234,8 +336,20 @@ export function InstitutionalBrowserPage({ ticker }: { ticker: string }) {
   }
 
   const allHistoryRows = Array.isArray(history.records) ? history.records : [];
-  const securityRows = allHistoryRows.filter(row => !String(row.sourceType ?? '').toLowerCase().includes('activist')) as SecurityOwnershipRow[];
   const activistRows = allHistoryRows.filter(row => String(row.sourceType ?? '').toLowerCase().includes('activist')) as ActivistFilingRow[];
+  const manualSecurityRows = (manualOwnership?.rows ?? [])
+    .map(normalizeManualSecurityOwnershipRow)
+    .sort((a, b) => {
+      const effectiveDateComparison = String(b.effectiveDate ?? '').localeCompare(String(a.effectiveDate ?? ''));
+      if (effectiveDateComparison !== 0) return effectiveDateComparison;
+      return String(b.fileDate ?? '').localeCompare(String(a.fileDate ?? ''));
+    });
+  const securitySource = `GET ${manualOwnership?.endpoint ?? `/manual-input/manual-security-ownership?ticker=${encodeURIComponent(normalizedTicker)}&action=available-dates`}`;
+  const manualOwnershipEmptyMessage = manualOwnership?.error
+    ? `Manual Security Ownership could not be loaded: ${manualOwnership.error}`
+    : manualOwnership?.availableDates.length
+      ? 'No imported Manual Security Ownership records are available across the recorded effective dates.'
+      : 'No imported Manual Security Ownership records are available for this ticker.';
   const managementRecords = strategicHoldings;
   const institutionBreakdownRows = current.institutionBreakdown ?? [];
   const toInstitutionBar = (row: Record<string, unknown>) => ({
@@ -251,7 +365,7 @@ export function InstitutionalBrowserPage({ ticker }: { ticker: string }) {
     .map(toInstitutionBar);
   const issuedShare = Number(current.issuedShare ?? 0);
   const institutionalShares = Number(current.institutionalSharesLong ?? 0);
-  const strategicShares = userScopedStrategicShares ?? 0;
+  const strategicShares = consolidatedStrategicShares ?? 0;
   const publicFloatShares = Math.max(0, issuedShare - institutionalShares - strategicShares);
   const overviewData: InstitutionalOverviewData = {
     overview: {
@@ -267,7 +381,7 @@ export function InstitutionalBrowserPage({ ticker }: { ticker: string }) {
     },
     institution_bars: visibleInstitutionBars,
   };
-  const holdings: InstitutionalHolding[] = securityRows.map((row, index) => ({
+  const holdings: InstitutionalHolding[] = manualSecurityRows.map((row, index) => ({
     id: `import-ownership-${index}`,
     company_id: `company-${normalizedTicker}`,
     fund_name: row.holderName ?? row.name ?? 'Unknown holder',
@@ -285,8 +399,11 @@ export function InstitutionalBrowserPage({ ticker }: { ticker: string }) {
     effective_date: row.effectiveDate ?? undefined,
     owner_url: row.url ?? undefined,
     cost_basis: formatNumber(row.costBasis),
-    source_type: 'fintel',
-    source_label: 'GET /market-data/history?category=ownership-history',
+    option_type: row.optionType ?? undefined,
+    holding_type: row.type ?? undefined,
+    portfolio_allocation: formatPercent(row.portAlloc),
+    source_type: 'manual-security-ownership',
+    source_label: securitySource,
   }));
   const activistFilings: ActivistFiling[] = activistRows.map((row, index) => ({
     id: `activist-filing-${index}`,
@@ -306,27 +423,37 @@ export function InstitutionalBrowserPage({ ticker }: { ticker: string }) {
       <InstitutionalOverview data={overviewData} ticker={normalizedTicker} managementRecords={managementRecords} />
       <section className="panel">
         <ApiSourceTags sources={[
-          { endpoint: 'GET /market-data/history?category=ownership-history', label: 'Ownership filings' },
+          { endpoint: securitySource, label: 'Imported ownership records' },
+          { endpoint: 'GET /market-data/history?category=ownership-history', label: 'Insider filings' },
           { endpoint: 'GET /market-data/current?category=internal-float-current-user', label: 'Consolidated strategic total' },
           { endpoint: 'GET /manual-input/internal-float-inputs-user', label: 'Strategic entities' },
         ]} />
-        <InstitutionalTabs holdings={holdings} activistFilings={activistFilings} ticker={normalizedTicker} companyName={normalizedTicker} />
+        <InstitutionalTabs
+          holdings={holdings}
+          activistFilings={activistFilings}
+          ticker={normalizedTicker}
+          companyName={normalizedTicker}
+          manualSchema
+          ownershipEmptyMessage={manualOwnershipEmptyMessage}
+        />
       </section>
       <PageDisclaimerNotice noticeKey="ownership" disclaimerKey="regulatoryFiling" />
       <InstitutionalDevTables
         overviewFile="GET /market-data/current?category=ownership-current"
-        securityFile="GET /market-data/history?category=ownership-history"
         activistFile="GET /market-data/history?category=ownership-history"
+        manualOwnershipFile={manualOwnership?.endpoint ? `GET ${manualOwnership.endpoint}` : 'GET /manual-input/manual-security-ownership?action=available-dates'}
+        manualOwnershipDate={manualOwnership?.effectiveDate ?? null}
+        manualOwnershipError={manualOwnership?.error ?? ''}
         ownershipCurrent={(current ?? null) as Record<string, unknown> | null}
         overview={(overviewData.overview ?? null) as Record<string, unknown> | null}
         internalFloatCurrent={(internalFloatCurrent ?? null) as Record<string, unknown> | null}
         expectedUserStrategicShares={expectedUserStrategicShares}
-        userScopedStrategicShares={userScopedStrategicShares}
+        displayedStrategicShares={strategicShares}
         ownershipStructure={(overviewData.ownership_structure ?? []) as Array<Record<string, unknown>>}
         insiderBars={(overviewData.insider_bars ?? []) as Array<Record<string, unknown>>}
         institutionBars={institutionBars as Array<Record<string, unknown>>}
         publicFloatBreakdown={(overviewData.public_float_breakdown ?? []) as Array<Record<string, unknown>>}
-        securityRows={securityRows as Array<Record<string, unknown>>}
+        manualOwnershipRows={(manualOwnership?.rows ?? []) as Array<Record<string, unknown>>}
         activistRows={activistRows as Array<Record<string, unknown>>}
         managementHoldings={managementRecords as Array<Record<string, unknown>>}
       />

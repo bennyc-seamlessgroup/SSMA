@@ -67,11 +67,6 @@ function PayloadPanel({ source }: { source: ApiDevelopmentSource }) {
 
   return (
     <div className="api-development-panel">
-      <div className="api-development-panel__meta">
-        <code>{source.endpoint}</code>
-        <span>{source.source}</span>
-        <span className={`api-development-status ${source.status?.toLowerCase().startsWith('error') ? 'error' : ''}`}>{source.status ?? 'Connected'}</span>
-      </div>
       {metadata.length ? <ImportDataTable columns={['field', 'value']} rows={metadata} pageSize={15} expandableColumns={['value']} /> : null}
       {rowsTable(records, source.preferredColumns)}
       {!metadata.length && !records.length && isRecord(source.payload) ? (
@@ -92,7 +87,7 @@ export function ApiDevelopmentTabs({ sources }: { sources: ApiDevelopmentSource[
     id: source.id,
     title: source.title,
     file: source.endpoint,
-    sourcePlatform: source.endpoint,
+    sourcePlatform: source.source,
     recordCount: recordCount(source.payload),
     status: source.status ?? 'api',
   }));

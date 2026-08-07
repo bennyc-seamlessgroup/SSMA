@@ -576,6 +576,7 @@ export function DashboardBrowserPage({ ticker }: { ticker: string }) {
         currentAlertMetrics={apiData.currentAlertMetrics}
       />
       <DashboardDevTables
+        ticker={normalizedTicker}
         marketCurrent={apiData.currentFile as Record<string, unknown> | null}
         marketHistory={apiData.historyFile as Record<string, unknown> | null}
         secFilingsHistory={apiData.secFilingsFile as Record<string, unknown> | null}

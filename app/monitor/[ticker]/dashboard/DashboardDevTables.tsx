@@ -11,6 +11,7 @@ type ApiTable = {
 };
 
 type DashboardDevTablesProps = {
+  ticker: string;
   marketCurrent: Record<string, unknown> | null;
   marketHistory: Record<string, unknown> | null;
   secFilingsHistory: Record<string, unknown> | null;
@@ -86,6 +87,7 @@ function PayloadTable({ payload }: { payload: unknown }) {
 }
 
 export function DashboardDevTables({
+  ticker,
   marketCurrent,
   marketHistory,
   secFilingsHistory,
@@ -94,19 +96,19 @@ export function DashboardDevTables({
     {
       id: 'market-current',
       title: 'Market Current',
-      endpoint: 'GET /market-data/current?category=market-current',
+      endpoint: `GET /market-data/current?ticker=${encodeURIComponent(ticker)}&category=market-current`,
       payload: marketCurrent,
     },
     {
       id: 'market-history',
       title: 'Market History',
-      endpoint: 'GET /market-data/history?category=market-history',
+      endpoint: `GET /market-data/history?ticker=${encodeURIComponent(ticker)}&category=market-history`,
       payload: marketHistory,
     },
     {
       id: 'sec-filings',
       title: 'SEC Filings',
-      endpoint: 'GET /manual-input/sec-filings',
+      endpoint: `GET /manual-input/sec-filings?ticker=${encodeURIComponent(ticker)}`,
       payload: secFilingsHistory,
     },
   ];
@@ -114,7 +116,7 @@ export function DashboardDevTables({
     id: table.id,
     title: table.title,
     file: table.endpoint,
-    sourcePlatform: table.endpoint,
+    sourcePlatform: 'API Gateway',
     recordCount: recordCount(table.payload),
     status: 'api',
   }));

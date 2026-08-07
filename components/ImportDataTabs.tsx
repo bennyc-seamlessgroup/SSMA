@@ -20,6 +20,7 @@ export function ImportDataTabs({ tabs, children }: ImportDataTabsProps) {
   const panels = Children.toArray(children);
   const [activeId, setActiveId] = useState(tabs[0]?.id ?? '');
   const activeIndex = Math.max(0, tabs.findIndex(tab => tab.id === activeId));
+  const activeTab = tabs[activeIndex] ?? tabs[0];
 
   if (!tabs.length) return null;
 
@@ -38,10 +39,15 @@ export function ImportDataTabs({ tabs, children }: ImportDataTabsProps) {
               onClick={() => setActiveId(tab.id)}
             >
               <span>{tab.title}</span>
-              <small>{tab.sourcePlatform} · {tab.recordCount.toLocaleString()} records</small>
+              <small>{tab.file} · {tab.recordCount.toLocaleString()} records</small>
             </button>
           );
         })}
+      </div>
+      <div className="api-development-panel__meta import-tabs__active-source" aria-live="polite">
+        <code>{activeTab.file}</code>
+        <span>{activeTab.sourcePlatform}</span>
+        <span className={`api-development-status ${activeTab.status.toLowerCase().startsWith('error') ? 'error' : ''}`}>{activeTab.status}</span>
       </div>
       <div className="import-tabs__panel" role="tabpanel">
         {panels[activeIndex]}

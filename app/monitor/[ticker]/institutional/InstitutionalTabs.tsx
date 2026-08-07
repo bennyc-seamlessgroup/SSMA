@@ -10,11 +10,15 @@ export function InstitutionalTabs({
   activistFilings,
   ticker,
   companyName,
+  manualSchema,
+  ownershipEmptyMessage,
 }: {
   holdings: InstitutionalHolding[];
   activistFilings: ActivistFiling[];
   ticker: string;
   companyName: string;
+  manualSchema?: boolean;
+  ownershipEmptyMessage?: string;
 }) {
   const [activeTab, setActiveTab] = useState<'ownership' | 'activist'>('ownership');
 
@@ -45,7 +49,13 @@ export function InstitutionalTabs({
 
       <div className="institutional-tabs__panel" role="tabpanel">
         {activeTab === 'ownership' ? (
-          <OwnershipTable holdings={holdings} ticker={ticker} companyName={companyName} />
+          <OwnershipTable
+            holdings={holdings}
+            ticker={ticker}
+            companyName={companyName}
+            manualSchema={manualSchema}
+            emptyMessage={ownershipEmptyMessage}
+          />
         ) : (
           <ActivistFilingsTable rows={activistFilings} />
         )}
