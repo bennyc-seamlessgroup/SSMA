@@ -4,6 +4,7 @@ import { ImportDataTable } from '@/components/ImportDataTable';
 import { ImportDataTabs } from '@/components/ImportDataTabs';
 
 type InstitutionalDevTablesProps = {
+  ticker: string;
   overviewFile: string;
   activistFile: string;
   manualOwnershipFile: string;
@@ -95,6 +96,7 @@ function columnsFor(rows: Array<Record<string, unknown>>, fallback: string[]) {
 }
 
 export function InstitutionalDevTables({
+  ticker,
   overviewFile,
   activistFile,
   manualOwnershipFile,
@@ -137,14 +139,14 @@ export function InstitutionalDevTables({
       id: 'ownership-current-raw',
       title: 'Ownership Current (Raw)',
       file: overviewFile,
-      sourcePlatform: 'Market Data API',
+      sourcePlatform: 'API Gateway',
       recordCount: ownershipCurrent ? 1 : 0,
       status: ownershipCurrent ? 'ready' : 'missing',
     },
     {
       id: 'overview-view-model',
       title: 'Ownership View Model',
-      file: 'Frontend composition: ownership-current + internal-float-current-user',
+      file: `Frontend composition: GET /market-data/current?ticker=${encodeURIComponent(ticker)}&category=ownership-current + GET /market-data/current?ticker=${encodeURIComponent(ticker)}&category=internal-float-current-user`,
       sourcePlatform: 'Frontend composition',
       recordCount: overview ? 1 : 0,
       status: overview ? 'ready' : 'missing',
@@ -152,16 +154,16 @@ export function InstitutionalDevTables({
     {
       id: 'management-holdings',
       title: 'User Strategic Entities',
-      file: 'GET /manual-input/internal-float-inputs-user',
-      sourcePlatform: 'Authenticated user scope',
+      file: `GET /manual-input/internal-float-inputs-user?ticker=${encodeURIComponent(ticker)}`,
+      sourcePlatform: 'API Gateway · Authenticated user scope',
       recordCount: managementHoldings.length,
       status: 'ready',
     },
     {
       id: 'internal-float-current-user',
       title: 'Consolidated Strategic Total',
-      file: 'GET /market-data/current?category=internal-float-current-user',
-      sourcePlatform: 'Market Data API',
+      file: `GET /market-data/current?ticker=${encodeURIComponent(ticker)}&category=internal-float-current-user`,
+      sourcePlatform: 'API Gateway',
       recordCount: internalFloatCurrent ? 1 : 0,
       status: internalFloatCurrent ? 'ready' : 'missing',
     },
@@ -169,7 +171,7 @@ export function InstitutionalDevTables({
       id: 'ownership-structure',
       title: 'Ownership Structure',
       file: overviewFile,
-      sourcePlatform: overviewFile,
+      sourcePlatform: 'API Gateway',
       recordCount: ownershipStructure.length,
       status: 'ready',
     },
@@ -177,7 +179,7 @@ export function InstitutionalDevTables({
       id: 'insider-bars',
       title: 'Insider Bars',
       file: overviewFile,
-      sourcePlatform: overviewFile,
+      sourcePlatform: 'API Gateway',
       recordCount: insiderBars.length,
       status: 'ready',
     },
@@ -185,7 +187,7 @@ export function InstitutionalDevTables({
       id: 'institution-bars',
       title: 'Institution Bars',
       file: overviewFile,
-      sourcePlatform: overviewFile,
+      sourcePlatform: 'API Gateway',
       recordCount: institutionBars.length,
       status: 'ready',
     },
@@ -193,7 +195,7 @@ export function InstitutionalDevTables({
       id: 'public-float-breakdown',
       title: 'Public Float',
       file: overviewFile,
-      sourcePlatform: overviewFile,
+      sourcePlatform: 'API Gateway',
       recordCount: publicFloatBreakdown.length,
       status: 'ready',
     },
@@ -201,7 +203,7 @@ export function InstitutionalDevTables({
       id: 'manual-security-ownership',
       title: 'Manual Security Ownership',
       file: manualOwnershipFile,
-      sourcePlatform: 'Manual Input API',
+      sourcePlatform: 'API Gateway',
       recordCount: manualOwnershipRows.length,
       status: manualOwnershipError ? `error: ${manualOwnershipError}` : manualOwnershipDate ? `ready · ${manualOwnershipDate}` : 'missing',
     },
@@ -209,7 +211,7 @@ export function InstitutionalDevTables({
       id: 'activist-filings',
       title: 'Activist Filings',
       file: activistFile,
-      sourcePlatform: activistFile,
+      sourcePlatform: 'API Gateway',
       recordCount: activistRows.length,
       status: 'ready',
     },

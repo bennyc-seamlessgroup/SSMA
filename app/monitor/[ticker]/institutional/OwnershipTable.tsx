@@ -33,7 +33,6 @@ export function OwnershipTable({ holdings, ticker, companyName, manualSchema = f
       row.option_type,
       row.cost_basis,
       row.ownership_percent,
-      row.portfolio_allocation,
     ].some(value => String(value ?? '').toLowerCase().includes(query)));
 
     const groups = new Map<string, {
@@ -101,7 +100,7 @@ export function OwnershipTable({ holdings, ticker, companyName, manualSchema = f
               <OwnershipTableHeader manualSchema={manualSchema} />
               <tbody>
                 <tr>
-                  <td colSpan={manualSchema ? 11 : 9} className="ownership-table-empty">{emptyMessage}</td>
+                  <td colSpan={manualSchema ? 10 : 9} className="ownership-table-empty">{emptyMessage}</td>
                 </tr>
               </tbody>
             </table>
@@ -135,13 +134,12 @@ export function OwnershipTable({ holdings, ticker, companyName, manualSchema = f
                         <td className="investor-cell">{row.fund_name}</td>
                         {manualSchema ? (
                           <>
-                            <td>{row.holding_type ?? 'N/A'}</td>
+                            <td>{displayOwnershipType(row.holding_type)}</td>
                             <td className="num">{row.cost_basis ?? 'N/A'}</td>
                             <td className="num">{row.shares}</td>
                             <td className="num">{row.ownership_percent ?? 'N/A'}</td>
                             <td className="num">{row.market_value}</td>
                             <td className="num">{row.value_change_percent ?? 'N/A'}</td>
-                            <td className="num">{row.portfolio_allocation ?? 'N/A'}</td>
                           </>
                         ) : (
                           <>
@@ -207,7 +205,6 @@ function OwnershipTableHeader({ manualSchema }: { manualSchema: boolean }) {
             <th>Shares %</th>
             <th>Reported Value</th>
             <th>Value Change %</th>
-            <th>Portfolio Allocation</th>
           </>
         ) : (
           <>
@@ -246,6 +243,11 @@ function compareOwnershipRowsNewestFirst(a: InstitutionalHolding, b: Institution
   const filingDateComparison = String(b.filing_date ?? '').localeCompare(String(a.filing_date ?? ''));
   if (filingDateComparison !== 0) return filingDateComparison;
   return a.fund_name.localeCompare(b.fund_name, undefined, { numeric: true, sensitivity: 'base' });
+}
+
+function displayOwnershipType(value: string | undefined) {
+  const normalized = String(value ?? '').trim();
+  return normalized.toUpperCase() === 'N/A' ? '' : normalized;
 }
 
 function investorSeed(value: string) {

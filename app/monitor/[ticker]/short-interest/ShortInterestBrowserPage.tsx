@@ -1260,18 +1260,18 @@ export function ShortInterestBrowserPage({ ticker }: { ticker: string }) {
       <section className="terminal-section import-data-dev-panel">
         <div className="terminal-section__head"><div><span>Development Data</span><h2>Short Interest API Data</h2><p className="section-subtitle">Live API payloads only. No local or S3 JSON fallback is used.</p></div></div>
         <ApiDevelopmentTabs sources={[
-          { id: 'market-current', title: 'Market Current', endpoint: 'GET /market-data/current?category=market-current', source: 'Market Data API', payload: apiData.current },
-          { id: 'market-history', title: 'Market History', endpoint: 'GET /market-data/history?category=market-history', source: 'Market Data API', payload: apiData.history },
-          { id: 'short-volume', title: 'Short Volume', endpoint: 'GET /market-data/history?category=short-volume-history', source: 'Market Data API', payload: apiData.shortVolume },
+          { id: 'market-current', title: 'Market Current', endpoint: `GET /market-data/current?ticker=${encodeURIComponent(normalizedTicker)}&category=market-current`, source: 'API Gateway', payload: apiData.current },
+          { id: 'market-history', title: 'Market History', endpoint: `GET /market-data/history?ticker=${encodeURIComponent(normalizedTicker)}&category=market-history`, source: 'API Gateway', payload: apiData.history },
+          { id: 'short-volume', title: 'Short Volume', endpoint: `GET /market-data/history?ticker=${encodeURIComponent(normalizedTicker)}&category=short-volume-history`, source: 'API Gateway', payload: apiData.shortVolume },
           {
             id: 'ftd',
             title: 'Fails to Deliver',
-            endpoint: 'GET /market-data/history?category=ftd-history',
-            source: 'Market Data API',
+            endpoint: `GET /market-data/history?ticker=${encodeURIComponent(normalizedTicker)}&category=ftd-history`,
+            source: 'API Gateway',
             payload: apiData.ftd,
             preferredColumns: ['tradeDate', 'settlementDate'],
           },
-          { id: 'ai-report', title: 'AI Report', endpoint: `GET /market-data/ai-report?date=${currentReportDate || 'calculated'}`, source: 'Market Data API', payload: apiData.aiReport, status: apiData.aiReport.requestError ? 'error' : 'Connected' },
+          { id: 'ai-report', title: 'AI Report', endpoint: `GET /market-data/ai-report?ticker=${encodeURIComponent(normalizedTicker)}&date=${currentReportDate || 'calculated'}`, source: 'API Gateway', payload: apiData.aiReport, status: apiData.aiReport.requestError ? 'error' : 'Connected' },
         ]} />
       </section>
     </div>

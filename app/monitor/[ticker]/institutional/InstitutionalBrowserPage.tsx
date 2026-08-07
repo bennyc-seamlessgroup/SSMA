@@ -439,9 +439,10 @@ export function InstitutionalBrowserPage({ ticker }: { ticker: string }) {
       </section>
       <PageDisclaimerNotice noticeKey="ownership" disclaimerKey="regulatoryFiling" />
       <InstitutionalDevTables
-        overviewFile="GET /market-data/current?category=ownership-current"
-        activistFile="GET /market-data/history?category=ownership-history"
-        manualOwnershipFile={manualOwnership?.endpoint ? `GET ${manualOwnership.endpoint}` : 'GET /manual-input/manual-security-ownership?action=available-dates'}
+        ticker={normalizedTicker}
+        overviewFile={`GET /market-data/current?ticker=${encodeURIComponent(normalizedTicker)}&category=ownership-current`}
+        activistFile={`GET /market-data/history?ticker=${encodeURIComponent(normalizedTicker)}&category=ownership-history`}
+        manualOwnershipFile={manualOwnership?.endpoint ? `GET ${manualOwnership.endpoint}` : `GET /manual-input/manual-security-ownership?ticker=${encodeURIComponent(normalizedTicker)}&action=available-dates`}
         manualOwnershipDate={manualOwnership?.effectiveDate ?? null}
         manualOwnershipError={manualOwnership?.error ?? ''}
         ownershipCurrent={(current ?? null) as Record<string, unknown> | null}

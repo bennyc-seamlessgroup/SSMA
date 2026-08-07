@@ -197,11 +197,11 @@ function LiveInternalFloat({ ticker }: { ticker: string }) {
       <section className="terminal-section import-data-dev-panel">
         <div className="terminal-section__head"><div><span>Development Data</span><h2>Internal Float API Data</h2><p className="section-subtitle">Live API payloads only. No local or S3 JSON fallback is used.</p></div></div>
         <ApiDevelopmentTabs sources={[
-          { id: 'ownership-current', title: 'Ownership Current', endpoint: 'GET /market-data/current?category=ownership-current', source: 'Market Data API', payload: payloads.ownership, status: sourceStatuses.ownership },
-          { id: 'internal-float-current-user', title: 'User Float Current', endpoint: 'GET /market-data/current?category=internal-float-current-user', source: 'Market Data API', payload: payloads.current, status: sourceStatuses.current },
-          { id: 'internal-float-inputs-ticker', title: 'Ticker Float Inputs', endpoint: 'GET /manual-input/internal-float-inputs-ticker', source: 'Manual Input V2 API', payload: payloads.tickerInputs, status: sourceStatuses.tickerInputs },
-          { id: 'internal-float-inputs-user', title: 'User Float Inputs', endpoint: 'GET /manual-input/internal-float-inputs-user', source: 'Manual Input V2 API', payload: payloads.userInputs, status: sourceStatuses.userInputs },
-          { id: 'management-holdings', title: 'Management Holdings', endpoint: 'GET /manual-input/management-holdings', source: 'Manual Input V2 API', payload: payloads.managementHoldings, status: sourceStatuses.managementHoldings },
+          { id: 'ownership-current', title: 'Ownership Current', endpoint: `GET /market-data/current?ticker=${encodeURIComponent(ticker)}&category=ownership-current`, source: 'API Gateway', payload: payloads.ownership, status: sourceStatuses.ownership },
+          { id: 'internal-float-current-user', title: 'User Float Current', endpoint: `GET /market-data/current?ticker=${encodeURIComponent(ticker)}&category=internal-float-current-user`, source: 'API Gateway', payload: payloads.current, status: sourceStatuses.current },
+          { id: 'internal-float-inputs-ticker', title: 'Ticker Float Inputs', endpoint: `GET /manual-input/internal-float-inputs-ticker?ticker=${encodeURIComponent(ticker)}`, source: 'API Gateway', payload: payloads.tickerInputs, status: sourceStatuses.tickerInputs },
+          { id: 'internal-float-inputs-user', title: 'User Float Inputs', endpoint: `GET /manual-input/internal-float-inputs-user?ticker=${encodeURIComponent(ticker)}`, source: 'API Gateway', payload: payloads.userInputs, status: sourceStatuses.userInputs },
+          { id: 'management-holdings', title: 'Management Holdings', endpoint: `GET /manual-input/management-holdings?ticker=${encodeURIComponent(ticker)}`, source: 'API Gateway', payload: payloads.managementHoldings, status: sourceStatuses.managementHoldings },
         ]} />
       </section>
     </>

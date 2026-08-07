@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
-import { ImportDataTable } from '@/components/ImportDataTable';
+import { ApiDevelopmentTabs } from '@/components/ApiDevelopmentTabs';
 import { ApiSourceTags } from '@/components/ApiSourceTags';
 import { PageDisclaimerNotice } from '@/components/PageDisclaimerNotice';
 import { PortalPageLoading } from '@/components/PortalPageLoading';
@@ -119,10 +119,17 @@ export function EventCalendarBrowserPage({ ticker }: { ticker: string }) {
             <span>Development Data</span>
             <h2>SEC Filings API Table</h2>
             <p className="section-subtitle">Records loaded from /manual-input/sec-filings. No local JSON fallback is used.</p>
-            <span className="import-file-tag">GET /manual-input/sec-filings?ticker={ticker}</span>
           </div>
         </div>
-        <ImportDataTable columns={devColumns} rows={devRows} pageSize={25} />
+        <ApiDevelopmentTabs sources={[{
+          id: 'sec-filings',
+          title: 'SEC Filings',
+          endpoint: `GET /manual-input/sec-filings?ticker=${encodeURIComponent(ticker)}`,
+          source: 'API Gateway',
+          payload: { records: devRows },
+          status: status === 'error' ? `Error: ${error}` : 'Connected',
+          preferredColumns: devColumns,
+        }]} />
       </section>
     </div>
   );

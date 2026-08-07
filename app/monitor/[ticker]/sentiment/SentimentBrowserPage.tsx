@@ -529,12 +529,14 @@ function PlatformSentimentCard({ platforms, totalFeeds }: {
 const platformFilters: SentimentPlatformFilter[] = ['All', 'X', 'Reddit', 'Stocktwits', 'Facebook', 'Linkedin'];
 
 function DevApiTables({
+  ticker,
   mentions,
   socialPages,
   current,
   events,
   timeZone,
 }: {
+  ticker: string;
   mentions: AdanosMention[];
   socialPages: unknown[];
   current: SentimentCurrentPayload | null;
@@ -558,9 +560,9 @@ function DevApiTables({
         </div>
       </div>
       <ApiDevelopmentTabs sources={[
-        { id: 'social-data', title: 'Social Records', endpoint: 'GET /social-data?date=POST-DATE', source: `${socialPages.length} post-date API response(s)`, payload: mentionRows },
-        { id: 'sentiment-current', title: 'Sentiment Current', endpoint: 'GET /market-data/current?category=sentiment-current', source: 'Market Data API', payload: current },
-        { id: 'sentiment-events', title: 'Sentiment Timeline', endpoint: 'GET /market-data/history?category=sentiment-events', source: 'Market Data API', payload: events },
+        { id: 'social-data', title: 'Social Records', endpoint: `GET /social-data?ticker=${encodeURIComponent(ticker)}&date={POST-DATE}&sort=datetime&order=desc`, source: `API Gateway · ${socialPages.length} post-date response(s)`, payload: mentionRows },
+        { id: 'sentiment-current', title: 'Sentiment Current', endpoint: `GET /market-data/current?ticker=${encodeURIComponent(ticker)}&category=sentiment-current`, source: 'API Gateway', payload: current },
+        { id: 'sentiment-events', title: 'Sentiment Timeline', endpoint: `GET /market-data/history?ticker=${encodeURIComponent(ticker)}&category=sentiment-events`, source: 'API Gateway', payload: events },
       ]} />
     </section>
   );
@@ -954,6 +956,7 @@ export function SentimentBrowserPage({ ticker }: { ticker: string }) {
       </section>
 
       <DevApiTables
+        ticker={normalizedTicker}
         mentions={mentions}
         socialPages={apiData.socialPages}
         current={apiData.current}

@@ -683,9 +683,9 @@ export function LendingPressureBrowserPage({ ticker }: { ticker: string }) {
           </div>
         </div>
         <ApiDevelopmentTabs sources={[
-          { id: 'market-current', title: 'Market Current', endpoint: 'GET /market-data/current?category=market-current', source: 'Market Data API', payload: currentPayload, status: apiRows[0]?.status },
-          { id: 'market-history', title: 'Market History', endpoint: 'GET /market-data/history?category=market-history', source: 'Market Data API', payload: historyPayload, status: apiRows[1]?.status },
-          { id: 'ai-report', title: 'AI Report', endpoint: apiRows[2]?.endpoint ?? 'GET /market-data/ai-report', source: 'Market Data API', payload: aiReportPayload, status: apiRows[2]?.status },
+          { id: 'market-current', title: 'Market Current', endpoint: `GET /market-data/current?ticker=${encodeURIComponent(normalizedTicker)}&category=market-current`, source: 'API Gateway', payload: currentPayload, status: apiRows[0]?.status },
+          { id: 'market-history', title: 'Market History', endpoint: `GET /market-data/history?ticker=${encodeURIComponent(normalizedTicker)}&category=market-history`, source: 'API Gateway', payload: historyPayload, status: apiRows[1]?.status },
+          { id: 'ai-report', title: 'AI Report', endpoint: apiRows[2]?.endpoint ?? `GET /market-data/ai-report?ticker=${encodeURIComponent(normalizedTicker)}`, source: 'API Gateway', payload: aiReportPayload, status: apiRows[2]?.status },
         ]} />
       </section>
     </div>

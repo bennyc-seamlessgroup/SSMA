@@ -4,6 +4,82 @@ This file is the persistent implementation memory for changes made by Codex.
 Read it before modifying existing portal behavior, and update it after every
 completed change.
 
+## 2026-08-07 — Standardize full API banners in every Development Data table
+
+- Area: User and Operations portals → all Development Data sections.
+- APIs/data:
+  - Presentation-only coverage of the existing Market Data, Manual Input,
+    Social Data, Rule Catalog, ticker-management, import/export, and Operations
+    API requests already used by each page.
+- Reported problem and root cause:
+  - Some Development Data sections showed the exact active endpoint and source
+    beneath their tabs, while the custom Dashboard and Ownership tab systems
+    showed only tables. The SEC Filings development section was also a direct
+    table without the shared tab metadata treatment.
+  - Several user-portal tabs used shortened endpoint labels that omitted the
+    active ticker even though the request itself was ticker-specific.
+- Intended behavior and invariants:
+  - Every Development Data table now displays one consistent banner directly
+    beneath the tabs with the active tab's full method/path, source, and state.
+  - Switching tabs changes the banner to that tab's API. The endpoint remains
+    visible in the tab subtitle as well.
+  - Ticker-scoped Dashboard, Ownership, SEC Filings, Internal Float, Exchange
+    Volume, Lending Pressure, Short Interest, Sentiment, and Alert Rules
+    endpoints include the current ticker and category/query parameters.
+  - API Gateway is identified consistently for direct API responses. Frontend
+    compositions remain explicitly labeled as such.
+  - Payload parsing, API requests, calculations, tables, pagination, and all
+    production data behavior are unchanged.
+- Files changed:
+  - `components/ImportDataTabs.tsx`
+  - `components/ApiDevelopmentTabs.tsx`
+  - `app/monitor/[ticker]/dashboard/DashboardDevTables.tsx`
+  - `app/monitor/[ticker]/dashboard/DashboardBrowserPage.tsx`
+  - `app/monitor/[ticker]/event-calendar/EventCalendarBrowserPage.tsx`
+  - `app/monitor/[ticker]/exchange-volume/ExchangeVolumeBrowserPage.tsx`
+  - `app/monitor/[ticker]/institutional/InstitutionalDevTables.tsx`
+  - `app/monitor/[ticker]/institutional/InstitutionalBrowserPage.tsx`
+  - `app/monitor/[ticker]/internal-float/InternalFloatRoleView.tsx`
+  - `app/monitor/[ticker]/lending-pressure/LendingPressureBrowserPage.tsx`
+  - `app/monitor/[ticker]/sentiment/SentimentBrowserPage.tsx`
+  - `app/monitor/[ticker]/settings/alerts/CustomAlertSettingsClient.tsx`
+  - `app/monitor/[ticker]/short-interest/ShortInterestBrowserPage.tsx`
+  - `docs/CODEX_CHANGE_LOG.md`
+- Verification:
+  - Recorded after final type, build, whitespace, and browser checks below.
+- Remaining backend dependency / limitation:
+  - None. This change displays the already-used request definitions and does
+    not require a backend contract change.
+
+## 2026-08-07 — Simplify visible institution filing columns
+
+- Area: User Portal → Ownership → Institutions quarterly tables.
+- API/data:
+  - `GET /manual-input/manual-security-ownership?ticker={ticker}&effectiveDate={YYYY-MM-DD}`
+- Reported problem and root cause:
+  - Missing ownership types were rendered as `N/A`, adding visual noise.
+  - Portfolio Allocation was present in the imported schema but was not wanted
+    in the user-facing quarterly filing table.
+- Intended behavior and invariants:
+  - Missing or `N/A` Type values render as blank cells.
+  - Portfolio Allocation is removed from the visible Institutions table and
+    from its search surface.
+  - The raw `portAlloc` API field remains available in Development Data; no API
+    data is changed or discarded.
+  - Quarterly grouping, newest-first ordering, two-quarters-per-page
+    pagination, and the remaining visible columns stay unchanged.
+- Files changed:
+  - `app/monitor/[ticker]/institutional/OwnershipTable.tsx`
+  - `docs/CODEX_CHANGE_LOG.md`
+- Verification:
+  - TypeScript type-check passed.
+  - All seven focused ownership helper tests passed.
+  - Production build passed after clearing the stale generated Next.js cache,
+    including all 29 statically generated pages.
+  - Whitespace validation passed.
+- Remaining backend dependency / limitation:
+  - None for this presentation-only change.
+
 ## 2026-08-07 — Group SEC institution filings into quarterly tables
 
 - Area: User Portal → Ownership → Institutions table.
