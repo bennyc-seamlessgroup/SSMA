@@ -1487,6 +1487,10 @@ html[data-design-b-theme='dark'] .monitor-portal .narrative-intel-card {
   color: var(--ci-text);
 }
 
+.ops-shell .ops-suggestion-publication-note p {
+  color: var(--ci-text-muted);
+}
+
 .ops-shell :is(.ops-broker-input-group, .hotkey-empty, .hotkey-table) {
   border-color: var(--ci-border);
   background: var(--ci-surface-muted);

@@ -4,6 +4,45 @@ This file is the persistent implementation memory for changes made by Codex.
 Read it before modifying existing portal behavior, and update it after every
 completed change.
 
+## 2026-08-07 — Filter non-long records from Institution Holdings Breakdown
+
+- Area: User Portal → Ownership → Institution Holdings Breakdown.
+- API/data:
+  - `GET /market-data/current?category=ownership-current`
+  - `institutionBreakdown`
+- Reported problem and root cause:
+  - The visual breakdown included records with no held shares and option
+    records whose `type` was Put or Call, even though this panel represents
+    active institutional long holdings.
+  - The frontend mapped every `institutionBreakdown` record directly into the
+    ranked bars without applying the panel's display rules.
+- Intended behavior and invariants:
+  - The Institution Holdings Breakdown hides rows whose numeric `shares` value
+    is zero or missing and rows whose `type` identifies a Put or Call record.
+  - Type matching is case-insensitive and also covers descriptive values such
+    as `Put option`, `Call option`, and `Put/Call`.
+  - The API payload is not modified. Development Data continues to show the raw
+    `institutionBreakdown`, including records hidden from this user-facing
+    visualization.
+  - The detailed Institutions and Insiders filing tables remain unchanged.
+- Files changed:
+  - `app/monitor/[ticker]/institutional/InstitutionalBrowserPage.tsx`
+  - `docs/CODEX_CHANGE_LOG.md`
+- Verification:
+  - The Ownership route compiled successfully and returned HTTP 200 in the
+    local development server after the change.
+  - Whitespace validation passed.
+  - Browser verification reached the local Ownership route without page-level
+    console errors, but the centralized APIs returned `Not authenticated` in
+    the public demo session, so live record-level visual verification was not
+    available there.
+  - Full TypeScript and production-build verification are currently blocked by
+    unrelated in-progress errors in
+    `app/operations/ownership/ManagementHoldingsOperationsClient.tsx` (missing
+    types/props for its records-panel work).
+- Remaining backend dependency / limitation:
+  - None; this is a presentation-only filter over existing API fields.
+
 ## 2026-08-07 — Clarify Team Access invitation errors and API capabilities
 
 - Area: Operations Portal → Team Access.
@@ -3878,3 +3917,70 @@ completed change.
     frontend now trusts the backend date-scoped result; the contract should be
     updated to describe the backend team's current actual-post-date behavior
     and return an explicit canonical post-date field alongside `datetime`.
+
+## 2026-08-07 - Separate global holding suggestions from per-user decisions
+
+- Area: Operations Portal → Ownership Data; User Portal → Internal Float and
+  Ownership.
+- APIs/data:
+  - `GET/POST/DELETE /manual-input/management-holdings?ticker={ticker}`
+  - `GET/PUT /manual-input/internal-float-inputs-user?ticker={ticker}`
+  - proposed user field `managementSuggestionDecisions.records`
+- Reported problem and root cause:
+  - Operations records could be published directly to Ownership, automatically
+    merged into every user's Management / Strategic Holdings, or presented as
+    suggestions.
+  - Applying or discarding a suggestion sent a PUT to the ticker-wide
+    management-holdings record, so the first user's decision changed the global
+    status for every user.
+- Intended behavior and invariants:
+  - Operations now publishes management holding records only as ticker-wide
+    Suggested Changes with `showInOwnership=false`,
+    `showAsSuggestion=true`, and `autoApply=false`.
+  - The Operations page no longer exposes destination switches, user workspace
+    holdings, direct Ownership publication, direct Internal Float application,
+    destination-copy actions, or the Ownership consolidation prompt.
+  - Operations suggestions are never automatically merged into a user's
+    holdings. Ownership and Internal Float continue to derive strategic
+    holdings exclusively from authenticated user-scoped input.
+  - Apply writes the changed holding and an `applied` decision through the
+    user-scoped input endpoint. Discard writes only that user's `discarded`
+    decision. Neither action updates the global suggestion record.
+  - Decisions are keyed by source ID and version, so a revised Operations
+    recommendation can be reviewed again.
+  - The UI removes a suggestion only after the user-input API echoes the saved
+    decision. A backend that silently drops the field produces a visible error
+    instead of a false success.
+  - Existing holding edits preserve the user's decision array. Existing
+    consolidation prompts after a user's holding change remain intact.
+- Files changed:
+  - `app/operations/ownership/ManagementHoldingsOperationsClient.tsx`
+  - `app/globals.css`
+  - `app/portal-theme.css`
+  - `app/monitor/[ticker]/internal-float/InternalFloatClient.tsx`
+  - `app/monitor/[ticker]/internal-float/InternalFloatRoleView.tsx`
+  - `app/monitor/[ticker]/institutional/InstitutionalBrowserPage.tsx`
+  - `lib/internal-float-types.ts`
+  - `lib/internal-float-holdings.ts`
+  - `lib/operations/ownership-entry.js`
+  - `lib/operations/ownership-entry.test.mjs`
+  - `lib/portal-page-translations.ts`
+  - `docs/api/USER_SCOPED_MANAGEMENT_SUGGESTION_DECISIONS.md`
+  - `docs/CODEX_CHANGE_LOG.md`
+- Verification:
+  - TypeScript type-check passed.
+  - Ownership helper tests passed, including the new suggestion-only holder
+    history case.
+  - Production build passed, including static generation for all 29 pages.
+  - Whitespace validation passed.
+  - Browser inspection of the local Operations Ownership page confirmed the
+    fixed Suggested Change publication note and single records table are
+    present, while the destination switches and direct-apply tabs are absent.
+    The browser session was not authenticated, so live API persistence could
+    not be exercised there.
+- Remaining backend dependency / limitation:
+  - `docs/INTEGRATION (7).md` does not yet document or guarantee persistence of
+    `managementSuggestionDecisions`. The live Apply/Discard action will remain
+    visible and report a clear error until the user-input API stores and echoes
+    that field. Atomic persistence of the holding and decision should be
+    implemented server-side.

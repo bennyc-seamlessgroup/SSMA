@@ -110,6 +110,10 @@ function finiteNumber(value: unknown) {
   return Number.isFinite(numeric) ? numeric : null;
 }
 
+function isPutOrCallHoldingType(value: unknown) {
+  return /\b(?:put|call)\b/i.test(String(value ?? '').trim());
+}
+
 function consolidatedStrategicTotal(snapshot: InternalFloatCurrent | null) {
   const holdings = snapshot?.managementStrategicHoldings;
   const aggregate = finiteNumber(holdings?.shares);
@@ -185,7 +189,6 @@ export function InstitutionalBrowserPage({ ticker }: { ticker: string }) {
       setInternalFloatCurrent(normalizeInternalFloatCurrent(nextInternalFloatCurrent));
       setStrategicHoldings(mergeInternalFloatHoldings(
         nextInternalFloatInputs.managementStrategicHoldings?.records ?? [],
-        [],
       ));
     }).catch(cause => {
       if (!cancelled) setError(cause instanceof Error ? cause.message : 'Unable to load ownership data.');
@@ -234,13 +237,18 @@ export function InstitutionalBrowserPage({ ticker }: { ticker: string }) {
   const securityRows = allHistoryRows.filter(row => !String(row.sourceType ?? '').toLowerCase().includes('activist')) as SecurityOwnershipRow[];
   const activistRows = allHistoryRows.filter(row => String(row.sourceType ?? '').toLowerCase().includes('activist')) as ActivistFilingRow[];
   const managementRecords = strategicHoldings;
-  const institutionBars = (current.institutionBreakdown ?? []).map(row => ({
+  const institutionBreakdownRows = current.institutionBreakdown ?? [];
+  const toInstitutionBar = (row: Record<string, unknown>) => ({
     name: String(row.holderName ?? row.name ?? 'Unknown holder'),
     shares: Number(row.shares ?? 0),
     value: Number(row.value ?? 0),
     ownershipPercentOfInstitutional: Number(row.percentOfInstitutionalShares ?? row.ownershipPercentOfInstitutional ?? 0),
     ownershipPercentOfSharesOutstanding: Number(row.percentOfIssuedShare ?? row.ownershipPercentOfSharesOutstanding ?? 0),
-  }));
+  });
+  const institutionBars = institutionBreakdownRows.map(toInstitutionBar);
+  const visibleInstitutionBars = institutionBreakdownRows
+    .filter(row => (finiteNumber(row.shares) ?? 0) > 0 && !isPutOrCallHoldingType(row.type))
+    .map(toInstitutionBar);
   const issuedShare = Number(current.issuedShare ?? 0);
   const institutionalShares = Number(current.institutionalSharesLong ?? 0);
   const strategicShares = userScopedStrategicShares ?? 0;
@@ -257,7 +265,7 @@ export function InstitutionalBrowserPage({ ticker }: { ticker: string }) {
       strategic_entities_shares: strategicShares,
       strategic_entities_percent: issuedShare > 0 ? strategicShares / issuedShare * 100 : 0,
     },
-    institution_bars: institutionBars,
+    institution_bars: visibleInstitutionBars,
   };
   const holdings: InstitutionalHolding[] = securityRows.map((row, index) => ({
     id: `import-ownership-${index}`,

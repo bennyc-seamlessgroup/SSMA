@@ -4390,6 +4390,23 @@ html[data-design-b-theme="dark"] .monitor-portal .report-history-pagination butt
   text-transform: uppercase;
 }
 
+.ops-suggestion-publication-note {
+  padding: 12px 14px;
+  border: 1px solid #d6e0ee;
+  border-radius: 8px;
+}
+
+.ops-suggestion-publication-note strong {
+  display: block;
+  margin-bottom: 4px;
+}
+
+.ops-suggestion-publication-note p {
+  margin: 0;
+  color: #52677f;
+  line-height: 1.5;
+}
+
 .ops-destination-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));

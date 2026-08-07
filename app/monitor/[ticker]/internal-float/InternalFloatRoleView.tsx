@@ -13,9 +13,8 @@ import {
   demoInternalFloatUserInputs,
   sampleTraditionalCustodyRows,
 } from '@/lib/internal-float-demo';
-import type { FloatAdjustments, InternalFloatUserInput } from '@/lib/internal-float-types';
+import type { FloatAdjustments, InternalFloatUserInput, ManagementSuggestionDecision } from '@/lib/internal-float-types';
 import type { ManagementHoldingInputRecord } from '@/lib/operations/data-types';
-import { mergeInternalFloatHoldings } from '@/lib/internal-float-holdings';
 import { normalizeTicker } from '@/lib/ticker-data';
 import { InternalFloatClient, type InsiderSuggestionSource, type InstitutionalOwnershipOverview } from './InternalFloatClient';
 import { isPublicDemoSession } from '@/lib/public-demo';
@@ -39,6 +38,7 @@ type InternalFloatCurrent = {
 
 type InternalFloatInputs = {
   managementStrategicHoldings?: { records?: Array<Record<string, unknown>> };
+  managementSuggestionDecisions?: { records?: ManagementSuggestionDecision[] };
   tokenizedShares?: { records?: Array<Record<string, unknown>> };
   collateralizedShares?: { records?: Array<Record<string, unknown>> };
   privateFriendlyHolders?: { shares?: number; ratio?: number };
@@ -141,10 +141,16 @@ function LiveInternalFloat({ ticker }: { ticker: string }) {
   if (loading) return <PortalPageLoading variant="internalFloat" />;
   if (!payloads) return null;
 
-  const privateRecords = mergeInternalFloatHoldings(
-    payloads.userInputs.managementStrategicHoldings?.records ?? [],
-    payloads.managementHoldings,
-  );
+  const privateRecords = (payloads.userInputs.managementStrategicHoldings?.records ?? [])
+    .map((row, index) => ({
+      id: String(row.id ?? `input-${index}`),
+      holderName: String(row.holderName ?? ''),
+      category: String(row.category ?? 'Other'),
+      shares: Math.max(0, Number(row.shares ?? 0)),
+      includeInDeduction: row.includeInDeduction !== false,
+      notes: String(row.notes ?? ''),
+    }))
+    .filter(row => row.holderName && row.shares > 0);
   const tokenRecords = payloads.tickerInputs.tokenizedShares?.records ?? [];
   const collateralRecords = payloads.tickerInputs.collateralizedShares?.records ?? [];
   const apiInputs: InternalFloatUserInput = {
@@ -159,6 +165,7 @@ function LiveInternalFloat({ ticker }: { ticker: string }) {
       includeInDeduction: row.includeInDeduction !== false,
       notes: String(row.notes ?? ''),
     })),
+    managementSuggestionDecisions: payloads.userInputs.managementSuggestionDecisions?.records ?? [],
     privateFriendlyHolders: payloads.userInputs.privateFriendlyHolders,
     custodyRows: sampleTraditionalCustodyRows,
     tokenChains: tokenRecords.map((row, index) => ({ id: String(row.id ?? `token-${index}`), chain: String(row.chain ?? ''), shares: Number(row.shares ?? 0), provider: String(row.provider ?? '') })),

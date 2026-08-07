@@ -19,9 +19,17 @@ export type FloatAdjustments = {
 };
 
 export type InternalFloatPrivateHolding = { id: string; holderName: string; category: string; shares: number; includeInDeduction: boolean; notes: string };
+export type ManagementSuggestionDecision = {
+  id: string;
+  suggestionId: string;
+  suggestionVersion: string;
+  decision: 'applied' | 'discarded';
+  decidedAt: string;
+};
 export type InternalFloatUserInput = {
   userId: string; workspaceId?: string; ticker: string;
   privateHoldings: InternalFloatPrivateHolding[];
+  managementSuggestionDecisions?: ManagementSuggestionDecision[];
   privateFriendlyHolders?: { shares?: number; ratio?: number };
   custodyRows: Array<{ id: string; name: string; shares: number }>;
   tokenChains: Array<{ id: string; chain: string; shares: number; provider: string }>;

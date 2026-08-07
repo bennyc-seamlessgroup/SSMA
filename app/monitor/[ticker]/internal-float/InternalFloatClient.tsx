@@ -5,12 +5,12 @@ import { PortalPageLoading } from '@/components/PortalPageLoading';
 import { authenticatedFetch, getCurrentUser, invalidateAuthenticatedFetchCache } from '@/lib/auth-client';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
-import type { FloatAdjustments, InternalFloatUserInput, ManualHolding } from '@/lib/internal-float-types';
+import type { FloatAdjustments, InternalFloatUserInput, ManagementSuggestionDecision, ManualHolding } from '@/lib/internal-float-types';
 import {
   buildInternalFloatActivity,
   type InternalFloatActivityItem,
 } from '@/lib/internal-float-audit';
-import { signedRecordDifference, toManagementHoldingWritePayload } from '@/lib/operations/ownership-entry.js';
+import { signedRecordDifference } from '@/lib/operations/ownership-entry.js';
 import { formatCompactQuantity as compact } from '@/lib/number-format';
 
 type OwnershipData = {
@@ -47,6 +47,8 @@ export type InsiderSuggestionSource = {
   latestEffectiveDate?: string | null;
   formType?: string | null;
   source?: string;
+  createdAt?: string;
+  updatedAt?: string;
 };
 
 type PrivateHolding = {
@@ -208,6 +210,54 @@ function sourceSuggestionId(row: InsiderSuggestionSource) {
   if (row.id) return row.id;
   const holder = normalizedHolderName(row.holderName ?? row.name ?? 'holder').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'holder';
   return `${holder}:${row.action ?? 'add'}:${numeric(row.shares)}:${row.effectiveDate ?? row.latestEffectiveDate ?? row.latestFileDate ?? ''}`;
+}
+
+function sourceSuggestionVersion(row: InsiderSuggestionSource) {
+  return String(
+    row.updatedAt
+    ?? row.createdAt
+    ?? row.effectiveDate
+    ?? row.latestEffectiveDate
+    ?? row.latestFileDate
+    ?? 'unversioned',
+  );
+}
+
+function suggestionDecision(row: InsiderSuggestionSource, decision: ManagementSuggestionDecision['decision']): ManagementSuggestionDecision {
+  const suggestionId = sourceSuggestionId(row);
+  const suggestionVersion = sourceSuggestionVersion(row);
+  const safeKey = `${suggestionId}-${suggestionVersion}`.replace(/[^a-zA-Z0-9_-]+/g, '-').replace(/^-|-$/g, '');
+  return {
+    id: `management-suggestion-decision-${safeKey}`,
+    suggestionId,
+    suggestionVersion,
+    decision,
+    decidedAt: new Date().toISOString(),
+  };
+}
+
+function upsertSuggestionDecision(
+  current: ManagementSuggestionDecision[],
+  next: ManagementSuggestionDecision,
+) {
+  return [
+    ...current.filter(row => !(row.suggestionId === next.suggestionId && row.suggestionVersion === next.suggestionVersion)),
+    next,
+  ];
+}
+
+function hasSuggestionDecision(
+  decisions: ManagementSuggestionDecision[],
+  row: InsiderSuggestionSource,
+  decision?: ManagementSuggestionDecision['decision'],
+) {
+  const suggestionId = sourceSuggestionId(row);
+  const suggestionVersion = sourceSuggestionVersion(row);
+  return decisions.some(item => (
+    item.suggestionId === suggestionId
+    && item.suggestionVersion === suggestionVersion
+    && (!decision || item.decision === decision)
+  ));
 }
 
 function privateHoldingId(row: InsiderSuggestionSource) {
@@ -377,19 +427,21 @@ export function InternalFloatClient({
   const [expandedPrivateNotes, setExpandedPrivateNotes] = useState<string[]>([]);
   const [tokenizationReminder, setTokenizationReminder] = useState<TokenizationReminder | null>(null);
   const [ownershipUpdatePrompt, setOwnershipUpdatePrompt] = useState<OwnershipUpdatePrompt | null>(null);
-  const [resolvedSuggestionIds, setResolvedSuggestionIds] = useState<string[]>([]);
+  const [suggestionDecisions, setSuggestionDecisions] = useState<ManagementSuggestionDecision[]>(() => initialUserInputs.managementSuggestionDecisions ?? []);
   const [suggestionActionId, setSuggestionActionId] = useState<string | null>(null);
   const [activeSuggestion, setActiveSuggestion] = useState<InsiderSuggestionSource | null>(null);
 
   async function workspaceInputsRequest(
     section?: 'privateHoldings' | 'tokenChains' | 'collateralChains',
     rows?: unknown[],
+    nextSuggestionDecisions: ManagementSuggestionDecision[] = suggestionDecisions,
   ) {
     const userScoped = section === 'privateHoldings';
     const endpoint = `/manual-input/${userScoped ? 'internal-float-inputs-user' : 'internal-float-inputs-ticker'}?ticker=${encodeURIComponent(ticker)}`;
     const requestBody = userScoped
       ? {
         managementStrategicHoldings: { records: rows },
+        managementSuggestionDecisions: { records: nextSuggestionDecisions },
         privateFriendlyHolders: initialUserInputs.privateFriendlyHolders,
       }
       : {
@@ -400,21 +452,26 @@ export function InternalFloatClient({
       method: 'PUT',
       body: JSON.stringify(requestBody),
     }) as Record<string, unknown>;
-    const management = raw.managementStrategicHoldings as { records?: PrivateHolding[] } | undefined;
-    const tokenized = raw.tokenizedShares as { records?: TokenChain[] } | undefined;
-    const collateralized = raw.collateralizedShares as { records?: CollateralChain[] } | undefined;
+    const responsePayload = raw.data && typeof raw.data === 'object' && !Array.isArray(raw.data)
+      ? raw.data as Record<string, unknown>
+      : raw;
+    const management = responsePayload.managementStrategicHoldings as { records?: PrivateHolding[] } | undefined;
+    const decisions = responsePayload.managementSuggestionDecisions as { records?: ManagementSuggestionDecision[] } | undefined;
+    const tokenized = responsePayload.tokenizedShares as { records?: TokenChain[] } | undefined;
+    const collateralized = responsePayload.collateralizedShares as { records?: CollateralChain[] } | undefined;
     return {
       userId: `workspace:${ticker}`,
       workspaceId: ticker,
       ticker,
       privateHoldings: management?.records ?? [],
+      managementSuggestionDecisions: decisions?.records ?? [],
       privateFriendlyHolders: initialUserInputs.privateFriendlyHolders,
       custodyRows: [],
       tokenChains: tokenized?.records ?? [],
       collateralChains: collateralized?.records ?? [],
       activityLog: mergeActivityLogs(
         activityLog,
-        Array.isArray(raw.auditLog) ? raw.auditLog as InternalFloatActivityItem[] : [],
+        Array.isArray(responsePayload.auditLog) ? responsePayload.auditLog as InternalFloatActivityItem[] : [],
       ),
     };
   }
@@ -453,7 +510,7 @@ export function InternalFloatClient({
       const holderName = row.holderName ?? row.name;
       if (!holderName?.trim() || signedRecordDifference(row) === 0) return false;
       if (row.status && row.status !== 'pending') return false;
-      if (resolvedSuggestionIds.includes(sourceSuggestionId(row))) return false;
+      if (hasSuggestionDecision(suggestionDecisions, row)) return false;
       return true;
     });
 
@@ -474,36 +531,31 @@ export function InternalFloatClient({
     return String(user?.email || user?.name || user?.nickname || user?.sub || 'Demo user');
   }
 
-  async function updateManagementSuggestionStatus(row: InsiderSuggestionSource, status: 'applied' | 'discarded') {
-    if (demoMode || !row.id) return;
-    await authenticatedFetch(`/manual-input/management-holdings?ticker=${encodeURIComponent(ticker)}&id=${encodeURIComponent(row.id)}`, {
-      method: 'PUT',
-      cache: 'no-store',
-      body: JSON.stringify(toManagementHoldingWritePayload({
-        id: row.id,
-        holderName: row.holderName ?? row.name ?? 'Unknown holder',
-        action: row.action === 'deduct' ? 'deduct' : 'add',
-        shares: numeric(row.shares),
-        category: row.category,
-        source: 'source' in row ? row.source : undefined,
-        showInOwnership: row.showInOwnership,
-        showAsSuggestion: row.showAsSuggestion,
-        effectiveDate: row.effectiveDate ?? row.latestEffectiveDate ?? row.latestFileDate ?? new Date().toISOString().slice(0, 10),
-        autoApply: false,
-        status,
-        notes: row.notes,
-        fileDate: row.latestFileDate ?? undefined,
-        form: row.formType ?? undefined,
-      })),
-    });
-  }
-
   async function dismissInsiderSuggestion(row: InsiderSuggestionSource) {
     const suggestionId = sourceSuggestionId(row);
+    const nextDecision = suggestionDecision(row, 'discarded');
+    const nextDecisions = upsertSuggestionDecision(suggestionDecisions, nextDecision);
     setSuggestionActionId(suggestionId);
+    setApiStatus('saving');
+    setApiMessage('');
     try {
-      await updateManagementSuggestionStatus(row, 'discarded');
-      setResolvedSuggestionIds(current => Array.from(new Set([...current, suggestionId])));
+      if (demoMode) {
+        setSuggestionDecisions(nextDecisions);
+        setApiStatus('saved');
+        setApiMessage('Suggestion dismissed for this demo session.');
+        return;
+      }
+      const updated = await workspaceInputsRequest('privateHoldings', privateHoldings, nextDecisions);
+      if (!hasSuggestionDecision(updated.managementSuggestionDecisions ?? [], row, 'discarded')) {
+        throw new Error('The backend did not persist this user-specific suggestion decision. Deploy managementSuggestionDecisions support before retrying.');
+      }
+      setSuggestionDecisions(updated.managementSuggestionDecisions ?? []);
+      setActivityLog(updated.activityLog ?? []);
+      setApiStatus('saved');
+      setApiMessage('Suggestion dismissed for your account.');
+    } catch (error) {
+      setApiStatus('error');
+      setApiMessage(error instanceof Error ? error.message : 'Unable to dismiss this suggestion for your account.');
     } finally {
       setSuggestionActionId(null);
     }
@@ -517,6 +569,8 @@ export function InternalFloatClient({
 
   async function applyManagementSuggestion(row: InsiderSuggestionSource, targetId: string) {
     const suggestionId = sourceSuggestionId(row);
+    const nextDecision = suggestionDecision(row, 'applied');
+    const nextDecisions = upsertSuggestionDecision(suggestionDecisions, nextDecision);
     const holderName = (row.holderName ?? row.name ?? 'Unknown holder').trim();
     const signedDifference = signedRecordDifference(row);
     const action = signedDifference < 0 ? 'deduct' : 'add';
@@ -555,7 +609,7 @@ export function InternalFloatClient({
     if (demoMode) {
       setPrivateHoldings(nextRows);
       setSavedPrivateHoldings(nextRows);
-      setResolvedSuggestionIds(current => Array.from(new Set([...current, suggestionId])));
+      setSuggestionDecisions(nextDecisions);
       setApiStatus('saved');
       setApiMessage(`${holderName} was updated for this demo session. Changes will reset when the page reloads.`);
       setActivityLog(current => [
@@ -567,17 +621,19 @@ export function InternalFloatClient({
       return;
     }
     try {
-      const updated = await workspaceInputsRequest('privateHoldings', nextRows);
+      const updated = await workspaceInputsRequest('privateHoldings', nextRows, nextDecisions);
 
       if (!Array.isArray(updated.privateHoldings) || !rowsMatch(updated.privateHoldings, nextRows)) {
         throw new Error('The suggested holding was not confirmed by the server. Please try again.');
       }
+      if (!hasSuggestionDecision(updated.managementSuggestionDecisions ?? [], row, 'applied')) {
+        throw new Error('The backend did not persist this user-specific suggestion decision. Deploy managementSuggestionDecisions support before retrying.');
+      }
 
       setPrivateHoldings(updated.privateHoldings);
       setSavedPrivateHoldings(updated.privateHoldings);
+      setSuggestionDecisions(updated.managementSuggestionDecisions ?? []);
       setActivityLog(updated.activityLog ?? []);
-      await updateManagementSuggestionStatus(row, 'applied');
-      setResolvedSuggestionIds(current => Array.from(new Set([...current, suggestionId])));
       setApiStatus('saved');
       setApiMessage(`${holderName} was updated in Management / Strategic Holdings.`);
       setActiveSuggestion(null);
