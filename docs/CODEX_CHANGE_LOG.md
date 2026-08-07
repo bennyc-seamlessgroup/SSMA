@@ -4,6 +4,38 @@ This file is the persistent implementation memory for changes made by Codex.
 Read it before modifying existing portal behavior, and update it after every
 completed change.
 
+## 2026-08-07 — Restore ordinary Internal Float holding saves on the current API
+
+- Area: User Portal → Internal Float → Management / Strategic Holdings.
+- API/data:
+  - `PUT /manual-input/internal-float-inputs-user?ticker={ticker}`
+- Reported problem and root cause:
+  - Deleting a holding produced a `400 Validation Error` because every user
+    holding PUT included the proposed `managementSuggestionDecisions` field.
+  - The current API contract accepts only `privateFriendlyHolders`, `auditLog`,
+    and `managementStrategicHoldings`; support for per-user suggestion decisions
+    has not been deployed yet.
+- Intended behavior and invariants:
+  - Ordinary add, edit, and delete holding saves send only fields accepted by
+    the current API when the user has no saved suggestion decisions.
+  - The proposed decision envelope is included only when there is an actual
+    Apply/Discard decision to persist. Those actions continue to fail visibly
+    until backend support is deployed; they never fall back to changing global
+    management-holdings status.
+  - Existing user-scoped holdings, consolidation prompts, and all ticker-level
+    tokenized/collateralized save behavior remain unchanged.
+- Files changed:
+  - `app/monitor/[ticker]/internal-float/InternalFloatClient.tsx`
+  - `docs/CODEX_CHANGE_LOG.md`
+- Verification:
+  - TypeScript type-check passed.
+  - All seven ownership helper tests passed.
+  - Production build passed, including static generation for all 29 pages.
+  - Whitespace validation passed.
+- Remaining backend dependency / limitation:
+  - Per-user Apply/Discard still requires backend support for
+    `managementSuggestionDecisions`; ordinary holding CRUD does not.
+
 ## 2026-08-07 — Filter non-long records from Institution Holdings Breakdown
 
 - Area: User Portal → Ownership → Institution Holdings Breakdown.

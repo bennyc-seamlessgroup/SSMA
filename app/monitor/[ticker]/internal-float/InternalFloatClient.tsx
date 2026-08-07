@@ -441,8 +441,10 @@ export function InternalFloatClient({
     const requestBody = userScoped
       ? {
         managementStrategicHoldings: { records: rows },
-        managementSuggestionDecisions: { records: nextSuggestionDecisions },
         privateFriendlyHolders: initialUserInputs.privateFriendlyHolders,
+        ...(nextSuggestionDecisions.length > 0
+          ? { managementSuggestionDecisions: { records: nextSuggestionDecisions } }
+          : {}),
       }
       : {
         tokenizedShares: { records: section === 'tokenChains' ? rows : tokenChains },
