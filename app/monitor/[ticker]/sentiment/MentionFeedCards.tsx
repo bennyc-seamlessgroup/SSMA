@@ -108,13 +108,12 @@ export function MentionFeedCards({
   emptyMessage?: string;
 }) {
   const [sentimentFilter, setSentimentFilter] = useState<(typeof sentimentFilters)[number]>('All Sentiment');
-  const [sortMode, setSortMode] = useState<'recent' | 'oldest' | 'followers' | 'likes' | 'engagement'>('recent');
+  const [sortMode, setSortMode] = useState<'recent' | 'followers' | 'likes' | 'engagement'>('recent');
   const [dateRangeError, setDateRangeError] = useState('');
   const filteredRows = useMemo(() => {
     return rows
       .filter(row => sentimentFilter === 'All Sentiment' || sentimentLabel(row.sentiment) === sentimentFilter)
       .sort((a, b) => {
-        if (sortMode === 'oldest') return a.timestampMs - b.timestampMs;
         if (sortMode === 'followers') return b.followersScore - a.followersScore;
         if (sortMode === 'likes') return b.likesScore - a.likesScore;
         if (sortMode === 'engagement') return engagement(b) - engagement(a);
@@ -167,9 +166,8 @@ export function MentionFeedCards({
           <select value={sentimentFilter} onChange={event => setSentimentFilter(event.target.value as (typeof sentimentFilters)[number])} aria-label="Sentiment filter">
             {sentimentFilters.map(type => <option key={type} value={type}>{type}</option>)}
           </select>
-          <select value={sortMode} onChange={event => setSortMode(event.target.value as 'recent' | 'oldest' | 'followers' | 'likes' | 'engagement')} aria-label="Sort feed">
+          <select value={sortMode} onChange={event => setSortMode(event.target.value as 'recent' | 'followers' | 'likes' | 'engagement')} aria-label="Sort feed">
             <option value="recent">Newest</option>
-            <option value="oldest">Oldest</option>
             <option value="followers">Highest Followers</option>
             <option value="likes">Highest Likes</option>
             <option value="engagement">Highest Engagement</option>

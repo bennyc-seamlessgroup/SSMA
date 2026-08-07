@@ -3837,19 +3837,24 @@ completed change.
   - Feed cards show only the full posting timestamp in the timezone selected in
     Settings. They do not show a separate UTC post-date badge, which would be
     redundant and can display a different calendar day near midnight UTC.
-  - The default feed range is seven calendar dates inclusive, and `See previous
-    7 days` extends the range by seven earlier calendar dates.
+  - The default feed range is seven calendar dates inclusive, ending on today
+    in the timezone selected in Settings. Switching platforms retains that
+    range instead of silently jumping to an older platform-specific fallback
+    period. `See previous 7 days` extends the range by seven earlier dates.
   - The selected portal timezone continues to control the visible post time
     only; changing it does not move a feed to a different date container.
   - `sentiment-current` remains authoritative for Timeline totals and platform
     button counts in the selected 1D/1W/1M/6M/1Y range. `sentiment-events`
     remains a fallback for missing bucket breakdowns, and raw `/social-data`
     rows do not resize consolidated totals.
-  - Newest/oldest sorting, request-race protection, deduplication, platform
-    normalization, and existing paging behavior remain intact.
-  - Because the current API contract allows `date` to match legacy S3 target or
-    calculated dates as well as post date, each date-scoped response is
-    defensively filtered by the normalized canonical `postDate` before display.
+  - Newest sorting, request-race protection, deduplication, platform
+    normalization, and existing paging behavior remain intact. `Oldest` is
+    removed because the loaded range is not the complete archive; engagement,
+    follower, and like sorts apply only to the currently loaded range.
+  - A date-scoped `/social-data` response is authoritative. The frontend no
+    longer rejects returned rows by deriving a second UTC calendar date, which
+    previously hid valid records when the source/API date and UTC date crossed
+    midnight.
 - Files changed:
   - `app/monitor/[ticker]/sentiment/SentimentBrowserPage.tsx`
   - `app/monitor/[ticker]/sentiment/MentionFeedCards.tsx`
@@ -3870,5 +3875,6 @@ completed change.
 - Remaining backend dependency / limitation:
   - `docs/INTEGRATION (7).md` still documents `GET /social-data?date=` as
     matching post date, S3 target-bucket date, or calculated target date. The
-    final backend contract should make this filter actual-post-date-only and
-    return an explicit canonical post-date field alongside `datetime`.
+    frontend now trusts the backend date-scoped result; the contract should be
+    updated to describe the backend team's current actual-post-date behavior
+    and return an explicit canonical post-date field alongside `datetime`.

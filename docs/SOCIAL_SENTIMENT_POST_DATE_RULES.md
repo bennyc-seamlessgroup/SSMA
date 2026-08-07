@@ -20,14 +20,19 @@ Timeline bars, event fallback buckets, and date filtering.
 
 ## Portal behavior
 
-- The Timeline title, tooltip, filters, and feed badges identify values as post
-  dates.
+- The Timeline title, tooltip, and date filters identify values as post dates.
 - From/To controls accept every calendar date, including weekends and holidays.
-- The default feed window contains the latest seven calendar dates, inclusive.
+- The default feed window contains the latest seven calendar dates, inclusive,
+  ending on today in the timezone selected in General Settings.
+- Switching platforms keeps that selected range. It must not silently jump to
+  an older period when the selected platform has no posts in the current range.
 - “See previous 7 days” extends the start date by seven earlier calendar days.
 - Clicking a Timeline bar requests the exact UTC calendar date or date period
   represented by that bucket.
-- Newest/oldest sorting continues to use the original source timestamp.
+- Newest is the default time ordering. Oldest is intentionally unavailable
+  because the loaded date window is not the platform's complete archive.
+- Engagement, follower, and like sorts apply only to the currently loaded date
+  range.
 - Feed timestamps continue to use the timezone selected in General Settings.
 - Feed cards show only that full timezone-aware timestamp. They do not repeat a
   separate UTC post-date badge, which could appear to contradict the displayed
@@ -42,14 +47,14 @@ Timeline bars, event fallback buckets, and date filtering.
 - `/social-data` supplies the visible feed cards and does not resize the
   consolidated Timeline totals.
 - Raw-feed deduplication must not alter authoritative consolidated totals.
-- Until the backend makes `GET /social-data?date=` strictly post-date-only, the
-  frontend defensively retains only records whose canonical `postDate` matches
-  the requested date. This prevents legacy target-folder dates from moving or
-  duplicating posts.
+- A date-scoped `/social-data` response is authoritative for feed membership.
+  The frontend deduplicates repeated record identities but does not reject a
+  returned record by deriving a second calendar date from its UTC timestamp.
 
 ## Backend contract dependency
 
 `docs/INTEGRATION (7).md` currently says the `date` query may match a post date,
-S3 target-bucket date, or calculated target date. The desired final contract is
-for this query to match the actual post date only and to return an explicit
-canonical post-date field alongside `datetime`.
+S3 target-bucket date, or calculated target date. The frontend now trusts the
+backend's date-scoped result as requested. The document should be updated to
+state the backend team's current actual-post-date behavior and should expose an
+explicit canonical post-date field alongside `datetime`.

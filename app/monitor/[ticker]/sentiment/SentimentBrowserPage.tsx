@@ -241,11 +241,15 @@ function uniqueMentions(mentions: AdanosMention[]) {
   });
 }
 
-function isoDateWithOffset(days: number) {
-  const date = new Date();
-  date.setUTCHours(0, 0, 0, 0);
-  date.setUTCDate(date.getUTCDate() + days);
-  return date.toISOString().slice(0, 10);
+function isoDateInTimeZone(timeZone: string, value = new Date()) {
+  const parts = new Intl.DateTimeFormat('en-US', {
+    timeZone,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).formatToParts(value);
+  const part = (type: Intl.DateTimeFormatPartTypes) => parts.find(item => item.type === type)?.value ?? '';
+  return `${part('year')}-${part('month')}-${part('day')}`;
 }
 
 function shiftIsoDate(value: string, days: number) {
@@ -307,82 +311,15 @@ async function postDateFeedRange(
   if (dates.length && !responses.length) {
     throw new Error(`Unable to load social feeds for ${fromDate} to ${toDate}.${failures[0]?.reason ? ` ${failures[0].reason}` : ''}`);
   }
-  // The current integration contract permits `date` to match legacy storage or
-  // calculated dates as well as post date. Keep only records whose canonical
-  // posting date matches the requested calendar date.
-  const records = uniqueMentions(responses.flatMap(({ date, response }) => (
-    response.records.filter(record => record.postDate === date)
-  )));
+  // The backend date filter is authoritative. Do not reinterpret its calendar
+  // assignment from the UTC timestamp because that can cross a date boundary
+  // relative to the source date used by the API.
+  const records = uniqueMentions(responses.flatMap(({ response }) => response.records));
   return {
     records,
     pages: responses.map(({ response }) => response.raw),
     totals: feedTotalsFrom(records),
     failures,
-  };
-}
-
-async function feedRangeWithLatestFallback(
-  ticker: string,
-  fromDate: string,
-  toDate: string,
-  platform: Exclude<SentimentPlatformFilter, 'All'> | undefined,
-  allowLatestFallback: boolean,
-  minimumDate: string,
-  maximumDate: string,
-) {
-  const requested = await postDateFeedRange(
-    ticker,
-    fromDate,
-    toDate,
-    platform,
-  );
-  if (requested.records.length || !platform || !allowLatestFallback) {
-    return {
-      ...requested,
-      fromDate,
-      toDate,
-      fallbackNotice: '',
-    };
-  }
-
-  const latest = await getSocialDataPage({
-    ticker,
-    platform,
-    page: 1,
-    limit: 100,
-    sort: 'datetime',
-    order: 'desc',
-  });
-  const latestDate = sortSocialMentionsNewestFirst(latest.records)
-    .map(record => record.postDate)
-    .find(date => /^\d{4}-\d{2}-\d{2}$/.test(date)) ?? '';
-  if (
-    !/^\d{4}-\d{2}-\d{2}$/.test(latestDate)
-    || latestDate < minimumDate
-    || latestDate > maximumDate
-  ) {
-    return {
-      ...requested,
-      fromDate,
-      toDate,
-      fallbackNotice: '',
-    };
-  }
-
-  const fallbackToDate = latestDate;
-  const shiftedFromDate = shiftIsoDate(fallbackToDate, -6);
-  const fallbackFromDate = shiftedFromDate < minimumDate ? minimumDate : shiftedFromDate;
-  const fallback = await postDateFeedRange(
-    ticker,
-    fallbackFromDate,
-    fallbackToDate,
-    platform,
-  );
-  return {
-    ...fallback,
-    fromDate: fallbackFromDate,
-    toDate: fallbackToDate,
-    fallbackNotice: `No ${platformDisplayLabel(platform)} feeds were found for post dates ${fromDate} to ${toDate}. Showing the latest available seven-day period instead.`,
   };
 }
 
@@ -634,7 +571,7 @@ export function SentimentBrowserPage({ ticker }: { ticker: string }) {
   const searchParams = useSearchParams();
   const timeZone = usePortalTimeZone();
   const activeRange = rangeFromSearch(searchParams.get('range') ?? undefined);
-  const feedMaxDate = isoDateWithOffset(0);
+  const feedMaxDate = isoDateInTimeZone(timeZone);
   const feedMinDate = shiftIsoDate(feedMaxDate, -365);
   const [selectedPlatform, setSelectedPlatform] = useState<SentimentPlatformFilter>('All');
   const [selectedBucketId, setSelectedBucketId] = useState<string | null>(null);
@@ -642,13 +579,11 @@ export function SentimentBrowserPage({ ticker }: { ticker: string }) {
     fromDate: shiftIsoDate(feedMaxDate, -6),
     toDate: feedMaxDate,
   }));
-  const [allowLatestFeedFallback, setAllowLatestFeedFallback] = useState(true);
   const [apiData, setApiData] = useState<{
     mentions: AdanosMention[];
     socialPages: unknown[];
     feedTotals: Record<SentimentPlatformFilter, number>;
     feedRange: { fromDate: string; toDate: string };
-    fallbackNotice: string;
     current: SentimentCurrentPayload | null;
     sentimentEvents: unknown;
     timelineMentions: AdanosMention[];
@@ -656,10 +591,19 @@ export function SentimentBrowserPage({ ticker }: { ticker: string }) {
   const [loadError, setLoadError] = useState('');
   const [isLoadingFeeds, setIsLoadingFeeds] = useState(false);
   const feedRequestId = useRef(0);
-  const feedRangeBeforeBucket = useRef<{
-    range: { fromDate: string; toDate: string };
-    allowLatestFallback: boolean;
-  } | null>(null);
+  const feedRangeBeforeBucket = useRef<{ fromDate: string; toDate: string } | null>(null);
+  const previousDefaultFeedMaxDate = useRef(feedMaxDate);
+
+  useEffect(() => {
+    const previousMaxDate = previousDefaultFeedMaxDate.current;
+    setFeedDateRange(current => (
+      current.toDate === previousMaxDate
+      && current.fromDate === shiftIsoDate(previousMaxDate, -6)
+        ? { fromDate: shiftIsoDate(feedMaxDate, -6), toDate: feedMaxDate }
+        : current
+    ));
+    previousDefaultFeedMaxDate.current = feedMaxDate;
+  }, [feedMaxDate]);
 
   useEffect(() => {
     let cancelled = false;
@@ -671,14 +615,11 @@ export function SentimentBrowserPage({ ticker }: { ticker: string }) {
         const [current, sentimentEvents, social] = await Promise.all([
           getSentimentCurrent(normalizedTicker).catch(() => null),
           getSentimentEvents(normalizedTicker).catch(() => null),
-          feedRangeWithLatestFallback(
+          postDateFeedRange(
             normalizedTicker,
             feedDateRange.fromDate,
             feedDateRange.toDate,
             selectedPlatform === 'All' ? undefined : selectedPlatform,
-            allowLatestFeedFallback,
-            feedMinDate,
-            feedMaxDate,
           ),
         ]);
         if (!cancelled && requestId === feedRequestId.current) {
@@ -690,8 +631,7 @@ export function SentimentBrowserPage({ ticker }: { ticker: string }) {
             mentions: social.records,
             socialPages: social.pages,
             feedTotals: social.totals,
-            feedRange: { fromDate: social.fromDate, toDate: social.toDate },
-            fallbackNotice: social.fallbackNotice,
+            feedRange: feedDateRange,
             current,
             sentimentEvents,
             timelineMentions: recordsFromSentimentEvents(sentimentEvents),
@@ -705,7 +645,6 @@ export function SentimentBrowserPage({ ticker }: { ticker: string }) {
             socialPages: [],
             feedTotals: { All: 0, X: 0, Reddit: 0, Stocktwits: 0, Facebook: 0, Linkedin: 0 },
             feedRange: feedDateRange,
-            fallbackNotice: '',
             current: null,
             sentimentEvents: null,
             timelineMentions: [],
@@ -721,13 +660,12 @@ export function SentimentBrowserPage({ ticker }: { ticker: string }) {
       cancelled = true;
       window.removeEventListener('import-data-updated', load);
     };
-  }, [allowLatestFeedFallback, normalizedTicker, feedDateRange.fromDate, feedDateRange.toDate, selectedPlatform, feedMinDate, feedMaxDate]);
+  }, [normalizedTicker, feedDateRange.fromDate, feedDateRange.toDate, selectedPlatform]);
 
   const selectFeedDateRange = (fromDate: string, toDate: string) => {
     if (!datesNewestFirst(fromDate, toDate).length) return;
     setLoadError('');
     feedRangeBeforeBucket.current = null;
-    setAllowLatestFeedFallback(false);
     setFeedDateRange({ fromDate, toDate });
     setSelectedBucketId(null);
   };
@@ -745,18 +683,13 @@ export function SentimentBrowserPage({ ticker }: { ticker: string }) {
       feedRangeBeforeBucket.current = null;
       setSelectedBucketId(null);
       if (prior) {
-        setAllowLatestFeedFallback(prior.allowLatestFallback);
-        setFeedDateRange(prior.range);
+        setFeedDateRange(prior);
       }
       return;
     }
     if (!selectedBucketId) {
-      feedRangeBeforeBucket.current = {
-        range: apiData?.feedRange ?? feedDateRange,
-        allowLatestFallback: allowLatestFeedFallback,
-      };
+      feedRangeBeforeBucket.current = apiData?.feedRange ?? feedDateRange;
     }
-    setAllowLatestFeedFallback(false);
     setSelectedBucketId(bucket.id);
     setFeedDateRange(feedRangeForBucket(bucket));
   };
@@ -765,8 +698,7 @@ export function SentimentBrowserPage({ ticker }: { ticker: string }) {
     feedRangeBeforeBucket.current = null;
     setSelectedBucketId(null);
     if (prior) {
-      setAllowLatestFeedFallback(prior.allowLatestFallback);
-      setFeedDateRange(prior.range);
+      setFeedDateRange(prior);
     }
   };
 
@@ -995,11 +927,6 @@ export function SentimentBrowserPage({ ticker }: { ticker: string }) {
           <div className="narrative-date-filter-note">
             <span>Filtered to {postDateFilterLabel(selectedBucket)}</span>
             <button type="button" onClick={clearTimelineBucket}>Clear post-date filter</button>
-          </div>
-        )}
-        {apiData.fallbackNotice && (
-          <div className="narrative-date-filter-note" role="status">
-            <span>{apiData.fallbackNotice}</span>
           </div>
         )}
         <div className="narrative-feed-under-chart">
