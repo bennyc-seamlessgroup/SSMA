@@ -353,15 +353,42 @@ body { font-size: 12px; }
 .ai-analysis-card { position: relative; padding-bottom: 38px; }
 .ai-analysis-card > small { position: absolute; inset: auto 14px 14px; color: var(--muted); font-size: 8px; line-height: 1.4; }
 
+.sentiment-window-summary {
+  display: flex;
+  min-height: 31px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin: -5px 0 11px;
+  padding: 7px 11px;
+  border: 1px solid #dbe7f6;
+  border-radius: 7px;
+  color: #61758f;
+  background: #f5f8fc;
+  font-size: 8px;
+  font-weight: 700;
+}
+.sentiment-window-summary span { text-transform: uppercase; letter-spacing: .08em; }
+.sentiment-window-summary strong { color: var(--ink); font-size: 9px; }
 .sentiment-primary-grid { align-items: stretch; margin-bottom: 12px; }
 .sentiment-primary-grid > .card { min-height: 218px; }
-.sentiment-block { display: flex; align-items: center; justify-content: center; gap: 42px; min-height: 145px; }
+.sentiment-distribution-card { padding-right: 20px; overflow: hidden; }
+.sentiment-block { display: flex; align-items: center; justify-content: space-between; gap: 24px; min-height: 145px; padding: 0 10px 0 4px; }
+.sentiment-ring-svg { display: block; flex: 0 0 120px; width: 120px; height: 120px; overflow: visible; }
+.sentiment-ring-track, .sentiment-ring-segment { fill: none; stroke-width: 20; }
+.sentiment-ring-track { stroke: #e9eff7; }
+.sentiment-ring-segment { transform: rotate(-90deg); transform-origin: 66px 66px; }
+.sentiment-ring-segment.bullish { stroke: #16a34a; }
+.sentiment-ring-segment.neutral { stroke: #f2be22; }
+.sentiment-ring-segment.bearish { stroke: #ef4444; }
+.sentiment-ring-score { fill: var(--ink); font-size: 22px; font-weight: 800; }
+.sentiment-ring-label { fill: var(--muted); font-size: 8px; font-weight: 800; text-transform: uppercase; }
 .sentiment-ring { position: relative; flex: 0 0 auto; width: 132px; height: 132px; border-radius: 50%; }
 .sentiment-ring::after { content: ''; position: absolute; inset: 24px; border-radius: 50%; background: #fff; }
 .sentiment-ring > div { position: absolute; z-index: 1; inset: 0; display: flex; align-items: center; justify-content: center; flex-direction: column; }
 .sentiment-ring b { font-size: 22px; }
 .sentiment-ring span { margin-top: 2px; color: var(--muted); font-size: 8px; font-weight: 800; text-transform: uppercase; }
-.sentiment-legend { display: grid; gap: 14px; min-width: 150px; }
+.sentiment-legend { display: grid; flex: 1 1 126px; gap: 14px; min-width: 126px; max-width: 150px; }
 .sentiment-legend span { display: grid; grid-template-columns: 8px 1fr auto; align-items: center; gap: 8px; color: #50647d; font-size: 10px; }
 .sentiment-legend i { width: 7px; height: 7px; border-radius: 50%; }
 .sentiment-legend .bullish { background: #16a34a; }
@@ -380,7 +407,7 @@ body { font-size: 12px; }
 
 .sentiment-overall-card { display: flex; flex-direction: column; align-items: center; }
 .sentiment-overall-card .card-head { width: 100%; }
-.report-sentiment-gauge { display: block; width: 198px; height: 116px; margin: 3px auto 0; }
+.report-sentiment-gauge { display: block; width: 198px; height: 116px; margin: 3px auto 0; overflow: visible; }
 .gauge-score { fill: var(--ink); font-size: 22px; font-weight: 800; }
 .gauge-label { fill: var(--green); font-size: 8px; font-weight: 800; text-transform: uppercase; }
 .sentiment-delta { margin-top: 5px; color: var(--muted); font-size: 10px; font-weight: 800; }

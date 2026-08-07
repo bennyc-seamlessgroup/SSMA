@@ -12,6 +12,7 @@ const categorySuggestions = [
   'issued-share',
   'short-score',
   'institutional-owner',
+  'manual-security-ownership',
   'management-holdings',
   'internal-float-inputs-ticker',
   'internal-float-inputs-user',

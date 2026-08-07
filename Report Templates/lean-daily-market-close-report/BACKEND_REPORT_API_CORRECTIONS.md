@@ -63,7 +63,7 @@ All source paths are relative to the centralized V2 data bucket.
 | Market snapshot, KPIs, and four charts | `history/{ticker}/market-history.json` | `market-history` | See Section 6 |
 | Short Volume Trend | `history/{ticker}/short-volume-history.json` | `short-volume-history` | `date`, `totalShortVolumeReported` |
 | Fails-to-Deliver Trend | `history/{ticker}/ftd-history.json` | `ftd-history` | `tradeDate`, `shares` |
-| Current 1D sentiment | `current/{ticker}/sentiment-current.json` | `sentiment-current` | 1D overview, distribution, and platform breakdown |
+| Current previous-seven-day sentiment | `current/{ticker}/sentiment-current.json` | `sentiment-current` | 7D overview, distribution, and platform breakdown |
 | Historical sentiment rebuild | `history/{ticker}/sentiment-events.json` | `sentiment-events` | Timestamp, platform, and sentiment |
 | SEC filings | `manual-input/sec-filings/{ticker}/sec-filings.json` | `GET /manual-input/sec-filings` | Filing fields in Section 11 |
 | User AI analysis | `ai-report/{ticker}/{date}/{user_sub}/ai-report-user.json` | Separate `GET /market-data/ai-report` request | `short_interest_current_interpretation` |
@@ -366,9 +366,10 @@ Required chart shape:
 `dates.length` must equal `values.length`. Fewer than seven values are allowed
 when the source has fewer than seven valid observations.
 
-## 10. Sentiment - Complete 1D Contract
+## 10. Sentiment - Complete 7D Contract
 
-The report sentiment section represents one report-date 24-hour window.
+The report sentiment section represents the previous seven-day window ending
+on the report date.
 
 Primary source while generating the current report:
 
@@ -461,8 +462,8 @@ the row. Platform mention counts must sum to total mentions.
 ```json
 {
   "sentiment": {
-    "window": "1D",
-    "windowStart": "2026-08-03T00:00:00-04:00",
+    "window": "7D",
+    "windowStart": "2026-07-28T00:00:00-04:00",
     "windowEnd": "2026-08-04T00:00:00-04:00",
     "mentions": 104,
     "mentionsDisplay": "104",
@@ -591,7 +592,7 @@ Index rules:
 5. Build eight KPI values and independent previous-value comparisons.
 6. Build Short Interest Score ranges without AI text.
 7. Build six latest-seven-valid-observation charts.
-8. Freeze the report-date 1D sentiment result.
+8. Freeze the report-date previous-seven-day sentiment result.
 9. Select and deduplicate the latest five eligible SEC filings.
 10. Add legal text and source provenance.
 11. Validate all reconciliation rules.

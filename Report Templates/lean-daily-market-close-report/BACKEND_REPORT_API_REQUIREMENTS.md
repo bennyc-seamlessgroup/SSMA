@@ -90,7 +90,7 @@ otherwise.
 | Daily market row, KPI values, KPI comparisons, OHLC, volume, and four market-history charts | `GET /market-data/history?category=market-history` | `history/{ticker}/market-history.json` | See Section 6 |
 | Short Volume Trend | `GET /market-data/history?category=short-volume-history` | `history/{ticker}/short-volume-history.json` | `date`, `totalShortVolumeReported` |
 | Fails-to-Deliver Trend | `GET /market-data/history?category=ftd-history` | `history/{ticker}/ftd-history.json` | `tradeDate`, `shares` |
-| 1D sentiment snapshot | `GET /market-data/current?category=sentiment-current` | `current/{ticker}/sentiment-current.json` | 1D total, score, previous score, distribution, and platform breakdown |
+| Previous-seven-day sentiment snapshot | `GET /market-data/current?category=sentiment-current` | `current/{ticker}/sentiment-current.json` | 7D total, score, previous-seven-day score, distribution, and platform breakdown |
 | Historical sentiment rebuild support | `GET /market-data/history?category=sentiment-events` | `history/{ticker}/sentiment-events.json` | Event date/time, platform, and sentiment classification/score |
 | Latest SEC filings as of report date | `GET /manual-input/sec-filings` | `manual-input/sec-filings/{ticker}/sec-filings.json` | `filingDate`, `formType`, `formDescription`, `accessionNumber`, `filingsUrl` |
 | User-specific AI analysis | `GET /market-data/ai-report?ticker={ticker}&date={date}` | `ai-report/{ticker}/{date}/{user_sub}/ai-report-user.json` | `short_interest_current_interpretation` |
@@ -107,10 +107,10 @@ otherwise.
    as the report-generation source until the backend formally replaces it with
    one deduplicated canonical filing source.
 3. `sentiment-current.json` is valid only when generating the report for its
-   matching date. After generation, persist the 1D result in the dated report
+   matching date. After generation, persist the seven-day result in the dated report
    file. Do not read the latest `sentiment-current.json` when opening an older
    report.
-4. For historical report rebuilding, calculate the report-date 1D sentiment
+4. For historical report rebuilding, calculate the report-date seven-day sentiment
    window from `sentiment-events.json` if the matching dated sentiment snapshot
    is not already stored.
 5. All source rows must have a date less than or equal to the requested report
@@ -369,8 +369,8 @@ future frontend formatting.
     "daysToCoverChart": {}
   },
   "sentiment": {
-    "window": "1D",
-    "windowStart": "2026-08-03T00:00:00Z",
+    "window": "7D",
+    "windowStart": "2026-07-28T00:00:00Z",
     "windowEnd": "2026-08-04T00:00:00Z",
     "mentions": 104,
     "mentionsDisplay": "104",
@@ -452,7 +452,7 @@ text in the shared ticker report file.
 
 ## 11. Sentiment Rules
 
-The report uses one 24-hour window associated with the report date.
+The report uses the previous seven-day window ending on the report date.
 
 ### Score
 
@@ -570,7 +570,7 @@ Recommended sequence after daily consolidation:
 4. Normalize numeric values and dates.
 5. Build KPI comparisons.
 6. Build all six seven-observation chart series.
-7. Freeze the matching 1D sentiment snapshot.
+7. Freeze the matching previous-seven-day sentiment snapshot.
 8. Select and deduplicate SEC filings as of the report date.
 9. Add the ticker-level AI fallback if available.
 10. Validate the response contract and reconciliation rules.
@@ -635,7 +635,7 @@ Backend implementation is complete only when all of the following pass:
 6. Short Volume uses `totalShortVolumeReported`.
 7. FTD uses `tradeDate` and `shares`.
 8. Missing observations remain null or empty and never become zero.
-9. Sentiment is frozen to the report's 1D window.
+9. Sentiment is frozen to the report's previous-seven-day window.
 10. Reddit, X, Facebook, LinkedIn, and Stocktwits are always present.
 11. Platform mention counts reconcile to total mentions.
 12. SEC filings are dated on or before the report date and are deduplicated.
@@ -656,4 +656,3 @@ GET /market-data/reports?ticker={ticker}&date={YYYY-MM-DD}
 The report archive index call remains unchanged. The PDF renderer can consume
 the detailed response directly. The existing browser-side report composition
 should then be removed to prevent two competing calculation paths.
-

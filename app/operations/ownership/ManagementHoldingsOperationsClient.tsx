@@ -16,7 +16,7 @@ import {
   validateOwnershipEntry,
   type CurrentOwnershipHolder,
 } from '@/lib/operations/ownership-entry.js';
-import { authenticatedFetch } from '@/lib/auth-client';
+import { authenticatedFetch, invalidateAuthenticatedFetchCache } from '@/lib/auth-client';
 import { OperationsDevelopmentData } from '@/components/OperationsDevelopmentData';
 import { getOperationsTicker } from '@/lib/operations/ticker-client';
 
@@ -34,6 +34,11 @@ type CopyTarget = RecordsTab;
 type DisplayRecord = ManagementHoldingInputRecord & {
   source: 'operations' | 'workspace';
   editable: boolean;
+};
+type OwnershipUpdatePrompt = {
+  summary: string;
+  status: 'choice' | 'queuing' | 'queued' | 'error';
+  message?: string;
 };
 
 type ManagementHoldingsEnvelope = {
@@ -149,6 +154,7 @@ export function ManagementHoldingsOperationsClient() {
   const [developmentPayload, setDevelopmentPayload] = useState<unknown>();
   const [developmentOwnershipPayload, setDevelopmentOwnershipPayload] = useState<unknown>();
   const [developmentTicker, setDevelopmentTicker] = useState('CURR');
+  const [ownershipUpdatePrompt, setOwnershipUpdatePrompt] = useState<OwnershipUpdatePrompt | null>(null);
 
   const activeTicker = ticker.trim().toUpperCase() || 'CURR';
   const entryMode = holderSelection === NEW_HOLDER_VALUE ? 'new' : 'existing';
@@ -221,6 +227,32 @@ export function ManagementHoldingsOperationsClient() {
     setAutoApply(false);
   }
 
+  function continueManagingHolders() {
+    setOwnershipUpdatePrompt(null);
+  }
+
+  async function finishOwnershipUpdate() {
+    setOwnershipUpdatePrompt(current => current ? { ...current, status: 'queuing', message: '' } : current);
+    try {
+      await authenticatedFetch(`/manual-input/consolidate?ticker=${encodeURIComponent(activeTicker)}`, {
+        method: 'POST',
+        body: JSON.stringify({ ticker: activeTicker }),
+      });
+      invalidateAuthenticatedFetchCache('/market-data/current');
+      setOwnershipUpdatePrompt(current => current ? {
+        ...current,
+        status: 'queued',
+        message: 'The ownership update is in progress and should appear in the user portal within about 2 minutes.',
+      } : current);
+    } catch (error) {
+      setOwnershipUpdatePrompt(current => current ? {
+        ...current,
+        status: 'error',
+        message: error instanceof Error ? error.message : 'Unable to start the ownership update.',
+      } : current);
+    }
+  }
+
   function useExistingHolder(record: ManagementHoldingInputRecord) {
     const holder = currentHolders.find(candidate => candidate.key === record.holderName.trim().toLocaleLowerCase().replace(/\s+/g, ' '));
     if (!holder) return;
@@ -248,6 +280,9 @@ export function ManagementHoldingsOperationsClient() {
       await loadRecords(activeTicker);
       setStatus('saved');
       setMessage('Record deleted.');
+      if (record.showInOwnership !== false || record.autoApply) {
+        setOwnershipUpdatePrompt({ summary: `${record.holderName} was removed.`, status: 'choice' });
+      }
     } catch (error) {
       setStatus('error');
       setMessage(error instanceof Error ? error.message : 'Unable to delete record.');
@@ -276,6 +311,9 @@ export function ManagementHoldingsOperationsClient() {
       await loadRecords(activeTicker);
       setStatus('saved');
       setMessage(`Record copied to ${target === 'ownership' ? 'Ownership / Strategic Entities' : target === 'suggestions' ? 'Internal Float / Suggested Changes' : 'Internal Float / Management / Strategic Holdings'}.`);
+      if (target === 'ownership' || target === 'management') {
+        setOwnershipUpdatePrompt({ summary: `${record.holderName} was added.`, status: 'choice' });
+      }
     } catch (error) {
       setStatus('error');
       setMessage(error instanceof Error ? error.message : 'Unable to copy record.');
@@ -304,6 +342,7 @@ export function ManagementHoldingsOperationsClient() {
 
     setStatus('saving');
     setMessage('');
+    const recordAffectsOwnership = showInOwnership || autoApply;
     const payload = buildOwnershipSubmission({
       mode: entryMode,
       holder: validation.holder,
@@ -326,6 +365,13 @@ export function ManagementHoldingsOperationsClient() {
       setStatus('saved');
       const stateLabel = previewDifference.state === 'increase' ? 'increase' : previewDifference.state === 'decrease' ? 'decrease' : 'no-change filing';
       setMessage(`${payload.holderName} saved as a ${stateLabel}. Current total: ${formatNumber(validation.value)} shares.`);
+      if (recordAffectsOwnership) {
+        const savedHolderName = payload.holderName ?? holderName.trim();
+        setOwnershipUpdatePrompt({
+          summary: `${savedHolderName} was ${entryMode === 'new' ? 'added' : 'updated'}.`,
+          status: 'choice',
+        });
+      }
     } catch (error) {
       setStatus('error');
       setMessage(error instanceof Error ? error.message : 'Unable to save record.');
@@ -488,6 +534,34 @@ export function ManagementHoldingsOperationsClient() {
       </div>
 
       <ManagementRecordsPanel records={records} workspacePrivateHoldings={workspacePrivateHoldings} onUseHolder={useExistingHolder} onCopy={copyRecord} onDelete={deleteRecord} />
+
+      {ownershipUpdatePrompt && (
+        <div className="ops-confirm-backdrop" role="presentation">
+          <section className="ops-confirm-modal" role="alertdialog" aria-modal="true" aria-labelledby="ops-ownership-update-title">
+            <div className="ops-confirm-modal__icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8ZM19 8v6M16 11h6" /></svg>
+            </div>
+            <div>
+              <span>{ownershipUpdatePrompt.status === 'queued' ? 'Update started' : 'Holdings changed'}</span>
+              <h2 id="ops-ownership-update-title">{ownershipUpdatePrompt.status === 'queued' ? 'Ownership is updating' : 'Have you finished updating holdings?'}</h2>
+              {ownershipUpdatePrompt.status !== 'queued' && <p><strong>{ownershipUpdatePrompt.summary}</strong> Continue managing holdings, or update the Ownership page once this batch is complete.</p>}
+              {ownershipUpdatePrompt.message && <p className={ownershipUpdatePrompt.status === 'error' ? 'is-error' : ''}>{ownershipUpdatePrompt.message}</p>}
+            </div>
+            <footer>
+              {ownershipUpdatePrompt.status === 'queued' ? (
+                <button className="ops-primary-button" type="button" onClick={() => setOwnershipUpdatePrompt(null)}>Done</button>
+              ) : (
+                <>
+                  <button className="ops-secondary-button" type="button" onClick={continueManagingHolders} disabled={ownershipUpdatePrompt.status === 'queuing'}>Continue Managing Holdings</button>
+                  <button className="ops-primary-button" type="button" onClick={finishOwnershipUpdate} disabled={ownershipUpdatePrompt.status === 'queuing'} aria-busy={ownershipUpdatePrompt.status === 'queuing'}>
+                    {ownershipUpdatePrompt.status === 'queuing' ? 'Starting Update...' : ownershipUpdatePrompt.status === 'error' ? 'Try Again' : 'Finish & Update Ownership'}
+                  </button>
+                </>
+              )}
+            </footer>
+          </section>
+        </div>
+      )}
 
       <OperationsDevelopmentData
         title="Management Holdings API Response"

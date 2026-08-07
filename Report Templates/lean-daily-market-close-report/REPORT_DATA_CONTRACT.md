@@ -126,7 +126,9 @@ Each chart uses aligned date and value arrays:
 ```json
 {
   "sentiment": {
-    "window": "1D",
+    "window": "7D",
+    "windowStart": "2026-06-06T00:00:00-04:00",
+    "windowEnd": "2026-06-13T00:00:00-04:00",
     "mentions": 104,
     "mentionsDisplay": "104",
     "overall": {
@@ -156,7 +158,18 @@ Each chart uses aligned date and value arrays:
 }
 ```
 
-All sentiment fields must be filtered to the report's latest 24-hour window. Percentages should total approximately 100 after rounding. Platform mentions should reconcile to total mentions. The platform array must always include Reddit, X, Facebook, LinkedIn, and Stocktwits; unavailable platforms use zero mentions, zero share, and `No data` sentiment.
+All sentiment fields must represent the previous seven-day window ending on the report date. Percentages should total approximately 100 after rounding. Platform mentions should reconcile to total mentions. The platform array must always include Reddit, X, Facebook, LinkedIn, and Stocktwits; unavailable platforms use zero mentions, zero share, and `No data` sentiment. `previousScore` and `changeDisplay`, when supplied, compare this window with the immediately preceding seven-day window.
+
+During the backend transition, the archive PDF normalizer also accepts the
+same seven-day aggregate under `sentimentSnapshot`, or under
+`sentimentSnapshot.periods.7D` / `sentimentSnapshot.periods.1W`. A populated
+`timeline` or `records` array may supply dated daily buckets. These input
+variants are normalized into the shape above before rendering; they must still
+belong to the dated report response. While the dated report endpoint remains
+unpopulated, the frontend may use consolidated `sentiment-current.periods.7D`
+only when that period's inclusive end date (or its exclusive end date minus one
+day) exactly equals the requested report date. A nonmatching current period
+must never be substituted into an older archive.
 
 ## SEC Filings
 

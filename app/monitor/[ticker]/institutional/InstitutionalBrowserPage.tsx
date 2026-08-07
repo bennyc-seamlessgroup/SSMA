@@ -2,7 +2,7 @@
 
 import { PortalPageLoading } from '@/components/PortalPageLoading';
 import { PageDisclaimerNotice } from '@/components/PageDisclaimerNotice';
-import { cachedAuthenticatedFetch } from '@/lib/auth-client';
+import { authenticatedFetch, cachedAuthenticatedFetch, invalidateAuthenticatedFetchCache } from '@/lib/auth-client';
 import type { InstitutionalHolding } from '@/lib/types';
 import { normalizeTicker } from '@/lib/ticker-data';
 import { useEffect, useState } from 'react';
@@ -11,6 +11,8 @@ import type { ActivistFiling } from './ActivistFilingsTable';
 import { InstitutionalDevTables } from './InstitutionalDevTables';
 import { InstitutionalOverview, type InstitutionalOverviewData } from './InstitutionalOverview';
 import { ApiSourceTags } from '@/components/ApiSourceTags';
+import { mergeInternalFloatHoldings } from '@/lib/internal-float-holdings';
+import type { InternalFloatPrivateHolding } from '@/lib/internal-float-types';
 
 type SecurityOwnershipRow = {
   name?: string | null;
@@ -48,25 +50,6 @@ type ActivistFilingRow = {
   url?: string | null;
 };
 
-type ManagementHoldingInputRecord = {
-  id: string;
-  ticker: string;
-  holderName: string;
-  category: string;
-  shares: number | string;
-  action: 'add' | 'deduct';
-  previousShares?: number | string;
-  latestTotalShares?: number | string;
-  sharesChange?: number | string;
-  changeType?: 'increase' | 'decrease' | 'no-change';
-  notes?: string;
-  effectiveDate?: string;
-  showInOwnership?: boolean;
-  showAsSuggestion?: boolean;
-  autoApply?: boolean;
-  status?: 'pending' | 'applied' | 'discarded';
-};
-
 type OwnershipCurrent = {
   generatedAt?: string;
   updatedAt?: string;
@@ -75,22 +58,70 @@ type OwnershipCurrent = {
   institutionalSharesLong?: number;
   institutionalHoldingPercent?: number;
   institutionalValue?: number;
-  strategicEntities?: { shares?: number; percent?: number; records?: ManagementHoldingInputRecord[] };
-  publicFloat?: { shares?: number; percent?: number };
+  strategicEntities?: { shares?: number | null; percent?: number | null; records?: Array<Record<string, unknown>> };
+  publicFloat?: { shares?: number | null; percent?: number | null };
   institutionBreakdown?: Array<Record<string, unknown>>;
 };
 
 type OwnershipHistory = { generatedAt?: string; records?: Array<Record<string, unknown>> };
 
-type ManagementHoldingsResponse =
-  | ManagementHoldingInputRecord[]
-  | { records?: ManagementHoldingInputRecord[]; data?: { records?: ManagementHoldingInputRecord[] } };
+type InternalFloatCurrent = {
+  generatedAt?: string;
+  updatedAt?: string;
+  managementStrategicHoldings?: {
+    shares?: number | null;
+    records?: Array<Record<string, unknown>>;
+  };
+};
 
-function managementHoldingRecords(payload: ManagementHoldingsResponse | null) {
-  if (Array.isArray(payload)) return payload;
-  if (Array.isArray(payload?.records)) return payload.records;
-  if (Array.isArray(payload?.data?.records)) return payload.data.records;
-  return [];
+type InternalFloatCurrentEnvelope = InternalFloatCurrent & {
+  data?: InternalFloatCurrent | { 'internal-float-current-user'?: InternalFloatCurrent };
+  'internal-float-current-user'?: InternalFloatCurrent;
+};
+
+type InternalFloatInputsResponse = {
+  managementStrategicHoldings?: { records?: Array<Record<string, unknown>> };
+};
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return Boolean(value) && typeof value === 'object' && !Array.isArray(value);
+}
+
+function normalizeInternalFloatCurrent(payload: unknown): InternalFloatCurrent {
+  if (!isRecord(payload)) return {};
+  const envelope = payload as InternalFloatCurrentEnvelope;
+  const nestedData = isRecord(envelope.data) ? envelope.data as Record<string, unknown> : null;
+  const candidates = [
+    envelope['internal-float-current-user'],
+    nestedData?.['internal-float-current-user'],
+    nestedData,
+    envelope,
+  ];
+  return (candidates.find(candidate => isRecord(candidate) && (
+    'managementStrategicHoldings' in candidate
+    || 'issuedShare' in candidate
+    || 'realTradableFloat' in candidate
+  )) as InternalFloatCurrent | undefined) ?? {};
+}
+
+function finiteNumber(value: unknown) {
+  if (value === null || value === undefined || value === '') return null;
+  const numeric = typeof value === 'number' ? value : Number(String(value ?? '').replace(/,/g, ''));
+  return Number.isFinite(numeric) ? numeric : null;
+}
+
+function consolidatedStrategicTotal(snapshot: InternalFloatCurrent | null) {
+  const holdings = snapshot?.managementStrategicHoldings;
+  const aggregate = finiteNumber(holdings?.shares);
+  const records = Array.isArray(holdings?.records) ? holdings.records : [];
+  const activeRecords = records.filter(record => {
+    if (!isRecord(record)) return false;
+    return record.deletedAt == null && record.includeInDeduction !== false;
+  });
+  if (!activeRecords.length) return aggregate;
+
+  const recordTotal = activeRecords.reduce((sum, record) => sum + (finiteNumber(record.shares) ?? 0), 0);
+  return aggregate == null || Math.abs(aggregate - recordTotal) > 0.5 ? recordTotal : aggregate;
 }
 
 function formatNumber(value: unknown, options?: Intl.NumberFormatOptions) {
@@ -125,9 +156,18 @@ export function InstitutionalBrowserPage({ ticker }: { ticker: string }) {
   const normalizedTicker = normalizeTicker(ticker);
   const [current, setCurrent] = useState<OwnershipCurrent | null>(null);
   const [history, setHistory] = useState<OwnershipHistory | null>(null);
-  const [managementHoldings, setManagementHoldings] = useState<ManagementHoldingInputRecord[]>([]);
+  const [internalFloatCurrent, setInternalFloatCurrent] = useState<InternalFloatCurrent | null>(null);
+  const [strategicHoldings, setStrategicHoldings] = useState<InternalFloatPrivateHolding[]>([]);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(true);
+  const consolidatedStrategicShares = consolidatedStrategicTotal(internalFloatCurrent);
+  const expectedUserStrategicShares = strategicHoldings
+    .filter(row => row.includeInDeduction !== false)
+    .reduce((sum, row) => sum + Number(row.shares ?? 0), 0);
+  const userScopedStrategicShares = consolidatedStrategicShares != null
+    && Math.abs(consolidatedStrategicShares - expectedUserStrategicShares) <= 0.5
+    ? consolidatedStrategicShares
+    : null;
 
   useEffect(() => {
     let cancelled = false;
@@ -136,12 +176,17 @@ export function InstitutionalBrowserPage({ ticker }: { ticker: string }) {
     Promise.all([
       cachedAuthenticatedFetch<OwnershipCurrent>(`/market-data/current?ticker=${encodeURIComponent(normalizedTicker)}&category=ownership-current`),
       cachedAuthenticatedFetch<OwnershipHistory>(`/market-data/history?ticker=${encodeURIComponent(normalizedTicker)}&category=ownership-history`),
-      cachedAuthenticatedFetch<ManagementHoldingsResponse>(`/manual-input/management-holdings?ticker=${encodeURIComponent(normalizedTicker)}`),
-    ]).then(([nextCurrent, nextHistory, nextManagementHoldings]) => {
+      cachedAuthenticatedFetch<unknown>(`/market-data/current?ticker=${encodeURIComponent(normalizedTicker)}&category=internal-float-current-user`),
+      cachedAuthenticatedFetch<InternalFloatInputsResponse>(`/manual-input/internal-float-inputs-user?ticker=${encodeURIComponent(normalizedTicker)}`),
+    ]).then(([nextCurrent, nextHistory, nextInternalFloatCurrent, nextInternalFloatInputs]) => {
       if (cancelled) return;
       setCurrent(nextCurrent);
       setHistory(nextHistory);
-      setManagementHoldings(managementHoldingRecords(nextManagementHoldings));
+      setInternalFloatCurrent(normalizeInternalFloatCurrent(nextInternalFloatCurrent));
+      setStrategicHoldings(mergeInternalFloatHoldings(
+        nextInternalFloatInputs.managementStrategicHoldings?.records ?? [],
+        [],
+      ));
     }).catch(cause => {
       if (!cancelled) setError(cause instanceof Error ? cause.message : 'Unable to load ownership data.');
     }).finally(() => {
@@ -149,6 +194,36 @@ export function InstitutionalBrowserPage({ ticker }: { ticker: string }) {
     });
     return () => { cancelled = true; };
   }, [normalizedTicker]);
+
+  useEffect(() => {
+    const expectedShares = expectedUserStrategicShares;
+    const consolidatedShares = consolidatedStrategicShares ?? 0;
+    if (!strategicHoldings.length || expectedShares === consolidatedShares) return;
+
+    let cancelled = false;
+    let attempts = 0;
+    const path = `/market-data/current?ticker=${encodeURIComponent(normalizedTicker)}&category=internal-float-current-user`;
+    const refresh = async () => {
+      attempts += 1;
+      try {
+        const next = normalizeInternalFloatCurrent(await authenticatedFetch(path, { cache: 'no-store' }));
+        if (cancelled) return;
+        setInternalFloatCurrent(next);
+        if ((consolidatedStrategicTotal(next) ?? 0) === expectedShares || attempts >= 12) {
+          invalidateAuthenticatedFetchCache('/market-data/current');
+          clearInterval(timer);
+        }
+      } catch {
+        if (attempts >= 12) clearInterval(timer);
+      }
+    };
+    const timer = window.setInterval(refresh, 15_000);
+    void refresh();
+    return () => {
+      cancelled = true;
+      clearInterval(timer);
+    };
+  }, [consolidatedStrategicShares, expectedUserStrategicShares, normalizedTicker, strategicHoldings.length]);
 
   if (loading) return <PortalPageLoading variant="ownership" />;
   if (error || !current || !history) {
@@ -158,7 +233,7 @@ export function InstitutionalBrowserPage({ ticker }: { ticker: string }) {
   const allHistoryRows = Array.isArray(history.records) ? history.records : [];
   const securityRows = allHistoryRows.filter(row => !String(row.sourceType ?? '').toLowerCase().includes('activist')) as SecurityOwnershipRow[];
   const activistRows = allHistoryRows.filter(row => String(row.sourceType ?? '').toLowerCase().includes('activist')) as ActivistFilingRow[];
-  const managementRecords = managementHoldings;
+  const managementRecords = strategicHoldings;
   const institutionBars = (current.institutionBreakdown ?? []).map(row => ({
     name: String(row.holderName ?? row.name ?? 'Unknown holder'),
     shares: Number(row.shares ?? 0),
@@ -166,6 +241,10 @@ export function InstitutionalBrowserPage({ ticker }: { ticker: string }) {
     ownershipPercentOfInstitutional: Number(row.percentOfInstitutionalShares ?? row.ownershipPercentOfInstitutional ?? 0),
     ownershipPercentOfSharesOutstanding: Number(row.percentOfIssuedShare ?? row.ownershipPercentOfSharesOutstanding ?? 0),
   }));
+  const issuedShare = Number(current.issuedShare ?? 0);
+  const institutionalShares = Number(current.institutionalSharesLong ?? 0);
+  const strategicShares = userScopedStrategicShares ?? 0;
+  const publicFloatShares = Math.max(0, issuedShare - institutionalShares - strategicShares);
   const overviewData: InstitutionalOverviewData = {
     overview: {
       shares_outstanding: current.issuedShare,
@@ -173,8 +252,10 @@ export function InstitutionalBrowserPage({ ticker }: { ticker: string }) {
       institutional_shares_long: current.institutionalSharesLong,
       institutional_ownership_percent: current.institutionalHoldingPercent,
       institutional_value_thousands_usd: current.institutionalValue,
-      public_float_shares: current.publicFloat?.shares,
-      public_float_percent: current.publicFloat?.percent,
+      public_float_shares: publicFloatShares,
+      public_float_percent: issuedShare > 0 ? publicFloatShares / issuedShare * 100 : 0,
+      strategic_entities_shares: strategicShares,
+      strategic_entities_percent: issuedShare > 0 ? strategicShares / issuedShare * 100 : 0,
     },
     institution_bars: institutionBars,
   };
@@ -218,7 +299,8 @@ export function InstitutionalBrowserPage({ ticker }: { ticker: string }) {
       <section className="panel">
         <ApiSourceTags sources={[
           { endpoint: 'GET /market-data/history?category=ownership-history', label: 'Ownership filings' },
-          { endpoint: 'GET /manual-input/management-holdings', label: 'Strategic entities' },
+          { endpoint: 'GET /market-data/current?category=internal-float-current-user', label: 'Consolidated strategic total' },
+          { endpoint: 'GET /manual-input/internal-float-inputs-user', label: 'Strategic entities' },
         ]} />
         <InstitutionalTabs holdings={holdings} activistFilings={activistFilings} ticker={normalizedTicker} companyName={normalizedTicker} />
       </section>
@@ -227,7 +309,11 @@ export function InstitutionalBrowserPage({ ticker }: { ticker: string }) {
         overviewFile="GET /market-data/current?category=ownership-current"
         securityFile="GET /market-data/history?category=ownership-history"
         activistFile="GET /market-data/history?category=ownership-history"
+        ownershipCurrent={(current ?? null) as Record<string, unknown> | null}
         overview={(overviewData.overview ?? null) as Record<string, unknown> | null}
+        internalFloatCurrent={(internalFloatCurrent ?? null) as Record<string, unknown> | null}
+        expectedUserStrategicShares={expectedUserStrategicShares}
+        userScopedStrategicShares={userScopedStrategicShares}
         ownershipStructure={(overviewData.ownership_structure ?? []) as Array<Record<string, unknown>>}
         insiderBars={(overviewData.insider_bars ?? []) as Array<Record<string, unknown>>}
         institutionBars={institutionBars as Array<Record<string, unknown>>}

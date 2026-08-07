@@ -4,6 +4,7 @@
   "company": "CURRENC Group Inc.",
   "ticker": "CURR",
   "reportDate": "Jun 12, 2026",
+  "reportDateIso": "2026-06-12",
   "generatedAt": "Jun 12, 2026, 7:05 PM ET",
   "status": "Moderate Lending Pressure",
   "legalDisclaimers": {
@@ -117,13 +118,16 @@
     }
   },
   "sentiment": {
-    "window": "1D",
+    "window": "7D",
+    "windowStart": "2026-06-06T00:00:00-04:00",
+    "windowEnd": "2026-06-13T00:00:00-04:00",
     "mentions": 12,
     "mentionsDisplay": "12",
     "overall": {
       "score": 67,
       "scoreDisplay": "67",
       "label": "Bullish",
+      "previousScore": 62,
       "changeDisplay": "+5",
       "deltaTone": "positive"
     },

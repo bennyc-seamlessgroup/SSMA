@@ -17,6 +17,7 @@ import {
   type MarketPublicationRecord,
 } from '@/lib/market-data-publication';
 import { normalizeTicker } from '@/lib/ticker-data';
+import { formatCompactQuantity } from '@/lib/number-format';
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
 
 type Row = Record<string, unknown>;
@@ -289,11 +290,7 @@ function formatPercent(value: unknown, _options?: Intl.NumberFormatOptions) {
 }
 
 function formatCompactNumber(value: number) {
-  const absolute = Math.abs(value);
-  const options = { minimumFractionDigits: 2, maximumFractionDigits: 2 };
-  if (absolute >= 1000000) return `${(value / 1000000).toLocaleString('en-US', options)}M`;
-  if (absolute >= 1000) return `${(value / 1000).toLocaleString('en-US', options)}K`;
-  return value.toLocaleString('en-US', options);
+  return formatCompactQuantity(value);
 }
 
 function formatAxisNumber(value: number) {
@@ -642,7 +639,7 @@ export function LendingPressureBrowserPage({ ticker }: { ticker: string }) {
             <div className="short-executive-metrics">
               <ExecutiveMetric label="Utilization" value={formatPercent(utilizationPct)} changePercent={utilizationChangePercent} asOfDate={currentObservations.utilization?.date ?? String(utilizationHistoryRows[0]?.date ?? '')} comparisonDate={String(previousUtilizationRow.date ?? '')} />
               <ExecutiveMetric label="Borrow Fee" value={formatPercent(borrowFee)} changePercent={borrowFeeChangePercent} asOfDate={currentObservations.borrowFee?.date ?? String(latestBorrowFeeRow.date ?? '')} comparisonDate={String(previousBorrowFeeSnapshotRow.date ?? '')} />
-              <ExecutiveMetric label="Shortable Shares" value={formatNumber(sharesAvailable)} changePercent={sharesAvailableChangePercent} asOfDate={currentObservations.availableShares?.date ?? String(latestAvailabilityRow.date ?? '')} comparisonDate={String(previousAvailabilityRow.date ?? '')} />
+              <ExecutiveMetric label="Shortable Shares" value={sharesAvailable === null ? 'N/A' : formatCompactNumber(sharesAvailable)} changePercent={sharesAvailableChangePercent} asOfDate={currentObservations.availableShares?.date ?? String(latestAvailabilityRow.date ?? '')} comparisonDate={String(previousAvailabilityRow.date ?? '')} />
               <ExecutiveMetric label="Average Duration" value={averageDurationDays === null ? 'N/A' : `${formatNumber(averageDurationDays)}d`} changePercent={averageDurationChangePercent} asOfDate={currentObservations.averageDuration?.date ?? String(latestMarginRecord?.date ?? '')} comparisonDate={String(previousAverageDurationRow.date ?? '')} />
             </div>
           </article>

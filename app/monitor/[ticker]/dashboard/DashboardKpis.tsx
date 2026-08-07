@@ -3,6 +3,7 @@
 import { InfoTooltip } from '@/components/InfoTooltip';
 import { ApiSourceTags } from '@/components/ApiSourceTags';
 import type { DashboardMarginRecord, DashboardUtilizationRecord } from '@/lib/operations/data-types';
+import { formatCompactQuantity } from '@/lib/number-format';
 import { useMemo } from 'react';
 
 export type PeriodKey = '1D' | '5D' | '1M' | '3M' | '1Y' | 'YTD';
@@ -69,7 +70,7 @@ const kpis: KpiConfig[] = [
   {
     key: 'shortableShares',
     label: 'Shortable Shares',
-    valueFormatter: value => compact(value),
+    valueFormatter: value => formatCompactQuantity(value),
     changeFormatter: value => signed(value, 2, ' shares'),
     detail: 'Shortable share supply',
     explanation: 'Number of shares currently available to borrow for shorting. Lower availability can signal tighter lendable supply.',
@@ -106,14 +107,6 @@ const kpis: KpiConfig[] = [
 
 function pctFixed(value: number | undefined, digits: number) {
   return value === undefined ? 'N/A' : `${value.toLocaleString('en-US', { minimumFractionDigits: digits, maximumFractionDigits: digits })}%`;
-}
-
-function compact(value: number | undefined) {
-  if (value === undefined) return 'N/A';
-  const options = { minimumFractionDigits: 2, maximumFractionDigits: 2 };
-  if (Math.abs(value) >= 1000000) return `${(value / 1000000).toLocaleString('en-US', options)}M`;
-  if (Math.abs(value) >= 1000) return `${(value / 1000).toLocaleString('en-US', options)}K`;
-  return value.toLocaleString('en-US', options);
 }
 
 function signed(value: number, digits: number, suffix: string) {

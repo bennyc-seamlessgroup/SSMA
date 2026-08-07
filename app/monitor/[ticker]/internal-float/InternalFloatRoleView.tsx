@@ -15,7 +15,7 @@ import {
 } from '@/lib/internal-float-demo';
 import type { FloatAdjustments, InternalFloatUserInput } from '@/lib/internal-float-types';
 import type { ManagementHoldingInputRecord } from '@/lib/operations/data-types';
-import { signedRecordDifference } from '@/lib/operations/ownership-entry.js';
+import { mergeInternalFloatHoldings } from '@/lib/internal-float-holdings';
 import { normalizeTicker } from '@/lib/ticker-data';
 import { InternalFloatClient, type InsiderSuggestionSource, type InstitutionalOwnershipOverview } from './InternalFloatClient';
 import { isPublicDemoSession } from '@/lib/public-demo';
@@ -23,7 +23,7 @@ import { isPublicDemoSession } from '@/lib/public-demo';
 type OwnershipCurrent = {
   issuedShare?: number;
   institutionalSharesLong?: number;
-  publicFloat?: { shares?: number };
+  publicFloat?: { shares?: number | null };
 };
 
 type InternalFloatCurrent = {
@@ -56,10 +56,6 @@ function managementHoldingRecords(payload: ManagementHoldingsResponse) {
   return [];
 }
 
-function holderKey(value: unknown) {
-  return String(value ?? '').trim().toLowerCase().replace(/\s+/g, ' ');
-}
-
 function mergeActivityLogs(...logs: Array<InternalFloatUserInput['activityLog']>) {
   const unique = new Map<string, NonNullable<InternalFloatUserInput['activityLog']>[number]>();
   logs.flatMap(log => log ?? []).forEach((item, index) => {
@@ -75,39 +71,6 @@ function settledValue<T>(result: PromiseSettledResult<T>, fallback: T) {
 function settledStatus(result: PromiseSettledResult<unknown>) {
   if (result.status === 'fulfilled') return 'Connected';
   return `Error: ${result.reason instanceof Error ? result.reason.message : String(result.reason)}`;
-}
-
-function mergeAutoAppliedHoldings(
-  inputRows: Array<Record<string, unknown>>,
-  operationsRows: ManagementHoldingInputRecord[],
-) {
-  const holdings = new Map<string, Record<string, unknown>>();
-  const savedHolderKeys = new Set<string>();
-
-  inputRows.forEach((row, index) => {
-    const key = holderKey(row.holderName) || `input-${index}`;
-    savedHolderKeys.add(key);
-    holdings.set(key, { ...row, shares: Math.max(0, Number(row.shares ?? 0)) });
-  });
-
-  operationsRows
-    .filter(row => row.autoApply && row.status !== 'discarded' && !savedHolderKeys.has(holderKey(row.holderName)))
-    .forEach((row, index) => {
-      const key = holderKey(row.holderName) || `operations-${row.id || index}`;
-      const current = holdings.get(key);
-      const nextShares = Math.max(0, Number(current?.shares ?? 0) + signedRecordDifference(row));
-      holdings.set(key, {
-        ...current,
-        id: String(current?.id ?? row.id ?? `operations-${index}`),
-        holderName: row.holderName,
-        category: row.category || current?.category || 'Management',
-        shares: nextShares,
-        includeInDeduction: true,
-        notes: [current?.notes, row.notes].filter(Boolean).join(' '),
-      });
-    });
-
-  return Array.from(holdings.values()).filter(row => Number(row.shares ?? 0) > 0);
 }
 
 const liveSeedAdjustments: FloatAdjustments = {
@@ -178,7 +141,7 @@ function LiveInternalFloat({ ticker }: { ticker: string }) {
   if (loading) return <PortalPageLoading variant="internalFloat" />;
   if (!payloads) return null;
 
-  const privateRecords = mergeAutoAppliedHoldings(
+  const privateRecords = mergeInternalFloatHoldings(
     payloads.userInputs.managementStrategicHoldings?.records ?? [],
     payloads.managementHoldings,
   );

@@ -7,7 +7,11 @@ type InstitutionalDevTablesProps = {
   overviewFile: string;
   securityFile: string;
   activistFile: string;
+  ownershipCurrent: Record<string, unknown> | null;
   overview: Record<string, unknown> | null;
+  internalFloatCurrent: Record<string, unknown> | null;
+  expectedUserStrategicShares: number;
+  userScopedStrategicShares: number | null;
   ownershipStructure: Array<Record<string, unknown>>;
   insiderBars: Array<Record<string, unknown>>;
   institutionBars: Array<Record<string, unknown>>;
@@ -58,6 +62,39 @@ function overviewRows(overview: Record<string, unknown> | null) {
     : [];
 }
 
+function flattenedRows(value: unknown, prefix = ''): Array<{ field: string; value: string }> {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    return prefix ? [{ field: prefix, value: formatValue(value) }] : [];
+  }
+
+  return Object.entries(value as Record<string, unknown>).flatMap(([key, nestedValue]) => {
+    const field = prefix ? `${prefix}.${key}` : key;
+    if (nestedValue && typeof nestedValue === 'object' && !Array.isArray(nestedValue)) {
+      return flattenedRows(nestedValue, field);
+    }
+    return [{ field, value: formatValue(nestedValue) }];
+  });
+}
+
+function consolidatedStrategicRows(
+  snapshot: Record<string, unknown> | null,
+  expectedUserStrategicShares: number,
+  userScopedStrategicShares: number | null,
+) {
+  const holdings = snapshot?.managementStrategicHoldings;
+  const holdingsRecord = holdings && typeof holdings === 'object' && !Array.isArray(holdings)
+    ? holdings as Record<string, unknown>
+    : null;
+  return [
+    { field: 'generatedAt', value: formatValue(snapshot?.generatedAt) },
+    { field: 'updatedAt', value: formatValue(snapshot?.updatedAt) },
+    { field: 'managementStrategicHoldings.shares', value: formatValue(holdingsRecord?.shares) },
+    { field: 'managementStrategicHoldings.records', value: formatValue(holdingsRecord?.records) },
+    { field: 'frontend.expectedUserInputShares', value: formatValue(expectedUserStrategicShares) },
+    { field: 'frontend.acceptedAsUserScoped', value: userScopedStrategicShares == null ? 'No' : 'Yes' },
+  ];
+}
+
 function columnsFor(rows: Array<Record<string, unknown>>, fallback: string[]) {
   const columns = Array.from(new Set(rows.flatMap(row => Object.keys(row))));
   return columns.length ? columns : fallback;
@@ -67,7 +104,11 @@ export function InstitutionalDevTables({
   overviewFile,
   securityFile,
   activistFile,
+  ownershipCurrent,
   overview,
+  internalFloatCurrent,
+  expectedUserStrategicShares,
+  userScopedStrategicShares,
   ownershipStructure,
   insiderBars,
   institutionBars,
@@ -83,20 +124,36 @@ export function InstitutionalDevTables({
   const managementHoldingColumns = columnsFor(managementHoldings, ['holderName', 'category', 'shares', 'action', 'effectiveDate', 'showInOwnership', 'status']);
   const tabs = [
     {
-      id: 'overview',
-      title: 'Overview',
+      id: 'ownership-current-raw',
+      title: 'Ownership Current (Raw)',
       file: overviewFile,
-      sourcePlatform: overviewFile,
+      sourcePlatform: 'Market Data API',
+      recordCount: ownershipCurrent ? 1 : 0,
+      status: ownershipCurrent ? 'ready' : 'missing',
+    },
+    {
+      id: 'overview-view-model',
+      title: 'Ownership View Model',
+      file: 'Frontend composition: ownership-current + internal-float-current-user',
+      sourcePlatform: 'Frontend composition',
       recordCount: overview ? 1 : 0,
-      status: 'ready',
+      status: overview ? 'ready' : 'missing',
     },
     {
       id: 'management-holdings',
-      title: 'Strategic Entities',
-      file: 'GET /manual-input/management-holdings',
-      sourcePlatform: 'GET /manual-input/management-holdings',
+      title: 'User Strategic Entities',
+      file: 'GET /manual-input/internal-float-inputs-user',
+      sourcePlatform: 'Authenticated user scope',
       recordCount: managementHoldings.length,
       status: 'ready',
+    },
+    {
+      id: 'internal-float-current-user',
+      title: 'Consolidated Strategic Total',
+      file: 'GET /market-data/current?category=internal-float-current-user',
+      sourcePlatform: 'Market Data API',
+      recordCount: internalFloatCurrent ? 1 : 0,
+      status: internalFloatCurrent ? 'ready' : 'missing',
     },
     {
       id: 'ownership-structure',
@@ -158,13 +215,20 @@ export function InstitutionalDevTables({
           <span className="import-file-tag">{overviewFile}</span>
           <span className="import-file-tag">{securityFile}</span>
           <span className="import-file-tag">{activistFile}</span>
-          <span className="import-file-tag">GET /manual-input/management-holdings</span>
+          <span className="import-file-tag">GET /market-data/current?category=internal-float-current-user</span>
+          <span className="import-file-tag">GET /manual-input/internal-float-inputs-user</span>
         </div>
       </div>
 
       <ImportDataTabs tabs={tabs}>
+        <ImportDataTable columns={['field', 'value']} rows={flattenedRows(ownershipCurrent)} pageSize={25} />
         <ImportDataTable columns={['field', 'value']} rows={overviewRows(overview)} pageSize={25} />
         <ImportDataTable columns={managementHoldingColumns} rows={toTableRows(managementHoldings, managementHoldingColumns)} pageSize={25} />
+        <ImportDataTable
+          columns={['field', 'value']}
+          rows={consolidatedStrategicRows(internalFloatCurrent, expectedUserStrategicShares, userScopedStrategicShares)}
+          pageSize={25}
+        />
         <ImportDataTable columns={ownershipStructureColumns} rows={toTableRows(ownershipStructure, ownershipStructureColumns)} pageSize={25} />
         <ImportDataTable columns={insiderBarColumns} rows={toTableRows(insiderBars, insiderBarColumns)} pageSize={25} />
         <ImportDataTable columns={institutionBarColumns} rows={toTableRows(institutionBars, institutionBarColumns)} pageSize={25} />

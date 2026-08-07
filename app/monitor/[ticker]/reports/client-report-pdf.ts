@@ -8,6 +8,7 @@ declare global {
 
 const TEMPLATE_URL = '/report-templates/daily-close/template.html';
 const TEMPLATE_STYLES_URL = '/report-templates/daily-close/styles.css';
+const TEMPLATE_VERSION = '2026-08-07-sentiment-7d-v13';
 
 function waitForReport(iframe: HTMLIFrameElement) {
   return new Promise<Document>((resolve, reject) => {
@@ -39,7 +40,7 @@ export async function generateClientReportPdf(report: ReportArchiveRecord, repor
   const reportDataUrl = reportData === undefined
     ? report.dataUrl
     : URL.createObjectURL(new Blob([JSON.stringify(reportData)], { type: 'application/json' }));
-  const params = new URLSearchParams({ data: reportDataUrl });
+  const params = new URLSearchParams({ data: reportDataUrl, v: TEMPLATE_VERSION });
   if (reportData === undefined) {
     params.set('ticker', report.ticker);
     params.set('reportDate', report.reportDate);
@@ -61,7 +62,7 @@ export async function generateClientReportPdf(report: ReportArchiveRecord, repor
   try {
     const frameDocument = await waitForReport(iframe);
     await frameDocument.fonts?.ready;
-    const stylesheet = await fetch(TEMPLATE_STYLES_URL, { cache: 'no-store' });
+    const stylesheet = await fetch(`${TEMPLATE_STYLES_URL}?v=${encodeURIComponent(TEMPLATE_VERSION)}`, { cache: 'no-store' });
     if (!stylesheet.ok) throw new Error('The report stylesheet could not be loaded.');
     const inlineStyles = frameDocument.createElement('style');
     inlineStyles.dataset.reportPdfStyles = 'true';

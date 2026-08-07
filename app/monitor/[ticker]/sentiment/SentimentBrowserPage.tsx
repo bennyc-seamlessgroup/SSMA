@@ -548,7 +548,7 @@ function Donut({ segments, total }: { segments: Array<{ label: string; value: nu
 
 function SentimentGauge({ score }: { score: number }) {
   const clamped = Math.max(0, Math.min(100, score));
-  const rotation = 90 - (clamped / 100) * 180;
+  const rotation = -90 + (clamped / 100) * 180;
   return (
     <div className="narrative-sentiment-gauge" aria-label={`Overall sentiment ${score}`}>
       <div className="narrative-sentiment-gauge__arc">

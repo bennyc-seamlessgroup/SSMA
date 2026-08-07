@@ -2,7 +2,7 @@
 
 import { InfoTooltip } from '@/components/InfoTooltip';
 import { PortalPageLoading } from '@/components/PortalPageLoading';
-import { authenticatedFetch, getCurrentUser } from '@/lib/auth-client';
+import { authenticatedFetch, getCurrentUser, invalidateAuthenticatedFetchCache } from '@/lib/auth-client';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import type { FloatAdjustments, InternalFloatUserInput, ManualHolding } from '@/lib/internal-float-types';
@@ -11,6 +11,7 @@ import {
   type InternalFloatActivityItem,
 } from '@/lib/internal-float-audit';
 import { signedRecordDifference, toManagementHoldingWritePayload } from '@/lib/operations/ownership-entry.js';
+import { formatCompactQuantity as compact } from '@/lib/number-format';
 
 type OwnershipData = {
   sharesOutstanding: number;
@@ -66,6 +67,11 @@ type TokenizationReminder = {
   summary: string;
   message: string;
 };
+type OwnershipUpdatePrompt = {
+  summary: string;
+  status: 'choice' | 'queuing' | 'queued' | 'error';
+  message?: string;
+};
 
 const colors = ['#2453a6', '#0f8a6a', '#d89018', '#6f7bd9', '#8896a8', '#c2415b'];
 const privateCategories = ['Founder', 'CEO', 'Management', 'Insider', 'Strategic Investor', 'Family Office', 'Long-Term Holder', 'Transfer Agent', 'Other'];
@@ -88,10 +94,6 @@ function formatNumber(value: unknown, options?: Intl.NumberFormatOptions) {
 
 function shareInputValue(value: number) {
   return value === 0 ? '' : formatNumber(value);
-}
-
-function compact(value: number) {
-  return value.toLocaleString('en-US', { notation: 'compact', minimumFractionDigits: Math.abs(value) >= 1_000 ? 2 : 0, maximumFractionDigits: Math.abs(value) >= 1_000 ? 2 : 0 });
 }
 
 function pct(part: number, total: number) {
@@ -165,6 +167,29 @@ function describeDiff(diff: { added: number; deleted: number; updated: number })
     diff.updated ? `${diff.updated} updated` : '',
   ].filter(Boolean);
   return parts.length ? parts.join(', ') : 'No row changes';
+}
+
+function describeOwnershipChanges(
+  before: PrivateHolding[],
+  after: PrivateHolding[],
+  diff: { added: number; deleted: number; updated: number },
+) {
+  const beforeMap = new Map(before.map(row => [row.id, row]));
+  const afterMap = new Map(after.map(row => [row.id, row]));
+  const added = after.filter(row => !beforeMap.has(row.id)).map(row => row.holderName).filter(Boolean);
+  const removed = before.filter(row => !afterMap.has(row.id)).map(row => row.holderName).filter(Boolean);
+  const updated = after.filter(row => {
+    const previous = beforeMap.get(row.id);
+    return previous ? rowSignature(previous) !== rowSignature(row) : false;
+  }).map(row => row.holderName).filter(Boolean);
+
+  const details = [
+    added.length ? `${added.join(', ')} ${added.length === 1 ? 'was' : 'were'} added` : '',
+    updated.length ? `${updated.join(', ')} ${updated.length === 1 ? 'was' : 'were'} updated` : '',
+    removed.length ? `${removed.join(', ')} ${removed.length === 1 ? 'was' : 'were'} removed` : '',
+  ].filter(Boolean);
+
+  return details.length ? `${details.join('; ')}.` : describeDiff(diff);
 }
 
 function seedOwnership(holdings: ManualHolding[], adjustments: FloatAdjustments, institutionalOverview?: InstitutionalOwnershipOverview): OwnershipData {
@@ -351,6 +376,7 @@ export function InternalFloatClient({
   const [activityLog, setActivityLog] = useState<InternalFloatActivityItem[]>(() => initialUserInputs.activityLog ?? []);
   const [expandedPrivateNotes, setExpandedPrivateNotes] = useState<string[]>([]);
   const [tokenizationReminder, setTokenizationReminder] = useState<TokenizationReminder | null>(null);
+  const [ownershipUpdatePrompt, setOwnershipUpdatePrompt] = useState<OwnershipUpdatePrompt | null>(null);
   const [resolvedSuggestionIds, setResolvedSuggestionIds] = useState<string[]>([]);
   const [suggestionActionId, setSuggestionActionId] = useState<string | null>(null);
   const [activeSuggestion, setActiveSuggestion] = useState<InsiderSuggestionSource | null>(null);
@@ -555,6 +581,10 @@ export function InternalFloatClient({
       setApiStatus('saved');
       setApiMessage(`${holderName} was updated in Management / Strategic Holdings.`);
       setActiveSuggestion(null);
+      setOwnershipUpdatePrompt({
+        summary: targetId === '__new__' ? `${holderName} was added.` : `${holderName} was updated.`,
+        status: 'choice',
+      });
     } catch (error) {
       setApiStatus('error');
       setApiMessage(error instanceof Error ? error.message : 'Unable to apply the suggested holding.');
@@ -566,6 +596,33 @@ export function InternalFloatClient({
   function addPrivateHolding() {
     const row = { id: id('private'), holderName: '', category: 'Other', shares: 0, includeInDeduction: true, notes: '' };
     setPrivateHoldings(current => [...current, row]);
+  }
+
+  function continueManagingPrivateHoldings() {
+    setOwnershipUpdatePrompt(null);
+    openEditPanel('private');
+  }
+
+  async function finishOwnershipUpdate() {
+    setOwnershipUpdatePrompt(current => current ? { ...current, status: 'queuing', message: '' } : current);
+    try {
+      await authenticatedFetch(`/manual-input/consolidate?ticker=${encodeURIComponent(ticker)}`, {
+        method: 'POST',
+        body: JSON.stringify({ ticker }),
+      });
+      invalidateAuthenticatedFetchCache('/market-data/current');
+      setOwnershipUpdatePrompt(current => current ? {
+        ...current,
+        status: 'queued',
+        message: 'Your ownership update is in progress. The revised Ownership page should appear within about 2 minutes.',
+      } : current);
+    } catch (error) {
+      setOwnershipUpdatePrompt(current => current ? {
+        ...current,
+        status: 'error',
+        message: error instanceof Error ? error.message : 'Unable to start the ownership update.',
+      } : current);
+    }
   }
 
   function deletePrivateHolding(row: PrivateHolding) {
@@ -756,11 +813,17 @@ export function InternalFloatClient({
       }
 
       setApiStatus('saved');
-      setApiMessage('Saved. Institutional ownership consolidation will refresh shortly.');
+      setApiMessage('Saved.');
       setActivityLog(updated.activityLog ?? []);
       setEditPanel(null);
       if (diff.changed > 0) {
         if (savedPanel === 'tokenized') setTokenizationReminder(tokenizationReminderFor(diff));
+        if (savedPanel === 'private') {
+          setOwnershipUpdatePrompt({
+            summary: describeOwnershipChanges(savedPrivateHoldings, privateHoldings, diff),
+            status: 'choice',
+          });
+        }
       }
     } catch (error) {
       setApiStatus('error');
@@ -1283,6 +1346,42 @@ export function InternalFloatClient({
             </div>
             <div className="modal-actions">
               <button className="button primary" type="button" onClick={() => setTokenizationReminder(null)}>Understood</button>
+            </div>
+          </div>
+        </div>
+      )}
+      {ownershipUpdatePrompt && (
+        <div className="modal-backdrop" role="presentation">
+          <div className="modal-card internal-float-reminder-modal ownership-update-modal" role="alertdialog" aria-modal="true" aria-labelledby="ownership-update-title" onMouseDown={event => event.stopPropagation()}>
+            <div className="internal-float-reminder-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8ZM19 8v6M16 11h6" /></svg>
+            </div>
+            <div className="internal-float-reminder-content">
+              <span>{ownershipUpdatePrompt.status === 'queued' ? 'Update started' : 'Holdings changed'}</span>
+              <h2 id="ownership-update-title">
+                {ownershipUpdatePrompt.status === 'queued' ? 'Ownership is updating' : 'Have you finished updating holdings?'}
+              </h2>
+              {ownershipUpdatePrompt.status !== 'queued' && (
+                <>
+                  <strong>{ownershipUpdatePrompt.summary}</strong>
+                  <p>Continue managing holdings, or finish and update the Ownership page in one batch.</p>
+                </>
+              )}
+              {ownershipUpdatePrompt.message && (
+                <p className={ownershipUpdatePrompt.status === 'error' ? 'internal-float-update-error' : ''}>{ownershipUpdatePrompt.message}</p>
+              )}
+            </div>
+            <div className="modal-actions">
+              {ownershipUpdatePrompt.status === 'queued' ? (
+                <button className="button primary" type="button" onClick={() => setOwnershipUpdatePrompt(null)}>Done</button>
+              ) : (
+                <>
+                  <button className="button secondary" type="button" onClick={continueManagingPrivateHoldings} disabled={ownershipUpdatePrompt.status === 'queuing'}>Continue Managing Holdings</button>
+                  <button className="button primary" type="button" onClick={finishOwnershipUpdate} disabled={ownershipUpdatePrompt.status === 'queuing'} aria-busy={ownershipUpdatePrompt.status === 'queuing'}>
+                    {ownershipUpdatePrompt.status === 'queuing' ? 'Starting Update...' : ownershipUpdatePrompt.status === 'error' ? 'Try Again' : 'Finish & Update Ownership'}
+                  </button>
+                </>
+              )}
             </div>
           </div>
         </div>

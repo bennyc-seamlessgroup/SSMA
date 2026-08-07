@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from 'react';
 import type { MouseEvent } from 'react';
 import { dashboardPeriods, type PeriodKey } from './DashboardKpis';
 import { ApiSourceTags, type ApiSourceDescriptor } from '@/components/ApiSourceTags';
+import { formatCompactQuantity } from '@/lib/number-format';
 
 export type DashboardSeriesKey = 'price' | 'feeRate' | 'tradeVolume' | 'shortableShares' | 'daysToCover' | 'utilization' | 'averageDuration';
 type SeriesKey = DashboardSeriesKey;
@@ -83,13 +84,13 @@ const seriesConfig: Record<SeriesKey, SeriesConfig> = {
     label: 'Trade Volume',
     axisTitle: 'Trade Volume',
     color: '#cfcfcf',
-    formatter: value => formatCompact(value),
+    formatter: value => formatCompactQuantity(value, { minimumFractionDigits: 0, maximumFractionDigits: 1 }),
   },
   shortableShares: {
     label: 'Shortable shares',
     axisTitle: 'Shortable shares',
     color: '#ff9f12',
-    formatter: value => formatCompact(value),
+    formatter: value => formatCompactQuantity(value, { minimumFractionDigits: 0, maximumFractionDigits: 1 }),
   },
   daysToCover: {
     label: 'Days to Cover',
@@ -118,12 +119,6 @@ function scale(value: number, min: number, max: number, start: number, end: numb
 
 function pathFor(points: Array<{ x: number; y: number }>) {
   return points.map((point, index) => `${index === 0 ? 'M' : 'L'} ${point.x.toFixed(2)} ${point.y.toFixed(2)}`).join(' ');
-}
-
-function formatCompact(value: number) {
-  if (Math.abs(value) >= 1000000) return `${(value / 1000000).toLocaleString('en-US', { maximumFractionDigits: 1 })}M`;
-  if (Math.abs(value) >= 1000) return `${(value / 1000).toLocaleString('en-US', { maximumFractionDigits: 0 })}K`;
-  return value.toLocaleString('en-US', { maximumFractionDigits: 0 });
 }
 
 function formatMonth(value: string) {

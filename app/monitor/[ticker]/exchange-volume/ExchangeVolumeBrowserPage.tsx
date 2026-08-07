@@ -6,13 +6,14 @@ import { ImportDataTable } from '@/components/ImportDataTable';
 import { InfoTooltip } from '@/components/InfoTooltip';
 import { PageDisclaimerNotice } from '@/components/PageDisclaimerNotice';
 import { PortalPageLoading } from '@/components/PortalPageLoading';
-import { authenticatedFileDownload, cachedAuthenticatedFetch } from '@/lib/auth-client';
+import { cachedAuthenticatedFetch } from '@/lib/auth-client';
 import { marketCurrentFieldDate, type MarketCurrentSnapshot } from '@/lib/market-data-publication';
 import { normalizeTicker } from '@/lib/ticker-data';
 import { useEffect, useMemo, useState, type MouseEvent as ReactMouseEvent } from 'react';
 
 type Row = Record<string, unknown>;
 type PeriodKey = '1M' | '3M' | '6M' | '1Y' | 'All';
+type HistoryView = 'chart' | 'table';
 
 type VenueValue = {
   key: string;
@@ -304,6 +305,23 @@ function formatFullDate(value: string) {
   });
 }
 
+function pieSlicePath(startAngle: number, endAngle: number) {
+  const radius = 88;
+  const center = 100;
+  const cappedEndAngle = Math.min(endAngle, startAngle + 359.999);
+  const point = (angle: number) => {
+    const radians = angle * Math.PI / 180;
+    return {
+      x: center + radius * Math.cos(radians),
+      y: center + radius * Math.sin(radians),
+    };
+  };
+  const start = point(startAngle);
+  const end = point(cappedEndAngle);
+  const largeArc = cappedEndAngle - startAngle > 180 ? 1 : 0;
+  return `M ${center} ${center} L ${start.x} ${start.y} A ${radius} ${radius} 0 ${largeArc} 1 ${end.x} ${end.y} Z`;
+}
+
 function priceMetric(current: Row, key: 'open' | 'high' | 'low' | 'close') {
   const price = record(current.price);
   const labels = { open: 'Opening Price', high: 'Day High', low: 'Day Low', close: 'Closing Price' } as const;
@@ -354,11 +372,15 @@ function ExchangeVolumeChart({
   availableKeys,
   enabledKeys,
   onToggle,
+  onShowAll,
+  onHideAll,
 }: {
   points: HistoryPoint[];
   availableKeys: string[];
   enabledKeys: string[];
   onToggle: (key: string) => void;
+  onShowAll: () => void;
+  onHideAll: () => void;
 }) {
   const [hoverIndex, setHoverIndex] = useState<number | null>(null);
   const activeKeys = availableKeys.filter(key => enabledKeys.includes(key));
@@ -390,19 +412,28 @@ function ExchangeVolumeChart({
 
   return (
     <div className="exchange-volume-chart-shell">
-      <div className="exchange-volume-legend" aria-label="Exchange series toggles">
-        {availableKeys.map((key, index) => (
-          <button
-            type="button"
-            className={enabledKeys.includes(key) ? '' : 'is-muted'}
-            key={key}
-            onClick={() => onToggle(key)}
-            aria-pressed={enabledKeys.includes(key)}
-          >
-            <i style={{ background: chartColors[index % chartColors.length] }} />
-            {displayLabel(key)}
-          </button>
-        ))}
+      <div className="exchange-volume-legend">
+        <div className="exchange-volume-legend-toolbar">
+          <span>Exchanges</span>
+          <div className="exchange-volume-series-actions">
+            <button type="button" onClick={onShowAll} disabled={enabledKeys.length === availableKeys.length}>Show all</button>
+            <button type="button" onClick={onHideAll} disabled={!enabledKeys.length}>Hide all</button>
+          </div>
+        </div>
+        <div className="exchange-volume-legend-items" aria-label="Exchange series toggles">
+          {availableKeys.map((key, index) => (
+            <button
+              type="button"
+              className={enabledKeys.includes(key) ? '' : 'is-muted'}
+              key={key}
+              onClick={() => onToggle(key)}
+              aria-pressed={enabledKeys.includes(key)}
+            >
+              <i style={{ background: chartColors[index % chartColors.length] }} />
+              {displayLabel(key)}
+            </button>
+          ))}
+        </div>
       </div>
       {!activeKeys.length || !values.length ? (
         <div className="exchange-volume-empty exchange-volume-chart-empty">
@@ -503,24 +534,97 @@ function ExchangeVolumeChart({
 }
 
 function CurrentExchangeVolume({ entries }: { entries: VenueValue[] }) {
-  const max = Math.max(...entries.map(entry => entry.volume), 0);
-  if (!entries.length) {
+  const [hoveredKey, setHoveredKey] = useState<string | null>(null);
+  const sortedEntries = [...entries].sort((a, b) => b.volume - a.volume);
+  const chartEntries = sortedEntries.filter(entry => entry.volume > 0);
+  const total = chartEntries.reduce((sum, entry) => sum + entry.volume, 0);
+  let cursorAngle = -90;
+  const slices = chartEntries.map((entry, index) => {
+    const startAngle = cursorAngle;
+    const endAngle = startAngle + entry.volume / total * 360;
+    cursorAngle = endAngle;
+    return {
+      ...entry,
+      color: chartColors[index % chartColors.length],
+      path: pieSlicePath(startAngle, endAngle),
+    };
+  });
+  const hoveredEntry = hoveredKey ? slices.find(entry => entry.key === hoveredKey) ?? null : null;
+
+  if (!entries.length || !total) {
     return <div className="exchange-volume-empty">No current exchange-volume fields were returned by the API.</div>;
   }
   return (
-    <div className="exchange-volume-current-list">
-      {entries.map((entry, index) => (
-        <div className="exchange-volume-current-row" key={entry.key}>
-          <div>
+    <div className="exchange-volume-pie-layout">
+      <div className="exchange-volume-pie-wrap">
+        <div className="exchange-volume-pie-frame" onMouseLeave={() => setHoveredKey(null)}>
+          <svg className="exchange-volume-pie" viewBox="0 0 200 200" role="img" aria-label="Latest exchange volume by venue">
+            {slices.map(entry => (
+              <path
+                className={hoveredKey && hoveredKey !== entry.key ? 'is-muted' : ''}
+                d={entry.path}
+                fill={entry.color}
+                key={entry.key}
+                tabIndex={0}
+                aria-label={`${entry.label}: ${formatVolume(entry.volume)} volume${entry.percent !== null ? `, ${entry.percent.toLocaleString('en-US', { maximumFractionDigits: 4 })}% supplied by API` : ''}`}
+                onMouseEnter={() => setHoveredKey(entry.key)}
+                onFocus={() => setHoveredKey(entry.key)}
+                onBlur={() => setHoveredKey(null)}
+              />
+            ))}
+          </svg>
+          {hoveredEntry ? (
+            <div className="exchange-volume-pie-tooltip" role="status">
+              <strong><i style={{ background: hoveredEntry.color }} />{hoveredEntry.label}</strong>
+              <span>Volume <b>{formatVolume(hoveredEntry.volume)}</b></span>
+              {hoveredEntry.percent !== null ? <small>{hoveredEntry.percent.toLocaleString('en-US', { maximumFractionDigits: 4 })}% supplied by API</small> : null}
+            </div>
+          ) : null}
+        </div>
+        <small>Slice size reflects each volume value returned by the API.</small>
+      </div>
+      <div className="exchange-volume-pie-legend">
+        {sortedEntries.map((entry, index) => (
+          <div className="exchange-volume-pie-legend-row" key={entry.key}>
             <span><i style={{ background: chartColors[index % chartColors.length] }} />{entry.label}</span>
             <strong>{formatVolume(entry.volume)}</strong>
+            {entry.percent !== null ? <small>{entry.percent.toLocaleString('en-US', { maximumFractionDigits: 4 })}% supplied by API</small> : null}
           </div>
-          <div className="exchange-volume-current-track" aria-hidden="true">
-            <i style={{ width: `${max > 0 ? entry.volume / max * 100 : 0}%`, background: chartColors[index % chartColors.length] }} />
-          </div>
-          {entry.percent !== null ? <small>{entry.percent.toLocaleString('en-US', { maximumFractionDigits: 4 })}% supplied by API</small> : null}
-        </div>
-      ))}
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function HistoryViewToggle({ view, onChange }: { view: HistoryView; onChange: (view: HistoryView) => void }) {
+  return (
+    <div className="exchange-volume-view-toggle" role="group" aria-label="Exchange volume history view">
+      <button
+        type="button"
+        className={view === 'chart' ? 'active' : ''}
+        aria-label="Line chart view"
+        title="Line chart view"
+        aria-pressed={view === 'chart'}
+        onClick={() => onChange('chart')}
+      >
+        <svg viewBox="0 0 20 20" aria-hidden="true">
+          <path d="M2.5 15.5 7 10.8l3.2 2.6 6-7" />
+          <path d="M2.5 3.5v12h15" />
+        </svg>
+      </button>
+      <button
+        type="button"
+        className={view === 'table' ? 'active' : ''}
+        aria-label="Table view"
+        title="Table view"
+        aria-pressed={view === 'table'}
+        onClick={() => onChange('table')}
+      >
+        <svg viewBox="0 0 20 20" aria-hidden="true">
+          <rect x="2.5" y="3.5" width="15" height="13" rx="1" />
+          <path d="M2.5 8h15M7.5 3.5v13M12.5 3.5v13" />
+        </svg>
+      </button>
     </div>
   );
 }
@@ -569,30 +673,19 @@ function tableData(rows: Row[]) {
   return { columns, rows: tableRows };
 }
 
-function downloadBlob(blob: Blob, filename: string) {
-  const url = URL.createObjectURL(blob);
-  const anchor = document.createElement('a');
-  anchor.href = url;
-  anchor.download = filename;
-  document.body.appendChild(anchor);
-  anchor.click();
-  anchor.remove();
-  URL.revokeObjectURL(url);
-}
-
 export function ExchangeVolumeBrowserPage({ ticker }: { ticker: string }) {
   const normalizedTicker = normalizeTicker(ticker);
   const [payload, setPayload] = useState<PagePayload | null>(null);
   const [loading, setLoading] = useState(true);
   const [period, setPeriod] = useState<PeriodKey>('3M');
+  const [historyView, setHistoryView] = useState<HistoryView>('chart');
   const [disabledVenueKeys, setDisabledVenueKeys] = useState<string[]>([]);
-  const [downloadError, setDownloadError] = useState('');
-  const [downloading, setDownloading] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
     setLoading(true);
     setPayload(null);
+    setHistoryView('chart');
     setDisabledVenueKeys([]);
     Promise.allSettled([
       cachedAuthenticatedFetch(`/market-data/current?ticker=${encodeURIComponent(normalizedTicker)}&category=market-current`),
@@ -624,7 +717,11 @@ export function ExchangeVolumeBrowserPage({ ticker }: { ticker: string }) {
   const currentEntries = exchangeVolumeEntries(current.exchangeVolume);
   const currentExchangeVolumeDate = marketCurrentFieldDate(current as MarketCurrentSnapshot, 'exchangeVolume');
   const priceMetrics = (['open', 'high', 'low', 'close'] as const).map(key => priceMetric(current, key));
-  const historicalTable = useMemo(() => tableData(rawHistoryRows), [rawHistoryRows]);
+  const visibleHistoryRows = useMemo(() => {
+    const visibleDates = new Set(visiblePoints.map(point => point.date));
+    return rawHistoryRows.filter(row => visibleDates.has(historyDate(row)));
+  }, [rawHistoryRows, visiblePoints]);
+  const historicalTable = useMemo(() => tableData(visibleHistoryRows), [visibleHistoryRows]);
   const historicalColumnLabels = useMemo(
     () => Object.fromEntries(historicalTable.columns.map(column => [column, historyColumnLabel(column)])),
     [historicalTable.columns],
@@ -636,26 +733,12 @@ export function ExchangeVolumeBrowserPage({ ticker }: { ticker: string }) {
       : [...current, key]);
   }
 
-  async function downloadHistory() {
-    setDownloading(true);
-    setDownloadError('');
-    try {
-      const params = new URLSearchParams({
-        dataset: 'history',
-        ticker: normalizedTicker,
-        category: 'exchange-volume-history',
-      });
-      const firstDate = visiblePoints[0]?.date;
-      const lastDate = visiblePoints.at(-1)?.date;
-      if (firstDate) params.set('startDate', firstDate);
-      if (lastDate) params.set('endDate', lastDate);
-      const result = await authenticatedFileDownload(`/export/csv?${params.toString()}`);
-      downloadBlob(result.blob, result.filename);
-    } catch (cause) {
-      setDownloadError(cause instanceof Error ? cause.message : 'Unable to download exchange-volume history.');
-    } finally {
-      setDownloading(false);
-    }
+  function showAllVenues() {
+    setDisabledVenueKeys([]);
+  }
+
+  function hideAllVenues() {
+    setDisabledVenueKeys(allVenueKeys);
   }
 
   if (loading) return <PortalPageLoading variant="generic" />;
@@ -698,61 +781,12 @@ export function ExchangeVolumeBrowserPage({ ticker }: { ticker: string }) {
         </div>
       </section>
 
-      <section className="terminal-section exchange-volume-history-section">
-        <div className="terminal-section__head">
-          <div>
-            <span>Historical Volume</span>
-            <h2>Volume by Exchange</h2>
-            <p className="section-subtitle">Daily venue volumes returned by exchange-volume-history. The chart does not aggregate or synthesize missing dates.</p>
-          </div>
-          <div className="terminal-section-actions exchange-volume-actions">
-            <div className="exchange-volume-periods" aria-label="Exchange volume period">
-              {periods.map(option => (
-                <button className={period === option ? 'active' : ''} type="button" key={option} onClick={() => setPeriod(option)}>{option}</button>
-              ))}
-            </div>
-            <button className="exchange-volume-download" type="button" disabled={downloading || !visiblePoints.length} onClick={downloadHistory}>
-              {downloading ? 'Downloading…' : 'Download CSV'}
-            </button>
-          </div>
-        </div>
-        {downloadError ? <p className="exchange-volume-download-error">{downloadError}</p> : null}
-        <article className="terminal-card exchange-volume-chart-card">
-          <ExchangeVolumeChart
-            points={visiblePoints}
-            availableKeys={allVenueKeys}
-            enabledKeys={enabledVenueKeys}
-            onToggle={toggleVenue}
-          />
-        </article>
-      </section>
-
-      <section className="terminal-section exchange-volume-table-section">
-        <div className="terminal-section__head">
-          <div>
-            <span>API Records</span>
-            <h2>Exchange Volume History</h2>
-            <p className="section-subtitle">Trade dates and venue values from the history response. Missing API values remain unavailable rather than being replaced with zero.</p>
-          </div>
-        </div>
-        {historicalTable.rows.length ? (
-          <ImportDataTable
-            columns={historicalTable.columns}
-            rows={historicalTable.rows}
-            pageSize={25}
-            columnLabels={historicalColumnLabels}
-          />
-        ) : (
-          <div className="exchange-volume-empty">No exchange-volume history records were returned by the API.</div>
-        )}
-      </section>
-
       <section className="terminal-section exchange-volume-current-section">
         <div className="terminal-section__head">
           <div>
             <span>Current Snapshot</span>
             <h2>Latest Exchange Volume</h2>
-            <p className="section-subtitle">Every venue value shown below comes directly from market-current.exchangeVolume{currentExchangeVolumeDate ? ` as of ${formatShortDate(currentExchangeVolumeDate)}` : ''}.</p>
+            <p className="section-subtitle">Latest venue volumes from market-current.exchangeVolume{currentExchangeVolumeDate ? ` as of ${formatShortDate(currentExchangeVolumeDate)}` : ''}. Slice sizes visualize the returned volume values; labels retain the raw API values.</p>
           </div>
           <ApiSourceTags sources={[
             { endpoint: 'GET /market-data/current?category=market-current', label: 'Exchange volume object' },
@@ -761,6 +795,49 @@ export function ExchangeVolumeBrowserPage({ ticker }: { ticker: string }) {
         <article className="terminal-card exchange-volume-current-card">
           <CurrentExchangeVolume entries={currentEntries} />
         </article>
+      </section>
+
+      <section className="terminal-section exchange-volume-history-section">
+        <div className="terminal-section__head">
+          <div>
+            <span>Historical Volume</span>
+            <h2>Volume by Exchange</h2>
+            <p className="section-subtitle">Daily venue volumes returned by exchange-volume-history. Missing API dates and values remain unavailable rather than being synthesized.</p>
+          </div>
+          <div className="terminal-section-actions exchange-volume-actions">
+            <div className="exchange-volume-periods" aria-label="Exchange volume period">
+              {periods.map(option => (
+                <button className={period === option ? 'active' : ''} type="button" key={option} onClick={() => setPeriod(option)}>{option}</button>
+              ))}
+            </div>
+            <HistoryViewToggle view={historyView} onChange={setHistoryView} />
+          </div>
+        </div>
+        {historyView === 'chart' ? (
+          <article className="terminal-card exchange-volume-chart-card">
+            <ExchangeVolumeChart
+              points={visiblePoints}
+              availableKeys={allVenueKeys}
+              enabledKeys={enabledVenueKeys}
+              onToggle={toggleVenue}
+              onShowAll={showAllVenues}
+              onHideAll={hideAllVenues}
+            />
+          </article>
+        ) : (
+          <div className="exchange-volume-table-section exchange-volume-history-table">
+            {historicalTable.rows.length ? (
+              <ImportDataTable
+                columns={historicalTable.columns}
+                rows={historicalTable.rows}
+                pageSize={25}
+                columnLabels={historicalColumnLabels}
+              />
+            ) : (
+              <div className="exchange-volume-empty">No exchange-volume history records were returned by the API for this range.</div>
+            )}
+          </div>
+        )}
       </section>
 
       <PageDisclaimerNotice noticeKey="exchangeVolume" disclaimerKey="marketData" />

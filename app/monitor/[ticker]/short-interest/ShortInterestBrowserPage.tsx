@@ -17,6 +17,7 @@ import {
   type MarketCurrentSnapshot,
 } from '@/lib/market-data-publication';
 import { normalizeTicker } from '@/lib/ticker-data';
+import { formatCompactQuantity } from '@/lib/number-format';
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
 
 type Row = Record<string, unknown>;
@@ -96,21 +97,11 @@ function formatNumber(value: unknown, _options?: Intl.NumberFormatOptions) {
 }
 
 function formatCompactNumber(value: unknown) {
-  const parsed = numeric(value);
-  return parsed === null ? 'N/A' : new Intl.NumberFormat('en-US', {
-    notation: 'compact',
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  }).format(parsed);
+  return formatCompactQuantity(value);
 }
 
 function formatAxisNumber(value: unknown) {
-  const parsed = numeric(value);
-  return parsed === null ? 'N/A' : new Intl.NumberFormat('en-US', {
-    notation: 'compact',
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  }).format(parsed);
+  return formatCompactQuantity(value);
 }
 
 function formatPercent(value: unknown, _options?: Intl.NumberFormatOptions) {
@@ -1167,7 +1158,7 @@ export function ShortInterestBrowserPage({ ticker }: { ticker: string }) {
             <span>Key Short Metrics</span>
             <div className="short-executive-metrics">
               <ExecutiveMetric label="Short Interest %" value={formatPercent(shortInterestPercent)} changePercent={numeric(siPercentCard.changePercent) ?? shortInterestPctDelta?.percent} asOfDate={currentShortInterestPercent?.date ?? String(latestShortInterestRow.date ?? '')} comparisonLabel={latestAvailableComparisonLabel(currentShortInterestPercent?.date ?? latestShortInterestRow.date, previousShortInterestPercentRow.date)} />
-              <ExecutiveMetric label="Short Interest Shares" value={formatNumber(shortInterestShares)} changePercent={shortInterestChangePercent} asOfDate={currentShortInterestShares?.date ?? String(latestShortInterestRow.date ?? '')} comparisonLabel={latestAvailableComparisonLabel(currentShortInterestShares?.date ?? latestShortInterestRow.date, previousShortInterestSharesRow.date)} />
+              <ExecutiveMetric label="Short Interest Shares" value={formatCompactNumber(shortInterestShares)} changePercent={shortInterestChangePercent} asOfDate={currentShortInterestShares?.date ?? String(latestShortInterestRow.date ?? '')} comparisonLabel={latestAvailableComparisonLabel(currentShortInterestShares?.date ?? latestShortInterestRow.date, previousShortInterestSharesRow.date)} />
               <ExecutiveMetric label="Days to Cover" value={formatNumber(daysToCover)} changePercent={numeric(daysToCoverCard.changePercent) ?? daysToCoverDelta?.percent} asOfDate={currentDaysToCover?.date ?? String(latestDaysToCoverRow.date ?? '')} comparisonLabel={latestAvailableComparisonLabel(currentDaysToCover?.date ?? latestDaysToCoverRow.date, previousDaysToCoverRow.date)} />
               <ExecutiveMetric label="Borrow Fee" value={formatPercent(borrowFee)} changePercent={borrowFeeChangePercent} asOfDate={currentBorrowFee?.date ?? String(latestBorrowFeeRow.date ?? '')} comparisonLabel={latestAvailableComparisonLabel(currentBorrowFee?.date ?? latestBorrowFeeRow.date, previousBorrowFeeRow.date)} />
               <ExecutiveMetric label="Utilization" value={formatPercent(utilization)} changePercent={numeric(utilizationCard.changePercent) ?? utilizationDelta?.percent} asOfDate={currentUtilization?.date ?? String(latestUtilizationRow.date ?? '')} comparisonLabel={latestAvailableComparisonLabel(currentUtilization?.date ?? latestUtilizationRow.date, previousUtilizationRow.date)} />

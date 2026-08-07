@@ -13,16 +13,13 @@ import {
   type TriggeredApiAlert,
 } from '@/lib/alerts/ruleCatalogApi';
 import { formatPortalDateTime } from '@/lib/timezone';
+import { formatCompactCurrency, formatCompactQuantity } from '@/lib/number-format';
 import Link from 'next/link';
 import { useEffect, useMemo, useState } from 'react';
 
-function compact(value: number) {
-  return new Intl.NumberFormat('en-US', { notation: 'compact', maximumFractionDigits: 2 }).format(value);
-}
-
 function formatAlertValue(value: number, unit: AlertUnit) {
-  if (unit === '$') return `$${compact(value)}`;
-  if (unit === 'shares') return compact(value);
+  if (unit === '$') return formatCompactCurrency(value);
+  if (unit === 'shares') return formatCompactQuantity(value);
   if (unit === '%') return `${value.toLocaleString('en-US', { maximumFractionDigits: 2 })}%`;
   if (unit === 'x') return `${value.toLocaleString('en-US', { maximumFractionDigits: 2 })}x`;
   return value.toLocaleString('en-US', { maximumFractionDigits: 1 });

@@ -1257,63 +1257,6 @@ Returns the raw JSON content of the S3 file for that category.
 }
 ```
 
-#### `market-current.otherDateData` source-date contract
-
-`market-current` may carry the latest available value for an individual field
-when that field has no observation on `snapshotDate`. In that case,
-`otherDateData` identifies the actual date represented by the returned value.
-The portal treats this backend date as authoritative and must not infer a newer
-date from `snapshotDate` or from another field.
-
-```json
-{
-  "snapshotDate": "2026-08-03",
-  "utilization": {
-    "percent": 69.52,
-    "numChange": -2.18,
-    "percentChange": -3.04
-  },
-  "margins": {
-    "averageDurationDays": 6.4
-  },
-  "otherDateData": [
-    { "field": "utilization.percent", "date": "2026-07-31" },
-    { "field": "margins.averageDurationDays", "date": "2026-07-31" }
-  ]
-}
-```
-
-Supported `otherDateData.field` values are:
-
-- `shortInterest.shares`
-- `shortInterest.percent`
-- `borrowFee.percent`
-- `availableShares.chartExchange`
-- `availableShares.ibkr`
-- `availableShares.futu`
-- `availableShares.value`
-- `utilization.percent`
-- `daysToCover.value`
-- `margins.initialMarginIbkr`
-- `margins.initialMarginFutu`
-- `margins.initialMargin`
-- `margins.maintenanceMarginIbkr`
-- `margins.maintenanceMarginFutu`
-- `margins.maintenanceMargin`
-- `margins.averageDurationDays`
-- `scores.shortScore.value`
-- `shortVolume.totalShortVolumeReported`
-- `shortVolume.totalVolumeReported`
-- `ftd.shares`
-- `ftd.value`
-- `exchangeVolume`
-
-When a matching entry is absent, the field is dated to `snapshotDate`. Change
-fields supplied alongside a current metric, such as `numChange` and
-`percentChange`, remain the authoritative comparison values. Historical charts
-and tables continue to use their corresponding `/market-data/history`
-category; `otherDateData` does not create a synthetic historical observation.
-
 **Response** `200 OK` — All categories (no `category` param):
 Returns a combined object with all category names as keys. Missing files are returned as `null`.
 
@@ -2061,8 +2004,9 @@ Authorization: <id_token>
 
 **Parameters:**
 * `ticker` (optional): Target ticker. Defaults to the user's primary associated ticker if omitted.
-* `tradeDate` (optional, only for date-specific categories): The target trade date (e.g. `2026-06-12`).
-  * *If omitted for date-specific categories:* Returns a list of all historical daily configurations sorted descending by date.
+* `tradeDate` (optional, for tradeDate date-specific categories): The target trade date (e.g. `2026-06-12`).
+* `effectiveDate` (optional, for `manual-security-ownership`): The target effective date (e.g. `2026-03-31`).
+* `action` (optional, for `manual-security-ownership`): Pass `action=available-dates` to retrieve `available-date.json` metadata for the ticker.
 * `id` (optional, only for record-array categories): Retrieve a single record in the array by its ID.
   * *If omitted for record-array categories:* Returns the entire array of records.
 
@@ -2275,7 +2219,7 @@ Content-Type: text/csv
 
 **Parameters**:
 * `ticker` (**Required** / Query Parameter or Form Field): The stock ticker symbol (e.g. `CURR`).
-* `category` (Optional / Query Parameter or Form Field): Target category. Must be one of: `utilization`, `issued-share`, `manual-availability`, `margins`, `sec-filings`, `institutional-owner`, `short-score`, `internal-float-inputs`, `internal-float-inputs-ticker`, `internal-float-inputs-user`, `management-holdings`, `profile`. If omitted, the category is inferred automatically from the uploaded filename (e.g. `utilization.csv` -> `utilization`, `internal-float-inputs-ticker.csv` -> `internal-float-inputs-ticker`, `internal-float-inputs-user.csv` -> `internal-float-inputs-user`, `profile.csv` -> `profile`).
+* `category` (Optional / Query Parameter or Form Field): Target category. Must be one of: `utilization`, `issued-share`, `manual-availability`, `margins`, `sec-filings`, `institutional-owner`, `short-score`, `internal-float-inputs`, `internal-float-inputs-ticker`, `internal-float-inputs-user`, `management-holdings`, `profile`, `manual-security-ownership`. If omitted, the category is inferred automatically from the uploaded filename (e.g. `utilization.csv` -> `utilization`, `internal-float-inputs-ticker.csv` -> `internal-float-inputs-ticker`, `internal-float-inputs-user.csv` -> `internal-float-inputs-user`, `profile.csv` -> `profile`, `manual-security-ownership.csv` -> `manual-security-ownership`).
 * `file` (**Required** / Form Field): The multipart CSV file containing the data.
 
 **Existing Data Handling**:
@@ -2284,6 +2228,10 @@ Content-Type: text/csv
   - During import, the CSV is grouped by the `tradeDate` of each row.
   - For each unique date present in the CSV, the API writes/overwrites the corresponding date-specific file in S3.
   - **Important**: Any existing S3 data/files for dates *not* present in the uploaded CSV will remain intact. Only files for dates that exist in the CSV are replaced.
+- **Manual Security Ownership Category** (`manual-security-ownership`):
+  - Data is grouped by the `effectiveDate` of each row.
+  - The API writes JSON and CSV copies under `manual-input/manual-security-ownership/{ticker}/{effectiveDate}/manual-security-ownership.json` and `manual-security-ownership.csv`.
+  - Automatically updates available date tracking metadata in `manual-input/manual-security-ownership/{ticker}/available-date.json`.
 - **Single-Record Categories** (`profile`):
   - These categories store all data in a single JSON file: `manual-input/{category}/{ticker}/{category}.json`.
   - The API completely overwrites this file with the top-sorted record from the CSV. All prior existing information in that file is deleted.
@@ -2817,6 +2765,7 @@ For `manual-input` and `kwatch` exports, CSV column headers strictly align with 
 | `manual-input` | `utilization` | `tradeDate,utilizationPercent` |
 | `manual-input` | `sec-filings` | `tradeDate,id,recordTicker,companyName,formType,formDescription,filingDate,reportingDate,act,filmNumber,fileNumber,accessionNumber,filingsUrl,notes` |
 | `manual-input` | `margins` | `tradeDate,initialMarginIbkr,initialMarginFutu,maintenanceMarginIbkr,maintenanceMarginFutu,averageDurationDays,valueFormat,displayFormat` |
+| `manual-input` | `manual-security-ownership` | `fileDate,effectiveDate,source,investor,optionType,type,avgPriceEst,shares,sharesPct,reportedValue,valueChangePct,portAlloc` |
 | `kwatch` | `reddit` | `platform,query,datetime,link,author,content,sentiment` |
 | `kwatch` | `twitter` | `platform,query,datetime,link,author,content,sentiment` |
 | `kwatch` | `stocktwits` | `messages__id,author,datetime,user__followers,content,Reshares,likes,link,sentiment_label,sentiment_score,analysis_catalyst_tag,platform` |

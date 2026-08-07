@@ -17,6 +17,7 @@ type ImportCategory =
   | 'issued-share'
   | 'profile'
   | 'institutional-owner'
+  | 'manual-security-ownership'
   | 'management-holdings'
   | 'sec-filings'
   | 'internal-float-inputs-ticker'
@@ -91,6 +92,12 @@ const categories: CategoryDefinition[] = [
     columns: ['id', 'institutionalOwnerSecurityName'], sample: ['io-sec-name-001', 'CURRENC GROUP INC'],
   },
   {
+    key: 'manual-security-ownership', label: 'Manual security ownership', description: 'Institutional security-ownership records grouped by effective date.',
+    replacement: 'Only effective dates included in the CSV are replaced. Other dated ownership files remain unchanged.',
+    columns: ['fileDate', 'effectiveDate', 'source', 'investor', 'optionType', 'type', 'avgPriceEst', 'shares', 'sharesPct', 'reportedValue', 'valueChangePct', 'portAlloc'],
+    sample: ['2026-05-15', '2026-03-31', '13F', 'Citadel Advisors Llc', '', '', 1.98, 58345, '', 153, '', 0],
+  },
+  {
     key: 'management-holdings', label: 'Management holdings', description: 'Operations-managed strategic holding records.',
     replacement: 'The complete record list is replaced.',
     columns: ['id', 'holderName', 'category', 'action', 'shares', 'percentOfShares', 'fileDate', 'effectiveDate', 'form', 'showInOwnership', 'showAsSuggestion', 'autoApply', 'status', 'source', 'notes'],
@@ -131,6 +138,12 @@ function consolidatedOutputEndpoints(category: ImportCategory, ticker: string) {
   }
   if (category === 'institutional-owner') {
     return [`/market-data/current?ticker=${tickerParam}&category=ownership-current`];
+  }
+  if (category === 'manual-security-ownership') {
+    return [
+      `/market-data/current?ticker=${tickerParam}&category=ownership-current`,
+      `/market-data/history?ticker=${tickerParam}&category=ownership-history`,
+    ];
   }
   if (category === 'management-holdings' || category === 'internal-float-inputs-ticker') {
     return [`/market-data/current?ticker=${tickerParam}&category=internal-float-current`];
@@ -208,12 +221,30 @@ async function inspectCsvTicker(file: File) {
     : Array.from(new Set(rows.slice(1)
       .map(row => row[tradeDateIndex]?.trim())
       .filter(Boolean)));
-  return { rowCount: Math.max(0, rows.length - 1), tickers, tradeDates };
+  const effectiveDateIndex = headers.indexOf('effectivedate');
+  const effectiveDates = effectiveDateIndex < 0
+    ? []
+    : Array.from(new Set(rows.slice(1)
+      .map(row => row[effectiveDateIndex]?.trim())
+      .filter(Boolean)));
+  return { rowCount: Math.max(0, rows.length - 1), tickers, tradeDates, effectiveDates };
 }
 
-function expectedImportPaths(category: ImportCategory, ticker: string, tradeDates: string[]) {
+function importPartitionDates(
+  category: ImportCategory,
+  details?: { tradeDates: string[]; effectiveDates: string[] },
+) {
+  return category === 'manual-security-ownership'
+    ? details?.effectiveDates ?? []
+    : details?.tradeDates ?? [];
+}
+
+function expectedImportPaths(category: ImportCategory, ticker: string, partitionDates: string[]) {
   if (dateSpecificCategories.includes(category)) {
-    return tradeDates.map(date => `manual-input/${category}/${ticker}/${date}/${category}.json`);
+    return partitionDates.map(date => `manual-input/${category}/${ticker}/${date}/${category}.json`);
+  }
+  if (category === 'manual-security-ownership') {
+    return partitionDates.map(date => `manual-input/manual-security-ownership/${ticker}/${date}/manual-security-ownership.json`);
   }
   if (category === 'institutional-owner') {
     return [`manual-input/${category}/${ticker}/security-name.json`];
@@ -221,12 +252,16 @@ function expectedImportPaths(category: ImportCategory, ticker: string, tradeDate
   return [`manual-input/${category}/${ticker}/${category}.json`];
 }
 
-function invalidImportPath(result: ImportResponse, category: ImportCategory, ticker: string, tradeDates: string[]) {
+function invalidImportPath(result: ImportResponse, category: ImportCategory, ticker: string, partitionDates: string[]) {
   const invalidPath = result.generatedFiles?.find(path => /\/(?:none|null|undefined)(?:$|\/)/i.test(path));
   if (invalidPath) return `invalid generated path ${invalidPath}`;
 
-  const expected = expectedImportPaths(category, ticker, tradeDates).sort();
+  const expected = expectedImportPaths(category, ticker, partitionDates).sort();
   const generated = [...(result.generatedFiles ?? [])].sort();
+  if (category === 'manual-security-ownership') {
+    const missing = expected.filter(path => !generated.includes(path));
+    return missing.length ? `missing generated ownership paths: ${missing.join(', ')}` : undefined;
+  }
   if (category === 'internal-float-inputs-user') {
     const prefix = `manual-input/internal-float-inputs-user/${ticker}/`;
     const suffix = '/internal-float-inputs-user.json';
@@ -243,7 +278,12 @@ export function ManualDataImportClient() {
   const [ticker, setTicker] = useState('CURR');
   const [category, setCategory] = useState<ImportCategory>('utilization');
   const [file, setFile] = useState<File | null>(null);
-  const [fileDetails, setFileDetails] = useState<{ rowCount: number; tickers: string[]; tradeDates: string[] }>();
+  const [fileDetails, setFileDetails] = useState<{
+    rowCount: number;
+    tickers: string[];
+    tradeDates: string[];
+    effectiveDates: string[];
+  }>();
   const [currentData, setCurrentData] = useState<unknown>();
   const [currentEndpoint, setCurrentEndpoint] = useState('');
   const [importResult, setImportResult] = useState<ImportResponse>();
@@ -256,15 +296,46 @@ export function ManualDataImportClient() {
   const categoryEffectReady = useRef(false);
   const definition = useMemo(() => categories.find(item => item.key === category) ?? categories[0], [category]);
 
-  async function loadCurrent(nextTicker = ticker, nextCategory = category, importedTradeDates: string[] = []) {
+  async function loadCurrent(nextTicker = ticker, nextCategory = category, importedPartitionDates: string[] = []) {
     setStatus('loading');
     setCurrentData(undefined);
-    const verificationDate = dateSpecificCategories.includes(nextCategory)
-      ? [...importedTradeDates].sort().at(-1)
-      : undefined;
-    const endpoint = `/manual-input/${nextCategory}?ticker=${encodeURIComponent(nextTicker)}${verificationDate ? `&tradeDate=${encodeURIComponent(verificationDate)}` : ''}`;
-    setCurrentEndpoint(`GET ${endpoint}`);
     try {
+      let verificationDate = (dateSpecificCategories.includes(nextCategory) || nextCategory === 'manual-security-ownership')
+        ? [...importedPartitionDates].sort().at(-1)
+        : undefined;
+      let availableDatesPayload: unknown;
+      if (nextCategory === 'manual-security-ownership' && !verificationDate) {
+        const availableDatesEndpoint = `/manual-input/manual-security-ownership?ticker=${encodeURIComponent(nextTicker)}&action=available-dates`;
+        setCurrentEndpoint(`GET ${availableDatesEndpoint}`);
+        availableDatesPayload = await authenticatedFetch(availableDatesEndpoint, { cache: 'no-store' });
+        const candidate = availableDatesPayload && typeof availableDatesPayload === 'object'
+          ? availableDatesPayload as { availableDates?: unknown; data?: { availableDates?: unknown } }
+          : {};
+        const availableDates = Array.isArray(candidate.availableDates)
+          ? candidate.availableDates
+          : Array.isArray(candidate.data?.availableDates)
+            ? candidate.data.availableDates
+            : [];
+        verificationDate = availableDates
+          .map(value => String(value))
+          .filter(Boolean)
+          .sort()
+          .at(-1);
+      }
+      const dateQuery = verificationDate
+        ? nextCategory === 'manual-security-ownership'
+          ? `&effectiveDate=${encodeURIComponent(verificationDate)}`
+          : `&tradeDate=${encodeURIComponent(verificationDate)}`
+        : '';
+      const endpoint = `/manual-input/${nextCategory}?ticker=${encodeURIComponent(nextTicker)}${dateQuery}`;
+      if (nextCategory === 'manual-security-ownership' && !verificationDate) {
+        setCurrentData(availableDatesPayload);
+        setCurrentLoadedAt(new Date().toISOString());
+        setStatus('idle');
+        setMessage('No manual security ownership dates are available for this ticker.');
+        return availableDatesPayload;
+      }
+      setCurrentEndpoint(`GET ${endpoint}`);
       const payload = await authenticatedFetch(endpoint, {
         cache: 'no-store',
       });
@@ -317,9 +388,12 @@ export function ManualDataImportClient() {
       setFile(nextFile);
       setFileDetails(details);
       const mismatch = details.tickers.length > 0 && !details.tickers.includes(ticker);
-      setStatus(mismatch ? 'error' : 'idle');
+      const missingEffectiveDate = category === 'manual-security-ownership' && details.effectiveDates.length === 0;
+      setStatus(mismatch || missingEffectiveDate ? 'error' : 'idle');
       setMessage(mismatch
         ? `CSV ticker ${details.tickers.join(', ')} does not match target ticker ${ticker}. Change the target ticker before importing.`
+        : missingEffectiveDate
+          ? 'Manual security ownership CSV rows require an effectiveDate.'
         : '');
     } catch {
       setFile(null);
@@ -340,6 +414,11 @@ export function ManualDataImportClient() {
       setMessage(`CSV ticker ${fileDetails.tickers.join(', ')} does not match target ticker ${ticker}.`);
       return;
     }
+    if (category === 'manual-security-ownership' && !fileDetails?.effectiveDates.length) {
+      setStatus('error');
+      setMessage('Manual security ownership CSV rows require an effectiveDate.');
+      return;
+    }
     setStatus('importing');
     setMessage('');
     setImportResult(undefined);
@@ -357,7 +436,8 @@ export function ManualDataImportClient() {
       }) as ImportResponse;
       setImportResult(result);
       setFile(null);
-      const invalidGeneratedPath = invalidImportPath(result, category, ticker, fileDetails?.tradeDates ?? []);
+      const partitionDates = importPartitionDates(category, fileDetails);
+      const invalidGeneratedPath = invalidImportPath(result, category, ticker, partitionDates);
       const reportedInputRows = result.inputRows ?? result.recordsCount;
       const reportedImportedRows = result.importedRows ?? result.recordsCount;
       const recordCountMismatch = fileDetails !== undefined
@@ -380,7 +460,7 @@ export function ManualDataImportClient() {
       let refreshedPayload: unknown;
       for (const delay of [0, 500, 1500]) {
         if (delay) await new Promise(resolve => window.setTimeout(resolve, delay));
-        refreshedPayload = await loadCurrent(ticker, category, fileDetails?.tradeDates ?? []);
+        refreshedPayload = await loadCurrent(ticker, category, partitionDates);
         if (refreshedPayload !== undefined && JSON.stringify(refreshedPayload) !== previousPayload) break;
       }
       const currentChanged = refreshedPayload !== undefined && JSON.stringify(refreshedPayload) !== previousPayload;
@@ -400,7 +480,7 @@ export function ManualDataImportClient() {
     setStatus('consolidating');
     setMessage(`Preparing to consolidate ${ticker}...`);
     try {
-      const importedDates = [...(fileDetails?.tradeDates ?? [])].sort();
+      const importedDates = [...importPartitionDates(category, fileDetails)].sort();
       const requestedRebuildFromDate = importedDates[0];
       const verificationEndpoints = consolidatedOutputEndpoints(category, ticker);
       const baseline = await captureConsolidatedOutputs(verificationEndpoints);
@@ -512,7 +592,7 @@ export function ManualDataImportClient() {
             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 16V4m0 0L8 8m4-4 4 4M4 15v5h16v-5" /></svg>
             <strong>{file?.name || 'Drop CSV here or choose a file'}</strong>
             <small>{file
-              ? `${(file.size / 1024).toFixed(1)} KB · ${fileDetails?.rowCount ?? 0} rows${fileDetails?.tickers.length ? ` · ${fileDetails.tickers.join(', ')}` : ''}`
+              ? `${(file.size / 1024).toFixed(1)} KB · ${fileDetails?.rowCount ?? 0} rows${fileDetails?.tickers.length ? ` · ${fileDetails.tickers.join(', ')}` : ''}${category === 'manual-security-ownership' ? ` · ${fileDetails?.effectiveDates.length ?? 0} effective dates` : ''}`
               : 'CSV only'}</small>
           </button>
 
@@ -526,7 +606,13 @@ export function ManualDataImportClient() {
             <button
               className="ops-primary-button"
               type="button"
-              disabled={!file || Boolean(fileDetails?.tickers.length && !fileDetails.tickers.includes(ticker)) || status === 'importing' || status === 'consolidating'}
+              disabled={
+                !file
+                || Boolean(fileDetails?.tickers.length && !fileDetails.tickers.includes(ticker))
+                || Boolean(category === 'manual-security-ownership' && !fileDetails?.effectiveDates.length)
+                || status === 'importing'
+                || status === 'consolidating'
+              }
               aria-busy={status === 'importing'}
               onClick={importCsv}
             >

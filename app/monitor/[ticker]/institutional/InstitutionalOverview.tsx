@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { InfoTooltip } from '@/components/InfoTooltip';
 import { ApiSourceTags } from '@/components/ApiSourceTags';
-import { signedRecordDifference } from '@/lib/operations/ownership-entry.js';
+import { formatCompactCurrency, formatCompactQuantity } from '@/lib/number-format';
 
 type OwnershipKey = 'institutions' | 'public_float' | 'strategic_entities';
 
@@ -12,13 +12,15 @@ type InstitutionalOverviewData = {
     institutional_owners?: number;
     insider_owners?: number;
     shares_outstanding?: number;
-    public_float_shares?: number;
+    public_float_shares?: number | null;
     institutional_shares_long?: number;
     insider_shares_long?: number;
     institutional_ownership_percent?: number;
     insider_ownership_percent?: number;
-    public_float_percent?: number;
+    public_float_percent?: number | null;
     institutional_value_thousands_usd?: number;
+    strategic_entities_shares?: number | null;
+    strategic_entities_percent?: number | null;
     ownership_structure_total_shares?: number;
   };
   ownership_structure?: Array<{
@@ -62,26 +64,14 @@ type ManagementHoldingInputRecord = {
   holderName: string;
   category: string;
   shares: number | string;
-  action: 'add' | 'deduct';
-  sharesChange?: number | string;
   notes?: string;
   effectiveDate?: string;
-  showInOwnership?: boolean;
-  status?: 'pending' | 'applied' | 'discarded';
 };
 
 function formatNumber(value: unknown, options?: Intl.NumberFormatOptions) {
   const numeric = typeof value === 'number' ? value : Number(value);
   if (!Number.isFinite(numeric)) return 'N/A';
   return numeric.toLocaleString('en-US', options);
-}
-
-function compact(value: unknown) {
-  const numeric = typeof value === 'number' ? value : Number(value);
-  if (!Number.isFinite(numeric)) return 'N/A';
-  if (Math.abs(numeric) >= 1_000_000) return `${(numeric / 1_000_000).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}M`;
-  if (Math.abs(numeric) >= 1_000) return `${(numeric / 1_000).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}K`;
-  return formatNumber(numeric);
 }
 
 function formatPercent(value: unknown) {
@@ -138,7 +128,6 @@ export function InstitutionalOverview({
   const overview = data.overview ?? {};
   const institutionRows = data.institution_bars ?? [];
   const strategicEntityRows = Array.from(managementRecords
-    .filter(row => row.showInOwnership !== false && row.status !== 'discarded')
     .reduce((map, row) => {
       const key = `${row.holderName.trim().toLowerCase()}|${row.category}`;
       const current = map.get(key) ?? {
@@ -149,15 +138,20 @@ export function InstitutionalOverview({
       };
       map.set(key, {
         ...current,
-        shares: current.shares + signedRecordDifference(row),
+        shares: current.shares + numeric(row.shares),
         latestDate: row.effectiveDate && row.effectiveDate > current.latestDate ? row.effectiveDate : current.latestDate,
       });
       return map;
     }, new Map<string, { label: string; category: string; shares: number; latestDate: string }>())
     .values())
     .filter(row => row.shares > 0);
-  const strategicEntityShares = strategicEntityRows.reduce((sum, row) => sum + row.shares, 0);
-  const publicFloatShares = Math.max(0, numeric(overview.shares_outstanding) - numeric(overview.institutional_shares_long) - strategicEntityShares);
+  const detailedStrategicEntityShares = strategicEntityRows.reduce((sum, row) => sum + row.shares, 0);
+  const strategicEntityShares = overview.strategic_entities_shares == null
+    ? detailedStrategicEntityShares
+    : numeric(overview.strategic_entities_shares);
+  const publicFloatShares = overview.public_float_shares == null
+    ? Math.max(0, numeric(overview.shares_outstanding) - numeric(overview.institutional_shares_long) - strategicEntityShares)
+    : numeric(overview.public_float_shares);
   const ownershipRows = [
     { key: 'institutions', label: 'Institutions', shares: numeric(overview.institutional_shares_long), color: '#14916f' },
     { key: 'strategic_entities', label: 'Strategic Entities', shares: strategicEntityShares, color: '#747bdc' },
@@ -178,12 +172,13 @@ export function InstitutionalOverview({
     <section className="institutional-overview">
       <ApiSourceTags sources={[
         { endpoint: 'GET /market-data/current?category=ownership-current', label: 'Ownership snapshot' },
-        { endpoint: 'GET /manual-input/management-holdings', label: 'Strategic entities' },
+        { endpoint: 'GET /market-data/current?category=internal-float-current-user', label: 'Consolidated strategic total' },
+        { endpoint: 'GET /manual-input/internal-float-inputs-user', label: 'Strategic entities' },
       ]} />
       <div className="institutional-overview__kpis">
         <article>
           <span className="with-info">Issued Share <InfoTooltip text="Total issued shares used as the base for ownership and public float calculations." /></span>
-          <strong>{compact(overview.shares_outstanding)}</strong>
+          <strong>{formatCompactQuantity(overview.shares_outstanding)}</strong>
         </article>
         <article>
           <span className="with-info">Institutional Owners <InfoTooltip text="Count of active institutional holders with reported shares greater than zero." /></span>
@@ -191,11 +186,11 @@ export function InstitutionalOverview({
         </article>
         <article>
           <span className="with-info">Institutional Shares Long <InfoTooltip text="Total active institutional shares reported long, excluding closed positions and non-share options records." /></span>
-          <strong>{compact(overview.institutional_shares_long)}</strong>
+          <strong>{formatCompactQuantity(overview.institutional_shares_long)}</strong>
         </article>
         <article>
-          <span className="with-info">Institutional Value <InfoTooltip text="Total reported institutional holding value, displayed in thousands of USD." /></span>
-          <strong>${formatNumber(overview.institutional_value_thousands_usd, { maximumFractionDigits: 1 })}K</strong>
+          <span className="with-info">Institutional Value <InfoTooltip text="Total reported institutional holding value. The portal abbreviates values at the K and M thresholds." /></span>
+          <strong>{formatCompactCurrency(overview.institutional_value_thousands_usd)}</strong>
         </article>
         <article>
           <span className="with-info">Institutional Holding % <InfoTooltip text="Institutional shares held as a percentage of issued shares, provided by the centralized ownership-current API." /></span>
@@ -224,7 +219,7 @@ export function InstitutionalOverview({
                 </span>
               ))}
               <div className="institutional-donut__center">
-                <strong>{compact(overview.shares_outstanding)}</strong>
+                <strong>{formatCompactQuantity(overview.shares_outstanding)}</strong>
                 <span>Total</span>
               </div>
             </div>
@@ -237,7 +232,7 @@ export function InstitutionalOverview({
                   onClick={() => setSelectedKey(row.key as OwnershipKey)}
                 >
                   <span><i style={{ background: row.color }} />{row.label}</span>
-                  <strong>{compact(row.shares)}</strong>
+                  <strong>{formatCompactQuantity(row.shares)}</strong>
                   <small>{formatPercent(row.percent)}</small>
                 </button>
               ))}
@@ -272,7 +267,7 @@ export function InstitutionalOverview({
               rows={strategicEntityRows.map(row => ({
                 label: row.label,
                 shares: row.shares,
-                percent: pct(row.shares, strategicEntityShares),
+                percent: pct(row.shares, detailedStrategicEntityShares),
                 color: selectedOwnership?.color,
               }))}
               emptyText="No strategic entity records available."
@@ -296,7 +291,7 @@ function BreakdownBars({ rows, emptyText = 'No active records available.' }: { r
             <i style={{ width: `${Math.max(4, row.percent)}%`, background: row.color ?? '#2f5bb8' }} />
           </div>
           <small>{formatPercent(row.percent)}</small>
-          <strong>{formatNumber(row.shares)}</strong>
+          <strong>{formatCompactQuantity(row.shares)}</strong>
         </div>
       ))}
     </div>

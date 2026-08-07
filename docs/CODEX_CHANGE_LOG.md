@@ -4,6 +4,944 @@ This file is the persistent implementation memory for changes made by Codex.
 Read it before modifying existing portal behavior, and update it after every
 completed change.
 
+## 2026-08-07 - Document the user-scoped Strategic Entities backend fix
+
+- Area: Backend handoff -> Internal Float and Ownership consolidation.
+- APIs/data:
+  - `GET/PUT /manual-input/internal-float-inputs-user`
+  - `POST /manual-input/consolidate`
+  - `GET /market-data/current?category=internal-float-current-user`
+- Reported problem and root cause:
+  - User holdings can be saved while their consolidated Strategic Entities
+    total remains zero. The existing trigger contract does not document passing
+    the authenticated user `sub` to the asynchronous consolidator, and the
+    current snapshot resolver permits a ticker-level fallback.
+- Intended behavior and invariants:
+  - Added a complete backend specification for user-scoped input/output paths,
+    authenticated trigger context, aggregate formulas, no-fallback behavior,
+    create/edit/delete handling, privacy tests, and acceptance criteria.
+  - Clarified that Operations `showInOwnership` is separate from user-specific
+    `includeInDeduction` and does not fix the user donut.
+- Files changed:
+  - `docs/api/USER_SCOPED_STRATEGIC_ENTITIES_CONSOLIDATION_FIX.md`
+  - `docs/CODEX_CHANGE_LOG.md`
+- Verification:
+  - Markdown structure and whitespace validation passed.
+- Remaining backend dependency / limitation:
+  - The backend team must implement and deploy the specified user-aware
+    consolidation and remove the ticker fallback.
+
+## 2026-08-07 - Enforce user-specific Strategic Entities without frontend fallback
+
+- Area: User Portal -> Ownership -> Ownership Structure and Strategic Entities.
+- APIs/data:
+  - `GET /manual-input/internal-float-inputs-user?ticker={ticker}`
+  - `GET /market-data/current?ticker={ticker}&category=internal-float-current-user`
+  - `GET /market-data/current?ticker={ticker}&category=ownership-current`
+- Reported problem and root cause:
+  - Strategic holdings are private to each authenticated user, but the
+    Ownership page could fall back to ticker-wide
+    `ownership-current.strategicEntities` when the user snapshot was absent.
+  - Its detail list also merged ticker-wide Operations records with the
+    authenticated user's saved Internal Float records.
+  - The backend `internal-float-current-user` resolver can itself return
+    `internal-float-current-ticker`, without response metadata identifying that
+    fallback.
+- Intended behavior and invariants:
+  - The Ownership Strategic Entities detail list uses only the authenticated
+    user's `internal-float-inputs-user` records.
+  - The donut accepts `internal-float-current-user` only when its consolidated
+    total matches that user's active saved holding total.
+  - A missing or mismatched user snapshot displays zero Strategic Entities;
+    ticker-wide `ownership-current.strategicEntities` is never substituted.
+  - Issued shares and institutional ownership remain ticker-wide inputs.
+  - The development panel exposes the expected user input total and whether the
+    consolidated snapshot was accepted as user-scoped.
+- Files changed:
+  - `app/monitor/[ticker]/institutional/InstitutionalBrowserPage.tsx`
+  - `app/monitor/[ticker]/institutional/InstitutionalDevTables.tsx`
+  - `lib/current-data-sources.ts`
+  - `docs/CODEX_CHANGE_LOG.md`
+- Verification:
+  - TypeScript type-check and whitespace validation passed.
+- Remaining backend dependency / limitation:
+  - The backend must remove the ticker fallback from
+    `internal-float-current-user` or return explicit resolved-scope metadata.
+  - Operations records need a target user/workspace before they can safely be
+    applied to a private user's holdings.
+
+## 2026-08-07 — Centre the clipping-safe PDF sentiment meter at `0px`
+
+- Area: User Portal → Report Archive → generated PDF → 7-Day Overall
+  Sentiment card.
+- API/data:
+  - Presentation-only adjustment. The dated report API, sentiment values,
+    marker calculation, label, comparison, and mention count are unchanged.
+- Reported problem and root cause:
+  - The `-16px` and `-18px` positions looked almost identical because their
+    two-pixel difference becomes approximately one visible pixel after A4 and
+    screenshot scaling.
+  - The canvas-native renderer already removed the SVG clipping that originally
+    motivated manual left compensation, so retaining any offset kept the
+    complete meter visibly left of the card's true center.
+- Implemented behavior and invariants:
+  - Removed the horizontal transform entirely, giving the meter a true `0px`
+    offset with automatic horizontal margins.
+  - Preserved the high-resolution canvas rendering, rounded endpoints, gauge
+    scale, and API-driven score and marker.
+  - PDF assets were advanced to
+    `2026-08-07-sentiment-7d-v13` so cached `v12` positioning is not reused.
+- Files changed:
+  - `app/monitor/[ticker]/reports/client-report-pdf.ts`
+  - `Report Templates/lean-daily-market-close-report/template.html`
+  - `Report Templates/lean-daily-market-close-report/styles.css`
+  - `public/report-templates/daily-close/template.html`
+  - `public/report-templates/daily-close/styles.css`
+  - `docs/CODEX_CHANGE_LOG.md`
+- Verification:
+  - Browser measurement confirmed the card midpoint and canvas midpoint are
+    both `459.421875px`, an exact `0px` difference.
+  - Browser preview confirmed the complete meter remains visible with two
+    rounded endpoints and is visually aligned with the card content.
+  - TypeScript, renderer syntax, source/public synchronization, and whitespace
+    checks passed.
+- Remaining backend dependency / limitation:
+  - None; this is a PDF presentation-only adjustment.
+
+## 2026-08-07 - Separate raw Ownership API data from the frontend view model
+
+- Area: User Portal -> Ownership -> Development Data.
+- APIs/data:
+  - `GET /market-data/current?ticker={ticker}&category=ownership-current`
+  - `GET /market-data/current?ticker={ticker}&category=internal-float-current-user`
+  - Frontend ownership view model composed from both current snapshots.
+- Reported problem and root cause:
+  - The development tab labelled as the `ownership-current` endpoint displayed
+    frontend-composed snake-case fields such as `strategic_entities_shares`.
+    Those fields could therefore show zero even though they were not the raw
+    camel-case `ownership-current.strategicEntities` response, making it
+    impossible to identify which consolidation output remained stale.
+- Intended behavior and invariants:
+  - `Ownership Current (Raw)` now displays the recursively flattened, unmodified
+    `ownership-current` API response, including `strategicEntities.shares`.
+  - `Consolidated Strategic Total` continues to display
+    `internal-float-current-user.managementStrategicHoldings` independently.
+  - `Ownership View Model` explicitly identifies the final frontend composition
+    and no longer claims to be a single raw API response.
+  - User-specific Internal Float holdings remain separate from ticker-level
+    operations holdings; no editable manual-input value is substituted for a
+    missing consolidated total.
+- Files changed:
+  - `app/monitor/[ticker]/institutional/InstitutionalBrowserPage.tsx`
+  - `app/monitor/[ticker]/institutional/InstitutionalDevTables.tsx`
+  - `docs/CODEX_CHANGE_LOG.md`
+- Verification:
+  - TypeScript type-check and whitespace validation passed.
+- Remaining backend dependency / limitation:
+  - The consolidation API is asynchronous and does not identify which output
+    files were rebuilt. If either raw current snapshot remains unchanged after
+    a successful trigger, the corresponding backend consolidation path must be
+    corrected.
+
+## 2026-08-07 — Fine-tune the unclipped PDF sentiment meter to `-16px`
+
+- Area: User Portal → Report Archive → generated PDF → 7-Day Overall
+  Sentiment card.
+- API/data:
+  - Presentation-only adjustment. The dated report API and every sentiment
+    value, label, comparison, and marker calculation are unchanged.
+- Reported problem and root cause:
+  - The accepted canvas-based gauge no longer clipped, but its `-18px` visual
+    compensation still appeared slightly too far left in the downloaded PDF.
+- Implemented behavior and invariants:
+  - Reduced only the gauge's horizontal compensation from `-18px` to `-16px`.
+  - Preserved the canvas-native rendering that prevents the previous SVG crop;
+    no meter geometry or data behavior was replaced.
+  - PDF assets were advanced to
+    `2026-08-07-sentiment-7d-v12` so cached `v11` positioning is not reused.
+- Files changed:
+  - `app/monitor/[ticker]/reports/client-report-pdf.ts`
+  - `Report Templates/lean-daily-market-close-report/template.html`
+  - `Report Templates/lean-daily-market-close-report/styles.css`
+  - `public/report-templates/daily-close/template.html`
+  - `public/report-templates/daily-close/styles.css`
+  - `docs/CODEX_CHANGE_LOG.md`
+- Verification:
+  - Browser measurement confirmed the canvas midpoint is exactly `16px` left
+    of the card midpoint (`443.421875px` versus `459.421875px`).
+  - Browser preview confirmed the full canvas gauge remains visible with two
+    rounded endpoints.
+  - TypeScript, renderer syntax, source/public synchronization, and whitespace
+    checks passed.
+- Remaining backend dependency / limitation:
+  - None; this is a PDF presentation-only adjustment.
+
+## 2026-08-06 — Remove PDF gauge clipping with a canvas-native meter
+
+- Area: User Portal → Report Archive → generated PDF → 7-Day Overall
+  Sentiment card.
+- API/data:
+  - Presentation-only correction. The dated report API, seven-day sentiment
+    mapping, score, marker position, label, comparison, and mention count are
+    unchanged.
+- Reported problem and root cause:
+  - The `-20px` position still appeared slightly too far left, and the green
+    endpoint remained cut into a flat or angled edge despite the source SVG
+    showing a complete rounded cap.
+  - A full-page test using the production `html2canvas` scale and viewport
+    reproduced the issue. The converter creates an internal clipping boundary
+    while reconstructing the inline gradient SVG. Expanding the SVG viewport,
+    setting overflow, and adding endpoint circles did not remove that internal
+    crop.
+- Implemented behavior and invariants:
+  - Reduced the visual compensation from `-20px` to `-18px`.
+  - Replaced only the Overall Sentiment inline SVG with a high-resolution HTML
+    canvas drawn before `__REPORT_READY__` is set. `html2canvas` now copies an
+    already-complete bitmap instead of reconstructing and clipping SVG paths.
+  - The canvas preserves the accepted red/yellow/green scale, rounded ends,
+    API-driven marker, score, and sentiment label.
+  - The distribution donut and every API/data normalization path remain
+    unchanged.
+  - PDF template assets were advanced to
+    `2026-08-06-sentiment-7d-v11` so prior SVG output is not reused from cache.
+- Files changed:
+  - `app/monitor/[ticker]/reports/client-report-pdf.ts`
+  - `Report Templates/lean-daily-market-close-report/template.html`
+  - `Report Templates/lean-daily-market-close-report/render.js`
+  - `Report Templates/lean-daily-market-close-report/styles.css`
+  - `public/report-templates/daily-close/template.html`
+  - `public/report-templates/daily-close/render.js`
+  - `public/report-templates/daily-close/styles.css`
+  - `docs/CODEX_CHANGE_LOG.md`
+- Verification:
+  - Browser measurement confirmed the canvas midpoint is exactly `18px` left
+    of the card midpoint (`441.421875px` versus `459.421875px`).
+  - A temporary full-page raster test used the same `html2canvas` settings as
+    production (`scale: 1.35`, `1240 × 1754`) and confirmed both endpoints are
+    completely rounded with no frame or clipping edge. The test fixture was
+    removed after verification.
+  - TypeScript, renderer syntax, source/public synchronization, temporary-file,
+    and whitespace checks passed.
+- Remaining backend dependency / limitation:
+  - None; this correction is confined to PDF presentation.
+
+## 2026-08-06 - Normalize the consolidated Strategic Entities snapshot
+
+- Area: User Portal -> Ownership -> Ownership Structure.
+- APIs/data:
+  - `GET /market-data/current?ticker={ticker}&category=internal-float-current-user`
+  - `GET /manual-input/internal-float-inputs-user?ticker={ticker}` remains the
+    immediate detail-list source and is not used as the donut total.
+- Reported problem and root cause:
+  - The Strategic Entities detail panel showed a 59.77M saved holding while the
+    donut still displayed zero.
+  - The donut was already requesting the consolidated user float snapshot, but
+    it accepted only a raw top-level response and trusted only
+    `managementStrategicHoldings.shares`. A wrapped response, omitted aggregate,
+    or stale zero aggregate therefore fell through to the older ownership total
+    even when the consolidated snapshot contained active holding records.
+  - Missing numeric values could also be coerced to zero during comparison.
+- Intended behavior and invariants:
+  - Normalize raw, `data`, and category-key response envelopes for
+    `internal-float-current-user`.
+  - Use the explicit consolidated aggregate when it agrees with the active
+    consolidated records. If the aggregate is missing or inconsistent, sum
+    active `managementStrategicHoldings.records` from that same consolidated
+    snapshot.
+  - Deleted records and records excluded from deduction do not contribute.
+  - Never substitute the editable manual-input detail list into the donut total.
+  - Polling still checks the uncached consolidated endpoint and stops when its
+    effective total matches the saved holdings total or after three minutes.
+- Files changed:
+  - `app/monitor/[ticker]/institutional/InstitutionalBrowserPage.tsx`
+  - `docs/CODEX_CHANGE_LOG.md`
+- Verification:
+  - TypeScript type-check and whitespace validation passed.
+- Remaining backend dependency / limitation:
+  - If the consolidated endpoint contains neither a valid aggregate nor active
+    records after consolidation, the frontend cannot manufacture a Strategic
+    Entities total; the backend snapshot must be corrected.
+
+## 2026-08-06 — Fine-tune the PDF gauge position and guarantee both endpoints
+
+- Area: User Portal → Report Archive → generated PDF → 7-Day Overall
+  Sentiment card.
+- API/data:
+  - Presentation-only correction. The report API, seven-day sentiment mapping,
+    score, label, comparison, and mention count are unchanged.
+- Reported problem and root cause:
+  - The accepted `-24px` compensation still appeared slightly too far left in
+    the downloaded PDF.
+  - The green endpoint appeared cut or missing because the PDF rasterization
+    path flattened the gradient arc's right `stroke-linecap`, even though the
+    SVG requested a rounded cap. The red endpoint happened to remain rounded,
+    producing an asymmetric meter.
+- Implemented behavior and invariants:
+  - Reduced the gauge compensation from `-24px` to `-20px`.
+  - Added explicit 8-unit red and green endpoint circles on top of the
+    semicircle path. Both ends are therefore complete and symmetric without
+    depending on gradient-path cap rasterization.
+  - Marker position and all report values remain API-driven and unchanged.
+  - PDF template assets were advanced to
+    `2026-08-06-sentiment-7d-v9` so cached `v8` geometry is not reused.
+- Files changed:
+  - `app/monitor/[ticker]/reports/client-report-pdf.ts`
+  - `Report Templates/lean-daily-market-close-report/template.html`
+  - `Report Templates/lean-daily-market-close-report/render.js`
+  - `Report Templates/lean-daily-market-close-report/styles.css`
+  - `public/report-templates/daily-close/template.html`
+  - `public/report-templates/daily-close/render.js`
+  - `public/report-templates/daily-close/styles.css`
+  - `docs/CODEX_CHANGE_LOG.md`
+- Verification:
+  - Browser measurement confirmed the gauge midpoint is exactly `20px` left
+    of the card midpoint (`439.421875px` versus `459.421875px`).
+  - Browser inspection confirmed the SVG contains explicit red and green
+    endpoint circles and the visual preview shows both ends fully rounded.
+  - Both renderer syntax checks, source/public renderer and stylesheet
+    synchronization, and whitespace validation passed.
+  - The full TypeScript check is currently blocked by an unrelated existing
+    `InstitutionalBrowserPage.tsx:108` union-indexing error for
+    `internal-float-current-user`; that concurrent Ownership/Internal Float
+    logic was not modified by this PDF-only change.
+- Remaining backend dependency / limitation:
+  - None; this change affects PDF presentation only.
+
+## 2026-08-06 — Set the PDF sentiment gauge to the requested midpoint offset
+
+- Area: User Portal → Report Archive → generated PDF → 7-Day Overall
+  Sentiment card.
+- API/data:
+  - Presentation-only correction. Report retrieval, seven-day sentiment
+    mapping, scores, mention counts, and comparisons are unchanged.
+- Reported problem and root cause:
+  - A geometric `0px` offset still appeared too far right after the SVG was
+    rasterized into the downloaded PDF, while the earlier `-48px` compensation
+    appeared too far left.
+- Implemented behavior and invariants:
+  - The gauge keeps automatic horizontal centering as its base position and
+    applies the user-requested `translateX(-24px)` visual compensation.
+  - This is the exact midpoint between the rejected `0px` and `-48px`
+    positions. The score moves with the arc, while the comparison and mention
+    text retain their existing card alignment.
+  - The complete SVG remains inside the Overall Sentiment card, and the
+    adjacent Sentiment Distribution layout is unchanged.
+  - PDF template assets were advanced to
+    `2026-08-06-sentiment-7d-v8` so cached `v7` positioning is not reused.
+- Files changed:
+  - `app/monitor/[ticker]/reports/client-report-pdf.ts`
+  - `Report Templates/lean-daily-market-close-report/template.html`
+  - `Report Templates/lean-daily-market-close-report/styles.css`
+  - `public/report-templates/daily-close/template.html`
+  - `public/report-templates/daily-close/styles.css`
+  - `docs/CODEX_CHANGE_LOG.md`
+- Verification:
+  - Browser measurement confirmed the gauge midpoint is exactly `24px` left
+    of the card midpoint (`435.421875px` versus `459.421875px`).
+  - Browser preview confirmed the full gauge remains visible within its card.
+  - TypeScript, renderer syntax, source/public synchronization, and whitespace
+    checks passed.
+- Remaining backend dependency / limitation:
+  - None; this change affects PDF presentation only.
+
+## 2026-08-06 — Restore true centre alignment for the PDF sentiment gauge
+
+- Area: User Portal → Report Archive → generated PDF → 7-Day Overall
+  Sentiment card.
+- API/data:
+  - Presentation-only correction. The report API, seven-day sentiment mapping,
+    scores, mention counts, and comparisons are unchanged.
+- Reported problem and root cause:
+  - The previous fixed `-48px` compensation overcorrected the meter and moved
+    the whole SVG too far left.
+  - That compensation was based on the apparent position in a cropped PDF
+    screenshot rather than the gauge and card's actual layout coordinates.
+- Implemented behavior and invariants:
+  - Removed the manual horizontal offset completely.
+  - The gauge SVG is a block with automatic horizontal margins, so its midpoint
+    is calculated from and aligned to the Overall Sentiment card's real width.
+  - The score, comparison, and mention text remain centred, and no API or
+    sentiment-calculation behavior was changed.
+  - PDF template assets were advanced to
+    `2026-08-06-sentiment-7d-v7` to prevent the offset stylesheet from being
+    reused from cache.
+- Files changed:
+  - `app/monitor/[ticker]/reports/client-report-pdf.ts`
+  - `Report Templates/lean-daily-market-close-report/template.html`
+  - `Report Templates/lean-daily-market-close-report/styles.css`
+  - `public/report-templates/daily-close/template.html`
+  - `public/report-templates/daily-close/styles.css`
+  - `docs/CODEX_CHANGE_LOG.md`
+- Verification:
+  - Browser measurement confirmed the card midpoint and gauge midpoint are both
+    `459.421875px`, a `0px` alignment difference.
+  - Browser preview confirmed the complete gauge is centred and remains inside
+    its card without affecting the adjacent distribution card.
+  - TypeScript, renderer syntax, source/public synchronization, and whitespace
+    checks passed.
+- Remaining backend dependency / limitation:
+  - None for this positioning correction.
+
+## 2026-08-06 — Offset the rasterized PDF sentiment meter to the left
+
+- Area: User Portal → Report Archive → generated PDF → 7-Day Overall
+  Sentiment card.
+- API/data:
+  - Presentation-only correction. Sentiment API selection, seven-day records,
+    scores, and comparisons are unchanged.
+- Reported problem and root cause:
+  - The continuous gauge arc was no longer geometrically clipped, but the
+    downloaded PDF still placed the complete meter visibly to the right of the
+    card's centred comparison and mention text.
+  - The displacement appears during the SVG-to-canvas PDF rasterization rather
+    than in the raw template geometry.
+- Implemented behavior and invariants:
+  - The gauge SVG now uses a 48 px left offset inside the Overall Sentiment
+    card to compensate for the rasterized position.
+  - The comparison and mention text remain centred in the card, and no other
+    Market Perception layout is shifted.
+  - PDF template assets were advanced to
+    `2026-08-06-sentiment-7d-v6` so the prior gauge position is not cached.
+- Files changed:
+  - `app/monitor/[ticker]/reports/client-report-pdf.ts`
+  - `Report Templates/lean-daily-market-close-report/template.html`
+  - `Report Templates/lean-daily-market-close-report/styles.css`
+  - `public/report-templates/daily-close/template.html`
+  - `public/report-templates/daily-close/styles.css`
+  - `docs/CODEX_CHANGE_LOG.md`
+- Verification:
+  - Browser template preview confirmed the meter moves left while remaining
+    fully inside the card and the report remains four pages without overflow.
+  - TypeScript, renderer syntax, source/public synchronization, and whitespace
+    checks passed.
+- Remaining backend dependency / limitation:
+  - None for this positioning correction.
+
+## 2026-08-06 — Prevent PDF sentiment graphics from clipping or crowding
+
+- Area: User Portal → Report Archive → generated PDF → Market Perception.
+- API/data:
+  - Presentation-only correction. Existing dated report and date-matched 7D
+    sentiment fallback behavior are unchanged.
+- Reported problem and root cause:
+  - The gauge's green right edge still looked cut in downloaded PDFs because it
+    remained a separate SVG path segment whose endpoint was flattened during
+    rasterization.
+  - Sentiment Distribution used a fixed 132 px CSS-gradient ring, 42 px gap,
+    and 150 px minimum legend width. Together they consumed the card's full
+    content width and left virtually no right padding.
+  - CSS `conic-gradient` rendering was also inconsistent in the downloaded PDF,
+    allowing the distribution ring to disappear while its centre label
+    remained.
+- Implemented behavior and invariants:
+  - The sentiment gauge is now one continuous semicircle path using a
+    left-to-right red/yellow/green SVG gradient and rounded end caps. The marker
+    remains on the same API-driven score position.
+  - Sentiment Distribution now uses a fixed SVG donut instead of a CSS conic
+    gradient, retaining the backend percentages and centre mention count.
+  - The distribution ring, gap, and legend widths were reduced, and the card
+    has explicit right padding and overflow containment.
+  - PDF template assets were advanced to
+    `2026-08-06-sentiment-7d-v5` so the previous geometry is not cached.
+  - No sentiment values, API selection, comparison, or archive-date rules were
+    changed.
+- Files changed:
+  - `app/monitor/[ticker]/reports/client-report-pdf.ts`
+  - `Report Templates/lean-daily-market-close-report/template.html`
+  - `Report Templates/lean-daily-market-close-report/render.js`
+  - `Report Templates/lean-daily-market-close-report/styles.css`
+  - `public/report-templates/daily-close/template.html`
+  - `public/report-templates/daily-close/render.js`
+  - `public/report-templates/daily-close/styles.css`
+  - `docs/CODEX_CHANGE_LOG.md`
+- Verification:
+  - Browser PDF preview confirmed both gauge ends are fully visible, the SVG
+    distribution donut renders, and the legend has 31 px measured clearance
+    from the card's right edge.
+  - The gauge remains inside its card and the report remains four pages without
+    overflow.
+  - TypeScript, renderer syntax, source/public synchronization, and whitespace
+    checks passed.
+- Remaining backend dependency / limitation:
+  - None for this layout correction.
+
+## 2026-08-06 — Add date-matched 7D sentiment fallback and contain the PDF gauge
+
+- Area: User Portal → Report Archive → generated PDF → Market Perception.
+- API/data:
+  - Primary dated report:
+    `GET /market-data/reports?ticker={ticker}&date={YYYY-MM-DD}`.
+  - Temporary consolidated fallback:
+    `GET /market-data/current?ticker={ticker}&category=sentiment-current` →
+    `periods.7D` or `periods.1W`.
+- Reported problem and root cause:
+  - The refreshed PDF still contained no sentiment records. Its displayed
+    observation range was `Aug 5, 2026 – Aug 5, 2026`, proving that the dated
+    report response still exposed the old empty one-day snapshot rather than a
+    populated seven-day period.
+  - The gauge's right endpoint appeared cut because the arc used nearly the
+    full SVG width and a flat path cap; PDF rasterization made the green edge
+    look clipped.
+- Implemented behavior and invariants:
+  - The dated report remains the preferred source. If its 7D candidate is
+    empty, PDF generation also reads consolidated `sentiment-current` and may
+    select its populated 7D/1W period only when that period ends on the exact
+    requested report date. Both inclusive ends and next-midnight exclusive ends
+    are supported.
+  - A current period that does not match the report date is rejected. Older
+    archive PDFs therefore never receive today's sentiment.
+  - Cache invalidation covers the dated report, dated AI report, and current
+    sentiment request before each PDF generation.
+  - The gauge arc radius and stroke were reduced, additional horizontal margin
+    was reserved, and rounded path caps were added. Both arc ends now remain
+    fully inside the SVG during PDF rasterization.
+  - Renderer assets were advanced to version
+    `2026-08-06-sentiment-7d-v4` to prevent reuse of the clipped meter.
+- Files changed:
+  - `app/monitor/[ticker]/reports/daily-report-data.ts`
+  - `app/monitor/[ticker]/reports/client-report-pdf.ts`
+  - `Report Templates/lean-daily-market-close-report/template.html`
+  - `Report Templates/lean-daily-market-close-report/render.js`
+  - `Report Templates/lean-daily-market-close-report/REPORT_DATA_CONTRACT.md`
+  - `public/report-templates/daily-close/template.html`
+  - `public/report-templates/daily-close/render.js`
+  - `docs/CODEX_CHANGE_LOG.md`
+- Verification:
+  - Browser preview confirmed both rounded gauge ends are fully visible and the
+    score marker remains on the correct side of the scale.
+  - The report remains four pages without overflow.
+  - TypeScript, renderer syntax, source/public synchronization, and whitespace
+    checks passed.
+- Remaining backend dependency / limitation:
+  - The dated report endpoint is still returning an empty one-day sentiment
+    snapshot for the reported Aug 5 PDF. Backend should populate and freeze its
+    own seven-day sentiment block so the date-matched current fallback can be
+    removed.
+
+## 2026-08-06 — Read populated 7D sentiment records in archive PDFs
+
+- Area: User Portal → Report Archive → generated PDF → Market Perception.
+- API/data:
+  - Dated report only:
+    `GET /market-data/reports?ticker={ticker}&date={YYYY-MM-DD}`.
+  - Accepted seven-day locations during the backend transition include
+    `sentiment`, `sentimentSnapshot`, their nested `data` equivalents,
+    `periods.7D`, and `periods.1W`.
+- Reported problem and root cause:
+  - The PDF displayed the new `7D` labels but still showed `0 mentions` and a
+    default neutral `50.0` score.
+  - The prior correction changed the scope metadata but still expected the old
+    flattened PDF-ready `sentiment` shape. It did not read the consolidated
+    seven-day period object or its `timeline` / `records` buckets.
+  - The semicircle still looked misplaced because the long needle and score
+    occupied competing vertical positions. Its scale colours were also
+    reversed relative to the score direction: higher bullish values pointed
+    toward the red side.
+- Implemented behavior and invariants:
+  - The dated-report normalizer selects a populated explicit `7D`/`1W`
+    candidate before an empty legacy block.
+  - It maps aggregate totals, overall and previous scores, distribution,
+    platform breakdown, start/end dates, and either `timeline` or `records`.
+    When only dated buckets are supplied, it reconciles mention totals,
+    weighted scores, distribution counts, and platform totals from those
+    backend-produced buckets.
+  - The five required platform rows remain Reddit, X, Facebook, LinkedIn, and
+    Stocktwits. Platform aliases such as Twitter and `linked_in` are normalized.
+  - A zero-record result now renders `N/A / No data` with no gauge marker; it no
+    longer presents a synthetic neutral 50 score.
+  - The gauge now runs Bearish/red → Neutral/yellow → Bullish/green and uses a
+    position marker on the arc. The score remains centered inside the gauge,
+    with no needle/text collision.
+  - No live `sentiment-current`, raw `/social-data`, or sentiment-events request
+    is made when opening an archive. All values remain anchored to the dated
+    report payload.
+- Files changed:
+  - `app/monitor/[ticker]/reports/daily-report-data.ts`
+  - `app/monitor/[ticker]/reports/client-report-pdf.ts`
+  - `Report Templates/lean-daily-market-close-report/template.html`
+  - `Report Templates/lean-daily-market-close-report/render.js`
+  - `Report Templates/lean-daily-market-close-report/styles.css`
+  - `Report Templates/lean-daily-market-close-report/REPORT_DATA_CONTRACT.md`
+  - `public/report-templates/daily-close/template.html`
+  - `public/report-templates/daily-close/render.js`
+  - `public/report-templates/daily-close/styles.css`
+  - `docs/CODEX_CHANGE_LOG.md`
+- Verification:
+  - Browser preview confirmed the score is centered, the marker sits on the
+    correct bullish side for a score of 67, and the report remains four pages
+    without overflow.
+  - TypeScript, renderer syntax, source/public template synchronization, and
+    whitespace validation passed.
+- Remaining backend dependency / limitation:
+  - If a newly downloaded PDF still has zero mentions after this mapping, the
+    authenticated dated report response itself contains no populated seven-day
+    aggregate or buckets. In that case the backend must expose the exact dated
+    `sentimentSnapshot` payload for inspection; the frontend intentionally does
+    not substitute current/live records into an archived report.
+
+## 2026-08-06 — Force refreshed archive PDFs onto the accepted 7D sentiment scope
+
+- Area: User Portal → Report Archive → View PDF / Download → Market Perception
+  page.
+- API/data:
+  - Dated report:
+    `GET /market-data/reports?ticker={ticker}&date={YYYY-MM-DD}`.
+  - Dated user-aware AI overlay:
+    `GET /market-data/ai-report?ticker={ticker}&date={YYYY-MM-DD}`.
+- Reported problem and root cause:
+  - A newly downloaded PDF still displayed `1D`, `Overall Sentiment`, and
+    `vs previous 1D` after the backend sentiment values changed to a previous
+    seven-day scope.
+  - The dated response can still carry the retired `sentiment.window = "1D"`
+    metadata, so the adaptive renderer selected its legacy label branch.
+  - Report and AI reads also used the portal's shared 15-minute GET cache, and
+    the public PDF renderer assets had stable unversioned URLs. A regenerated
+    dated report or newly deployed renderer could therefore remain stale for a
+    subsequent download.
+  - The semicircle needle passed directly through the score and classification
+    text because both were positioned inside the needle path.
+- Implemented behavior and invariants:
+  - The archive PDF normalization now sets the dated report sentiment scope to
+    `7D`, superseding the earlier temporary behavior that preserved an explicit
+    legacy `1D` label. Backend score, counts, distribution, platform rows, and
+    comparison values are otherwise unchanged.
+  - Every View PDF or Download action invalidates the exact dated report and AI
+    cache entries before fetching. Other portal API caching remains unchanged.
+  - The iframe template, renderer script, and separately inlined stylesheet use
+    a shared version identifier so browsers cannot reuse the prior PDF assets.
+  - The gauge retains the same API score and needle calculation, but displays
+    the score and sentiment label beneath the pivot instead of underneath the
+    needle.
+  - No raw social-data request, frontend sentiment aggregation, or additional
+    backend endpoint was introduced.
+- Files changed:
+  - `app/monitor/[ticker]/reports/daily-report-data.ts`
+  - `app/monitor/[ticker]/reports/client-report-pdf.ts`
+  - `Report Templates/lean-daily-market-close-report/template.html`
+  - `Report Templates/lean-daily-market-close-report/render.js`
+  - `Report Templates/lean-daily-market-close-report/styles.css`
+  - `public/report-templates/daily-close/template.html`
+  - `public/report-templates/daily-close/render.js`
+  - `public/report-templates/daily-close/styles.css`
+  - `docs/CODEX_CHANGE_LOG.md`
+- Verification:
+  - Browser preview confirmed `Previous 7 Days`, `7-Day Overall Sentiment`,
+    `7D`, and `vs previous 7 days` in the served archive template.
+  - Visual inspection confirmed the needle no longer overlaps the score or
+    sentiment label.
+  - The Market Perception page remains within its fixed PDF page height and the
+    report remains four pages.
+  - TypeScript, renderer syntax, template synchronization, and whitespace
+    checks passed.
+  - Production compilation and type validation passed. Final page-data
+    collection was interrupted by unrelated concurrent `.next` output missing
+    the legal and login route modules; no report route or report code failed.
+- Remaining backend dependency / limitation:
+  - The backend should still replace the retired `window: "1D"` metadata with
+    `window: "7D"` and document the seven-day fields. Until then, the archive
+    PDF applies the confirmed seven-day scope at its normalization boundary.
+
+## 2026-08-06 — Add Exchange Volume pie details and volume ordering
+
+- Area: User Portal → Exchange Volume → Latest Exchange Volume.
+- API/data:
+  - Current venue values remain sourced from
+    `GET /market-data/current?ticker={ticker}&category=market-current` →
+    `exchangeVolume`.
+- Reported problem and root cause:
+  - The pie was a single CSS background, so its visual slices could not expose
+    venue-specific hover details.
+  - The adjacent venue list retained API object order and used a fixed-height
+    scroll area instead of prioritizing the largest returned volumes.
+- Implemented behavior and invariants:
+  - The pie now renders one focusable SVG slice per positive API venue value.
+    Hovering or keyboard-focusing a slice shows its venue name, exact volume,
+    and percentage only when that percentage was supplied by the API.
+  - Other slices dim while one slice is inspected, without changing any data.
+  - The venue legend is sorted from highest to lowest returned volume and uses
+    the same colour order as the pie.
+  - The card grows to fit the complete venue legend; it has no internal legend
+    scrollbar.
+  - Sorting and slice-angle geometry are presentation-only. The frontend does
+    not expose a calculated market share, total, ranking metric, or replacement
+    value.
+- Files changed:
+  - `app/monitor/[ticker]/exchange-volume/ExchangeVolumeBrowserPage.tsx`
+  - `app/globals.css`
+  - `docs/CODEX_CHANGE_LOG.md`
+- Verification:
+  - TypeScript type-check, whitespace validation, and a clean production build
+    passed.
+  - The Exchange Volume route rendered without browser console errors.
+  - The local demo APIs require authenticated market-data access, so live-slice
+    hover could not be exercised against API values in that session; the SVG
+    interaction and ordering logic are type-checked and production-compiled.
+- Remaining backend dependency / limitation:
+  - None. Tooltip content uses only fields already returned in
+    `market-current.exchangeVolume`.
+
+## 2026-08-06 — Present report sentiment as a previous-seven-day snapshot
+
+- Area: User Portal → Report Archive → generated Daily Report PDF → Market
+  Perception page.
+- API/data:
+  - Existing dated report payload:
+    `GET /market-data/reports?ticker={ticker}&date={YYYY-MM-DD}`.
+  - The backend team verbally confirmed that the payload's `sentiment` block
+    now represents the previous seven days. `docs/INTEGRATION (7).md` has not
+    yet been updated with that expanded contract.
+- Reported problem and root cause:
+  - The PDF renderer hard-coded `1D`, `1D Window`, and `vs previous 1D`, so a
+    new seven-day backend result would be displayed with incorrect period
+    labels even though the values pass through from the dated report unchanged.
+- Implemented behavior and invariants:
+  - A `7D` sentiment payload now renders as `Previous 7 Days`, `7-Day Overall
+    Sentiment`, and `vs previous 7 days`.
+  - When `windowStart` and `reportDateIso` are present, the PDF displays the
+    exact sentiment observation period. It falls back to the period label when
+    those optional dates are missing.
+  - Legacy archived payloads explicitly marked `1D` retain one-day labels.
+  - The PDF does not recalculate sentiment, read raw social feeds, or make an
+    additional sentiment request. Overall score, comparison, mention totals,
+    distribution, and platform breakdown remain authoritative backend values
+    frozen in the dated report.
+  - The source template, browser-served template, sample payload, and internal
+    report contract are kept synchronized.
+- Files changed:
+  - `Report Templates/lean-daily-market-close-report/render.js`
+  - `Report Templates/lean-daily-market-close-report/styles.css`
+  - `Report Templates/lean-daily-market-close-report/report-data.json`
+  - `Report Templates/lean-daily-market-close-report/REPORT_DATA_CONTRACT.md`
+  - `Report Templates/lean-daily-market-close-report/BACKEND_REPORT_API_REQUIREMENTS.md`
+  - `Report Templates/lean-daily-market-close-report/BACKEND_REPORT_API_CORRECTIONS.md`
+  - `Report Templates/lean-daily-market-close-report/README.md`
+  - `public/report-templates/daily-close/render.js`
+  - `public/report-templates/daily-close/styles.css`
+  - `public/report-templates/daily-close/report-data.json`
+  - `docs/CODEX_CHANGE_LOG.md`
+- Verification:
+  - Browser preview confirmed four pages, no Market Perception page overflow,
+    and the rendered period `Jun 6, 2026 – Jun 12, 2026` with seven-day labels.
+  - Both renderer files passed JavaScript syntax checks; both sample payloads
+    parsed successfully; source and public template copies match; whitespace
+    validation passed.
+  - Repository-wide TypeScript verification is currently blocked by an
+    unrelated concurrent error in
+    `app/operations/ownership/ManagementHoldingsOperationsClient.tsx:366`.
+- Remaining backend dependency / limitation:
+  - The backend should add the complete seven-day sentiment response shape to
+    `docs/INTEGRATION (7).md`, including `window`, `windowStart`, `windowEnd`,
+    and confirmation that `previousScore` represents the immediately preceding
+    seven-day window.
+
+## 2026-08-06 — Prioritize latest Exchange Volume and unify history views
+
+- Area: User Portal → Exchange Volume.
+- APIs/data:
+  - Latest venue values remain sourced from
+    `GET /market-data/current?ticker={ticker}&category=market-current` →
+    `exchangeVolume`.
+  - Both historical views use
+    `GET /market-data/history?ticker={ticker}&category=exchange-volume-history`.
+- Reported problem and root cause:
+  - The latest venue data appeared below the historical sections even though it
+    is the most time-sensitive information.
+  - The current venue list used progress bars rather than a proportional
+    overview, and the always-visible history table duplicated the line chart.
+  - Users had to toggle many chart series one at a time, while the CSV action
+    occupied the control position needed for switching history views.
+- Implemented behavior and invariants:
+  - Latest Exchange Volume now appears immediately after the overview and uses
+    a compact pie chart with a raw-volume legend.
+  - Pie-slice angles are display geometry derived from the API volume values;
+    the page does not expose a calculated market share, total, ranking, or
+    replacement value. Any percentage label is still shown only when supplied
+    by the API.
+  - History defaults to the line chart. Icon buttons switch between the chart
+    and one table in the same section, so the table is not rendered by default.
+  - The selected 1M/3M/6M/1Y/All period controls both historical views.
+  - Show all and Hide all controls update the line-chart series in one action.
+    Every returned exchange remains enabled by default, and individual venue
+    toggles and the date hover tooltip remain intact.
+  - The CSV action and its export request were intentionally removed from this
+    page, superseding the earlier Exchange Volume CSV-button behavior.
+- Files changed:
+  - `app/monitor/[ticker]/exchange-volume/ExchangeVolumeBrowserPage.tsx`
+  - `app/globals.css`
+  - `lib/portal-page-translations.ts`
+  - `docs/CODEX_CHANGE_LOG.md`
+- Verification:
+  - TypeScript type-check, whitespace validation, and production build passed.
+  - Browser verification confirmed the latest section precedes history, the
+    line view is selected by default, and the icon switch renders only the
+    selected chart or table state.
+  - The local demo APIs require authenticated market-data access, so the browser
+    check exercised empty states and controls rather than live pie/table data.
+- Remaining backend dependency / limitation:
+  - None for the layout and view controls. Visible values still depend on the
+    two existing Market Data API responses.
+
+## 2026-08-06 — Keep Report Archive blue-button labels white
+
+- Area: User Portal → Report Archive → View PDF and archive pagination.
+- API/data:
+  - No API or data behavior changed. The archive continues to use
+    `GET /market-data/reports?ticker={ticker}` and the existing dated report
+    request when View PDF is selected.
+- Reported problem and root cause:
+  - The dark-blue View PDF and selected pagination buttons could inherit the
+    portal's generic dark form-control text color because they are native
+    buttons rendered outside the shared `.button` component.
+- Implemented behavior and invariants:
+  - The latest-report View PDF button and active archive page number now share
+    an explicit report primary-button class.
+  - That class fixes the blue surface and white label color after the generic
+    portal control rules, in both light and dark mode.
+  - Report loading, PDF generation, download, pagination, filtering, and API
+    behavior remain unchanged.
+- Files changed:
+  - `app/monitor/[ticker]/reports/ReportArchiveCenter.tsx`
+  - `app/portal-theme.css`
+  - `docs/CODEX_CHANGE_LOG.md`
+- Verification:
+  - Browser-computed styles confirmed `rgb(255, 255, 255)` text on
+    `rgb(37, 99, 235)` for View PDF in light and dark mode.
+  - The active pagination button uses the same primary class.
+  - TypeScript type-check, whitespace validation, and production build passed.
+- Remaining backend dependency / limitation:
+  - None; this is a frontend-only contrast correction.
+
+## 2026-08-06 — Redesign Report Archive around daily, weekly, and monthly cadence
+
+- Area: User Portal → Report Archive.
+- APIs/data:
+  - Existing daily archive index and report payload:
+    `GET /market-data/reports?ticker={ticker}` and
+    `GET /market-data/reports?ticker={ticker}&date={YYYY-MM-DD}`.
+  - No weekly or monthly API is connected yet.
+- User-reported problem:
+  - The Report Archive still presented three report windows per trading day
+    even though the product will provide one Daily Report plus future Weekly
+    and Monthly Reports.
+- Root cause:
+  - The page information architecture was organized around the retired 8:00
+    AM, 11:50 AM, and 7:00 PM timeline rather than reporting cadence.
+- Implemented behavior:
+  - Replaced the three-report timeline with accessible Daily Reports, Weekly
+    Reports, and Monthly Reports tabs.
+  - Daily Reports is the default and only available tab. It presents one
+    prominent latest Daily Market Close Report and a simplified archive with
+    one report per completed trading day, date filtering, pagination, View PDF,
+    and Download.
+  - Removed Pre-Market, Midday, Post-Market, report-window filtering, multi-icon
+    daily rows, View All, and Download All from the active archive experience.
+  - Weekly and Monthly tabs are selectable preview states marked Coming Soon.
+    Each explains the planned cadence and intended coverage without exposing
+    non-functional actions or sample reports.
+  - Added responsive light/dark styling and English, Traditional Chinese, and
+    Simplified Chinese coverage for the redesigned archive.
+- Must preserve:
+  - Daily report index loading, report-date payload composition, browser PDF
+    generation, preview, download, errors, and existing archive pagination
+    remain functional.
+  - The frontend does not invent weekly or monthly records and makes no weekly
+    or monthly API request.
+  - Existing backend `7PM` archive records remain the internal representation
+    of the single Daily Report until the backend contract renames that type;
+    the retired name is no longer shown to users.
+  - Report data, PDF template, report contents, and legal notices are unchanged.
+- Files changed:
+  - `app/monitor/[ticker]/reports/ReportArchiveCenter.tsx`
+  - `app/globals.css`
+  - `lib/portal-page-translations.ts`
+  - `docs/CODEX_CHANGE_LOG.md`
+- Verification:
+  - TypeScript type-check and whitespace validation passed.
+  - Browser verification confirmed the Daily archive, Weekly and Monthly
+    Coming Soon panels, tab semantics, and a 390px mobile layout with no
+    horizontal overflow.
+  - Production build passed.
+- Remaining backend dependency / limitation:
+  - Weekly and Monthly tabs remain presentation-only until their archive index,
+    report payload, cadence dates, and PDF-generation contracts are supplied.
+
+## 2026-08-06 — Standardize compact quantity and currency formatting
+
+- Areas:
+  - User Portal → Dashboard cards, charts, and Alert Center.
+  - User Portal → Ownership overview, ownership charts, and holder breakdowns.
+  - User Portal → Short Interest and Lending Pressure KPI cards/charts.
+  - User Portal → Internal Float summaries and charts.
+- API/data:
+  - Display-only change across the existing API values. No API payload is
+    transformed or persisted by this formatter.
+  - `ownership-current.institutionalValue` is now rendered as the numeric value
+    returned by the API instead of receiving a hard-coded `K` suffix.
+- Reported problem and root cause:
+  - Pages contained several independent compact-number implementations with
+    different precision and threshold behavior.
+  - Ownership always appended `K` to Institutional Value, so an updated backend
+    value such as `2,634,644` appeared as `$2,634,644K`.
+- Intended behavior and invariants:
+  - Values at or above `1,000,000` display in millions (`M`).
+  - Values from `1,000` through `999,999.99` display in thousands (`K`).
+  - Values below `1,000` retain their base unit.
+  - Compact KPI values use two decimal places by default; currency follows the
+    same thresholds and retains its currency symbol.
+  - Detailed filing, operations, audit, and calculation tables retain exact
+    comma-separated values for reconciliation.
+  - Formatting is presentation-only and must not alter source values or API
+    units.
+- Files changed:
+  - `lib/number-format.ts`
+  - `app/monitor/[ticker]/dashboard/DashboardKpis.tsx`
+  - `app/monitor/[ticker]/dashboard/DashboardChart.tsx`
+  - `app/monitor/[ticker]/dashboard/CustomAlertCenter.tsx`
+  - `app/monitor/[ticker]/institutional/InstitutionalOverview.tsx`
+  - `app/monitor/[ticker]/internal-float/InternalFloatClient.tsx`
+  - `app/monitor/[ticker]/short-interest/ShortInterestBrowserPage.tsx`
+  - `app/monitor/[ticker]/lending-pressure/LendingPressureBrowserPage.tsx`
+  - `lib/portal-page-translations.ts`
+  - `docs/PORTAL_NUMBER_FORMATTING.md`
+  - `docs/CODEX_CHANGE_LOG.md`
+- Verification:
+  - TypeScript type-check and whitespace validation passed.
+- Remaining backend dependency / limitation:
+  - The API must return currency values in their intended base display unit.
+    The frontend no longer applies an undocumented fixed multiplier or suffix.
+
+## 2026-08-06 — Correct Social Sentiment gauge needle geometry
+
+- Area: User Portal → Social Sentiment → Overall Sentiment.
+- API/data:
+  - `GET /market-data/current?ticker={ticker}&category=sentiment-current`.
+  - Existing count-based composite score for the selected timeframe.
+- Reported problem and root cause:
+  - The gauge needle did not begin at the semicircle centre and a bullish score
+    such as 69 pointed left.
+  - The needle element extended downward from a pivot near its top, while the
+    rotation calculation assumed an upward-pointing needle. The element geometry
+    and score-to-angle mapping therefore disagreed.
+- Intended behavior and invariants:
+  - The pivot sits at the exact centre of the 150px semicircle.
+  - Score 0 points left, 50 points straight up, and 100 points right. Values are
+    clamped to 0–100 before their angle is calculated; 69 points upper-right.
+  - The displayed score and all sentiment calculations remain unchanged. This
+    correction affects only the visual needle geometry.
+- Files changed:
+  - `app/monitor/[ticker]/sentiment/SentimentBrowserPage.tsx`
+  - `app/globals.css`
+  - `docs/CODEX_CHANGE_LOG.md`
+- Verification:
+  - TypeScript type-check and whitespace validation passed.
+  - Browser-checked the rendered gauge: score 0 begins at the centre and points
+    left, the centre hub remains fixed, and the page reports no console errors.
+  - The production bundle compiled, but the full build is currently blocked by
+    an unrelated duplicate `Report` translation key in
+    `lib/portal-page-translations.ts`; that separate user change was preserved.
+- Remaining backend dependency / limitation:
+  - None; the issue was entirely in frontend rendering.
+
 ## 2026-08-05 — Compact and toggle Exchange Volume chart series
 
 - Area: User Portal → Exchange Volume → Volume by Exchange.
@@ -2683,3 +3621,145 @@ completed change.
     criteria were reviewed; whitespace validation passed.
 - Remaining dependency: The backend must implement and deploy the detailed
   report contract before the frontend can remove its multi-API composition path.
+
+## 2026-08-06 - Synchronize Strategic Entities and batch ownership consolidation
+
+- Area: User Portal → Ownership and Internal Float; Operations Portal →
+  Ownership Data.
+- APIs/data:
+  - `GET /market-data/current?ticker={ticker}&category=ownership-current`
+  - `GET /manual-input/internal-float-inputs-user?ticker={ticker}`
+  - `GET /manual-input/management-holdings?ticker={ticker}`
+  - `POST /manual-input/consolidate?ticker={ticker}`
+- User-reported problem: The Ownership page's Strategic Entities panel was
+  empty even though holdings were present in Internal Float. Automatically
+  consolidating after every newly entered holder would also create unnecessary
+  processing when several holders are entered together.
+- Root cause: Ownership used the operations suggestion ledger as its detailed
+  Strategic Entities source, while Internal Float displayed a merged current
+  holdings list built from user-saved holdings and directly applied operations
+  records. The two pages therefore did not share the same detail-building rule.
+- Intended behavior and invariants:
+  - Ownership uses the same merged holdings rule as Internal Float for the
+    detailed Strategic Entities list.
+  - User-saved holdings remain authoritative when an operations record has the
+    same normalized holder name, preventing a directly applied record from
+    being counted twice.
+  - The ownership donut and Public Float continue to use consolidated
+    `ownership-current` totals when supplied. The immediate detail list must not
+    imply that consolidation has already completed.
+  - After any Management / Strategic holding addition, edit, or removal is
+    successfully saved, users and operators choose either
+    `Continue Managing Holdings` or `Finish & Update Ownership`.
+  - Individual saves do not trigger consolidation. Finishing the batch triggers
+    one consolidation request and explains that the Ownership page should
+    reflect the update within about two minutes.
+  - Editing and removing holdings use the same batch-finish workflow. Tokenized
+    and collateralized holdings retain their existing behavior.
+- Files changed:
+  - `lib/internal-float-holdings.ts`
+  - `app/monitor/[ticker]/internal-float/InternalFloatRoleView.tsx`
+  - `app/monitor/[ticker]/internal-float/InternalFloatClient.tsx`
+  - `app/monitor/[ticker]/institutional/InstitutionalBrowserPage.tsx`
+  - `app/monitor/[ticker]/institutional/InstitutionalOverview.tsx`
+  - `app/monitor/[ticker]/institutional/InstitutionalDevTables.tsx`
+  - `app/operations/ownership/ManagementHoldingsOperationsClient.tsx`
+  - `app/globals.css`
+  - `lib/portal-page-translations.ts`
+  - `docs/CODEX_CHANGE_LOG.md`
+- Verification: TypeScript type-check and whitespace validation passed. The
+  production build was also run after the final changes.
+- Remaining dependency: Consolidation is asynchronous and has no completion
+  status endpoint. The two-minute message is therefore an expectation rather
+  than a live backend progress indicator.
+
+## 2026-08-06 - Read consolidated Strategic Entities from the user float snapshot
+
+- Area: User Portal → Ownership → Ownership Structure.
+- APIs/data:
+  - `GET /market-data/current?ticker={ticker}&category=ownership-current`
+  - `GET /market-data/current?ticker={ticker}&category=internal-float-current-user`
+  - `GET /manual-input/internal-float-inputs-user?ticker={ticker}`
+  - `GET /manual-input/management-holdings?ticker={ticker}`
+- User-reported problem: The Strategic Entities detail panel showed a newly
+  saved holding, but the ownership donut still displayed zero after waiting for
+  consolidation.
+- Root cause: The donut read `ownership-current.strategicEntities`, which is a
+  ticker-level total generated from operations records marked
+  `showInOwnership`. User-entered Internal Float holdings are consolidated into
+  the user-specific `internal-float-current-user.managementStrategicHoldings`
+  snapshot, so even a successful consolidation could not update the donut's
+  previous source. A stale pre-consolidation response could also remain in the
+  shared GET cache for up to 15 minutes.
+- Intended behavior and invariants:
+  - The Ownership donut uses the consolidated user-specific
+    `managementStrategicHoldings.shares` total for Strategic Entities.
+  - Public Float is derived from consolidated issued shares, institutional
+    shares, and the user-specific Strategic Entities total. Tokenized and
+    collateralized deductions remain private to Internal Float and are not
+    deducted from Ownership Public Float.
+  - The detail panel continues to show saved holding records immediately.
+  - While the saved detail total and consolidated total disagree, Ownership
+    refreshes the user float snapshot every 15 seconds for at most three
+    minutes, then stops. Normal page loading retains the existing cache.
+  - Development Data exposes the raw user float snapshot so the consolidated
+    total and generation timestamp can be inspected directly.
+- Files changed:
+  - `app/monitor/[ticker]/institutional/InstitutionalBrowserPage.tsx`
+  - `app/monitor/[ticker]/institutional/InstitutionalOverview.tsx`
+  - `app/monitor/[ticker]/institutional/InstitutionalDevTables.tsx`
+  - `docs/CODEX_CHANGE_LOG.md`
+- Verification: TypeScript type-check, whitespace validation, and production
+  build were run after implementation.
+- Remaining dependency: The backend provides no consolidation job-status API;
+  completion is inferred when the consolidated strategic total matches the
+  saved holdings total.
+
+## 2026-08-06 - Add effective-dated manual security ownership imports
+
+- Area: Operations Portal -> Data Import and Data Export.
+- APIs/data:
+  - `GET /manual-input/manual-security-ownership?ticker={ticker}&action=available-dates`
+  - `GET /manual-input/manual-security-ownership?ticker={ticker}&effectiveDate={YYYY-MM-DD}`
+  - `POST /manual-input/import?ticker={ticker}&category=manual-security-ownership`
+  - `GET /export/csv?dataset=manual-input&ticker={ticker}&category=manual-security-ownership`
+  - `POST /manual-input/consolidate?ticker={ticker}`
+- Reported problem and root cause:
+  - The backend added the `manual-security-ownership` Manual Input V2 category
+    and supplied a new template set, but the Operations Portal category lists,
+    template generator, import verification, preview lookup, and export helper
+    still represented the older contract.
+  - This category partitions records by `effectiveDate`, not `tradeDate`, so it
+    cannot safely reuse the existing daily-input path validation.
+- Intended behavior and invariants:
+  - Operators can select Manual security ownership, download the exact
+    12-column template, upload a CSV, and inspect the newest available dated
+    API payload.
+  - Imports without an `effectiveDate` are blocked before submission.
+  - Import verification requires one
+    `manual-input/manual-security-ownership/{ticker}/{effectiveDate}/manual-security-ownership.json`
+    output for every effective date in the CSV. Extra backend-generated CSV or
+    available-date metadata files are allowed.
+  - The page uses the available-dates action to resolve the latest raw payload
+    when no just-imported date is available.
+  - Manual consolidation remains a separate action. Its rebuild cutoff uses
+    the earliest imported effective date and checks both ownership current and
+    ownership history outputs.
+  - Data Export offers the same category for edit-and-reimport compatibility.
+  - The supplied manual template archive and the combined import-template
+    archive now contain the same updated manual-input files.
+- Files changed:
+  - `app/operations/data-import/ManualDataImportClient.tsx`
+  - `app/operations/data-export/DataExportClient.tsx`
+  - `manual-input-template.zip`
+  - `reference-data/import-templates/import-template.zip`
+  - `docs/CODEX_CHANGE_LOG.md`
+- Verification:
+  - TypeScript type-check and whitespace validation passed.
+  - Both tracked archives were inspected and contain
+    `manual-input-template/manual-security-ownership.csv` with the contract
+    columns.
+- Remaining backend dependency / limitation:
+  - Consolidation remains asynchronous and has no job-status endpoint. The
+    frontend can verify a subsequent ownership output change but cannot inspect
+    the backend job itself.

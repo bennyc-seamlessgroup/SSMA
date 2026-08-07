@@ -59,7 +59,7 @@ Report Templates/lean-daily-market-close-report/preview/currenc-daily-market-clo
 2. Calculate the eight KPI comparisons against the immediately preceding trading-day record.
 3. Read Short Interest Score from consolidated market data and AI Analysis from `GET /market-data/ai-report` using `short_interest_current_interpretation`.
 4. Build each report chart from the latest seven valid daily observations returned by `GET /market-data/history?category=market-history`.
-5. Add the one-day sentiment overview from `GET /market-data/current?category=sentiment-current` and `GET /social-data`.
+5. Add the previous-seven-day sentiment overview from the consolidated dated report payload.
 6. Add latest SEC filing records from `GET /manual-input/sec-filings`.
 7. Populate only verified values. Do not substitute zero for missing observations.
 8. Validate against `REPORT_DATA_CONTRACT.md`.

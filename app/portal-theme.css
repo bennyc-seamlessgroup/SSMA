@@ -242,6 +242,16 @@ html[data-design-b-theme='dark'] {
   color: var(--ci-text-secondary);
 }
 
+/* Report Archive primary actions are native buttons rather than the shared
+   `.button` component. Keep their labels readable after the generic form
+   control color above is applied in both portal themes. */
+html[data-portal-design="b"] .monitor-portal button.report-primary-button {
+  border-color: #2563eb;
+  background: #2563eb;
+  color: #ffffff;
+  -webkit-text-fill-color: #ffffff;
+}
+
 /* Alert threshold is one joined control. The global input treatment must not
    draw a second border inside its unit wrapper. */
 .monitor-portal .custom-alert-threshold-input > div {
