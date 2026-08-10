@@ -4,6 +4,40 @@ This file is the persistent implementation memory for changes made by Codex.
 Read it before modifying existing portal behavior, and update it after every
 completed change.
 
+## 2026-08-10 — Download legacy-dated archived reports safely
+
+- Area: User Portal → Report Archive → View PDF and Download.
+- API/data:
+  - `GET /market-data/reports?ticker={ticker}&date={YYYY-MM-DD}`
+- Reported problem and root cause:
+  - Downloading the July 31 report failed with “The report API returned an
+    unknown date instead of 2026-07-31.”
+  - The archive entry supplied `2026-07-31`, but the frontend validated only
+    the current lean payload field `reportDateIso`. Older report payloads may
+    expose the same ISO report date as top-level `asOfDate`, as documented by
+    the existing reports API, or as `tradingSnapshot.asOfDateIso`.
+- Intended behavior and invariants:
+  - Current report payloads continue to prefer top-level `reportDateIso`.
+  - When that field is absent, the downloader accepts only a strict
+    `YYYY-MM-DD` value from `tradingSnapshot.asOfDateIso` or legacy
+    top-level `asOfDate`.
+  - The resolved response date must still exactly equal the selected archive
+    date. Wrong-date payloads remain blocked.
+  - The validated date is normalized back to `reportDateIso` for the PDF
+    renderer; ticker validation, immutable dated-report loading, and the
+    separate dated AI overlay remain unchanged.
+- Files changed:
+  - `app/monitor/[ticker]/reports/daily-report-data.ts`
+  - `docs/CODEX_CHANGE_LOG.md`
+- Verification:
+  - TypeScript type-check passed.
+  - Production build passed, including all 29 statically generated pages.
+  - Whitespace validation passed.
+- Remaining backend dependency / limitation:
+  - Legacy reports still need to contain the remaining fields required by the
+    current PDF template; this change only reconciles the documented date-field
+    variants.
+
 ## 2026-08-07 — Standardize full API banners in every Development Data table
 
 - Area: User and Operations portals → all Development Data sections.
@@ -46,7 +80,13 @@ completed change.
   - `app/monitor/[ticker]/short-interest/ShortInterestBrowserPage.tsx`
   - `docs/CODEX_CHANGE_LOG.md`
 - Verification:
-  - Recorded after final type, build, whitespace, and browser checks below.
+  - TypeScript type-check passed.
+  - Production build passed, including static generation for all 29 pages.
+  - Whitespace validation passed.
+  - Browser verification on the Operations Ownership page found exactly one
+    active-source banner showing the full ticker-specific endpoint, `API
+    Gateway`, and request state. Authenticated user-portal tables could not be
+    inspected in that browser session because it redirected to sign-in.
 - Remaining backend dependency / limitation:
   - None. This change displays the already-used request definitions and does
     not require a backend contract change.
@@ -147,6 +187,7 @@ completed change.
   - `docs/CODEX_CHANGE_LOG.md`
 - Verification:
   - TypeScript type-check passed.
+  - Production build passed, including static generation for all 29 pages.
   - Whitespace validation passed.
   - All seven focused ownership helper tests passed.
 - Remaining backend dependency / limitation:
@@ -4335,3 +4376,85 @@ completed change.
     visible and report a clear error until the user-input API stores and echoes
     that field. Atomic persistence of the holding and decision should be
     implemented server-side.
+
+## 2026-08-10 - Fast in-app HTML report viewer
+
+- Area: User Portal -> Report Archive.
+- APIs/data:
+  - `GET /market-data/reports?ticker={ticker}&date={YYYY-MM-DD}`
+  - existing daily report data composition and AI report API remain unchanged.
+- Reported problem and root cause:
+  - `View PDF` generated the entire PDF before opening a new browser tab. The
+    report therefore appeared unresponsive while client-side PDF generation
+    and font/image processing completed.
+- Intended behavior and invariants:
+  - `View Report` opens an in-app viewer immediately and shows a loading state
+    while the selected report data is fetched.
+  - The viewer renders the existing daily-close report template as responsive
+    HTML. It keeps the report's content, visual hierarchy, and light document
+    styling while adapting page dimensions, grids, tables, and cover content
+    for desktop and mobile screens.
+  - A `Download PDF` action is always available in the viewer toolbar. PDF
+    generation starts only when that action is selected.
+  - The viewer's PDF download reuses the exact report-data snapshot already
+    displayed. A separate archive View or Download action still fetches fresh
+    API data, preserving the accepted no-stale-report behavior.
+  - The A4 print/PDF rules and generated PDF filename remain unchanged.
+  - Report Archive action labels are `View Report` and `Download PDF`; pending
+    report states remain non-interactive.
+- Files changed:
+  - `app/monitor/[ticker]/reports/ReportArchiveCenter.tsx`
+  - `app/monitor/[ticker]/reports/ReportHtmlViewer.tsx`
+  - `app/monitor/[ticker]/reports/client-report-pdf.ts`
+  - `app/globals.css`
+  - `lib/portal-page-translations.ts`
+  - `public/report-templates/daily-close/render.js`
+  - `public/report-templates/daily-close/styles.css`
+  - `public/report-templates/daily-close/template.html`
+  - `Report Templates/lean-daily-market-close-report/render.js`
+  - `Report Templates/lean-daily-market-close-report/styles.css`
+  - `Report Templates/lean-daily-market-close-report/template.html`
+  - `docs/CODEX_CHANGE_LOG.md`
+- Verification:
+  - TypeScript type-check passed.
+  - Production build passed, including static generation for all 29 pages.
+  - Whitespace validation passed.
+  - Browser inspection confirmed the archive uses the new action labels, the
+    viewer opens immediately, the top PDF action is present, and the report
+    template renders without horizontal overflow at desktop and 390px mobile
+    widths.
+  - The browser console contained no warnings or errors during these checks.
+- Remaining backend dependency / limitation:
+  - Initial HTML content still depends on the report-data APIs responding. PDF
+    generation remains client-side and can take several seconds, but it is now
+    isolated to the explicit download workflow instead of blocking report
+    viewing.
+
+## 2026-08-10 - Improve HTML report reading size
+
+- Area: User Portal -> Report Archive -> in-app report viewer.
+- APIs/data: no API or report-data contract changes.
+- Reported problem and root cause:
+  - The first responsive report viewer retained the compact type scale required
+    by the A4 PDF, making supporting labels, analysis, tables, and chart text
+    unnecessarily small on screen.
+- Intended behavior and invariants:
+  - HTML report mode uses a larger, proportional screen-reading type scale for
+    headings, metrics, deltas, chart labels, analysis, sentiment details,
+    tables, and footnotes.
+  - A4 PDF typography and page layout remain unchanged.
+  - Desktop and mobile HTML layouts remain responsive without horizontal page
+    overflow.
+- Files changed:
+  - `app/monitor/[ticker]/reports/client-report-pdf.ts`
+  - `public/report-templates/daily-close/styles.css`
+  - `public/report-templates/daily-close/template.html`
+  - `Report Templates/lean-daily-market-close-report/styles.css`
+  - `Report Templates/lean-daily-market-close-report/template.html`
+  - `docs/CODEX_CHANGE_LOG.md`
+- Verification:
+  - Browser inspection confirmed the larger hierarchy on the cover and report
+    content pages at desktop width and at a 390px mobile width.
+  - Browser console contained no warnings or errors.
+  - Public and source report styles remain identical.
+- Remaining backend dependency / limitation: none.

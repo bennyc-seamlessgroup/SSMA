@@ -169,7 +169,7 @@ const zhHant: Record<string, string> = {
 
   // Reports
   'Report History': '報告歷史', 'History Archive': '歷史存檔', 'Latest Report': '最新報告', 'Reports Available': '可用報告',
-  'Post-Market': '收市後', 'Pre-Market': '開市前', 'Midday': '中午', 'COMING SOON': '即將推出', 'Coming soon': '即將推出', 'View PDF': '查看 PDF', 'Generating...': '正在產生…', 'Search report archive': '搜尋報告存檔',
+  'Post-Market': '收市後', 'Pre-Market': '開市前', 'Midday': '中午', 'COMING SOON': '即將推出', 'Coming soon': '即將推出', 'View PDF': '查看 PDF', 'View Report': '查看報告', 'Download PDF': '下載 PDF', 'Generating...': '正在產生…', 'Loading...': '正在載入…', 'Preparing...': '正在準備…', 'Preparing PDF...': '正在準備 PDF…', 'Daily Report': '每日報告', 'Close report': '關閉報告', 'Loading report': '正在載入報告', 'Collecting the selected market close data.': '正在收集所選收市資料。', 'Search report archive': '搜尋報告存檔',
   'Search reports by title, time, or date': '按標題、時間或日期搜尋報告', 'Filter report type': '篩選報告類型',
   'Filter by report window': '按報告時段篩選', 'No reports match the current search.': '沒有報告符合目前搜尋。',
   'No reports match the selected range.': '沒有報告符合所選範圍。', 'Report approval can require IR Admin review before executive delivery.': '報告可要求投資者關係管理員在發送給管理層前進行審批。',

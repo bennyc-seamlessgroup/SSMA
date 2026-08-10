@@ -1,11 +1,12 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { usePortalTimeZone } from '@/components/usePortalTimeZone';
 import { formatPortalDate } from '@/lib/timezone';
 import type { ReportArchiveRecord } from '@/lib/report-archive';
 import { generateClientReportPdf, reportFileName } from './client-report-pdf';
 import { buildDailyReportData } from './daily-report-data';
+import { ReportHtmlViewer } from './ReportHtmlViewer';
 
 const HISTORY_PAGE_SIZE = 10;
 
@@ -125,8 +126,14 @@ export function ReportArchiveCenter({
   const [startDate, setStartDate] = useState(minDate);
   const [endDate, setEndDate] = useState(maxDate > todayDate ? maxDate : todayDate);
   const [historyPage, setHistoryPage] = useState(1);
-  const [generatingReportId, setGeneratingReportId] = useState<string | null>(null);
+  const [loadingReportId, setLoadingReportId] = useState<string | null>(null);
+  const [downloadingReportId, setDownloadingReportId] = useState<string | null>(null);
   const [generationError, setGenerationError] = useState('');
+  const [viewer, setViewer] = useState<{
+    report: ReportArchiveRecord;
+    reportData?: unknown;
+    error?: string;
+  } | null>(null);
 
   const latestReport = sortedReports[0] ?? null;
   const filteredReports = useMemo(() => sortedReports.filter(report => (
@@ -146,37 +153,45 @@ export function ReportArchiveCenter({
   const historyStart = filteredReports.length ? (safeHistoryPage - 1) * HISTORY_PAGE_SIZE + 1 : 0;
   const historyEnd = Math.min(safeHistoryPage * HISTORY_PAGE_SIZE, filteredReports.length);
 
-  async function openReport(report: ReportArchiveRecord, download = false) {
-    const previewWindow = download ? null : window.open('', '_blank');
-    if (previewWindow) {
-      previewWindow.document.title = 'Generating report';
-      previewWindow.document.body.innerHTML = '<p style="font:14px system-ui;padding:24px;color:#334155">Generating PDF...</p>';
-    }
+  async function loadReportData(report: ReportArchiveRecord) {
+    return buildDailyReportData(report);
+  }
 
-    setGeneratingReportId(report.id);
+  async function openReport(report: ReportArchiveRecord) {
+    setViewer({ report });
+    setLoadingReportId(report.id);
     setGenerationError('');
     try {
-      const reportData = await buildDailyReportData(report);
-      const blob = await generateClientReportPdf(report, reportData);
-      const objectUrl = URL.createObjectURL(blob);
-      if (download) {
-        const link = document.createElement('a');
-        link.href = objectUrl;
-        link.download = reportFileName(report);
-        link.click();
-      } else if (previewWindow) {
-        previewWindow.location.href = objectUrl;
-      } else {
-        window.location.href = objectUrl;
-      }
-      window.setTimeout(() => URL.revokeObjectURL(objectUrl), 60_000);
+      const reportData = await loadReportData(report);
+      setViewer(current => current?.report.id === report.id ? { report, reportData } : current);
     } catch (error) {
-      previewWindow?.close();
-      setGenerationError(error instanceof Error ? error.message : 'Unable to generate the report.');
+      const message = error instanceof Error ? error.message : 'Unable to load the report.';
+      setViewer(current => current?.report.id === report.id ? { report, error: message } : current);
     } finally {
-      setGeneratingReportId(null);
+      setLoadingReportId(current => current === report.id ? null : current);
     }
   }
+
+  async function downloadReport(report: ReportArchiveRecord, preloadedData?: unknown) {
+    setDownloadingReportId(report.id);
+    setGenerationError('');
+    try {
+      const reportData = preloadedData ?? await loadReportData(report);
+      const blob = await generateClientReportPdf(report, reportData);
+      const objectUrl = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = objectUrl;
+      link.download = reportFileName(report);
+      link.click();
+      window.setTimeout(() => URL.revokeObjectURL(objectUrl), 60_000);
+    } catch (error) {
+      setGenerationError(error instanceof Error ? error.message : 'Unable to generate the report.');
+    } finally {
+      setDownloadingReportId(current => current === report.id ? null : current);
+    }
+  }
+
+  const closeViewer = useCallback(() => setViewer(null), []);
 
   return (
     <div className="report-center">
@@ -227,10 +242,12 @@ export function ReportArchiveCenter({
             <div className="report-daily-feature__actions">
               {latestReport ? (
                 <>
-                  <button className="report-primary-button" type="button" onClick={() => openReport(latestReport)} disabled={generatingReportId === latestReport.id}>
-                    {generatingReportId === latestReport.id ? 'Generating...' : 'View PDF'}
+                  <button className="report-primary-button" type="button" onClick={() => openReport(latestReport)} disabled={loadingReportId === latestReport.id}>
+                    {loadingReportId === latestReport.id ? 'Loading...' : 'View Report'}
                   </button>
-                  <button type="button" onClick={() => openReport(latestReport, true)} disabled={generatingReportId === latestReport.id}>Download</button>
+                  <button type="button" onClick={() => downloadReport(latestReport)} disabled={downloadingReportId === latestReport.id}>
+                    {downloadingReportId === latestReport.id ? 'Preparing...' : 'Download PDF'}
+                  </button>
                 </>
               ) : <span>Report unavailable</span>}
             </div>
@@ -269,10 +286,12 @@ export function ReportArchiveCenter({
                     <div><strong>{report.title}</strong><small>Daily · US Market Close</small></div>
                   </div>
                   <div className="report-history-row-menu">
-                    <button type="button" onClick={() => openReport(report)} disabled={generatingReportId === report.id}>
-                      {generatingReportId === report.id ? 'Generating...' : 'View PDF'}
+                    <button type="button" onClick={() => openReport(report)} disabled={loadingReportId === report.id}>
+                      {loadingReportId === report.id ? 'Loading...' : 'View Report'}
                     </button>
-                    <button type="button" onClick={() => openReport(report, true)} disabled={generatingReportId === report.id}>Download</button>
+                    <button type="button" onClick={() => downloadReport(report)} disabled={downloadingReportId === report.id}>
+                      {downloadingReportId === report.id ? 'Preparing...' : 'Download PDF'}
+                    </button>
                   </div>
                 </div>
               ))}
@@ -299,6 +318,17 @@ export function ReportArchiveCenter({
           </section>
         </div>
       )}
+      {viewer ? (
+        <ReportHtmlViewer
+          report={viewer.report}
+          reportData={viewer.reportData}
+          loading={loadingReportId === viewer.report.id}
+          error={viewer.error ?? ''}
+          downloading={downloadingReportId === viewer.report.id}
+          onClose={closeViewer}
+          onDownload={() => downloadReport(viewer.report, viewer.reportData)}
+        />
+      ) : null}
     </div>
   );
 }

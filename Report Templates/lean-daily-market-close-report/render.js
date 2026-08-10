@@ -1,5 +1,8 @@
 (async function initReport() {
   const params = new URLSearchParams(window.location.search);
+  const reportView = params.get('view') === 'html' ? 'html' : 'pdf';
+  document.documentElement.dataset.reportView = reportView;
+  document.body.dataset.reportView = reportView;
   const dataUrl = params.get('data') || 'report-data.json';
   const response = await fetch(dataUrl, { cache: 'no-store' });
   if (!response.ok) throw new Error(`Unable to load report data: ${response.status}`);

@@ -3529,6 +3529,215 @@ html[data-design-b-theme="dark"] .monitor-portal .report-timeline-step.is-latest
   font-weight: 800;
 }
 
+.report-html-viewer-backdrop {
+  position: fixed;
+  z-index: 1200;
+  inset: 0;
+  padding: 12px;
+  background: rgba(15, 23, 42, .64);
+  backdrop-filter: blur(5px);
+}
+
+.report-html-viewer {
+  display: grid;
+  width: min(1540px, 100%);
+  height: 100%;
+  grid-template-rows: auto minmax(0, 1fr);
+  margin: 0 auto;
+  overflow: hidden;
+  border: 1px solid #d9e3ef;
+  border-radius: 10px;
+  background: #edf2f8;
+  box-shadow: 0 28px 80px rgba(2, 8, 23, .32);
+}
+
+.report-html-viewer__toolbar {
+  display: flex;
+  min-height: 68px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 10px 14px 10px 18px;
+  border-bottom: 1px solid #d9e3ef;
+  background: #ffffff;
+}
+
+.report-html-viewer__toolbar > div:first-child {
+  display: grid;
+  min-width: 0;
+  grid-template-columns: auto auto;
+  align-items: baseline;
+  gap: 2px 10px;
+}
+
+.report-html-viewer__toolbar span {
+  grid-column: 1 / -1;
+  color: #2563eb;
+  font-size: 9px;
+  font-weight: 850;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+}
+
+.report-html-viewer__toolbar strong {
+  overflow: hidden;
+  color: #07172d;
+  font-size: 14px;
+  font-weight: 800;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.report-html-viewer__toolbar small {
+  color: #64748b;
+  font-size: 10px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.report-html-viewer__actions {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 8px;
+}
+
+.report-html-viewer__actions button {
+  display: inline-flex;
+  min-height: 36px;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  border: 1px solid #d7e1ee;
+  border-radius: 7px;
+  background: #ffffff;
+  color: #223751;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.report-html-viewer__actions button:disabled {
+  cursor: wait;
+  opacity: .55;
+}
+
+.report-html-viewer__actions svg {
+  width: 16px;
+  height: 16px;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.8;
+}
+
+.report-html-viewer__download { padding: 0 13px; }
+
+.report-html-viewer__close {
+  width: 36px;
+  padding: 0;
+}
+
+.report-html-viewer__body {
+  position: relative;
+  min-height: 0;
+  overflow: hidden;
+  background: #edf2f8;
+}
+
+.report-html-viewer__body iframe {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border: 0;
+  background: #edf2f8;
+}
+
+.report-html-viewer__loading,
+.report-html-viewer__error {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-content: center;
+  justify-items: center;
+  gap: 8px;
+  padding: 24px;
+  color: #64748b;
+  text-align: center;
+}
+
+.report-html-viewer__loading > span {
+  width: 30px;
+  height: 30px;
+  border: 3px solid #d8e5f4;
+  border-top-color: #2563eb;
+  border-radius: 50%;
+  animation: report-viewer-spin .8s linear infinite;
+}
+
+.report-html-viewer__loading strong,
+.report-html-viewer__error strong {
+  color: #07172d;
+  font-size: 15px;
+  font-weight: 800;
+}
+
+.report-html-viewer__loading small,
+.report-html-viewer__error span {
+  max-width: 520px;
+  font-size: 11px;
+  font-weight: 650;
+  line-height: 1.45;
+}
+
+.report-html-viewer__error strong,
+.report-html-viewer__error span { color: #b91c1c; }
+
+@keyframes report-viewer-spin { to { transform: rotate(360deg); } }
+
+html[data-design-b-theme="dark"] .monitor-portal .report-html-viewer {
+  border-color: rgba(148, 163, 184, .22);
+  background: #101d30;
+}
+
+html[data-design-b-theme="dark"] .monitor-portal .report-html-viewer__toolbar {
+  border-color: rgba(148, 163, 184, .18);
+  background: #0d192a;
+}
+
+html[data-design-b-theme="dark"] .monitor-portal .report-html-viewer__toolbar strong,
+html[data-design-b-theme="dark"] .monitor-portal .report-html-viewer__loading strong {
+  color: #edf4ff;
+}
+
+html[data-design-b-theme="dark"] .monitor-portal .report-html-viewer__toolbar small,
+html[data-design-b-theme="dark"] .monitor-portal .report-html-viewer__loading {
+  color: #9fb2ca;
+}
+
+html[data-design-b-theme="dark"] .monitor-portal .report-html-viewer__actions button {
+  border-color: rgba(96, 165, 250, .34);
+  background: rgba(37, 99, 235, .12);
+  color: #dbeafe;
+}
+
+html[data-design-b-theme="dark"] .monitor-portal .report-html-viewer__body,
+html[data-design-b-theme="dark"] .monitor-portal .report-html-viewer__body iframe {
+  background: #101d30;
+}
+
+@media (max-width: 700px) {
+  .report-html-viewer-backdrop { padding: 0; }
+  .report-html-viewer { border: 0; border-radius: 0; }
+  .report-html-viewer__toolbar { min-height: 64px; padding: 9px 10px 9px 13px; }
+  .report-html-viewer__toolbar > div:first-child { grid-template-columns: 1fr; }
+  .report-html-viewer__toolbar small { display: none; }
+  .report-html-viewer__download { padding: 0 10px; }
+  .report-html-viewer__download svg { display: none; }
+}
+
 html[data-design-b-theme="dark"] .monitor-portal .report-history-pagination {
   color: #9fb2ca;
 }

@@ -448,3 +448,145 @@ body { font-size: 12px; }
   html, body { background: #fff; }
   .page { margin: 0; }
 }
+
+/* Responsive in-app report view. PDF rendering keeps the A4 rules above. */
+html[data-report-view="html"],
+body[data-report-view="html"] { min-height: 100%; }
+
+body[data-report-view="html"] {
+  padding: 24px;
+  background: #edf2f8;
+}
+
+body[data-report-view="html"] #report-root {
+  display: grid;
+  width: min(1180px, 100%);
+  min-width: 0;
+  gap: 22px;
+  margin: 0 auto;
+}
+
+body[data-report-view="html"] .page {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  height: auto;
+  min-height: 0;
+  margin: 0;
+  padding: 48px 52px 34px;
+  overflow: visible;
+  border: 1px solid #d8e2ee;
+  border-radius: 10px;
+  box-shadow: 0 14px 38px rgba(15, 35, 60, .08);
+  break-after: auto;
+  page-break-after: auto;
+}
+
+body[data-report-view="html"] .cover {
+  min-height: 540px;
+  padding: 48px 56px 34px;
+}
+
+body[data-report-view="html"] .cover-main { margin-top: 72px; }
+body[data-report-view="html"] .cover-status { margin-top: 46px; }
+body[data-report-view="html"] .cover-scope { margin-top: 34px; padding-bottom: 24px; }
+
+/* Screen reading sizes. Print keeps the compact A4 typography above. */
+body[data-report-view="html"] { font-size: 14px; }
+body[data-report-view="html"] .cover-brand { font-size: 12px; }
+body[data-report-view="html"] .cover-kicker,
+body[data-report-view="html"] .eyebrow { font-size: 10.5px; }
+body[data-report-view="html"] .cover-main p { font-size: 16px; }
+body[data-report-view="html"] .cover-status span,
+body[data-report-view="html"] .cover-meta span { font-size: 10px; }
+body[data-report-view="html"] .cover-status strong { font-size: 20px; }
+body[data-report-view="html"] .cover-meta strong { font-size: 18px; }
+body[data-report-view="html"] .cover-scope span { font-size: 11px; }
+body[data-report-view="html"] .page-header h2 { font-size: 26px; }
+body[data-report-view="html"] .page-badge { font-size: 11px; }
+body[data-report-view="html"] .trading-snapshot-date { font-size: 9px; }
+body[data-report-view="html"] .trading-snapshot-item span { font-size: 9.5px; }
+body[data-report-view="html"] .trading-snapshot-item strong { font-size: 19px; }
+body[data-report-view="html"] .metric-label { font-size: 9.5px; }
+body[data-report-view="html"] .metric-value { font-size: 25px; }
+body[data-report-view="html"] .metric-delta { font-size: 10.5px; }
+body[data-report-view="html"] .metric-delta strong { font-size: 11px; }
+body[data-report-view="html"] .metric-delta span { font-size: 9.5px; }
+body[data-report-view="html"] .card h3 { font-size: 15px; }
+body[data-report-view="html"] .count-badge { font-size: 9.5px; }
+body[data-report-view="html"] .chart-title { font-size: 14.5px; }
+body[data-report-view="html"] .chart-latest { font-size: 13px; }
+body[data-report-view="html"] .chart-subtitle,
+body[data-report-view="html"] .axis-label { font-size: 10.5px; }
+body[data-report-view="html"] .risk-pill { font-size: 9.5px; }
+body[data-report-view="html"] .short-score-ring small { font-size: 10px; }
+body[data-report-view="html"] .score-copy p { font-size: 11.5px; }
+body[data-report-view="html"] .score-change { font-size: 12px; }
+body[data-report-view="html"] .score-change span { font-size: 9.5px; }
+body[data-report-view="html"] .score-ranges > div > b { font-size: 11px; }
+body[data-report-view="html"] .score-ranges span { font-size: 9.5px; }
+body[data-report-view="html"] .score-ranges span strong { font-size: 10px; }
+body[data-report-view="html"] .ai-copy { font-size: 12px; }
+body[data-report-view="html"] .ai-copy strong { font-size: 13px; }
+body[data-report-view="html"] .ai-analysis-card > small { font-size: 9.5px; }
+body[data-report-view="html"] .sentiment-window-summary { font-size: 10px; }
+body[data-report-view="html"] .sentiment-window-summary strong { font-size: 11px; }
+body[data-report-view="html"] .sentiment-ring-label,
+body[data-report-view="html"] .sentiment-ring span,
+body[data-report-view="html"] .gauge-label { font-size: 9.5px; }
+body[data-report-view="html"] .sentiment-legend span { font-size: 11.5px; }
+body[data-report-view="html"] .platform-row span,
+body[data-report-view="html"] .platform-row b { font-size: 10.5px; }
+body[data-report-view="html"] .platform-row small { font-size: 9.5px; }
+body[data-report-view="html"] .sentiment-delta { font-size: 11.5px; }
+body[data-report-view="html"] .sentiment-delta span,
+body[data-report-view="html"] .sentiment-overall-card > small { font-size: 9.5px; }
+body[data-report-view="html"] .table th { font-size: 9px; }
+body[data-report-view="html"] .table td { font-size: 10.5px; }
+body[data-report-view="html"] .form-pill { font-size: 8.5px; }
+body[data-report-view="html"] .footer { font-size: 8.5px; }
+
+body[data-report-view="html"] .footer {
+  position: static;
+  margin-top: 32px;
+}
+
+body[data-report-view="html"] .cover .footer { margin-top: auto; }
+
+@media (max-width: 760px) {
+  html[data-report-view="html"],
+  body[data-report-view="html"] { max-width: 100%; overflow-x: hidden; }
+  body[data-report-view="html"] { padding: 10px; }
+  body[data-report-view="html"] #report-root { gap: 10px; }
+  body[data-report-view="html"] .page,
+  body[data-report-view="html"] .cover { padding: 30px 20px 24px; border-radius: 8px; }
+  body[data-report-view="html"] .cover { min-height: 500px; }
+  body[data-report-view="html"] .cover-main { margin-top: 52px; }
+  body[data-report-view="html"] .cover-main,
+  body[data-report-view="html"] .cover-status,
+  body[data-report-view="html"] .cover-meta,
+  body[data-report-view="html"] .cover-scope,
+  body[data-report-view="html"] .page > * { min-width: 0; max-width: 100%; }
+  body[data-report-view="html"] .cover h1 { font-size: 34px; }
+  body[data-report-view="html"] .cover-main p { max-width: 100%; font-size: 13px; overflow-wrap: anywhere; }
+  body[data-report-view="html"] .cover-status { margin-top: 34px; }
+  body[data-report-view="html"] .cover-meta { grid-template-columns: 1fr; gap: 16px; }
+  body[data-report-view="html"] .cover-scope span { max-width: 100%; padding: 6px 9px; font-size: 9px; white-space: normal; }
+  body[data-report-view="html"] .page-header { align-items: flex-start; }
+  body[data-report-view="html"] .page-header h2 { font-size: 20px; }
+  body[data-report-view="html"] .trading-snapshot { grid-template-columns: repeat(2, minmax(0, 1fr)); padding-top: 14px; }
+  body[data-report-view="html"] .trading-snapshot-item { padding-top: 14px; border-top: 1px solid var(--line); }
+  body[data-report-view="html"] .trading-snapshot-item:nth-of-type(odd) { border-left: 0; }
+  body[data-report-view="html"] .metric-grid-8 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  body[data-report-view="html"] .two-column,
+  body[data-report-view="html"] .three-column,
+  body[data-report-view="html"] .score-analysis-grid { grid-template-columns: 1fr; }
+  body[data-report-view="html"] .short-score-card,
+  body[data-report-view="html"] .ai-analysis-card,
+  body[data-report-view="html"] .sentiment-primary-grid > .card { min-height: 0; }
+  body[data-report-view="html"] .platform-breakdown-card .platform-list { grid-template-columns: 1fr; }
+  body[data-report-view="html"] .sentiment-block { gap: 14px; padding: 0; }
+  body[data-report-view="html"] .table { min-width: 620px; }
+  body[data-report-view="html"] .filings-card { overflow-x: auto; }
+  body[data-report-view="html"] .footer { flex-direction: column; align-items: flex-start; }
+}

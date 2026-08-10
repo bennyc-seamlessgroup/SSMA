@@ -9,6 +9,8 @@ type Row = Record<string, unknown>;
 type DailyReportPayload = Row & {
   ticker?: unknown;
   reportDateIso?: unknown;
+  asOfDate?: unknown;
+  tradingSnapshot?: unknown;
   snapshotKpis?: unknown;
   shortInterestScore?: unknown;
   shortLending?: unknown;
@@ -298,7 +300,13 @@ function normalizeReportPayload(
   currentSentiment: unknown,
 ) {
   const responseTicker = String(payload.ticker ?? '').trim().toUpperCase();
-  const responseDate = String(payload.reportDateIso ?? '').trim();
+  const reportDateIso = String(payload.reportDateIso ?? '').trim();
+  const tradingSnapshot = objectValue(payload.tradingSnapshot);
+  const tradingSnapshotDate = String(tradingSnapshot.asOfDateIso ?? '').trim();
+  const legacyAsOfDate = String(payload.asOfDate ?? '').trim();
+  const responseDate = reportDateIso
+    || (/^\d{4}-\d{2}-\d{2}$/.test(tradingSnapshotDate) ? tradingSnapshotDate : '')
+    || (/^\d{4}-\d{2}-\d{2}$/.test(legacyAsOfDate) ? legacyAsOfDate : '');
 
   if (responseTicker !== report.ticker.toUpperCase()) {
     throw new Error(`The report API returned data for ${responseTicker || 'an unknown ticker'} instead of ${report.ticker}.`);
@@ -317,6 +325,10 @@ function normalizeReportPayload(
 
   return {
     ...payload,
+    // Older archived report objects use asOfDate, while the current lean
+    // report contract uses reportDateIso. Normalize the validated date so the
+    // renderer receives one canonical field without weakening date matching.
+    reportDateIso: responseDate,
     snapshotKpis,
     shortInterestScore: {
       ...shortInterestScore,
