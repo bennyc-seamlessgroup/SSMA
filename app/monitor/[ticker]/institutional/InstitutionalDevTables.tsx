@@ -11,6 +11,7 @@ type InstitutionalDevTablesProps = {
   manualOwnershipDate: string | null;
   manualOwnershipError: string;
   ownershipCurrent: Record<string, unknown> | null;
+  ownershipSummaryCurrent: Record<string, unknown> | null;
   overview: Record<string, unknown> | null;
   internalFloatCurrent: Record<string, unknown> | null;
   expectedUserStrategicShares: number;
@@ -22,6 +23,7 @@ type InstitutionalDevTablesProps = {
   manualOwnershipRows: Array<Record<string, unknown>>;
   activistRows: Array<Record<string, unknown>>;
   managementHoldings: Array<Record<string, unknown>>;
+  latestFilings: Array<Record<string, unknown>>;
 };
 
 const activistColumns = [
@@ -103,6 +105,7 @@ export function InstitutionalDevTables({
   manualOwnershipDate,
   manualOwnershipError,
   ownershipCurrent,
+  ownershipSummaryCurrent,
   overview,
   internalFloatCurrent,
   expectedUserStrategicShares,
@@ -114,6 +117,7 @@ export function InstitutionalDevTables({
   manualOwnershipRows,
   activistRows,
   managementHoldings,
+  latestFilings,
 }: InstitutionalDevTablesProps) {
   const ownershipStructureColumns = columnsFor(ownershipStructure, ['key', 'label', 'shares', 'percent', 'color']);
   const insiderBarColumns = columnsFor(insiderBars, ['name', 'shares', 'ownershipPercentOfInsiders', 'ownershipPercentOfSharesOutstanding']);
@@ -134,6 +138,17 @@ export function InstitutionalDevTables({
     'valueChangePct',
     'portAlloc',
   ]);
+  const latestFilingColumns = columnsFor(latestFilings, [
+    'holderName',
+    'formType',
+    'fileDate',
+    'effectiveDate',
+    'shares',
+    'prevShares',
+    'avgPrice',
+    'percentOfInstitutionalShares',
+    'positionStatus',
+  ]);
   const tabs = [
     {
       id: 'ownership-current-raw',
@@ -150,6 +165,22 @@ export function InstitutionalDevTables({
       sourcePlatform: 'Frontend composition',
       recordCount: overview ? 1 : 0,
       status: overview ? 'ready' : 'missing',
+    },
+    {
+      id: 'ownership-summary-current',
+      title: 'Institutional Activity Summary',
+      file: `GET /market-data/current?ticker=${encodeURIComponent(ticker)}&category=ownership-summary-current`,
+      sourcePlatform: 'API Gateway',
+      recordCount: ownershipSummaryCurrent ? 1 : 0,
+      status: ownershipSummaryCurrent ? 'ready' : 'missing',
+    },
+    {
+      id: 'latest-institutional-filings',
+      title: 'Latest Filings',
+      file: `GET /market-data/current?ticker=${encodeURIComponent(ticker)}&category=ownership-current · institutionBreakdown`,
+      sourcePlatform: 'API Gateway',
+      recordCount: latestFilings.length,
+      status: 'ready',
     },
     {
       id: 'management-holdings',
@@ -225,6 +256,7 @@ export function InstitutionalDevTables({
           <h2>Institutional Ownership API Tables</h2>
           <p className="section-subtitle">Current and historical records returned by the centralized APIs. No local or S3 JSON fallback is used.</p>
           <span className="import-file-tag">{overviewFile}</span>
+          <span className="import-file-tag">GET /market-data/current?category=ownership-summary-current</span>
           <span className="import-file-tag">{activistFile}</span>
           <span className="import-file-tag">{manualOwnershipFile}</span>
           <span className="import-file-tag">GET /market-data/current?category=internal-float-current-user</span>
@@ -235,6 +267,8 @@ export function InstitutionalDevTables({
       <ImportDataTabs tabs={tabs}>
         <ImportDataTable columns={['field', 'value']} rows={flattenedRows(ownershipCurrent)} pageSize={25} />
         <ImportDataTable columns={['field', 'value']} rows={overviewRows(overview)} pageSize={25} />
+        <ImportDataTable columns={['field', 'value']} rows={flattenedRows(ownershipSummaryCurrent)} pageSize={25} />
+        <ImportDataTable columns={latestFilingColumns} rows={toTableRows(latestFilings, latestFilingColumns)} pageSize={25} />
         <ImportDataTable columns={managementHoldingColumns} rows={toTableRows(managementHoldings, managementHoldingColumns)} pageSize={25} />
         <ImportDataTable
           columns={['field', 'value']}

@@ -302,6 +302,10 @@ export function signOut() {
 }
 
 export async function authenticatedFetch(path: string, options: RequestInit = {}) {
+  if (typeof window !== 'undefined' && isPublicDemoSession()) {
+    const { publicDemoFetch } = await import('./public-demo-api');
+    return publicDemoFetch(path, options);
+  }
   const tokens = getStoredTokens();
   if (!tokens?.idToken) throw new Error('Not authenticated');
   const isMultipart = typeof FormData !== 'undefined' && options.body instanceof FormData;

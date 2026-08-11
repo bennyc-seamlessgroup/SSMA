@@ -4,6 +4,138 @@ This file is the persistent implementation memory for changes made by Codex.
 Read it before modifying existing portal behavior, and update it after every
 completed change.
 
+## 2026-08-11 - Add current-snapshot Latest Filings to Ownership
+
+- Area: User Portal -> Ownership.
+- APIs/data:
+  - `GET /market-data/current?ticker={ticker}&category=ownership-current`
+  - `institutionBreakdown` from `current/{ticker}/ownership-current.json`
+- Reported problem and root cause:
+  - The existing Institutions table is organized by completed reporting
+    quarter and therefore does not provide a focused view of filings arriving
+    in the latest daily ownership snapshot.
+  - The current snapshot already supplies file date, effective date, form,
+    holder, current and previous shares, estimated average price,
+    institutional-share percentage, and `positionStatus`, but these fields were
+    only used for overview bars.
+- Intended behavior and invariants:
+  - A separate Latest Filings section appears immediately below Institutional
+    Activity Summary and above the completed-quarter Institutions/Insiders
+    tables.
+  - It reads only `ownership-current.institutionBreakdown`; it does not merge
+    manual quarterly history or local fallback data.
+  - Rows are ordered by file date and effective date newest first, support
+    search, and paginate at 10 records per page.
+  - `positionStatus` remains a presentation input rather than a visible column:
+    new positions are light green, closed positions are light red, and held
+    positions use the normal row style in light and dark themes.
+  - Put and Call records are excluded from this ordinary-share filing table
+    because they are represented in Reported Institutional Options Exposure
+    and must not be presented as actual share purchases or sales.
+  - The existing completed-quarter table remains unchanged.
+  - Development mode includes a separate Latest Filings tab containing the raw
+    `institutionBreakdown` records from the same API response.
+- Files changed:
+  - `app/monitor/[ticker]/institutional/LatestInstitutionalFilings.tsx`
+  - `app/monitor/[ticker]/institutional/InstitutionalBrowserPage.tsx`
+  - `app/monitor/[ticker]/institutional/InstitutionalDevTables.tsx`
+  - `app/globals.css`
+  - `lib/portal-page-translations.ts`
+  - `docs/CODEX_CHANGE_LOG.md`
+- Verification:
+  - TypeScript type-check passed.
+  - Next.js production build passed.
+  - Whitespace validation passed.
+  - The supplied `ownership-current.json` was validated as 19 source records,
+    producing 18 ordinary filing rows after excluding one Call exposure; four
+    rows are new and five are closed.
+  - Public demo browser inspection confirmed a 10-row first page, two-page
+    pagination, and table overflow contained within its horizontal scroll area.
+- Remaining backend dependency / limitation:
+  - The current category is a snapshot rather than a full daily archive. The
+    frontend can show only the filing records retained in
+    `ownership-current.institutionBreakdown`; completed-quarter history remains
+    sourced separately.
+
+## 2026-08-11 — Align demo Ownership strategic entities with Internal Float
+
+- Area: Public `/demo` workspace → Ownership and Internal Float.
+- APIs/data:
+  - Demo equivalents of `GET /market-data/current?category=ownership-current`
+    and `GET /market-data/current?category=internal-float-current-user`.
+  - Demo equivalent of `GET /manual-input/internal-float-inputs-user`.
+- Reported problem and root cause:
+  - Ownership showed `Wong Man San` as its strategic entity while Internal
+    Float showed the fictional Internal Float demo holdings.
+  - The public demo adapter still returned the older checked-in CURR fixture
+    for Ownership's user-scoped Internal Float requests, so the two demo pages
+    used different strategic-holdings sources.
+- Intended behavior and invariants:
+  - Demo Ownership and demo Internal Float use the same fictional private
+    holdings from `demoInternalFloatUserInputs`.
+  - Their strategic total and public/real-float derived values are recalculated
+    from those same records, preventing the names and totals from drifting.
+  - `Wong Man San` is removed from the public demo presentation only. Live
+    authenticated Ownership and Internal Float API behavior is unchanged.
+- Files changed:
+  - `lib/public-demo-api.ts`
+  - `docs/CODEX_CHANGE_LOG.md`
+- Verification:
+  - TypeScript type-check passed.
+  - Demo response construction was verified to use the four Internal Float
+    fictional holdings and their 22,000,000-share total.
+- Remaining backend dependency / limitation:
+  - None. This correction applies only to bundled public demonstration data.
+
+## 2026-08-11 — Restore data across the explicit public demo workspace
+
+- Area: Public `/demo` workspace → Dashboard, Ownership, Internal Float, Short
+  Interest, Lending Pressure, Social Sentiment, Exchange Volume, SEC Filings,
+  Report Archive, Alert Rules, Company Management, and User Profile.
+- APIs/data:
+  - Demo equivalents of the existing authenticated Market Data, Manual Input,
+    Social Data, AI Report, Reports, Rule Catalog, Alerts, Tickers, and Profile
+    GET requests.
+  - Bundled CURR demonstration fixtures under `reference-data/centralized-v2`
+    plus the checked-in daily report sample.
+- Reported problem and root cause:
+  - Visiting the deployed `/demo` route opened the portal shell, but every page
+    that used `authenticatedFetch` failed with `Not authenticated` and showed
+    no data.
+  - The demo launcher intentionally clears authentication and starts an
+    explicit session-only demo flag. `AuthGuard` recognized that flag, but the
+    shared data client still required an ID token. Only a few pages retained
+    individual demo exceptions after the portal migrated to authenticated APIs.
+- Intended behavior and invariants:
+  - Only the explicit session created by `/demo` uses the bundled CURR demo
+    adapter. Normal signed-in accounts continue to use API Gateway responses
+    and never fall back to demonstration JSON.
+  - The adapter mirrors the existing endpoint shapes from one shared boundary,
+    including combined current/history responses, category requests,
+    partitioned ownership history, date-filtered and paginated social records,
+    report rendering data, alert definitions, company status, and profile data.
+  - Social demonstration records use recent post dates so the default seven-day
+    feed range is populated and its platform/date filters continue to work.
+  - The demonstration workspace is read-only. Non-GET requests receive a clear
+    sign-in message and cannot mutate backend or bundled fixture data.
+  - Missing data is never converted to authenticated production data, and the
+    production API contract and authorization behavior are unchanged.
+- Files changed:
+  - `lib/public-demo-api.ts`
+  - `lib/auth-client.ts`
+  - `docs/CODEX_CHANGE_LOG.md`
+- Verification:
+  - TypeScript type-check passed.
+  - Local browser verification entered through `/demo` and confirmed populated
+    content on all workspace and settings routes listed above.
+  - No tested route showed `Not authenticated`, `data unavailable`, or `unable
+    to load`; the browser console contained no errors.
+  - Production build passed, including all 29 statically generated pages.
+  - Whitespace validation passed.
+- Remaining backend dependency / limitation:
+  - None for the public demo. The demo intentionally uses bundled sample data;
+    authenticated portal users remain dependent on their authorized APIs.
+
 ## 2026-08-11 — Restrict Development Mode to operator and admin accounts
 
 - Area: User Portal and Operations Portal → sidebar Development Mode control
@@ -4535,3 +4667,87 @@ completed change.
   - Browser console contained no warnings or errors.
   - Public and source report styles remain identical.
 - Remaining backend dependency / limitation: none.
+
+## 2026-08-11 - Add Institutional Activity Summary to Ownership
+
+- Area: User Portal -> Ownership.
+- APIs/data:
+  - `GET /market-data/current?ticker={ticker}&category=ownership-summary-current`
+- Reported problem and root cause:
+  - The backend exposed the institutional activity summary dataset, but the
+    Ownership page did not fetch or present it.
+  - The first presentation pass assumed the business fields always lived at
+    `response.summary`; API wrapper variants therefore rendered all metrics as
+    `N/A` even when `ownership-summary-current` contained valid values.
+  - The live development response can also expose summary metrics as flattened
+    field paths or field/value records. The summary date remained visible from
+    root metadata while those metric representations were not resolved.
+  - The deployed schema uses semantic camel-case names such as
+    `summary.buyer`, `summary.seller`, `summary.unchangedOwner`, and
+    `summary.netSharesChanged`; these are not normalized spellings of the
+    earlier `IO_Summary_*` keys and therefore require explicit aliases.
+  - Options exposure uses a separate live camel-case family:
+    `summary.oeShares`, `summary.oeSharesIndex`, `summary.oeCount`,
+    `summary.oeValue`, `summary.oeLargestHolder`,
+    `summary.oeLargestHolderTag`, `summary.oeHolderPutCallRatio`, and
+    `summary.oeHolderPutCallRatioSentiment`.
+  - The extractor also excluded `_field_provenance` paths, despite the live
+    contract allowing business values inside provenance wrappers; this left
+    every card empty when the direct summary representation was absent.
+  - Filing Freshness was derived from a separate filing dataset even though it
+    is not supplied by the requested summary JSON and was not wanted.
+- Intended behavior and invariants:
+  - Institutional Activity Summary appears immediately below Ownership
+    Structure and Institution Holdings Breakdown.
+  - The summary shows ownership flow, new and exited positions,
+    concentration, source composition, and reported options exposure.
+  - Filing Freshness is not rendered or inferred.
+  - The frontend resolves each `IO_Summary_*` field independently across the
+    complete documented response or API envelope, including nested objects,
+    arrays, JSON-encoded `body` values, flattened paths such as
+    `summary.IO_Summary_Buy.value`, and `{ field, value }` records.
+    Field-provenance wrappers using `value`, `currentValue`, `rawValue`, or
+    `amount` are unwrapped without introducing fallback data. Direct summary
+    values take priority, with provenance values used only when the same field
+    is not present directly in this API response.
+  - Live camel-case fields are the primary UI mappings. The supplied
+    `IO_Summary_*` sample keys remain accepted as backward-compatible aliases.
+  - Reported-value fields retain the API's `$1000` unit and are divided by
+    1,000 for display, matching the ownership filing presentation.
+  - Options Exposure maps the backend's aggregate fields directly:
+    `IO_Summary_OE_count`, `IO_Summary_OE_shares`,
+    `IO_Summary_OE_shares_index`, `IO_Summary_OE_value`,
+    `IO_Summary_OE_largest_holder`, `IO_Summary_OE_largest_holder_tag`,
+    `IO_Summary_OE_holder_Put_Call_Ratio`, and
+    `IO_Summary_OE_holder_Put_Call_Ratio_Sentiment`.
+  - These eight options-exposure fields are read directly from the API's
+    `summary` object before any normalized alias lookup, preventing semantic
+    camel-case mappings from obscuring the backend's retained `IO_Summary_OE_*`
+    field names.
+  - Missing values render explicitly instead of using local fallback data.
+  - A missing summary response does not prevent the existing Ownership page,
+    strategic entities, or filing tables from loading.
+  - The existing `positionStatus` row highlighting remains intact and the
+    Position Status column remains hidden.
+  - Development mode exposes the raw summary response in a separate API tab.
+- Files changed:
+  - `app/monitor/[ticker]/institutional/InstitutionalActivitySummary.tsx`
+  - `app/monitor/[ticker]/institutional/InstitutionalBrowserPage.tsx`
+  - `app/monitor/[ticker]/institutional/InstitutionalDevTables.tsx`
+  - `components/TickerDataStatusProvider.tsx`
+  - `lib/current-data-sources.ts`
+  - `lib/portal-page-translations.ts`
+  - `app/globals.css`
+  - `docs/CODEX_CHANGE_LOG.md`
+- Verification:
+  - TypeScript type-check passed.
+  - Production build passed, including all 29 statically generated pages.
+  - Whitespace validation passed.
+  - The supplied `ownership-summary-current.json` was checked against every
+    visible summary and options-exposure field mapping.
+  - Authenticated visual inspection could not be completed because the
+    isolated browser session redirected to sign-in.
+- Remaining backend dependency / limitation:
+  - Schema version 1 supplies one aggregate options-exposure set, which is
+    displayed under Calls; Puts remain zero unless future put-specific fields
+    are returned.

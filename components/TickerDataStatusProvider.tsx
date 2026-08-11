@@ -101,6 +101,7 @@ async function getApiTickerDataStatus(ticker: string): Promise<Pick<TickerDataSt
   const companyProfileCurrent = current['company-profile-current'] as (ApiDataset & { companyName?: unknown; ticker?: unknown; stockCode?: unknown }) | undefined;
   const marketHistory = history['market-history'];
   const ownershipCurrent = current['ownership-current'];
+  const ownershipSummaryCurrent = current['ownership-summary-current'];
   const ownershipHistory = history['ownership-history'];
   const internalFloatCurrent = current['internal-float-current-user'];
   const sentimentCurrent = current['sentiment-current'];
@@ -123,7 +124,7 @@ async function getApiTickerDataStatus(ticker: string): Promise<Pick<TickerDataSt
   const pages = {
     'dashboard': snapshotApiStatus(marketCurrent, 'market-close', marketCurrent, marketHistory, secFilingsHistory),
     'exchange-volume': snapshotApiStatus(marketCurrent, 'market-close', marketCurrent, exchangeVolumeHistory),
-    institutional: snapshotApiStatus(ownershipCurrent, 'snapshot', ownershipCurrent, ownershipHistory),
+    institutional: snapshotApiStatus(ownershipCurrent, 'snapshot', ownershipCurrent, ownershipSummaryCurrent, ownershipHistory),
     'internal-float': snapshotApiStatus(internalFloatCurrent, 'snapshot', internalFloatCurrent, ownershipCurrent),
     'short-interest': snapshotApiStatus(marketCurrent, 'market-close', marketCurrent, marketHistory, shortVolumeHistory, ftdHistory),
     'lending-pressure': snapshotApiStatus(marketCurrent, 'market-close', marketCurrent, marketHistory),

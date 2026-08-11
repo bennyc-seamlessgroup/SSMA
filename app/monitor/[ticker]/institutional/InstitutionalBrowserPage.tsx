@@ -13,6 +13,8 @@ import { InstitutionalOverview, type InstitutionalOverviewData } from './Institu
 import { ApiSourceTags } from '@/components/ApiSourceTags';
 import { mergeInternalFloatHoldings } from '@/lib/internal-float-holdings';
 import type { InternalFloatPrivateHolding } from '@/lib/internal-float-types';
+import { InstitutionalActivitySummary, type OwnershipSummaryCurrent } from './InstitutionalActivitySummary';
+import { LatestInstitutionalFilings, type LatestInstitutionalFiling } from './LatestInstitutionalFilings';
 
 type SecurityOwnershipRow = {
   name?: string | null;
@@ -79,6 +81,7 @@ type ActivistFilingRow = {
 };
 
 type OwnershipCurrent = {
+  snapshotDate?: string;
   generatedAt?: string;
   updatedAt?: string;
   issuedShare?: number;
@@ -265,6 +268,7 @@ function ownershipChangeType(row: SecurityOwnershipRow): InstitutionalHolding['c
 export function InstitutionalBrowserPage({ ticker }: { ticker: string }) {
   const normalizedTicker = normalizeTicker(ticker);
   const [current, setCurrent] = useState<OwnershipCurrent | null>(null);
+  const [activitySummary, setActivitySummary] = useState<OwnershipSummaryCurrent | null>(null);
   const [history, setHistory] = useState<OwnershipHistory | null>(null);
   const [manualOwnership, setManualOwnership] = useState<ManualSecurityOwnershipDataset | null>(null);
   const [internalFloatCurrent, setInternalFloatCurrent] = useState<InternalFloatCurrent | null>(null);
@@ -282,13 +286,15 @@ export function InstitutionalBrowserPage({ ticker }: { ticker: string }) {
     setError('');
     Promise.all([
       cachedAuthenticatedFetch<OwnershipCurrent>(`/market-data/current?ticker=${encodeURIComponent(normalizedTicker)}&category=ownership-current`),
+      cachedAuthenticatedFetch<OwnershipSummaryCurrent>(`/market-data/current?ticker=${encodeURIComponent(normalizedTicker)}&category=ownership-summary-current`).catch(() => null),
       cachedAuthenticatedFetch<OwnershipHistory>(`/market-data/history?ticker=${encodeURIComponent(normalizedTicker)}&category=ownership-history`),
       cachedAuthenticatedFetch<unknown>(`/market-data/current?ticker=${encodeURIComponent(normalizedTicker)}&category=internal-float-current-user`),
       cachedAuthenticatedFetch<InternalFloatInputsResponse>(`/manual-input/internal-float-inputs-user?ticker=${encodeURIComponent(normalizedTicker)}`),
       loadAllManualSecurityOwnership(normalizedTicker),
-    ]).then(([nextCurrent, nextHistory, nextInternalFloatCurrent, nextInternalFloatInputs, nextManualOwnership]) => {
+    ]).then(([nextCurrent, nextActivitySummary, nextHistory, nextInternalFloatCurrent, nextInternalFloatInputs, nextManualOwnership]) => {
       if (cancelled) return;
       setCurrent(nextCurrent);
+      setActivitySummary(nextActivitySummary);
       setHistory(nextHistory);
       setInternalFloatCurrent(normalizeInternalFloatCurrent(nextInternalFloatCurrent));
       setStrategicHoldings(mergeInternalFloatHoldings(
@@ -425,6 +431,15 @@ export function InstitutionalBrowserPage({ ticker }: { ticker: string }) {
   return (
     <div className="page institutional-page">
       <InstitutionalOverview data={overviewData} ticker={normalizedTicker} managementRecords={managementRecords} />
+      <InstitutionalActivitySummary
+        data={activitySummary}
+        ticker={normalizedTicker}
+      />
+      <LatestInstitutionalFilings
+        rows={institutionBreakdownRows as LatestInstitutionalFiling[]}
+        ticker={normalizedTicker}
+        snapshotDate={current.snapshotDate ?? current.updatedAt ?? current.generatedAt}
+      />
       <section className="panel">
         <ApiSourceTags sources={[
           { endpoint: securitySource, label: 'Imported ownership records' },
@@ -450,6 +465,7 @@ export function InstitutionalBrowserPage({ ticker }: { ticker: string }) {
         manualOwnershipDate={manualOwnership?.effectiveDate ?? null}
         manualOwnershipError={manualOwnership?.error ?? ''}
         ownershipCurrent={(current ?? null) as Record<string, unknown> | null}
+        ownershipSummaryCurrent={(activitySummary ?? null) as Record<string, unknown> | null}
         overview={(overviewData.overview ?? null) as Record<string, unknown> | null}
         internalFloatCurrent={(internalFloatCurrent ?? null) as Record<string, unknown> | null}
         expectedUserStrategicShares={expectedUserStrategicShares}
@@ -461,6 +477,7 @@ export function InstitutionalBrowserPage({ ticker }: { ticker: string }) {
         manualOwnershipRows={(manualOwnership?.rows ?? []) as Array<Record<string, unknown>>}
         activistRows={activistRows as Array<Record<string, unknown>>}
         managementHoldings={managementRecords as Array<Record<string, unknown>>}
+        latestFilings={institutionBreakdownRows}
       />
     </div>
   );

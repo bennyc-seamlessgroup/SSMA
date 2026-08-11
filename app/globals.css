@@ -24092,6 +24092,346 @@ html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .dashbo
   white-space: nowrap;
 }
 
+.institutional-activity-summary {
+  display: grid;
+  gap: 14px;
+  min-width: 0;
+  padding: 4px 0;
+}
+
+.institutional-latest-filings {
+  display: grid;
+  gap: 12px;
+  min-width: 0;
+  padding: 4px 0;
+}
+
+.institutional-latest-filings__head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 24px;
+}
+
+.institutional-latest-filings__head > div {
+  display: grid;
+  gap: 5px;
+  min-width: 0;
+}
+
+.institutional-latest-filings__head h2 {
+  margin: 0;
+  color: #061b31;
+  font-size: 17px;
+  font-weight: 750;
+  line-height: 1.25;
+}
+
+.institutional-latest-filings__head p,
+.institutional-latest-filings__head > span {
+  margin: 0;
+  color: #66758d;
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.5;
+}
+
+.institutional-latest-filings__head > span {
+  flex: 0 0 auto;
+  padding-top: 2px;
+  font-weight: 650;
+  white-space: nowrap;
+}
+
+.institutional-latest-filings__toolbar {
+  align-items: flex-end;
+  margin-bottom: 0;
+}
+
+.institutional-latest-filings__table {
+  min-width: 1120px;
+}
+
+.institutional-latest-filings__table th.num {
+  text-align: right;
+}
+
+@media (max-width: 720px) {
+  .institutional-latest-filings__head {
+    display: grid;
+    gap: 8px;
+  }
+
+  .institutional-latest-filings__head > span {
+    white-space: normal;
+  }
+}
+
+.institutional-activity-summary__head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 24px;
+}
+
+.institutional-activity-summary__head > div {
+  display: grid;
+  gap: 5px;
+  min-width: 0;
+}
+
+.institutional-activity-summary__head h2 {
+  margin: 0;
+  color: #061b31;
+  font-size: 17px;
+  font-weight: 750;
+  line-height: 1.25;
+}
+
+.institutional-activity-summary__head p,
+.institutional-activity-summary__head > span,
+.institutional-activity-footnote,
+.institutional-activity-card-note {
+  margin: 0;
+  color: #66758d;
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.5;
+}
+
+.institutional-activity-summary__head > span {
+  flex: 0 0 auto;
+  padding-top: 2px;
+  font-weight: 650;
+  white-space: nowrap;
+}
+
+.institutional-activity-cards {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.institutional-activity-cards article {
+  display: grid;
+  align-content: start;
+  gap: 8px;
+  min-width: 0;
+  border: 1px solid #dbe6f3;
+  border-radius: 10px;
+  background: #fff;
+  padding: 15px 16px;
+  box-shadow: rgba(15, 23, 42, .035) 0 10px 24px;
+}
+
+.institutional-activity-cards h3,
+.institutional-activity-table-title h3 {
+  margin: 0;
+  color: #66758d;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: .1em;
+  line-height: 1.35;
+  text-transform: uppercase;
+}
+
+.institutional-activity-cards h3 {
+  margin-bottom: 3px;
+}
+
+.institutional-activity-metric {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) max-content;
+  align-items: baseline;
+  gap: 12px;
+  min-width: 0;
+}
+
+.institutional-activity-metric > span {
+  min-width: 0;
+  color: #273951;
+  font-size: 12px;
+  font-weight: 550;
+  line-height: 1.35;
+}
+
+.institutional-activity-value {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 4px;
+  color: #061b31;
+  font-size: 12px;
+  font-weight: 750;
+  line-height: 1.35;
+  text-align: right;
+  white-space: nowrap;
+}
+
+.institutional-activity-value.is-up {
+  color: #0d9b5c;
+}
+
+.institutional-activity-value.is-down {
+  color: #e5485d;
+}
+
+.institutional-activity-value > span {
+  font-size: 9px;
+}
+
+.institutional-activity-card-divider {
+  height: 1px;
+  margin: 2px 0;
+  background: #edf2f7;
+}
+
+.institutional-activity-card-note {
+  margin-top: 5px;
+  padding-top: 9px;
+  border-top: 1px solid #edf2f7;
+  font-size: 11px;
+}
+
+.institutional-activity-details {
+  display: grid;
+  grid-template-columns: minmax(0, .82fr) minmax(0, 1.18fr);
+  gap: 16px;
+  min-width: 0;
+}
+
+.institutional-activity-table-card {
+  display: grid;
+  align-content: start;
+  gap: 10px;
+  min-width: 0;
+  border-top: 1px solid #dbe6f3;
+  padding-top: 12px;
+}
+
+.institutional-activity-table-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  width: fit-content;
+}
+
+.institutional-activity-table-wrap {
+  min-width: 0;
+  overflow-x: auto;
+}
+
+.institutional-activity-table-card table {
+  width: 100%;
+  min-width: 510px;
+  border-collapse: collapse;
+  table-layout: fixed;
+}
+
+.institutional-options-exposure table {
+  min-width: 560px;
+}
+
+.institutional-activity-table-card th,
+.institutional-activity-table-card td {
+  border-bottom: 1px solid #e3eaf3;
+  padding: 10px 8px;
+  color: #273951;
+  font-size: 12px;
+  font-weight: 550;
+  line-height: 1.35;
+  text-align: left;
+  vertical-align: middle;
+}
+
+.institutional-activity-table-card thead th {
+  color: #66758d;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+
+.institutional-activity-table-card tbody th {
+  color: #273951;
+  font-weight: 650;
+}
+
+.institutional-activity-table-card td:not(:first-child),
+.institutional-activity-table-card thead th:not(:first-child) {
+  text-align: right;
+}
+
+.institutional-options-exposure th:first-child {
+  width: 29%;
+}
+
+.institutional-options-exposure td,
+.institutional-options-exposure thead th:not(:first-child) {
+  text-align: left;
+}
+
+.institutional-options-value {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.institutional-options-value em,
+.institutional-options-ratio span {
+  display: inline-flex;
+  align-items: center;
+  border: 1px solid rgba(13, 155, 92, .32);
+  border-radius: 5px;
+  background: rgba(13, 155, 92, .08);
+  padding: 2px 5px;
+  color: #0d8d55;
+  font-size: 10px;
+  font-style: normal;
+  font-weight: 700;
+  line-height: 1.2;
+  white-space: nowrap;
+}
+
+.institutional-options-value em.is-directional {
+  border-color: rgba(14, 165, 233, .35);
+  background: rgba(14, 165, 233, .08);
+  color: #087cad;
+}
+
+.institutional-options-ratio th,
+.institutional-options-ratio td {
+  border-bottom: 0;
+  background: #f7f9fc;
+}
+
+.institutional-options-ratio td {
+  display: table-cell;
+}
+
+.institutional-options-ratio strong {
+  margin-right: 12px;
+  color: #061b31;
+  font-size: 13px;
+}
+
+.institutional-options-ratio span.is-bearish,
+.institutional-options-ratio span.is-strongly-bearish {
+  border-color: rgba(229, 72, 93, .32);
+  background: rgba(229, 72, 93, .08);
+  color: #d6364d;
+}
+
+.institutional-activity-empty {
+  color: #66758d !important;
+  text-align: center !important;
+}
+
+.institutional-activity-footnote {
+  font-size: 11px;
+}
+
 .institutional-page .ownership-table th,
 .institutional-page .ownership-table td,
 .institutional-page .table th,
@@ -24119,6 +24459,10 @@ html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .instit
   .institutional-overview__kpis {
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }
+
+  .institutional-activity-cards {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
 
 @media (max-width: 1120px) {
@@ -24127,6 +24471,10 @@ html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .instit
   }
 
   .institutional-overview__charts {
+    grid-template-columns: 1fr;
+  }
+
+  .institutional-activity-details {
     grid-template-columns: 1fr;
   }
 
@@ -24169,6 +24517,19 @@ html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .instit
 
   .institutional-ranked-bars strong {
     text-align: left;
+  }
+
+  .institutional-activity-summary__head {
+    display: grid;
+    gap: 8px;
+  }
+
+  .institutional-activity-summary__head > span {
+    white-space: normal;
+  }
+
+  .institutional-activity-cards {
+    grid-template-columns: 1fr;
   }
 }
 
@@ -24581,6 +24942,74 @@ html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .instit
 
 html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .institutional-page .institutional-float-formula__total small {
   color: #bfdbfe;
+}
+
+html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .institutional-page .institutional-activity-summary__head h2,
+html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .institutional-page .institutional-latest-filings__head h2,
+html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .institutional-page .institutional-activity-value,
+html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .institutional-page .institutional-options-ratio strong {
+  color: #f4f8ff;
+}
+
+html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .institutional-page .institutional-activity-summary__head p,
+html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .institutional-page .institutional-activity-summary__head > span,
+html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .institutional-page .institutional-latest-filings__head p,
+html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .institutional-page .institutional-latest-filings__head > span,
+html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .institutional-page .institutional-activity-footnote,
+html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .institutional-page .institutional-activity-card-note,
+html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .institutional-page .institutional-activity-table-card thead th {
+  color: #8fa3bd;
+}
+
+html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .institutional-page .institutional-activity-cards article {
+  border-color: rgba(148, 163, 184, .18);
+  background: #1d2b3f;
+  box-shadow: none;
+}
+
+html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .institutional-page .institutional-activity-cards h3,
+html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .institutional-page .institutional-activity-table-title h3 {
+  color: #9db0c8;
+}
+
+html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .institutional-page .institutional-activity-metric > span,
+html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .institutional-page .institutional-activity-table-card th,
+html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .institutional-page .institutional-activity-table-card td {
+  color: #c8d8ea;
+}
+
+html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .institutional-page .institutional-activity-value.is-up {
+  color: #34d399;
+}
+
+html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .institutional-page .institutional-activity-value.is-down {
+  color: #fb7185;
+}
+
+html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .institutional-page .institutional-activity-card-divider,
+html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .institutional-page .institutional-activity-card-note,
+html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .institutional-page .institutional-activity-table-card,
+html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .institutional-page .institutional-activity-table-card th,
+html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .institutional-page .institutional-activity-table-card td {
+  border-color: rgba(148, 163, 184, .16);
+}
+
+html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .institutional-page .institutional-options-ratio th,
+html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .institutional-page .institutional-options-ratio td {
+  background: rgba(15, 29, 51, .72);
+}
+
+html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .institutional-page .institutional-options-value em,
+html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .institutional-page .institutional-options-ratio span {
+  border-color: rgba(52, 211, 153, .28);
+  background: rgba(16, 185, 129, .12);
+  color: #6ee7b7;
+}
+
+html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .institutional-page .institutional-options-value em.is-directional {
+  border-color: rgba(56, 189, 248, .3);
+  background: rgba(14, 165, 233, .12);
+  color: #7dd3fc;
 }
 
 /* Short Interest page compact Design B pass. */
