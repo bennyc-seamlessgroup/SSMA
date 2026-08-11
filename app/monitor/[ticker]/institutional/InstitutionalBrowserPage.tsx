@@ -36,6 +36,7 @@ type SecurityOwnershipRow = {
   type?: string | null;
   portAlloc?: number | string | null;
   url?: string | null;
+  positionStatus?: string | null;
 };
 
 type ManualSecurityOwnershipRow = {
@@ -51,6 +52,7 @@ type ManualSecurityOwnershipRow = {
   reportedValue?: number | string | null;
   valueChangePct?: number | string | null;
   portAlloc?: number | string | null;
+  positionStatus?: string | null;
 };
 
 type ManualSecurityOwnershipDataset = {
@@ -187,6 +189,7 @@ function normalizeManualSecurityOwnershipRow(row: ManualSecurityOwnershipRow): S
     optionType: row.optionType,
     type: row.type,
     portAlloc: row.portAlloc,
+    positionStatus: row.positionStatus,
   };
 }
 
@@ -402,6 +405,7 @@ export function InstitutionalBrowserPage({ ticker }: { ticker: string }) {
     option_type: row.optionType ?? undefined,
     holding_type: row.type ?? undefined,
     portfolio_allocation: formatPercent(row.portAlloc),
+    position_status: row.positionStatus ?? undefined,
     source_type: 'manual-security-ownership',
     source_label: securitySource,
   }));

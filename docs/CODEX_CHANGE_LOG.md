@@ -4,6 +4,83 @@ This file is the persistent implementation memory for changes made by Codex.
 Read it before modifying existing portal behavior, and update it after every
 completed change.
 
+## 2026-08-11 — Restrict Development Mode to operator and admin accounts
+
+- Area: User Portal and Operations Portal → sidebar Development Mode control
+  and development-only surfaces.
+- APIs/data:
+  - `GET /profile` authenticated profile field `role`.
+- Reported problem and root cause:
+  - The User Portal rendered Development Mode for every authenticated account
+    and restored its state directly from browser storage without checking the
+    account role.
+  - The Operations Portal hid the control from regular users, but its wrapper
+    role check did not clear a previously stored enabled state.
+- Intended behavior and invariants:
+  - Only exact normalized `OPERATOR` and `ADMIN` roles may see or toggle
+    Development Mode. `USER`, `DEMO`, missing roles, and failed profile
+    requests remain unauthorized.
+  - Development Mode is forced off before the authenticated profile resolves.
+  - For every unauthorized account, the saved Development Mode preference is
+    removed and the document state remains off, so development-only content
+    and the Backend Portal shortcut stay hidden.
+  - An authorized operator or administrator retains the existing saved on/off
+    preference and can continue using Development Mode in both portals.
+  - Existing API requests, production page data, and role permissions outside
+    Development Mode are unchanged.
+- Files changed:
+  - `components/DevModeToggle.tsx`
+  - `app/operations/OperationsShell.tsx`
+  - `docs/CODEX_CHANGE_LOG.md`
+- Verification:
+  - TypeScript type-check passed.
+  - Production build passed, including all 29 statically generated pages.
+  - Whitespace validation passed.
+- Remaining backend dependency / limitation:
+  - None. The authenticated `/profile` role remains the authority for this UI
+    capability.
+
+## 2026-08-11 — Use backend position status for 13F row highlights
+
+- Area: User Portal → Ownership → Institutions / 13F records.
+- API/data:
+  - `GET /manual-input/manual-security-ownership?ticker={ticker}&action=available-dates`
+  - `GET /manual-input/manual-security-ownership?ticker={ticker}&effectiveDate={YYYY-MM-DD}`
+  - Optional row field prepared for future backend output: `positionStatus`.
+- Reported problem and root cause:
+  - The requested backend position status was not mapped by the frontend.
+    Authenticated inspection of all effective-date partitions subsequently
+    confirmed that the current 80-record CURR response does not yet include
+    `positionStatus` on any row.
+- Intended behavior and invariants:
+  - `positionStatus` is an internal presentation signal only and is not shown
+    as a separate table column or badge.
+  - A backend status representing a new purchase/opened position gives the row
+    a light-green highlight; a closing/closed/exited position gives it a
+    light-red highlight.
+  - When `positionStatus` is present, it is authoritative. Neutral or unknown
+    explicit statuses are not recolored by the legacy inference logic.
+  - Older records without `positionStatus` retain the previous inferred row
+    highlighting, preserving compatibility with historical partitions.
+  - Quarter grouping, newest-first sorting, search, pagination, and both light
+    and dark theme behavior remain unchanged.
+- Files changed:
+  - `app/monitor/[ticker]/institutional/InstitutionalBrowserPage.tsx`
+  - `app/monitor/[ticker]/institutional/OwnershipTable.tsx`
+  - `lib/types.ts`
+  - `docs/CODEX_CHANGE_LOG.md`
+- Verification:
+  - TypeScript type-check passed.
+  - Production build passed, including all 29 statically generated pages.
+  - Whitespace validation passed.
+  - Authenticated live-data inspection loaded all 80 CURR records across every
+    available effective-date partition and found no `positionStatus` field.
+  - The current table retains its original columns and inferred highlights.
+- Remaining backend dependency / limitation:
+  - The current integration document and live API responses do not yet include
+    `positionStatus`. The frontend accepts it as a hidden row-color signal once
+    effective-date partition responses begin supplying it.
+
 ## 2026-08-10 — Download legacy-dated archived reports safely
 
 - Area: User Portal → Report Archive → View PDF and Download.

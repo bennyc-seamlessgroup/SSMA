@@ -136,7 +136,6 @@ export function OperationsShell({ children }: { children: React.ReactNode }) {
 
   const email = account.email || 'Signed-in team member';
   const avatarLetter = (account.email || account.name || 'O').charAt(0).toUpperCase();
-  const canUseDevMode = account.role === 'ADMIN' || account.role === 'OPERATOR';
   const currentPage = allNavigationItems.find(([, href]) => pathname === href || pathname.startsWith(`${href}/`))
     ?? workflowItems[0];
 
@@ -179,7 +178,7 @@ export function OperationsShell({ children }: { children: React.ReactNode }) {
         </div>
 
         <div className="ops-sidebar__utilities">
-          {canUseDevMode && <DevModeToggle />}
+          <DevModeToggle />
           <OperationsUserPortalLink />
         </div>
       </aside>

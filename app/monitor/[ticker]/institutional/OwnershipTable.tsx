@@ -33,6 +33,7 @@ export function OwnershipTable({ holdings, ticker, companyName, manualSchema = f
       row.option_type,
       row.cost_basis,
       row.ownership_percent,
+      row.position_status,
     ].some(value => String(value ?? '').toLowerCase().includes(query)));
 
     const groups = new Map<string, {
@@ -121,11 +122,14 @@ export function OwnershipTable({ holdings, ticker, companyName, manualSchema = f
                 <OwnershipTableHeader manualSchema={manualSchema} />
                 <tbody>
                   {group.rows.map((row, rowIndex) => {
-                    const rowClass = row.change_type === 'new' || row.change_type === 'increased'
-                      ? 'is-new'
-                      : row.change_type === 'exited' || row.shares_change_percent === '-100%'
-                        ? 'is-closed'
-                        : '';
+                    const normalizedStatus = normalizedPositionStatus(row.position_status);
+                    const rowClass = normalizedStatus
+                      ? positionStatusClass(row.position_status)
+                      : row.change_type === 'new' || row.change_type === 'increased'
+                        ? 'is-new'
+                        : row.change_type === 'exited' || row.shares_change_percent === '-100%'
+                          ? 'is-closed'
+                          : '';
                     return (
                       <tr key={`${group.key}-${row.id}-${rowIndex}`} className={rowClass}>
                         <td>{formatOwnershipDate(row.filing_date)}</td>
@@ -218,6 +222,21 @@ function OwnershipTableHeader({ manualSchema }: { manualSchema: boolean }) {
       </tr>
     </thead>
   );
+}
+
+function normalizedPositionStatus(value: string | undefined) {
+  return String(value ?? '')
+    .trim()
+    .toLowerCase()
+    .replace(/[_-]+/g, ' ')
+    .replace(/\s+/g, ' ');
+}
+
+function positionStatusClass(value: string | undefined) {
+  const normalized = normalizedPositionStatus(value);
+  if (/^(new|new position|new buy|new purchase|opened|open)$/.test(normalized)) return 'is-new';
+  if (/^(closed|closing|close|closed position|fully closed|exited|exit|sold out)$/.test(normalized)) return 'is-closed';
+  return '';
 }
 
 function ownershipReportingQuarter(value: string | undefined) {

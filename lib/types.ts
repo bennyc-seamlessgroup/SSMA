@@ -75,6 +75,7 @@ export type InstitutionalHolding = SourceMeta & {
   option_type?: string;
   holding_type?: string;
   portfolio_allocation?: string;
+  position_status?: string;
 };
 
 export type OptionsData = SourceMeta & {
