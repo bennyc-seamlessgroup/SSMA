@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { useEffect, useRef, useState } from 'react';
 import { getAuthenticatedProfile, getCurrentUser, signOut } from '@/lib/auth-client';
-import { endPublicDemoSession, isPublicDemoSession } from '@/lib/public-demo';
+import { isPublicDemoEmail, isPublicDemoProfile } from '@/lib/public-demo';
 import { usePortalLanguage } from './usePortalLanguage';
 
 export function UserMenu({ ticker }: { ticker: string }) {
@@ -13,14 +13,14 @@ export function UserMenu({ ticker }: { ticker: string }) {
     const tokenEmail = getCurrentUser()?.email;
     return typeof tokenEmail === 'string' ? tokenEmail.trim() : '';
   });
-  const [isDemo, setIsDemo] = useState(false);
+  const [isDemo, setIsDemo] = useState(() => isPublicDemoEmail(getCurrentUser()?.email));
   const menuRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     let cancelled = false;
-    setIsDemo(isPublicDemoSession());
     getAuthenticatedProfile()
       .then(profile => {
+        if (!cancelled) setIsDemo(isPublicDemoProfile(profile));
         if (!cancelled && typeof profile.email === 'string' && profile.email.trim()) {
           setEmail(profile.email.trim());
         }
@@ -83,12 +83,7 @@ export function UserMenu({ ticker }: { ticker: string }) {
           <Link href={`/monitor/${ticker}/email-settings`} onClick={() => setIsOpen(false)}>{t('deliverySettings')}</Link>
           <button className="user-menu__link-button" type="button" onClick={() => {
             setIsOpen(false);
-            if (isDemo) {
-              endPublicDemoSession();
-              window.location.assign('/');
-            } else {
-              signOut();
-            }
+            signOut();
           }}>{isDemo ? t('exitDemo') : t('signOut')}</button>
         </div>
       )}

@@ -119,10 +119,12 @@ export function InstitutionalOverview({
   data,
   ticker,
   managementRecords = [],
+  demoMode = false,
 }: {
   data: InstitutionalOverviewData;
   ticker: string;
   managementRecords?: ManagementHoldingInputRecord[];
+  demoMode?: boolean;
 }) {
   const [selectedKey, setSelectedKey] = useState<OwnershipKey>('institutions');
   const overview = data.overview ?? {};
@@ -231,7 +233,11 @@ export function InstitutionalOverview({
                   className={selectedKey === row.key ? 'active' : ''}
                   onClick={() => setSelectedKey(row.key as OwnershipKey)}
                 >
-                  <span><i style={{ background: row.color }} />{row.label}</span>
+                  <span>
+                    <i style={{ background: row.color }} />
+                    {row.label}
+                    {demoMode && row.key === 'strategic_entities' ? <em className="demo-data-tag">DEMO DATA</em> : null}
+                  </span>
                   <strong>{formatCompactQuantity(row.shares)}</strong>
                   <small>{formatPercent(row.percent)}</small>
                 </button>

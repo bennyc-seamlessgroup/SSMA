@@ -7,9 +7,6 @@ import { ApiSourceTags } from '@/components/ApiSourceTags';
 import { cachedAuthenticatedFetch, getAuthenticatedProfile } from '@/lib/auth-client';
 import {
   demoInsiderSuggestions,
-  demoInstitutionalOverview,
-  demoInternalFloatAdjustments,
-  demoInternalFloatHoldings,
   demoInternalFloatUserInputs,
   sampleTraditionalCustodyRows,
 } from '@/lib/internal-float-demo';
@@ -17,7 +14,7 @@ import type { FloatAdjustments, InternalFloatUserInput, ManagementSuggestionDeci
 import type { ManagementHoldingInputRecord } from '@/lib/operations/data-types';
 import { normalizeTicker } from '@/lib/ticker-data';
 import { InternalFloatClient, type InsiderSuggestionSource, type InstitutionalOwnershipOverview } from './InternalFloatClient';
-import { isPublicDemoSession } from '@/lib/public-demo';
+import { isPublicDemoProfile } from '@/lib/public-demo';
 
 type OwnershipCurrent = {
   issuedShare?: number;
@@ -83,7 +80,7 @@ const liveSeedAdjustments: FloatAdjustments = {
   internalAdjustedSqueezeScore: 0,
 };
 
-function LiveInternalFloat({ ticker }: { ticker: string }) {
+function LiveInternalFloat({ ticker, demoMode = false }: { ticker: string; demoMode?: boolean }) {
   const [payloads, setPayloads] = useState<{
     ownership: OwnershipCurrent;
     current: InternalFloatCurrent;
@@ -131,7 +128,10 @@ function LiveInternalFloat({ ticker }: { ticker: string }) {
   if (loading) return <PortalPageLoading variant="internalFloat" />;
   if (!payloads) return null;
 
-  const privateRecords = (payloads.userInputs.managementStrategicHoldings?.records ?? [])
+  const userPrivateRecords = demoMode
+    ? demoInternalFloatUserInputs.privateHoldings
+    : payloads.userInputs.managementStrategicHoldings?.records ?? [];
+  const privateRecords = userPrivateRecords
     .map((row, index) => ({
       id: String(row.id ?? `input-${index}`),
       holderName: String(row.holderName ?? ''),
@@ -155,8 +155,12 @@ function LiveInternalFloat({ ticker }: { ticker: string }) {
       includeInDeduction: row.includeInDeduction !== false,
       notes: String(row.notes ?? ''),
     })),
-    managementSuggestionDecisions: payloads.userInputs.managementSuggestionDecisions?.records ?? [],
-    privateFriendlyHolders: payloads.userInputs.privateFriendlyHolders,
+    managementSuggestionDecisions: demoMode
+      ? demoInternalFloatUserInputs.managementSuggestionDecisions
+      : payloads.userInputs.managementSuggestionDecisions?.records ?? [],
+    privateFriendlyHolders: demoMode
+      ? demoInternalFloatUserInputs.privateFriendlyHolders
+      : payloads.userInputs.privateFriendlyHolders,
     custodyRows: sampleTraditionalCustodyRows,
     tokenChains: tokenRecords.map((row, index) => ({ id: String(row.id ?? `token-${index}`), chain: String(row.chain ?? ''), shares: Number(row.shares ?? 0), provider: String(row.provider ?? '') })),
     collateralChains: collateralRecords.map((row, index) => ({ id: String(row.id ?? `collateral-${index}`), chain: String(row.chain ?? ''), shares: Number(row.shares ?? 0), protocol: String(row.protocol ?? '') })),
@@ -166,6 +170,17 @@ function LiveInternalFloat({ ticker }: { ticker: string }) {
     institutional_shares_long: payloads.current.institutionalSharesLong ?? payloads.ownership.institutionalSharesLong,
     public_float_shares: payloads.ownership.publicFloat?.shares,
   };
+  const insiderSuggestionSources = (demoMode
+    ? demoInsiderSuggestions
+    : [
+        ...(payloads.current.suggestedChanges ?? []),
+        ...payloads.managementHoldings
+          .filter(row => row.showAsSuggestion)
+          .map(row => ({ ...row, name: row.holderName })),
+      ])
+    .filter(row => !row.status || row.status === 'pending')
+    .filter((row, index, rows) => !row.id || rows.findIndex(candidate => candidate.id === row.id) === index)
+    .map(row => ({ ...row, name: row.name ?? row.holderName ?? 'Unknown holder' }));
 
   return (
     <>
@@ -177,22 +192,15 @@ function LiveInternalFloat({ ticker }: { ticker: string }) {
         { endpoint: 'GET /manual-input/management-holdings', label: 'Strategic holdings' },
       ]} />
       <InternalFloatClient
-        key={`live-${ticker}`}
+        key={`${demoMode ? 'demo' : 'live'}-${ticker}`}
         ticker={ticker}
         initialHoldings={[]}
         initialAdjustments={liveSeedAdjustments}
         initialUserInputs={apiInputs}
         institutionalOverview={institutionalOverview}
         custodyDataIsSample
-        insiderSuggestionSources={[
-          ...(payloads.current.suggestedChanges ?? []),
-          ...payloads.managementHoldings
-            .filter(row => row.showAsSuggestion)
-            .map(row => ({ ...row, name: row.holderName })),
-        ]
-          .filter(row => !row.status || row.status === 'pending')
-          .filter((row, index, rows) => rows.findIndex(candidate => candidate.id && candidate.id === row.id) === index)
-          .map(row => ({ ...row, name: row.name ?? row.holderName ?? 'Unknown holder' }))}
+        insiderSuggestionSources={insiderSuggestionSources}
+        demoMode={demoMode}
       />
       <section className="terminal-section import-data-dev-panel">
         <div className="terminal-section__head"><div><span>Development Data</span><h2>Internal Float API Data</h2><p className="section-subtitle">Live API payloads only. No local or S3 JSON fallback is used.</p></div></div>
@@ -208,35 +216,19 @@ function LiveInternalFloat({ ticker }: { ticker: string }) {
   );
 }
 
-function DemoInternalFloat() {
-  return (
-    <InternalFloatClient
-      key="demo-internal-float"
-      ticker="CURR"
-      initialHoldings={demoInternalFloatHoldings}
-      initialAdjustments={demoInternalFloatAdjustments}
-      initialUserInputs={demoInternalFloatUserInputs}
-      institutionalOverview={demoInstitutionalOverview}
-      insiderSuggestionSources={demoInsiderSuggestions}
-      custodyDataIsSample
-      demoMode
-    />
-  );
-}
-
 export function InternalFloatRoleView({ ticker }: { ticker: string }) {
   const normalizedTicker = normalizeTicker(ticker);
   const [role, setRole] = useState<string | null>(null);
 
   useEffect(() => {
-    if (isPublicDemoSession()) {
-      setRole('DEMO');
-      return;
-    }
     let cancelled = false;
     getAuthenticatedProfile()
       .then(profile => {
-        if (!cancelled) setRole(String(profile.role ?? 'USER').trim().toUpperCase());
+        if (!cancelled) {
+          setRole(isPublicDemoProfile(profile)
+            ? 'DEMO'
+            : String(profile.role ?? 'USER').trim().toUpperCase());
+        }
       })
       .catch(() => {
         if (!cancelled) setRole('USER');
@@ -247,6 +239,5 @@ export function InternalFloatRoleView({ ticker }: { ticker: string }) {
   }, []);
 
   if (!role) return <PortalPageLoading variant="internalFloat" />;
-  if (role === 'DEMO') return <DemoInternalFloat />;
-  return <LiveInternalFloat ticker={normalizedTicker} />;
+  return <LiveInternalFloat ticker={normalizedTicker} demoMode={role === 'DEMO'} />;
 }

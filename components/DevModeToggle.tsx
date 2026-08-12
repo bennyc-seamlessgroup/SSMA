@@ -2,6 +2,7 @@
 
 import { useEffect, useLayoutEffect, useState } from 'react';
 import { getAuthenticatedProfile } from '@/lib/auth-client';
+import { isPublicDemoProfile } from '@/lib/public-demo';
 
 const storageKey = 'monitor-dev-mode-enabled';
 
@@ -34,7 +35,7 @@ export function DevModeToggle() {
       .then(profile => {
         if (cancelled) return;
         const role = String(profile.role ?? '').trim().toUpperCase();
-        const canUseDevMode = role === 'OPERATOR' || role === 'ADMIN';
+        const canUseDevMode = !isPublicDemoProfile(profile) && (role === 'OPERATOR' || role === 'ADMIN');
         if (!canUseDevMode) {
           disable();
           return;

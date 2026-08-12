@@ -9,6 +9,7 @@ import { PortalLanguageMenu } from '@/components/PortalLanguageMenu';
 import { PortalPageTranslator } from '@/components/PortalPageTranslator';
 import { getAuthenticatedProfile, getCurrentUser, signOut } from '@/lib/auth-client';
 import { getOperationsTicker, setOperationsTicker } from '@/lib/operations/ticker-client';
+import { isPublicDemoEmail, isPublicDemoProfile, publicDemoTicker } from '@/lib/public-demo';
 import { OperationsCompanyIndicator } from './OperationsCompanyIndicator';
 
 const workflowItems = [
@@ -81,6 +82,7 @@ export function OperationsShell({ children }: { children: React.ReactNode }) {
   const [theme, setTheme] = useState<'light' | 'dark'>('light');
   const [tickerDraft, setTickerDraft] = useState('CURR');
   const [activeTicker, setActiveTicker] = useState('CURR');
+  const [isDemoAccount, setIsDemoAccount] = useState(false);
   const accountRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
@@ -95,11 +97,15 @@ export function OperationsShell({ children }: { children: React.ReactNode }) {
     let cancelled = false;
     const tokenUser = getCurrentUser();
     const tokenEmail = typeof tokenUser?.email === 'string' ? tokenUser.email.trim() : '';
-    if (tokenEmail) setAccount(current => ({ ...current, email: tokenEmail }));
+    if (tokenEmail) {
+      setAccount(current => ({ ...current, email: tokenEmail }));
+      setIsDemoAccount(isPublicDemoEmail(tokenEmail));
+    }
 
     getAuthenticatedProfile()
       .then(profile => {
         if (cancelled) return;
+        setIsDemoAccount(isPublicDemoProfile(profile));
         setAccount({
           email: typeof profile.email === 'string' ? profile.email.trim() : tokenEmail,
           name: typeof profile.name === 'string' ? profile.name.trim() : '',
@@ -154,6 +160,18 @@ export function OperationsShell({ children }: { children: React.ReactNode }) {
     setTickerDraft(next);
     setActiveTicker(next);
     if (next !== previous) window.location.reload();
+  }
+
+  if (isDemoAccount) {
+    return (
+      <main className="auth-page">
+        <section className="auth-callback-card">
+          <h1>Operations portal unavailable</h1>
+          <p>The demo account has read-only access to the CURR user portal.</p>
+          <Link className="button light-primary" href={`/monitor/${publicDemoTicker}/dashboard`}>Return to demo workspace</Link>
+        </section>
+      </main>
+    );
   }
 
   return (

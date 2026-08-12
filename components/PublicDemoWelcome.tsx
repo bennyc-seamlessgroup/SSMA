@@ -1,8 +1,10 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { getAuthenticatedProfile } from '@/lib/auth-client';
 import {
   dismissPublicDemoWelcome,
+  isPublicDemoProfile,
   shouldShowPublicDemoWelcome,
 } from '@/lib/public-demo';
 
@@ -10,7 +12,20 @@ export function PublicDemoWelcome() {
   const [isOpen, setIsOpen] = useState(false);
 
   useEffect(() => {
-    setIsOpen(shouldShowPublicDemoWelcome());
+    let cancelled = false;
+    getAuthenticatedProfile()
+      .then(profile => {
+        if (cancelled) return;
+        const isDemo = isPublicDemoProfile(profile);
+        setIsOpen(isDemo && shouldShowPublicDemoWelcome());
+        if (!isDemo) dismissPublicDemoWelcome();
+      })
+      .catch(() => {
+        if (!cancelled) setIsOpen(false);
+      });
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   function close() {
@@ -38,13 +53,12 @@ export function PublicDemoWelcome() {
         <span>Live Product Demo</span>
         <h1 id="public-demo-welcome-title">Welcome to Currenc Intelligence</h1>
         <p>
-          You are viewing a live demonstration of the CURRENC Group Inc. (CURR) workspace. Explore its dashboards,
-          ownership intelligence, short pressure, reports, alerts, and social sentiment to see what
-          your team can access with a Currenc Intelligence subscription.
+          You are viewing the authenticated demonstration account for the CURRENC Group Inc. (CURR) workspace.
+          Shared company information is loaded from the same APIs used by other authorized CURR users.
         </p>
         <div className="public-demo-welcome__note">
-          Internal Float uses fictional interactive data in this demo. Any changes remain in this browser
-          session and are not saved.
+          Internal Float uses fictional user-specific holdings. This account is read-only, and changes are
+          not saved to company data.
         </div>
         <div className="public-demo-welcome__actions">
           <button className="button primary" type="button" onClick={close}>Start Exploring</button>

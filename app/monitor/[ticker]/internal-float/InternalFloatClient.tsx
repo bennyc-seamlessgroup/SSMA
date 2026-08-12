@@ -1117,15 +1117,6 @@ export function InternalFloatClient({
   return (
     <>
       {renderSuggestionModal()}
-      {demoMode ? (
-        <div className="internal-float-demo-banner" role="note">
-          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3 2.8 19h18.4L12 3Z" /><path d="M12 9v4M12 17h.01" /></svg>
-          <div>
-            <strong>Interactive demonstration</strong>
-            <span>All names and values on this page are fictional. You can edit the data, but changes remain in this browser session and are never saved.</span>
-          </div>
-        </div>
-      ) : null}
       <section className="terminal-section float-hero-section">
         <div className="terminal-section__head">
           <div>
@@ -1174,7 +1165,13 @@ export function InternalFloatClient({
 
       <section className="terminal-section">
         <div className="terminal-section__head">
-          <div><h2>Management / Strategic Holdings</h2><p className="section-subtitle">Internal deduction assumptions used to estimate real tradable float.</p></div>
+          <div>
+            <div className="demo-data-heading">
+              <h2>Management / Strategic Holdings</h2>
+              {demoMode ? <span className="demo-data-tag">DEMO DATA</span> : null}
+            </div>
+            <p className="section-subtitle">Internal deduction assumptions used to estimate real tradable float.</p>
+          </div>
           <button className="button secondary" type="button" onClick={() => openEditPanel('private')}>Edit</button>
         </div>
         {availableInsiderSuggestions.length > 0 && (

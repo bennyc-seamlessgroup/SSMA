@@ -2,7 +2,7 @@
 
 import { PortalPageLoading } from '@/components/PortalPageLoading';
 import { PageDisclaimerNotice } from '@/components/PageDisclaimerNotice';
-import { authenticatedFetch, cachedAuthenticatedFetch, invalidateAuthenticatedFetchCache } from '@/lib/auth-client';
+import { authenticatedFetch, cachedAuthenticatedFetch, getAuthenticatedProfile, invalidateAuthenticatedFetchCache } from '@/lib/auth-client';
 import type { InstitutionalHolding } from '@/lib/types';
 import { normalizeTicker } from '@/lib/ticker-data';
 import { useEffect, useState } from 'react';
@@ -12,7 +12,9 @@ import { InstitutionalDevTables } from './InstitutionalDevTables';
 import { InstitutionalOverview, type InstitutionalOverviewData } from './InstitutionalOverview';
 import { ApiSourceTags } from '@/components/ApiSourceTags';
 import { mergeInternalFloatHoldings } from '@/lib/internal-float-holdings';
+import { demoInternalFloatUserInputs } from '@/lib/internal-float-demo';
 import type { InternalFloatPrivateHolding } from '@/lib/internal-float-types';
+import { isPublicDemoProfile } from '@/lib/public-demo';
 import { InstitutionalActivitySummary, type OwnershipSummaryCurrent } from './InstitutionalActivitySummary';
 import { LatestInstitutionalFilings, type LatestInstitutionalFiling } from './LatestInstitutionalFilings';
 
@@ -249,6 +251,12 @@ function formatPercent(value: unknown) {
   return `${numeric.toLocaleString('en-US', { maximumFractionDigits: 2 })}%`;
 }
 
+function emptyInternalFloatInputsOnNotFound(cause: unknown): InternalFloatInputsResponse {
+  const message = cause instanceof Error ? cause.message : String(cause ?? '');
+  if (/\b404(?:\s+Not Found)?\b/i.test(message)) return {};
+  throw cause;
+}
+
 function changeType(value: unknown): InstitutionalHolding['change_type'] {
   const numeric = typeof value === 'number' ? value : Number(String(value ?? '').replace(/,/g, ''));
   if (!Number.isFinite(numeric)) return 'unchanged';
@@ -267,6 +275,7 @@ function ownershipChangeType(row: SecurityOwnershipRow): InstitutionalHolding['c
 
 export function InstitutionalBrowserPage({ ticker }: { ticker: string }) {
   const normalizedTicker = normalizeTicker(ticker);
+  const [isDemo, setIsDemo] = useState(false);
   const [current, setCurrent] = useState<OwnershipCurrent | null>(null);
   const [activitySummary, setActivitySummary] = useState<OwnershipSummaryCurrent | null>(null);
   const [history, setHistory] = useState<OwnershipHistory | null>(null);
@@ -275,10 +284,12 @@ export function InstitutionalBrowserPage({ ticker }: { ticker: string }) {
   const [strategicHoldings, setStrategicHoldings] = useState<InternalFloatPrivateHolding[]>([]);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(true);
-  const consolidatedStrategicShares = consolidatedStrategicTotal(internalFloatCurrent);
   const expectedUserStrategicShares = strategicHoldings
     .filter(row => row.includeInDeduction !== false)
     .reduce((sum, row) => sum + Number(row.shares ?? 0), 0);
+  const consolidatedStrategicShares = isDemo
+    ? expectedUserStrategicShares
+    : consolidatedStrategicTotal(internalFloatCurrent);
 
   useEffect(() => {
     let cancelled = false;
@@ -289,16 +300,22 @@ export function InstitutionalBrowserPage({ ticker }: { ticker: string }) {
       cachedAuthenticatedFetch<OwnershipSummaryCurrent>(`/market-data/current?ticker=${encodeURIComponent(normalizedTicker)}&category=ownership-summary-current`).catch(() => null),
       cachedAuthenticatedFetch<OwnershipHistory>(`/market-data/history?ticker=${encodeURIComponent(normalizedTicker)}&category=ownership-history`),
       cachedAuthenticatedFetch<unknown>(`/market-data/current?ticker=${encodeURIComponent(normalizedTicker)}&category=internal-float-current-user`),
-      cachedAuthenticatedFetch<InternalFloatInputsResponse>(`/manual-input/internal-float-inputs-user?ticker=${encodeURIComponent(normalizedTicker)}`),
+      cachedAuthenticatedFetch<InternalFloatInputsResponse>(`/manual-input/internal-float-inputs-user?ticker=${encodeURIComponent(normalizedTicker)}`)
+        .catch(emptyInternalFloatInputsOnNotFound),
       loadAllManualSecurityOwnership(normalizedTicker),
-    ]).then(([nextCurrent, nextActivitySummary, nextHistory, nextInternalFloatCurrent, nextInternalFloatInputs, nextManualOwnership]) => {
+      getAuthenticatedProfile(),
+    ]).then(([nextCurrent, nextActivitySummary, nextHistory, nextInternalFloatCurrent, nextInternalFloatInputs, nextManualOwnership, profile]) => {
       if (cancelled) return;
+      const nextIsDemo = isPublicDemoProfile(profile);
+      setIsDemo(nextIsDemo);
       setCurrent(nextCurrent);
       setActivitySummary(nextActivitySummary);
       setHistory(nextHistory);
       setInternalFloatCurrent(normalizeInternalFloatCurrent(nextInternalFloatCurrent));
       setStrategicHoldings(mergeInternalFloatHoldings(
-        nextInternalFloatInputs.managementStrategicHoldings?.records ?? [],
+        nextIsDemo
+          ? demoInternalFloatUserInputs.privateHoldings
+          : nextInternalFloatInputs.managementStrategicHoldings?.records ?? [],
       ));
       setManualOwnership(nextManualOwnership);
     }).catch(cause => {
@@ -312,7 +329,7 @@ export function InstitutionalBrowserPage({ ticker }: { ticker: string }) {
   useEffect(() => {
     const expectedShares = expectedUserStrategicShares;
     const consolidatedShares = consolidatedStrategicShares ?? 0;
-    if (!strategicHoldings.length || expectedShares === consolidatedShares) return;
+    if (isDemo || !strategicHoldings.length || expectedShares === consolidatedShares) return;
 
     let cancelled = false;
     let attempts = 0;
@@ -337,7 +354,7 @@ export function InstitutionalBrowserPage({ ticker }: { ticker: string }) {
       cancelled = true;
       clearInterval(timer);
     };
-  }, [consolidatedStrategicShares, expectedUserStrategicShares, normalizedTicker, strategicHoldings.length]);
+  }, [consolidatedStrategicShares, expectedUserStrategicShares, isDemo, normalizedTicker, strategicHoldings.length]);
 
   if (loading) return <PortalPageLoading variant="ownership" />;
   if (error || !current || !history) {
@@ -430,7 +447,7 @@ export function InstitutionalBrowserPage({ ticker }: { ticker: string }) {
   }));
   return (
     <div className="page institutional-page">
-      <InstitutionalOverview data={overviewData} ticker={normalizedTicker} managementRecords={managementRecords} />
+      <InstitutionalOverview data={overviewData} ticker={normalizedTicker} managementRecords={managementRecords} demoMode={isDemo} />
       <InstitutionalActivitySummary
         data={activitySummary}
         ticker={normalizedTicker}

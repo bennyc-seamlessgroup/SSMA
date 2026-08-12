@@ -4,7 +4,6 @@ import { useEffect, useState } from 'react';
 import { PortalPageLoading } from '@/components/PortalPageLoading';
 import { usePortalTimeZone } from '@/components/usePortalTimeZone';
 import { cachedAuthenticatedFetch } from '@/lib/auth-client';
-import { isPublicDemoSession } from '@/lib/public-demo';
 import type { ReportArchiveRecord } from '@/lib/report-archive';
 import { normalizeTicker } from '@/lib/ticker-data';
 import { ymdInPortalTimeZone } from '@/lib/timezone';
@@ -25,13 +24,6 @@ type ReportIndexPayload = {
 type ReportIndexPagination = {
   totalPages?: number;
 };
-
-function previousDay(value: string) {
-  const [year, month, day] = value.split('-').map(Number);
-  const date = new Date(Date.UTC(year, month - 1, day));
-  date.setUTCDate(date.getUTCDate() - 1);
-  return date.toISOString().slice(0, 10);
-}
 
 function reportDate(value: unknown) {
   if (typeof value === 'string') return value.slice(0, 10);
@@ -93,14 +85,6 @@ export function ReportArchiveBrowserPage({ ticker }: { ticker: string }) {
     let active = true;
     setReports(null);
     setLoadError('');
-
-    if (isPublicDemoSession()) {
-      const date = previousDay(todayDate);
-      setReports([archiveRecord(normalizedTicker, date)]);
-      return () => {
-        active = false;
-      };
-    }
 
     void readReportIndex(normalizedTicker)
       .then(dates => {

@@ -1,6 +1,9 @@
 'use client';
 
-import { endPublicDemoSession, isPublicDemoSession, publicDemoProfile } from './public-demo';
+import {
+  clearPublicDemoAdapterSession,
+  isPublicDemoEmail,
+} from './public-demo';
 
 export type CognitoUser = {
   sub?: string;
@@ -154,7 +157,7 @@ export function getStoredTokens(): AuthTokens | null {
 }
 
 export function storeTokens(tokens: AuthTokens) {
-  endPublicDemoSession();
+  clearPublicDemoAdapterSession();
   clearAuthenticatedResponseCache();
   sessionStorage.setItem(tokenKeys.accessToken, tokens.accessToken);
   sessionStorage.setItem(tokenKeys.idToken, tokens.idToken);
@@ -179,10 +182,15 @@ export function isTokenValid(idToken: string | null, minimumSeconds = 0) {
 }
 
 export function getCurrentUser() {
+  if (typeof window === 'undefined') return null;
   return decodeJWT(sessionStorage.getItem(tokenKeys.idToken));
 }
 
-export async function startLogin(options: { redirectTo?: string; screenHint?: 'signup' } = {}) {
+export async function startLogin(options: {
+  redirectTo?: string;
+  screenHint?: 'signup';
+  loginHint?: string;
+} = {}) {
   assertAuthConfig();
   const state = Math.random().toString(36).slice(2, 15);
   const codeVerifier = generateCodeVerifier();
@@ -204,6 +212,7 @@ export async function startLogin(options: { redirectTo?: string; screenHint?: 's
   });
 
   if (options.screenHint) params.set('screen_hint', options.screenHint);
+  if (options.loginHint) params.set('login_hint', options.loginHint);
 
   window.location.href = `https://${cognitoDomain}/oauth2/authorize?${params.toString()}`;
 }
@@ -302,15 +311,14 @@ export function signOut() {
 }
 
 export async function authenticatedFetch(path: string, options: RequestInit = {}) {
-  if (typeof window !== 'undefined' && isPublicDemoSession()) {
-    const { publicDemoFetch } = await import('./public-demo-api');
-    return publicDemoFetch(path, options);
-  }
   const tokens = getStoredTokens();
   if (!tokens?.idToken) throw new Error('Not authenticated');
   const isMultipart = typeof FormData !== 'undefined' && options.body instanceof FormData;
   const method = String(options.method ?? 'GET').toUpperCase();
   const isMutation = !['GET', 'HEAD'].includes(method);
+  if (isMutation && isPublicDemoEmail(decodeJWT(tokens.idToken)?.email)) {
+    throw new Error('The demo account is read-only. Sign in with a regular account to save changes.');
+  }
   const useSameOriginProxy = typeof window !== 'undefined'
     && (isMutation || ['localhost', '127.0.0.1'].includes(window.location.hostname));
   const requestUrl = useSameOriginProxy
@@ -502,7 +510,6 @@ export function setCachedAuthenticatedProfile(profile: AuthenticatedProfile) {
 }
 
 export function getAuthenticatedProfile(force = false) {
-  if (typeof window !== 'undefined' && isPublicDemoSession()) return Promise.resolve(publicDemoProfile);
   if (force || !profileRequest) {
     profileRequest = authenticatedFetch('/profile') as Promise<AuthenticatedProfile>;
     profileRequest.catch(() => {

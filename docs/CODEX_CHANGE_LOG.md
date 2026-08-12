@@ -4,6 +4,348 @@ This file is the persistent implementation memory for changes made by Codex.
 Read it before modifying existing portal behavior, and update it after every
 completed change.
 
+## 2026-08-12 — Label fictional demo sections at their point of use
+
+- Area: Authenticated demo → Internal Float and Ownership.
+- APIs/data:
+  - Live `GET /market-data/current?category=internal-float-current-user` and
+    `GET /market-data/current?category=ownership-current` remain unchanged.
+  - Fictional `demoInternalFloatUserInputs.privateHoldings` continues to supply
+    demo Management / Strategic Holdings and Ownership Strategic Entities.
+- Reported problem and root cause:
+  - A long page-level “Interactive demonstration” banner was detached from the
+    fictional data it described and incorrectly suggested that every value on
+    Internal Float was fictional, even though shared issuer data remains live.
+  - Ownership had no local indicator identifying its fictional Strategic
+    Entities row.
+- Intended behavior and invariants:
+  - Remove the page-wide demo explanation from Internal Float.
+  - In demo mode only, show a compact `DEMO DATA` tag directly beside the
+    Management / Strategic Holdings heading and beside the Strategic Entities
+    ownership legend row.
+  - Do not tag live shared issuer data, and do not show either tag to normal
+    authenticated users.
+  - The tags support light mode, dark mode, Traditional Chinese, and Simplified
+    Chinese without changing any API request or data calculation.
+- Files changed:
+  - `app/monitor/[ticker]/internal-float/InternalFloatClient.tsx`
+  - `app/monitor/[ticker]/institutional/InstitutionalBrowserPage.tsx`
+  - `app/monitor/[ticker]/institutional/InstitutionalOverview.tsx`
+  - `app/globals.css`
+  - `lib/portal-page-translations.ts`
+  - `docs/CODEX_CHANGE_LOG.md`
+- Verification:
+  - TypeScript type-check passed.
+  - End-to-end `/demo` browser verification confirmed the old heading and long
+    explanation are absent from Internal Float.
+  - Internal Float rendered exactly one tag beside Management / Strategic
+    Holdings; Ownership rendered exactly one tag in the Strategic Entities row.
+  - Production build passed, including all 29 statically generated pages.
+  - Whitespace validation passed.
+- Remaining backend dependency / limitation:
+  - None. This is a demo-only presentation change; API payloads and persistence
+    behavior are untouched.
+
+## 2026-08-12 — Isolate demo Internal Float suggestions from live holdings
+
+- Area: Authenticated demo → Internal Float → Suggested Changes.
+- APIs/data:
+  - Live `GET /market-data/current?category=internal-float-current-user`.
+  - Live `GET /manual-input/management-holdings?ticker=CURR`.
+  - Fictional `demoInsiderSuggestions` from `lib/internal-float-demo.ts`.
+- Reported problem and root cause:
+  - Demo Internal Float correctly replaced user-managed holdings with fictional
+    data, but the Suggested Changes component still merged consolidated live
+    suggestions and operations-managed holdings from the real CURR APIs.
+  - As a result, the read-only demo exposed real holder names and proposed
+    share changes in an otherwise fictional, user-specific section.
+- Intended behavior and invariants:
+  - When `demoMode` is active, Suggested Changes receives only the checked-in
+    fictional suggestion records and never receives the live consolidated or
+    management-holdings suggestion arrays.
+  - Normal authenticated users continue using the original live suggestion
+    merge, status filtering, and ID deduplication behavior.
+  - Demo suggestion Apply and Discard actions remain browser-session-only and
+    never call mutation APIs.
+  - Live shared issuer data elsewhere on Internal Float remains unchanged.
+- Files changed:
+  - `app/monitor/[ticker]/internal-float/InternalFloatRoleView.tsx`
+  - `docs/CODEX_CHANGE_LOG.md`
+- Verification:
+  - TypeScript type-check passed.
+  - End-to-end `/demo` browser verification loaded Internal Float and confirmed
+    exactly two suggestion cards: `Fictional Executive One` and
+    `Sample Director Holdings`.
+  - The suggestion list contained no additional live records.
+  - Production build passed, including all 29 statically generated pages.
+  - Whitespace validation passed.
+- Remaining backend dependency / limitation:
+  - None. This is a presentation isolation rule for the authenticated demo;
+    live API payloads and normal-user behavior are unchanged.
+
+## 2026-08-12 — Keep demo Ownership available without a user-input file
+
+- Area: Authenticated demo → Ownership.
+- APIs/data:
+  - `GET /manual-input/internal-float-inputs-user?ticker=CURR`.
+  - `GET /market-data/current?category=ownership-current`.
+  - `GET /market-data/current?category=internal-float-current-user`.
+  - Fictional `demoInternalFloatUserInputs.privateHoldings` presentation data.
+- Reported problem and root cause:
+  - The newly created native demo account has no user-scoped
+    `internal-float-inputs-user` record, so the optional manual-input API
+    correctly returns `404 Record not found and no template available`.
+  - Ownership loaded this optional request inside one `Promise.all`; its 404
+    rejected the complete page load before the existing demo holdings fallback
+    could be selected, producing `Ownership data unavailable` even though all
+    shared ownership sources were healthy.
+- Intended behavior and invariants:
+  - A 404 from the optional user-input request is normalized to an empty input
+    object and does not make Ownership unavailable.
+  - Once the authenticated profile is recognized as the configured demo, the
+    page continues to use its fictional user-specific strategic holdings while
+    shared CURR ownership, history, filings, and consolidated data remain live.
+  - Non-404 failures from this request still surface as page errors; the fix
+    does not conceal authentication, authorization, network, or server faults.
+  - Normal users with no personal holdings file also receive an empty holdings
+    state instead of losing the complete Ownership page.
+- Files changed:
+  - `app/monitor/[ticker]/institutional/InstitutionalBrowserPage.tsx`
+  - `docs/CODEX_CHANGE_LOG.md`
+- Verification:
+  - TypeScript type-check passed.
+  - An end-to-end browser run completed automatic `/demo` authentication,
+    reproduced the user-input 404, and loaded `/monitor/CURR/institutional`
+    without the unavailable state.
+  - The rendered Ownership page displayed the live Aug 11, 2026 CURR data and
+    the fictional demo strategic-entity total of 22.00M.
+  - Whitespace validation passed.
+- Remaining backend dependency / limitation:
+  - None for page availability. The user-scoped input file can remain absent
+    because demo holdings are intentionally fictional and browser-managed.
+
+## 2026-08-12 — Restore one-click login for the native Cognito demo account
+
+- Area: Public `/demo` entry and server-side Cognito authentication.
+- APIs/data:
+  - Portal `POST /api/demo-login`.
+  - Cognito `InitiateAuth` with `USER_PASSWORD_AUTH`.
+  - Authenticated API Gateway `GET /profile`.
+- Reported problem and root cause:
+  - Google-federated login required public visitors to possess or select the
+    shared Google account, so it could not provide a usable public demo.
+  - A native Cognito account has now been created for
+    `demo.curr@gmail.com`, allowing the portal to authenticate it without
+    exposing credentials or involving Google account selection.
+- Intended behavior and invariants:
+  - Opening `/demo` calls a same-origin server route that supplies the fixed
+    demo email and the server-only `DEMO_ACCOUNT_PASSWORD` to Cognito.
+  - The browser never renders, receives, or submits the password. On success it
+    receives Cognito session tokens, verifies that `GET /profile` resolves to
+    the configured demo email, and opens the CURR dashboard.
+  - The route rejects cross-origin starts, disables caching, and returns clear
+    controlled messages for missing configuration, missing/unconfirmed users,
+    password reset requirements, invalid passwords, and unsupported challenges.
+  - Normal Cognito/Google `/login` behavior remains unchanged.
+  - Existing demo identification, CURR scoping, UI read-only controls, and
+    frontend mutation blocking remain intact.
+- Files changed:
+  - `.env.example`
+  - `app/api/demo-login/route.ts`
+  - `app/demo/DemoLauncher.tsx`
+  - `lib/auth-client.ts`
+  - `lib/public-demo.ts`
+  - `docs/CODEX_CHANGE_LOG.md`
+- Verification:
+  - Live Cognito authentication returned HTTP 200, no challenge, and complete
+    access, ID, and refresh tokens without logging any credential or token.
+  - The returned ID token successfully called `GET /profile`, which resolved to
+    `demo.curr@gmail.com`, role `DEMO`, and ticker access `["CURR"]`.
+  - TypeScript type-check passed.
+  - Production build passed, including all 29 statically generated pages and
+    the restored dynamic `/api/demo-login` route.
+  - Whitespace validation passed.
+- Remaining backend dependency / limitation:
+  - Production must define `DEMO_ACCOUNT_PASSWORD` and optionally
+    `DEMO_COGNITO_CLIENT_ID`; the selected no-secret app client must permit
+    `ALLOW_USER_PASSWORD_AUTH` and refresh-token authentication.
+  - Frontend mutation blocking is not a security boundary because the browser
+    receives valid Cognito tokens. The backend must deny mutations for this
+    account's immutable Cognito `sub` before public launch.
+
+## 2026-08-12 — Route the Gmail demo account through Google sign-in
+
+- Area: Public `/demo`, Cognito OAuth startup, and callback identity validation.
+- APIs/data:
+  - Cognito `/oauth2/authorize` Authorization Code + PKCE flow with
+    `identity_provider=Google`.
+  - Authenticated `GET /profile` email used to validate the selected account.
+- Reported problem and root cause:
+  - `/demo` displayed `Unable to open the live demo` after the account changed
+    to `demo.curr@gmail.com`.
+  - A direct Cognito diagnostic returned `UserNotFoundException`: this address
+    is a Google-federated identity in the configured user pool, not a native
+    Cognito username/password user, so `USER_PASSWORD_AUTH` cannot sign it in.
+- Intended behavior and invariants:
+  - `/demo` now starts the same secure PKCE flow used by the portal but routes
+    directly to Google and requests the configured demo account.
+  - Google controls account selection and authentication. The portal never
+    stores, prefills, submits, or exposes a Google password; Google may show an
+    account chooser because Cognito cannot guarantee forwarding an email hint
+    to the Google provider.
+  - The callback requires the resulting profile email to match
+    `demo.curr@gmail.com` when sign-in originated from `/demo`. Selecting a
+    different Google account does not open the demo workspace.
+  - Normal `/login`, normal authenticated accounts, and the existing frontend
+    demo/read-only behavior remain unchanged.
+  - The obsolete server-side password login route and its example environment
+    settings are removed.
+- Files changed:
+  - `.env.example`
+  - `app/api/demo-login/route.ts` (removed)
+  - `app/demo/DemoLauncher.tsx`
+  - `lib/auth-client.ts`
+  - `lib/public-demo.ts`
+  - `docs/CODEX_CHANGE_LOG.md`
+- Verification:
+  - Confirmed the previous route reached Cognito and reproduced HTTP 400
+    `UserNotFoundException` without exposing the configured password.
+  - TypeScript type-check passed after removing the stale generated route cache.
+  - Production build passed, including all 29 statically generated pages; the
+    obsolete `/api/demo-login` route is absent from the route manifest.
+  - Whitespace validation passed.
+- Remaining backend dependency / limitation:
+  - The Cognito app client must retain Google as an enabled identity provider
+    and the deployed callback URL must remain registered.
+  - Google authentication is interactive; a public visitor who is not already
+    authorized to use `demo.curr@gmail.com` cannot be silently signed in as it.
+  - Backend mutation denial must still target this account's immutable Cognito
+    `sub` before treating the authenticated demo as a public read-only account.
+
+## 2026-08-12 — Replace the retired demo account email
+
+- Area: Public `/demo` automatic login and all frontend demo/read-only guards.
+- APIs/data:
+  - `POST /api/demo-login` (portal server route).
+  - Cognito `InitiateAuth` with `USER_PASSWORD_AUTH`.
+  - Authenticated `GET /profile` email used to identify the demo experience.
+- Reported problem and root cause:
+  - The previous demo Cognito identity was retired and replaced by the working
+    `demo.curr@gmail.com` account.
+  - The login route and frontend guards both contained the retired address, so
+    changing only Cognito would allow login but would not activate all demo-only
+    read-only and CURR-scoping behavior.
+- Intended behavior and invariants:
+  - `/demo` authenticates `demo.curr@gmail.com` automatically with the existing
+    server-only password flow; no email or password field is exposed.
+  - The same shared email constant identifies the demo profile throughout the
+    frontend, keeping automatic login, demo labeling, CURR scoping, disabled
+    mutations, and operations access denial aligned.
+  - Normal `/login` behavior and normal authenticated accounts are unchanged.
+  - The retired demo email no longer appears in runtime source or current
+    configuration documentation.
+- Files changed:
+  - `app/api/demo-login/route.ts`
+  - `lib/public-demo.ts`
+  - `docs/CODEX_CHANGE_LOG.md`
+- Verification:
+  - Repository search confirmed the retired address is absent and the new
+    address has one runtime source of truth.
+  - TypeScript type-check passed.
+  - Production build passed after clearing a stale generated `.next` cache,
+    including all 29 statically generated pages.
+  - Whitespace validation passed.
+- Remaining backend dependency / limitation:
+  - Deployment must set `DEMO_ACCOUNT_PASSWORD` to the permanent Cognito
+    password for `demo.curr@gmail.com` and retain the compatible demo app client.
+  - Backend mutation denial must target the immutable Cognito `sub` belonging
+    to the replacement account before the demo is made public.
+
+## 2026-08-12 — Move `/demo` to the authenticated demo account
+
+- Area: Public `/demo` entry, all CURR user-portal pages, Internal Float,
+  Ownership, Report Archive, Alert Rules, User Profile, Development Mode, and
+  Operations Portal access.
+- APIs/data:
+  - Normal authenticated `GET /profile`, Market Data, Manual Input, Social
+    Data, Reports, Rule Catalog, Alerts, and Tickers requests documented in
+    `docs/INTEGRATION (7).md`.
+  - Demo-account identity: `demo.curr@gmail.com`.
+- Reported problem and root cause:
+  - The public demo used a frontend-only session and intercepted API requests
+    with `publicDemoFetch`, so most pages showed bundled June 2026 fixtures,
+    synthetic social records, and a sample report instead of the shared CURR
+    data visible to authenticated users.
+  - Internal Float and Ownership require a narrower exception: their shared
+    issuer data should stay live while user-managed holdings remain fictional.
+- Intended behavior and invariants:
+  - `/demo` now calls the server-only `POST /api/demo-login` route, which uses
+    Cognito `USER_PASSWORD_AUTH` to create the demo session automatically. The
+    hosted Cognito page, Google button, email field, and password field are not
+    shown.
+  - The demo password is read only from `DEMO_ACCOUNT_PASSWORD` on the server;
+    it is not stored in source code, a `NEXT_PUBLIC_*` variable, page HTML, or
+    the browser request. The optional `DEMO_COGNITO_CLIENT_ID` selects a
+    dedicated no-secret Cognito client and otherwise falls back to the portal
+    client ID.
+  - After authentication, the demo account uses the same read APIs and shared
+    CURR market, ownership, lending, short-interest, sentiment, exchange,
+    filing, company, alert-catalog, and report data as other authorized CURR
+    users. The legacy bundled demo adapter is no longer called by the shared
+    authenticated data client.
+  - The exact normalized profile/JWT email identifies the demo experience;
+    creating a new application role is not required.
+  - Demo Ownership and Internal Float retain the fictional user holdings from
+    `demoInternalFloatUserInputs`. Issued shares, institutional ownership,
+    ticker-level token/collateral inputs, operations suggestions, and other
+    shared values continue to come from live APIs. Demo Internal Float changes
+    remain browser-session-only.
+  - The report archive no longer invents a previous-day report and instead
+    reads the authenticated report index and report payloads.
+  - The demo account is restricted to CURR in the frontend, cannot enable
+    Development Mode, receives an Operations Portal access-denied view, and
+    cannot issue mutations through `authenticatedFetch`. Alert settings and
+    profile controls also render read-only.
+  - Normal authenticated accounts retain their existing API, editing, ticker,
+    reporting, Development Mode, and Operations Portal behavior.
+- Files changed:
+  - `.env.example`
+  - `app/api/demo-login/route.ts`
+  - `app/demo/DemoLauncher.tsx`
+  - `app/monitor/[ticker]/institutional/InstitutionalBrowserPage.tsx`
+  - `app/monitor/[ticker]/internal-float/InternalFloatRoleView.tsx`
+  - `app/monitor/[ticker]/reports/ReportArchiveBrowserPage.tsx`
+  - `app/monitor/[ticker]/settings/alerts/CustomAlertSettingsClient.tsx`
+  - `app/monitor/[ticker]/user-profile/UserProfileClient.tsx`
+  - `app/operations/OperationsShell.tsx`
+  - `components/AuthGuard.tsx`
+  - `components/DevModeToggle.tsx`
+  - `components/PublicDemoWelcome.tsx`
+  - `components/UserMenu.tsx`
+  - `lib/auth-client.ts`
+  - `lib/public-demo.ts`
+  - `docs/CODEX_CHANGE_LOG.md`
+- Verification:
+  - TypeScript type-check passed.
+  - Production build passed, including all 29 statically generated pages.
+  - Whitespace validation passed.
+  - Local API verification confirmed the server route uses no-store response
+    headers and returns a controlled configuration error when its private
+    password is absent; the `/demo` page renders that error without opening
+    hosted Cognito or exposing credential fields.
+- Remaining backend dependency / limitation:
+  - The Cognito/profile record for `demo.curr@gmail.com` must exist and
+    have CURR in its authorized `tickers` list.
+  - Deployment must set server-only `DEMO_ACCOUNT_PASSWORD` and, when a
+    separate client is used, `DEMO_COGNITO_CLIENT_ID`. That Cognito app client
+    must enable `ALLOW_USER_PASSWORD_AUTH`, issue refresh tokens, and have no
+    client secret. A successful end-to-end demo login cannot be verified until
+    these values and Cognito settings exist in the deployment environment.
+  - Frontend mutation blocking prevents portal UI writes but is not a security
+    boundary. The backend/API authorizer must deny POST, PUT, PATCH, and DELETE
+    requests for this account, preferably by its immutable Cognito `sub`,
+    before public credentials are distributed.
+
 ## 2026-08-11 - Add current-snapshot Latest Filings to Ownership
 
 - Area: User Portal -> Ownership.

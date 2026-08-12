@@ -7460,52 +7460,35 @@ html[data-design-b-theme='dark'] .ops-ticker-row-actions button {
   }
 }
 
-.internal-float-demo-banner {
+.demo-data-heading {
   display: flex;
-  align-items: flex-start;
-  gap: 10px;
-  margin-bottom: 12px;
-  padding: 11px 13px;
-  border: 1px solid #bfdbfe;
-  border-radius: 8px;
-  background: #eff6ff;
-  color: #1e3a5f;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
 }
 
-.internal-float-demo-banner svg {
-  flex: 0 0 auto;
-  width: 18px;
-  height: 18px;
-  fill: none;
-  stroke: #2563eb;
-  stroke-linecap: round;
-  stroke-linejoin: round;
-  stroke-width: 1.7;
+.demo-data-tag {
+  display: inline-flex;
+  align-items: center;
+  width: max-content;
+  border: 1px solid #f1c27d;
+  border-radius: 999px;
+  background: #fff7e8;
+  padding: 3px 7px;
+  color: #9a5700;
+  font-size: 9px;
+  font-style: normal;
+  font-weight: 850;
+  letter-spacing: .08em;
+  line-height: 1;
+  text-transform: uppercase;
+  white-space: nowrap;
 }
 
-.internal-float-demo-banner div {
-  display: grid;
-  gap: 2px;
-}
-
-.internal-float-demo-banner strong {
-  font-size: 12px;
-}
-
-.internal-float-demo-banner span {
-  color: #52677f;
-  font-size: 11px;
-  line-height: 1.45;
-}
-
-html[data-design-b-theme="dark"] .internal-float-demo-banner {
-  border-color: #23466f;
-  background: #0d223c;
-  color: #dbeafe;
-}
-
-html[data-design-b-theme="dark"] .internal-float-demo-banner span {
-  color: #9db4cf;
+html[data-design-b-theme="dark"] .demo-data-tag {
+  border-color: rgba(251, 191, 36, .42);
+  background: rgba(180, 83, 9, .20);
+  color: #fcd58b;
 }
 
 /* Dashboard custom alert center */

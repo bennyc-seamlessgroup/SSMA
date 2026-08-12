@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { authenticatedFetch, cachedAuthenticatedFetch, decodeJWT, getStoredTokens, setCachedAuthenticatedProfile } from '@/lib/auth-client';
 import { PortalPageLoading } from '@/components/PortalPageLoading';
+import { isPublicDemoProfile } from '@/lib/public-demo';
 
 type Profile = {
   sub?: string;
@@ -46,6 +47,7 @@ export function UserProfileClient() {
   const [isSaving, setIsSaving] = useState(false);
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
+  const [isDemo, setIsDemo] = useState(false);
 
   const tokenUser = useMemo(() => {
     const tokens = getStoredTokens();
@@ -62,6 +64,7 @@ export function UserProfileClient() {
         const data = await cachedAuthenticatedFetch<Profile>('/profile');
         if (cancelled) return;
         setProfile(data);
+        setIsDemo(isPublicDemoProfile(data));
         setForm({
           name: data.name ?? '',
           nickname: data.nickname ?? '',
@@ -84,6 +87,10 @@ export function UserProfileClient() {
 
   async function saveProfile(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (isDemo) {
+      setError('The demo account is read-only. Profile changes are not saved.');
+      return;
+    }
     setIsSaving(true);
     setError('');
     setMessage('');
@@ -121,24 +128,25 @@ export function UserProfileClient() {
         <div className="user-profile-card__head">
           <h2>Edit Profile Settings</h2>
         </div>
+        {isDemo ? <p className="user-profile-message">Demo account profile details are read-only.</p> : null}
         <form className="user-profile-form" onSubmit={saveProfile}>
           <label>
             <span>Full Name</span>
-            <input className="input" value={form.name} onChange={event => setForm(current => ({ ...current, name: event.target.value }))} placeholder="e.g. Benny" />
+            <input className="input" value={form.name} disabled={isDemo} onChange={event => setForm(current => ({ ...current, name: event.target.value }))} placeholder="e.g. Benny" />
           </label>
           <label>
             <span>Nickname</span>
-            <input className="input" value={form.nickname} onChange={event => setForm(current => ({ ...current, nickname: event.target.value }))} placeholder="e.g. benny" />
+            <input className="input" value={form.nickname} disabled={isDemo} onChange={event => setForm(current => ({ ...current, nickname: event.target.value }))} placeholder="e.g. benny" />
           </label>
           <label>
             <span>Phone Number</span>
-            <input className="input" value={form.phone_number} onChange={event => setForm(current => ({ ...current, phone_number: event.target.value }))} placeholder="e.g. +15550100" />
+            <input className="input" value={form.phone_number} disabled={isDemo} onChange={event => setForm(current => ({ ...current, phone_number: event.target.value }))} placeholder="e.g. +15550100" />
           </label>
           <label>
             <span>Biography</span>
-            <textarea className="textarea" value={form.bio} onChange={event => setForm(current => ({ ...current, bio: event.target.value }))} placeholder="Write something about yourself..." rows={5} />
+            <textarea className="textarea" value={form.bio} disabled={isDemo} onChange={event => setForm(current => ({ ...current, bio: event.target.value }))} placeholder="Write something about yourself..." rows={5} />
           </label>
-          <button className="button" type="submit" disabled={isSaving} aria-busy={isSaving}>{isSaving ? 'Saving...' : 'Save Changes'}</button>
+          <button className="button" type="submit" disabled={isSaving || isDemo} aria-busy={isSaving}>{isSaving ? 'Saving...' : 'Save Changes'}</button>
         </form>
         {message && <p className="user-profile-message success">{message}</p>}
         {error && <p className="user-profile-message error">{error}</p>}

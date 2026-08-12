@@ -7,6 +7,8 @@ import { PageDisclaimerNotice } from '@/components/PageDisclaimerNotice';
 import { PortalPageLoading } from '@/components/PortalPageLoading';
 import { ApiDevelopmentTabs } from '@/components/ApiDevelopmentTabs';
 import { ApiSourceTags } from '@/components/ApiSourceTags';
+import { getAuthenticatedProfile } from '@/lib/auth-client';
+import { isPublicDemoProfile } from '@/lib/public-demo';
 import {
   loadAlertRuleData,
   saveAlertRuleSettings,
@@ -42,6 +44,7 @@ export function CustomAlertSettingsClient({ ticker }: { ticker: string }) {
   const [loadError, setLoadError] = useState('');
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [isDemo, setIsDemo] = useState(false);
   const [thresholdDrafts, setThresholdDrafts] = useState<Record<string, string>>({});
   const [developmentData, setDevelopmentData] = useState<{
     catalog: unknown;
@@ -54,8 +57,12 @@ export function CustomAlertSettingsClient({ ticker }: { ticker: string }) {
       setLoading(true);
       setLoadError('');
       try {
-        const data = await loadAlertRuleData(ticker);
+        const [data, profile] = await Promise.all([
+          loadAlertRuleData(ticker),
+          getAuthenticatedProfile().catch(() => null),
+        ]);
         if (!cancelled) {
+          setIsDemo(isPublicDemoProfile(profile));
           setThresholds(data.rules);
           setSavedThresholds(data.rules);
           setThresholdDrafts({});
@@ -115,6 +122,10 @@ export function CustomAlertSettingsClient({ ticker }: { ticker: string }) {
   }
 
   async function save() {
+    if (isDemo) {
+      setLoadError('The demo account is read-only. Alert settings are not saved.');
+      return;
+    }
     setSaving(true);
     setLoadError('');
     try {
@@ -162,6 +173,7 @@ export function CustomAlertSettingsClient({ ticker }: { ticker: string }) {
   return (
     <div className="page custom-alert-settings-page">
       {loadError ? <div className="panel import-data-error">{loadError}</div> : null}
+      {isDemo ? <div className="panel">Demo alert settings are read-only.</div> : null}
       <div className="custom-alert-settings-header">
         <div>
           <p>Define your own risk limits. Alerts will appear on the dashboard when live values cross your configured thresholds.</p>
@@ -176,7 +188,7 @@ export function CustomAlertSettingsClient({ ticker }: { ticker: string }) {
             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m15 18-6-6 6-6" /></svg>
             Back to Dashboard
           </Link>
-          <button className="button primary" type="button" onClick={() => void save()} disabled={!changed || saving} aria-busy={saving}>{saving ? 'Saving...' : 'Save Alert Settings'}</button>
+          <button className="button primary" type="button" onClick={() => void save()} disabled={!changed || saving || isDemo} aria-busy={saving}>{saving ? 'Saving...' : 'Save Alert Settings'}</button>
         </div>
       </div>
 
@@ -204,6 +216,7 @@ export function CustomAlertSettingsClient({ ticker }: { ticker: string }) {
                         role="switch"
                         aria-checked={rule.enabled}
                         className="custom-alert-toggle"
+                        disabled={isDemo}
                         onClick={() => patchRule(rule.id, { enabled: !rule.enabled })}
                       >
                         <span />
@@ -217,7 +230,7 @@ export function CustomAlertSettingsClient({ ticker }: { ticker: string }) {
                     <div className="custom-alert-condition">
                       <label>
                         <span>Operator</span>
-                        <select value={rule.operator} disabled={!rule.enabled} onChange={event => patchRule(rule.id, { operator: event.target.value as AlertOperator })}>
+                        <select value={rule.operator} disabled={!rule.enabled || isDemo} onChange={event => patchRule(rule.id, { operator: event.target.value as AlertOperator })}>
                           {operators.map(operator => <option value={operator} key={operator}>{operator}</option>)}
                         </select>
                       </label>
@@ -229,7 +242,7 @@ export function CustomAlertSettingsClient({ ticker }: { ticker: string }) {
                             type="text"
                             inputMode={rule.unit === 'shares' || rule.unit === '$' ? 'numeric' : 'decimal'}
                             value={thresholdDrafts[rule.id] ?? formattedThreshold(rule)}
-                            disabled={!rule.enabled}
+                            disabled={!rule.enabled || isDemo}
                             onFocus={() => setThresholdDrafts(current => ({
                               ...current,
                               [rule.id]: String(rule.threshold),
@@ -256,11 +269,11 @@ export function CustomAlertSettingsClient({ ticker }: { ticker: string }) {
                       </label>
                       <label>
                         <span>Severity</span>
-                        <select value={rule.severity} disabled={!rule.enabled} onChange={event => patchRule(rule.id, { severity: event.target.value as AlertSeverity })}>
+                        <select value={rule.severity} disabled={!rule.enabled || isDemo} onChange={event => patchRule(rule.id, { severity: event.target.value as AlertSeverity })}>
                           {severities.map(severity => <option value={severity} key={severity}>{severity[0].toUpperCase() + severity.slice(1)}</option>)}
                         </select>
                       </label>
-                      <button className="custom-alert-reset-row" type="button" onClick={() => resetRule(rule.id)} title={`Reset ${rule.label} to default`} aria-label={`Reset ${rule.label} to default`}>
+                      <button className="custom-alert-reset-row" type="button" disabled={isDemo} onClick={() => resetRule(rule.id)} title={`Reset ${rule.label} to default`} aria-label={`Reset ${rule.label} to default`}>
                         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 12a9 9 0 1 0 3-6.7L3 8M3 3v5h5" /></svg>
                       </button>
                     </div>
@@ -319,9 +332,9 @@ export function CustomAlertSettingsClient({ ticker }: { ticker: string }) {
           <span>{changed ? 'You have unsaved changes.' : 'All changes are saved to your account.'}</span>
         </div>
         <div>
-          <button className="button ghost" type="button" onClick={resetDefaults}>Reset Defaults</button>
+          <button className="button ghost" type="button" onClick={resetDefaults} disabled={isDemo}>Reset Defaults</button>
           <button className="button secondary" type="button" onClick={cancel}>Cancel</button>
-          <button className="button primary" type="button" onClick={() => void save()} disabled={!changed || saving} aria-busy={saving}>{saving ? 'Saving...' : 'Save Alert Settings'}</button>
+          <button className="button primary" type="button" onClick={() => void save()} disabled={!changed || saving || isDemo} aria-busy={saving}>{saving ? 'Saving...' : 'Save Alert Settings'}</button>
         </div>
       </div>
 
