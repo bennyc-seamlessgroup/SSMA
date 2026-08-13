@@ -4,6 +4,152 @@ This file is the persistent implementation memory for changes made by Codex.
 Read it before modifying existing portal behavior, and update it after every
 completed change.
 
+## 2026-08-13 - Distinguish recent ownership activity from quarterly history
+
+- Area: User Portal -> Ownership -> Recent Institutional Activity and Quarterly
+  Filing History.
+- APIs/data:
+  - `GET /market-data/current?ticker={ticker}&category=ownership-current`
+  - `GET /manual-input/manual-security-ownership?ticker={ticker}&effectiveDate={all-available-dates}`
+- Reported problem and root cause:
+  - The current-filing and completed-quarter sections used nearly identical
+    headings and table presentation, making two datasets with different timing
+    and meaning appear interchangeable.
+- Intended behavior and invariants:
+  - Latest Filings is renamed Recent Institutional Activity and uses a restrained
+    blue activity accent and activity icon.
+  - The historical area is explicitly introduced as Quarterly Filing History
+    with a calendar/archive icon and neutral styling.
+  - Supporting copy states the timing distinction before either table is read.
+  - Existing data, tabs, row highlighting, search, pagination, and chart actions
+    remain unchanged.
+- Files changed:
+  - `app/monitor/[ticker]/institutional/LatestInstitutionalFilings.tsx`
+  - `app/monitor/[ticker]/institutional/InstitutionalTabs.tsx`
+  - `app/globals.css`
+  - `docs/CODEX_CHANGE_LOG.md`
+- Verification:
+  - TypeScript type-check passed.
+  - Whitespace validation passed.
+  - Browser inspection confirmed the Recent Institutional Activity and
+    Quarterly Filing History headings, the nine supported recent-activity
+    columns, and the blue-accented recent-activity container.
+- Remaining backend dependency / limitation:
+  - None; this is a presentation-only distinction using the existing datasets.
+
+## 2026-08-13 - Simplify the Latest Filings table schema
+
+- Area: User Portal -> Ownership -> Latest Filings.
+- API/data:
+  - `GET /market-data/current?ticker={ticker}&category=ownership-current`
+  - `institutionBreakdown` from the current ownership snapshot.
+- Reported problem and root cause:
+  - Latest Filings displayed Reported Value and Value Change % even though the
+    current-filings API does not supply either value.
+  - Its percentage column reused the quarterly `Shares %` label even though the
+    current snapshot reports each holder's share of total institutional shares.
+- Intended behavior and invariants:
+  - Latest Filings has nine columns and omits unsupported Reported Value and
+    Value Change % fields rather than displaying meaningless `N/A` cells.
+  - Its percentage column is named `% of Institutional Shares`.
+  - Completed-quarter filing tables remain unchanged, including their Shares %,
+    Reported Value, and Value Change % columns.
+  - Search, pagination, row-status highlighting, and ownership chart actions
+    remain unchanged.
+- Files changed:
+  - `app/monitor/[ticker]/institutional/OwnershipTable.tsx`
+  - `app/monitor/[ticker]/institutional/LatestInstitutionalFilings.tsx`
+  - `app/globals.css`
+  - `docs/CODEX_CHANGE_LOG.md`
+- Verification:
+  - TypeScript type-check passed.
+  - Whitespace validation passed.
+- Remaining backend dependency / limitation:
+  - The current snapshot remains limited to the fields returned by
+    `ownership-current.institutionBreakdown`.
+
+## 2026-08-13 - Restore real ownership history charts for filing rows
+
+- Area: User Portal -> Ownership -> Latest Filings and quarterly Institutions.
+- APIs/data:
+  - `GET /market-data/current?ticker={ticker}&category=ownership-current`
+    supplies current filing rows.
+  - `GET /manual-input/manual-security-ownership?ticker={ticker}&effectiveDate={all-available-dates}`
+    supplies each holder's reported share snapshots across filing periods.
+  - `GET /market-data/history?ticker={ticker}&category=market-history`
+    supplies the market closing-price series.
+- Reported problem and root cause:
+  - The previous filing-row chart action disappeared when the ownership tables
+    moved to the manual filing schema.
+  - Its retained chart implementation generated holder bars and price points
+    from a name-based seed instead of API data, so restoring that code directly
+    would have presented fictional history as real information.
+- Intended behavior and invariants:
+  - Both Latest Filings and completed-quarter Institutions show the same compact
+    SVG chart action after the Investor column, and both tables retain identical
+    11-column alignment.
+  - Clicking the action opens one shared modal. Bars show only real disclosed
+    holder share snapshots, grouped by effective date; the line shows real
+    closing-price history from `market-history`.
+  - Put and Call records are excluded from the reported-share series. No seeded,
+    inferred, or local fallback chart values are generated.
+  - The chart explains that filing bars are periodic disclosures rather than
+    daily ownership changes, supports pointer tooltips and Escape dismissal,
+    and has matching light/dark presentation.
+  - Development Data exposes the newly consumed Market History API in its own
+    tab so the price source can be inspected independently.
+- Files changed:
+  - `app/monitor/[ticker]/institutional/OwnershipHistoryChart.tsx`
+  - `app/monitor/[ticker]/institutional/OwnershipTable.tsx`
+  - `app/monitor/[ticker]/institutional/LatestInstitutionalFilings.tsx`
+  - `app/monitor/[ticker]/institutional/InstitutionalTabs.tsx`
+  - `app/monitor/[ticker]/institutional/InstitutionalBrowserPage.tsx`
+  - `app/monitor/[ticker]/institutional/InstitutionalDevTables.tsx`
+  - `app/globals.css`
+  - `docs/CODEX_CHANGE_LOG.md`
+- Verification:
+  - TypeScript type-check passed.
+  - Production build passed, including all 29 statically generated pages.
+  - Whitespace validation passed.
+  - Browser verification confirmed 40 visible filing-row chart actions for the
+    available demo dataset and identical headers in Latest and quarterly tables.
+  - Opening a chart produced six disclosed filing bars and a real market-history
+    line; the old synthetic generator is no longer present.
+- Remaining backend dependency / limitation:
+  - Ownership bars can only appear on reported effective dates because the
+    backend provides periodic filing snapshots, not daily holder balances.
+  - Closing-price coverage depends on the available `market-history` records;
+    the popup shows an explicit empty state if neither real series is available.
+
+## 2026-08-13 - Add explicit positive signs to ownership percentages
+
+- Area: User Portal -> Ownership -> Latest Filings and quarterly Institutions.
+- APIs/data:
+  - `GET /market-data/current?ticker={ticker}&category=ownership-current`
+  - `GET /manual-input/manual-security-ownership?ticker={ticker}&effectiveDate={date}`
+- Reported problem and root cause:
+  - Positive Shares % and Value Change % values did not include a leading `+`,
+    while negative values already included `-`, making direction less immediate
+    to scan.
+- Intended behavior and invariants:
+  - Positive Shares % and Value Change % values display a leading `+` in both
+    the Latest Filings and completed-quarter tables.
+  - Negative values retain their existing `-`; zero remains `0%`; missing or
+    invalid values remain `N/A`.
+  - The rule is implemented through the shared number-format library so signed
+    percentage rendering remains consistent.
+- Files changed:
+  - `lib/number-format.ts`
+  - `app/monitor/[ticker]/institutional/OwnershipTable.tsx`
+  - `app/monitor/[ticker]/institutional/LatestInstitutionalFilings.tsx`
+  - `docs/CODEX_CHANGE_LOG.md`
+- Verification:
+  - TypeScript type-check passed.
+  - Whitespace validation passed.
+- Remaining backend dependency / limitation:
+  - Latest Filings still displays Value Change % as `N/A` because that field is
+    not currently supplied by `ownership-current.institutionBreakdown`.
+
 ## 2026-08-13 - Align Latest Filings with quarterly filing columns
 
 - Area: User Portal -> Ownership -> Latest Filings.

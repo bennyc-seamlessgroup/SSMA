@@ -97,6 +97,7 @@ type OwnershipCurrent = {
 };
 
 type OwnershipHistory = { generatedAt?: string; records?: Array<Record<string, unknown>> };
+type MarketHistory = { generatedAt?: string; records?: Array<Record<string, unknown>> };
 
 type InternalFloatCurrent = {
   generatedAt?: string;
@@ -273,12 +274,23 @@ function ownershipChangeType(row: SecurityOwnershipRow): InstitutionalHolding['c
   return changeType(Number.isFinite(sharesChange) ? sharesChange : row.sharesChange);
 }
 
+function ownershipCategoryPayload<T extends Record<string, unknown>>(payload: unknown, category: string): T | null {
+  if (!isRecord(payload)) return null;
+  if (isRecord(payload[category])) return payload[category] as T;
+  if (isRecord(payload.data)) {
+    if (isRecord(payload.data[category])) return payload.data[category] as T;
+    return payload.data as T;
+  }
+  return payload as T;
+}
+
 export function InstitutionalBrowserPage({ ticker }: { ticker: string }) {
   const normalizedTicker = normalizeTicker(ticker);
   const [isDemo, setIsDemo] = useState(false);
   const [current, setCurrent] = useState<OwnershipCurrent | null>(null);
   const [activitySummary, setActivitySummary] = useState<OwnershipSummaryCurrent | null>(null);
   const [history, setHistory] = useState<OwnershipHistory | null>(null);
+  const [marketHistory, setMarketHistory] = useState<MarketHistory | null>(null);
   const [manualOwnership, setManualOwnership] = useState<ManualSecurityOwnershipDataset | null>(null);
   const [internalFloatCurrent, setInternalFloatCurrent] = useState<InternalFloatCurrent | null>(null);
   const [strategicHoldings, setStrategicHoldings] = useState<InternalFloatPrivateHolding[]>([]);
@@ -299,18 +311,20 @@ export function InstitutionalBrowserPage({ ticker }: { ticker: string }) {
       cachedAuthenticatedFetch<OwnershipCurrent>(`/market-data/current?ticker=${encodeURIComponent(normalizedTicker)}&category=ownership-current`),
       cachedAuthenticatedFetch<OwnershipSummaryCurrent>(`/market-data/current?ticker=${encodeURIComponent(normalizedTicker)}&category=ownership-summary-current`).catch(() => null),
       cachedAuthenticatedFetch<OwnershipHistory>(`/market-data/history?ticker=${encodeURIComponent(normalizedTicker)}&category=ownership-history`),
+      cachedAuthenticatedFetch<Record<string, unknown>>(`/market-data/history?ticker=${encodeURIComponent(normalizedTicker)}&category=market-history`),
       cachedAuthenticatedFetch<unknown>(`/market-data/current?ticker=${encodeURIComponent(normalizedTicker)}&category=internal-float-current-user`),
       cachedAuthenticatedFetch<InternalFloatInputsResponse>(`/manual-input/internal-float-inputs-user?ticker=${encodeURIComponent(normalizedTicker)}`)
         .catch(emptyInternalFloatInputsOnNotFound),
       loadAllManualSecurityOwnership(normalizedTicker),
       getAuthenticatedProfile(),
-    ]).then(([nextCurrent, nextActivitySummary, nextHistory, nextInternalFloatCurrent, nextInternalFloatInputs, nextManualOwnership, profile]) => {
+    ]).then(([nextCurrent, nextActivitySummary, nextHistory, nextMarketHistory, nextInternalFloatCurrent, nextInternalFloatInputs, nextManualOwnership, profile]) => {
       if (cancelled) return;
       const nextIsDemo = isPublicDemoProfile(profile);
       setIsDemo(nextIsDemo);
       setCurrent(nextCurrent);
       setActivitySummary(nextActivitySummary);
       setHistory(nextHistory);
+      setMarketHistory(ownershipCategoryPayload<MarketHistory>(nextMarketHistory, 'market-history'));
       setInternalFloatCurrent(normalizeInternalFloatCurrent(nextInternalFloatCurrent));
       setStrategicHoldings(mergeInternalFloatHoldings(
         nextIsDemo
@@ -357,7 +371,7 @@ export function InstitutionalBrowserPage({ ticker }: { ticker: string }) {
   }, [consolidatedStrategicShares, expectedUserStrategicShares, isDemo, normalizedTicker, strategicHoldings.length]);
 
   if (loading) return <PortalPageLoading variant="ownership" />;
-  if (error || !current || !history) {
+  if (error || !current || !history || !marketHistory) {
     return <div className="page"><section className="panel"><h2>Ownership data unavailable</h2><p>{error}</p></section></div>;
   }
 
@@ -432,6 +446,28 @@ export function InstitutionalBrowserPage({ ticker }: { ticker: string }) {
     source_type: 'manual-security-ownership',
     source_label: securitySource,
   }));
+  const latestChartHoldings: InstitutionalHolding[] = institutionBreakdownRows
+    .filter(row => !isPutOrCallHoldingType(row.type))
+    .map((row, index) => ({
+      id: `latest-ownership-${index}`,
+      company_id: `company-${normalizedTicker}`,
+      fund_name: String(row.holderName ?? row.name ?? 'Unknown holder'),
+      shares: formatNumber(row.shares),
+      market_value: formatNumber(row.value),
+      change_type: 'unchanged',
+      filing_date: String(row.fileDate ?? 'N/A'),
+      source: String(row.formType ?? row.formTypeShort ?? 'Latest filing'),
+      form_type: String(row.formType ?? row.formTypeShort ?? 'N/A'),
+      effective_date: String(row.effectiveDate ?? row.fileDate ?? 'N/A'),
+      holding_type: String(row.type ?? ''),
+      cost_basis: formatNumber(row.avgPrice),
+      ownership_percent: formatPercent(row.percentOfInstitutionalShares),
+      position_status: String(row.positionStatus ?? ''),
+      source_type: 'free_data',
+      source_label: 'GET /market-data/current?category=ownership-current',
+    }));
+  const chartHoldings = [...holdings, ...latestChartHoldings];
+  const marketHistoryRows = Array.isArray(marketHistory.records) ? marketHistory.records : [];
   const activistFilings: ActivistFiling[] = activistRows.map((row, index) => ({
     id: `activist-filing-${index}`,
     name: row.holderName ?? row.name ?? 'Unknown holder',
@@ -456,6 +492,8 @@ export function InstitutionalBrowserPage({ ticker }: { ticker: string }) {
         rows={institutionBreakdownRows as LatestInstitutionalFiling[]}
         ticker={normalizedTicker}
         snapshotDate={current.snapshotDate ?? current.updatedAt ?? current.generatedAt}
+        chartHoldings={chartHoldings}
+        marketHistory={marketHistoryRows}
       />
       <section className="panel">
         <ApiSourceTags sources={[
@@ -469,6 +507,8 @@ export function InstitutionalBrowserPage({ ticker }: { ticker: string }) {
           activistFilings={activistFilings}
           ticker={normalizedTicker}
           companyName={normalizedTicker}
+          chartHoldings={chartHoldings}
+          marketHistory={marketHistoryRows}
           manualSchema
           ownershipEmptyMessage={manualOwnershipEmptyMessage}
         />
@@ -495,6 +535,7 @@ export function InstitutionalBrowserPage({ ticker }: { ticker: string }) {
         activistRows={activistRows as Array<Record<string, unknown>>}
         managementHoldings={managementRecords as Array<Record<string, unknown>>}
         latestFilings={institutionBreakdownRows}
+        marketHistory={marketHistoryRows}
       />
     </div>
   );

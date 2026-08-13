@@ -1,9 +1,11 @@
 'use client';
 
 import { ApiSourceTags } from '@/components/ApiSourceTags';
-import { formatExactNumber, portalNumber } from '@/lib/number-format';
+import { formatExactNumber, formatSignedPercent, portalNumber } from '@/lib/number-format';
+import type { InstitutionalHolding } from '@/lib/types';
 import { useMemo, useState } from 'react';
-import { OwnershipTableHeader } from './OwnershipTable';
+import { OwnershipChartButton, OwnershipTableHeader } from './OwnershipTable';
+import { OwnershipHistoryChartModal, type OwnershipMarketHistoryRecord } from './OwnershipHistoryChart';
 
 export type LatestInstitutionalFiling = {
   holderName?: unknown;
@@ -44,13 +46,6 @@ function decimalText(value: unknown) {
       });
 }
 
-function percentText(value: unknown) {
-  const numeric = portalNumber(value);
-  return numeric === null
-    ? 'N/A'
-    : `${numeric.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}%`;
-}
-
 function normalizedStatus(value: unknown) {
   return String(value ?? '')
     .trim()
@@ -74,13 +69,18 @@ export function LatestInstitutionalFilings({
   rows,
   ticker,
   snapshotDate,
+  chartHoldings,
+  marketHistory,
 }: {
   rows: LatestInstitutionalFiling[];
   ticker: string;
   snapshotDate?: string;
+  chartHoldings: InstitutionalHolding[];
+  marketHistory: OwnershipMarketHistoryRecord[];
 }) {
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(1);
+  const [selectedHolding, setSelectedHolding] = useState<InstitutionalHolding | null>(null);
   const visibleRows = useMemo(() => {
     const query = search.trim().toLowerCase();
     return rows
@@ -123,9 +123,17 @@ export function LatestInstitutionalFilings({
         label: 'Latest institutional filings',
       }]} />
       <header className="institutional-latest-filings__head">
-        <div>
-          <h2 id="institutional-latest-filings-title">Latest Filings</h2>
-          <p>Current institutional filings ordered by the latest file date. Completed reporting-quarter history remains available below.</p>
+        <div className="institutional-section-heading">
+          <span className="institutional-section-heading__icon is-activity" aria-hidden="true">
+            <svg viewBox="0 0 24 24" focusable="false">
+              <path d="M4 12h3l2-5 4 10 2-5h5" />
+              <path d="M12 3a9 9 0 1 0 9 9" />
+            </svg>
+          </span>
+          <div>
+            <h2 id="institutional-latest-filings-title">Recent Institutional Activity</h2>
+            <p>Recently filed institutional positions, ordered by file date. Completed reporting periods are organized in Quarterly Filing History below.</p>
+          </div>
         </div>
         <span>As of {dateText(snapshotDate)}</span>
       </header>
@@ -151,26 +159,28 @@ export function LatestInstitutionalFilings({
 
       <div className="ownership-table-wrap institutional-latest-filings__table-wrap">
         <table className="ownership-table institutional-latest-filings__table">
-          <OwnershipTableHeader manualSchema />
+          <OwnershipTableHeader manualSchema latestSchema />
           <tbody>
-            {pageRows.length ? pageRows.map((row, index) => (
-              <tr
-                key={`${String(row.fileDate ?? 'date')}-${String(row.holderName ?? 'holder')}-${index}`}
-                className={statusClass(row.positionStatus)}
-              >
-                <td>{dateText(row.fileDate)}</td>
-                <td>{dateText(row.effectiveDate)}</td>
-                <td>{String(row.formType ?? 'N/A')}</td>
-                <td className="investor-cell">{String(row.holderName ?? 'Unknown holder')}</td>
-                <td>{String(row.type ?? '')}</td>
-                <td className="num">{decimalText(row.avgPrice)}</td>
-                <td className="num">{formatExactNumber(row.shares, { maximumFractionDigits: 0 })}</td>
-                <td className="num">{percentText(row.percentOfInstitutionalShares)}</td>
-                <td className="num">N/A</td>
-                <td className="num">N/A</td>
-              </tr>
-            )) : (
-              <tr><td colSpan={10} className="ownership-table-empty">No current institutional filings are available.</td></tr>
+            {pageRows.length ? pageRows.map((row, index) => {
+              const chartHolding = latestFilingHolding(row, ticker, index);
+              return (
+                <tr
+                  key={`${String(row.fileDate ?? 'date')}-${String(row.holderName ?? 'holder')}-${index}`}
+                  className={statusClass(row.positionStatus)}
+                >
+                  <td>{dateText(row.fileDate)}</td>
+                  <td>{dateText(row.effectiveDate)}</td>
+                  <td>{String(row.formType ?? 'N/A')}</td>
+                  <td className="investor-cell">{String(row.holderName ?? 'Unknown holder')}</td>
+                  <td><OwnershipChartButton holding={chartHolding} onClick={() => setSelectedHolding(chartHolding)} /></td>
+                  <td>{String(row.type ?? '')}</td>
+                  <td className="num">{decimalText(row.avgPrice)}</td>
+                  <td className="num">{formatExactNumber(row.shares, { maximumFractionDigits: 0 })}</td>
+                  <td className="num">{formatSignedPercent(row.percentOfInstitutionalShares, { minimumFractionDigits: 2 })}</td>
+                </tr>
+              );
+            }) : (
+              <tr><td colSpan={9} className="ownership-table-empty">No current institutional filings are available.</td></tr>
             )}
           </tbody>
         </table>
@@ -185,6 +195,37 @@ export function LatestInstitutionalFilings({
           <button type="button" onClick={() => goToPage(totalPages)} disabled={safePage === totalPages}>Last</button>
         </div>
       ) : null}
+
+      {selectedHolding ? (
+        <OwnershipHistoryChartModal
+          holding={selectedHolding}
+          holdings={chartHoldings}
+          marketHistory={marketHistory}
+          ticker={ticker}
+          onClose={() => setSelectedHolding(null)}
+        />
+      ) : null}
     </section>
   );
+}
+
+function latestFilingHolding(row: LatestInstitutionalFiling, ticker: string, index: number): InstitutionalHolding {
+  return {
+    id: `latest-filing-${index}`,
+    company_id: `company-${ticker}`,
+    fund_name: String(row.holderName ?? 'Unknown holder'),
+    shares: formatExactNumber(row.shares, { maximumFractionDigits: 0 }),
+    market_value: 'N/A',
+    change_type: 'unchanged',
+    filing_date: String(row.fileDate ?? 'N/A'),
+    effective_date: String(row.effectiveDate ?? row.fileDate ?? 'N/A'),
+    source: String(row.formType ?? 'Latest filing'),
+    form_type: String(row.formType ?? 'N/A'),
+    ownership_percent: formatSignedPercent(row.percentOfInstitutionalShares, { minimumFractionDigits: 2 }),
+    holding_type: String(row.type ?? ''),
+    cost_basis: decimalText(row.avgPrice),
+    position_status: String(row.positionStatus ?? ''),
+    source_type: 'free_data',
+    source_label: 'GET /market-data/current?category=ownership-current',
+  };
 }

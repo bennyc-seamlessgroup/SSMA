@@ -76,3 +76,17 @@ export function formatExactNumber(
   const parsed = portalNumber(value);
   return parsed === null ? fallback : parsed.toLocaleString('en-US', options);
 }
+
+export function formatSignedPercent(
+  value: unknown,
+  options: Intl.NumberFormatOptions = {},
+  fallback = 'N/A',
+) {
+  const parsed = portalNumber(value);
+  if (parsed === null) return fallback;
+  const sign = parsed > 0 ? '+' : '';
+  return `${sign}${parsed.toLocaleString('en-US', {
+    maximumFractionDigits: 2,
+    ...options,
+  })}%`;
+}

@@ -24,6 +24,7 @@ type InstitutionalDevTablesProps = {
   activistRows: Array<Record<string, unknown>>;
   managementHoldings: Array<Record<string, unknown>>;
   latestFilings: Array<Record<string, unknown>>;
+  marketHistory: Array<Record<string, unknown>>;
 };
 
 const activistColumns = [
@@ -118,6 +119,7 @@ export function InstitutionalDevTables({
   activistRows,
   managementHoldings,
   latestFilings,
+  marketHistory,
 }: InstitutionalDevTablesProps) {
   const ownershipStructureColumns = columnsFor(ownershipStructure, ['key', 'label', 'shares', 'percent', 'color']);
   const insiderBarColumns = columnsFor(insiderBars, ['name', 'shares', 'ownershipPercentOfInsiders', 'ownershipPercentOfSharesOutstanding']);
@@ -149,6 +151,7 @@ export function InstitutionalDevTables({
     'percentOfInstitutionalShares',
     'positionStatus',
   ]);
+  const marketHistoryColumns = columnsFor(marketHistory, ['tradeDate', 'price', 'open', 'high', 'low', 'close']);
   const tabs = [
     {
       id: 'ownership-current-raw',
@@ -181,6 +184,14 @@ export function InstitutionalDevTables({
       sourcePlatform: 'API Gateway',
       recordCount: latestFilings.length,
       status: 'ready',
+    },
+    {
+      id: 'ownership-chart-market-history',
+      title: 'Chart Price History',
+      file: `GET /market-data/history?ticker=${encodeURIComponent(ticker)}&category=market-history`,
+      sourcePlatform: 'API Gateway',
+      recordCount: marketHistory.length,
+      status: marketHistory.length ? 'ready' : 'missing',
     },
     {
       id: 'management-holdings',
@@ -261,6 +272,7 @@ export function InstitutionalDevTables({
           <span className="import-file-tag">{manualOwnershipFile}</span>
           <span className="import-file-tag">GET /market-data/current?category=internal-float-current-user</span>
           <span className="import-file-tag">GET /manual-input/internal-float-inputs-user</span>
+          <span className="import-file-tag">GET /market-data/history?category=market-history</span>
         </div>
       </div>
 
@@ -269,6 +281,7 @@ export function InstitutionalDevTables({
         <ImportDataTable columns={['field', 'value']} rows={overviewRows(overview)} pageSize={25} />
         <ImportDataTable columns={['field', 'value']} rows={flattenedRows(ownershipSummaryCurrent)} pageSize={25} />
         <ImportDataTable columns={latestFilingColumns} rows={toTableRows(latestFilings, latestFilingColumns)} pageSize={25} />
+        <ImportDataTable columns={marketHistoryColumns} rows={toTableRows(marketHistory, marketHistoryColumns)} pageSize={25} />
         <ImportDataTable columns={managementHoldingColumns} rows={toTableRows(managementHoldings, managementHoldingColumns)} pageSize={25} />
         <ImportDataTable
           columns={['field', 'value']}

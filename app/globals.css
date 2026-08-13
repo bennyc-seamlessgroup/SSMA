@@ -23388,7 +23388,7 @@ html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .dashbo
 }
 .ownership-table {
   width: 100%;
-  min-width: 920px;
+  min-width: 1010px;
   border-collapse: collapse;
   font-size: 12px;
   color: #1f2933;
@@ -23519,6 +23519,18 @@ html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .dashbo
   font-size: 14px;
   line-height: 1.2;
 }
+.ownership-chart-empty {
+  display: grid;
+  min-height: 280px;
+  place-items: center;
+  margin: 18px 0;
+  border: 1px dashed #d7e0ea;
+  border-radius: 8px;
+  background: #f8fafc;
+  color: #64748b;
+  font-size: 13px;
+  font-weight: 600;
+}
 .ownership-history-chart svg {
   display: block;
   width: 100%;
@@ -23605,6 +23617,15 @@ html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .dashbo
 }
 .ownership-chart-legend .shares {
   background: #12471f;
+}
+.ownership-chart-note {
+  display: block;
+  max-width: 680px;
+  margin: 12px auto 0;
+  color: #6b7280;
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 1.5;
 }
 .ownership-chart-tooltip rect {
   fill: #ffffff;
@@ -24086,7 +24107,11 @@ html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .dashbo
   display: grid;
   gap: 12px;
   min-width: 0;
-  padding: 4px 0;
+  padding: 16px;
+  border: 1px solid #cfe0f5;
+  border-left: 3px solid #2563eb;
+  border-radius: 8px;
+  background: #f8fbff;
 }
 
 .institutional-latest-filings__head {
@@ -24096,10 +24121,45 @@ html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .dashbo
   gap: 24px;
 }
 
-.institutional-latest-filings__head > div {
-  display: grid;
-  gap: 5px;
+.institutional-section-heading {
+  display: flex;
+  align-items: flex-start;
+  gap: 11px;
   min-width: 0;
+}
+
+.institutional-section-heading > div {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+.institutional-section-heading__icon {
+  display: grid;
+  flex: 0 0 34px;
+  width: 34px;
+  height: 34px;
+  place-items: center;
+  border: 1px solid #d4deeb;
+  border-radius: 7px;
+  background: #fff;
+  color: #66758d;
+}
+
+.institutional-section-heading__icon.is-activity {
+  border-color: #bfd5fb;
+  background: #edf5ff;
+  color: #2563eb;
+}
+
+.institutional-section-heading__icon svg {
+  width: 18px;
+  height: 18px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
 }
 
 .institutional-latest-filings__head h2 {
@@ -24132,7 +24192,11 @@ html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .dashbo
 }
 
 .institutional-latest-filings__table {
-  min-width: 920px;
+  min-width: 860px;
+}
+
+.institutional-latest-filings__table-wrap {
+  border-color: #d5e3f4;
 }
 
 @media (max-width: 720px) {
@@ -24529,6 +24593,27 @@ html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .instit
   gap: 16px;
 }
 
+.institutional-history-heading {
+  padding-bottom: 13px;
+  border-bottom: 1px solid #dde5ef;
+}
+
+.institutional-history-heading h2 {
+  margin: 0;
+  color: #061b31;
+  font-size: 17px;
+  font-weight: 750;
+  line-height: 1.25;
+}
+
+.institutional-history-heading p {
+  margin: 0;
+  color: #66758d;
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.5;
+}
+
 .institutional-tabs__bar {
   display: inline-flex;
   width: max-content;
@@ -24879,6 +24964,49 @@ html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .instit
   background: rgba(16, 185, 129, .18);
 }
 
+html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .institutional-page .ownership-chart-modal {
+  border-color: rgba(148, 163, 184, .22);
+  background: #1d2a3d;
+  box-shadow: 0 28px 80px rgba(0, 0, 0, .42);
+}
+
+html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .institutional-page .ownership-chart-close {
+  border-color: rgba(148, 163, 184, .24);
+  background: #142238;
+  color: #b7c7db;
+}
+
+html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .institutional-page .ownership-history-chart h2,
+html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .institutional-page .ownership-chart-legend {
+  color: #eef5fd;
+}
+
+html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .institutional-page .ownership-history-chart p,
+html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .institutional-page .ownership-chart-note {
+  color: #9fb0c6;
+}
+
+html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .institutional-page .ownership-chart-grid,
+html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .institutional-page .ownership-chart-month {
+  stroke: rgba(148, 163, 184, .18);
+}
+
+html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .institutional-page .ownership-chart-baseline {
+  stroke: #8da1ba;
+}
+
+html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .institutional-page .ownership-chart-axis-title,
+html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .institutional-page .ownership-chart-tick,
+html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .institutional-page .ownership-chart-date {
+  fill: #aebed1;
+}
+
+html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .institutional-page .ownership-chart-empty {
+  border-color: rgba(148, 163, 184, .24);
+  background: rgba(15, 29, 51, .72);
+  color: #aebed1;
+}
+
 html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .institutional-page .institutional-tabs__bar,
 html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .institutional-page .ownership-page-count,
 html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .institutional-page .ownership-page-input,
@@ -24934,10 +25062,38 @@ html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .instit
 html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .institutional-page .institutional-activity-summary__head > span,
 html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .institutional-page .institutional-latest-filings__head p,
 html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .institutional-page .institutional-latest-filings__head > span,
+html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .institutional-page .institutional-history-heading p,
 html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .institutional-page .institutional-activity-footnote,
 html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .institutional-page .institutional-activity-card-note,
 html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .institutional-page .institutional-activity-table-card thead th {
   color: #8fa3bd;
+}
+
+html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .institutional-page .institutional-latest-filings {
+  border-color: rgba(96, 165, 250, .24);
+  border-left-color: #60a5fa;
+  background: rgba(17, 34, 57, .78);
+}
+
+html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .institutional-page .institutional-latest-filings__table-wrap,
+html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .institutional-page .institutional-history-heading {
+  border-color: rgba(148, 163, 184, .18);
+}
+
+html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .institutional-page .institutional-history-heading h2 {
+  color: #f4f8ff;
+}
+
+html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .institutional-page .institutional-section-heading__icon {
+  border-color: rgba(148, 163, 184, .22);
+  background: #142238;
+  color: #a8bad2;
+}
+
+html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .institutional-page .institutional-section-heading__icon.is-activity {
+  border-color: rgba(96, 165, 250, .32);
+  background: rgba(37, 99, 235, .16);
+  color: #79b3ff;
 }
 
 html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .institutional-page .institutional-activity-cards article {
