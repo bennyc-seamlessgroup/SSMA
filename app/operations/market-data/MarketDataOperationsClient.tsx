@@ -87,6 +87,21 @@ type FormState = {
   shortScore: string;
 };
 
+type MarketSavePlanItem = {
+  label: string;
+  method: 'PUT';
+  endpoint: string;
+  payload: Record<string, unknown>;
+};
+
+type PendingMarketSave = {
+  workspaceTicker: string;
+  ticker: string;
+  tradeDate: string;
+  record: MarketInputRow;
+  requests: MarketSavePlanItem[];
+};
+
 const dateSpecificCategories = ['issued-share', 'utilization', 'manual-availability', 'margins', 'short-score'] as const;
 const historyPageSize = 10;
 
@@ -520,7 +535,7 @@ export function MarketDataOperationsClient() {
   const [rows, setRows] = useState<MarketInputRow[]>([]);
   const [marketHistory, setMarketHistory] = useState<MarketPublicationRecord[]>([]);
   const [apiDebugRows, setApiDebugRows] = useState<OperationsDevelopmentDatum[]>([]);
-  const [status, setStatus] = useState<'checking' | 'loading' | 'idle' | 'saving' | 'consolidating' | 'success' | 'error' | 'forbidden'>('checking');
+  const [status, setStatus] = useState<'checking' | 'loading' | 'idle' | 'confirming' | 'saving' | 'consolidating' | 'success' | 'error' | 'forbidden'>('checking');
   const [message, setMessage] = useState('');
   const [deletingDate, setDeletingDate] = useState('');
   const [editingDate, setEditingDate] = useState('');
@@ -530,6 +545,7 @@ export function MarketDataOperationsClient() {
   const [historyRefreshing, setHistoryRefreshing] = useState(false);
   const [historyRefreshMessage, setHistoryRefreshMessage] = useState('');
   const [manualRowsByDate, setManualRowsByDate] = useState<Record<string, MarketInputRow>>({});
+  const [pendingSave, setPendingSave] = useState<PendingMarketSave | null>(null);
   const activeTickerRef = useRef('CURR');
   const loadGenerationRef = useRef(0);
   const [nowMs, setNowMs] = useState(() => Date.now());
@@ -710,6 +726,17 @@ export function MarketDataOperationsClient() {
     return () => window.clearInterval(timer);
   }, []);
 
+  useEffect(() => {
+    if (!pendingSave) return;
+    function cancelOnEscape(event: KeyboardEvent) {
+      if (event.key !== 'Escape') return;
+      setPendingSave(null);
+      setStatus('idle');
+    }
+    document.addEventListener('keydown', cancelOnEscape);
+    return () => document.removeEventListener('keydown', cancelOnEscape);
+  }, [pendingSave]);
+
   const formHasAnyData = useMemo(
     () => Object.entries(form).some(([key, value]) => key !== 'tradeDate' && Boolean(value.trim())),
     [form],
@@ -801,7 +828,7 @@ export function MarketDataOperationsClient() {
     () => selectedReadinessSummary.length > 0 && selectedReadinessSummary.every(field => field.value !== null),
     [selectedReadinessSummary],
   );
-  const busy = ['checking', 'loading', 'saving', 'consolidating'].includes(status);
+  const busy = ['checking', 'loading', 'confirming', 'saving', 'consolidating'].includes(status);
   const selectedSavedRecord = useMemo(() => {
     const exactManualRecord = manualRowsByDate[manualRowKey(selectedTicker, form.tradeDate)];
     return hasManualInputValues(exactManualRecord) ? exactManualRecord : undefined;
@@ -872,7 +899,7 @@ export function MarketDataOperationsClient() {
     setMessage('');
   }
 
-  async function saveRecord(event: React.FormEvent<HTMLFormElement>) {
+  function requestSaveConfirmation(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!form.tradeDate || !formHasAnyData) return;
     if (selectedSavedRecord && !isEditingSavedRecord) return;
@@ -883,12 +910,11 @@ export function MarketDataOperationsClient() {
         : 'This date is not a regular US market trading day. Select a valid trading date.');
       return;
     }
-    setStatus('saving');
     setMessage('');
 
     const tickerParam = encodeURIComponent(selectedTicker);
     const tradeDateParam = encodeURIComponent(form.tradeDate);
-    const requests: NamedRequest[] = [];
+    const requests: MarketSavePlanItem[] = [];
     const issuedShare = numberOrUndefined(form.issuedShare);
     const utilizationPercent = numberOrUndefined(form.utilizationPercent);
     const availableSharesIbkr = numberOrUndefined(form.availableSharesIbkr);
@@ -910,32 +936,31 @@ export function MarketDataOperationsClient() {
     if (issuedShare !== undefined) {
       requests.push({
         label: 'Issued Share',
-        request: saveManualInput(
-          `/manual-input/issued-share?ticker=${tickerParam}&tradeDate=${tradeDateParam}`,
-          { issuedShare },
-        ),
+        method: 'PUT',
+        endpoint: `/manual-input/issued-share?ticker=${tickerParam}&tradeDate=${tradeDateParam}`,
+        payload: { issuedShare },
       });
     }
     requests.push({
       label: 'Utilization',
-      request: saveManualInput(
-        `/manual-input/utilization?ticker=${tickerParam}&tradeDate=${tradeDateParam}`,
-        { utilizationPercent: utilizationPercent ?? null },
-      ),
+      method: 'PUT',
+      endpoint: `/manual-input/utilization?ticker=${tickerParam}&tradeDate=${tradeDateParam}`,
+      payload: { utilizationPercent: utilizationPercent ?? null },
     });
     requests.push({
       label: 'Shortable Shares',
-      request: saveManualInput(
-        `/manual-input/manual-availability?ticker=${tickerParam}&tradeDate=${tradeDateParam}`,
-        {
-          availableSharesIbkr: availableSharesIbkr ?? null,
-          availableSharesFutu: availableSharesFutu ?? null,
-        },
-      ),
+      method: 'PUT',
+      endpoint: `/manual-input/manual-availability?ticker=${tickerParam}&tradeDate=${tradeDateParam}`,
+      payload: {
+        availableSharesIbkr: availableSharesIbkr ?? null,
+        availableSharesFutu: availableSharesFutu ?? null,
+      },
     });
     requests.push({
       label: 'Margins / Average Duration',
-      request: saveManualInput(`/manual-input/margins?ticker=${tickerParam}&tradeDate=${tradeDateParam}`, {
+      method: 'PUT',
+      endpoint: `/manual-input/margins?ticker=${tickerParam}&tradeDate=${tradeDateParam}`,
+      payload: {
         initialMarginIbkr: initialMarginIbkr ?? null,
         initialMarginFutu: initialMarginFutu ?? null,
         maintenanceMarginIbkr: maintenanceMarginIbkr ?? null,
@@ -943,20 +968,22 @@ export function MarketDataOperationsClient() {
         averageDurationDays: averageDurationDays ?? null,
         valueFormat: 'decimal_ratio',
         displayFormat: 'percent',
-      }),
+      },
     });
     requests.push({
       label: 'Short Score',
-      request: saveManualInput(
-        `/manual-input/short-score?ticker=${tickerParam}&tradeDate=${tradeDateParam}`,
-        { shortScore: shortScore ?? null },
-      ),
+      method: 'PUT',
+      endpoint: `/manual-input/short-score?ticker=${tickerParam}&tradeDate=${tradeDateParam}`,
+      payload: { shortScore: shortScore ?? null },
     });
 
-    try {
-      await runNamedRequests('One or more market inputs could not be saved:', requests);
-      const savedRecord: MarketInputRow = {
-        ticker: selectedTicker,
+    setPendingSave({
+      workspaceTicker: normalizeTicker(getOperationsTicker()),
+      ticker: normalizeTicker(selectedTicker),
+      tradeDate: form.tradeDate,
+      requests,
+      record: {
+        ticker: normalizeTicker(selectedTicker),
         tradeDate: form.tradeDate,
         issuedShare,
         utilizationPercent,
@@ -968,17 +995,51 @@ export function MarketDataOperationsClient() {
         maintenanceMarginFutu,
         averageDurationDays,
         shortScore,
-      };
+      },
+    });
+    setStatus('confirming');
+  }
 
-      const savedRowKey = manualRowKey(selectedTicker, form.tradeDate);
+  function cancelSaveConfirmation() {
+    setPendingSave(null);
+    setStatus('idle');
+  }
+
+  async function confirmSaveRecord() {
+    const plan = pendingSave;
+    if (!plan) return;
+    if (
+      plan.workspaceTicker !== plan.ticker
+      || plan.ticker !== normalizeTicker(getOperationsTicker())
+      || plan.ticker !== normalizeTicker(selectedTicker)
+      || plan.ticker !== activeTickerRef.current
+    ) {
+      setPendingSave(null);
+      setStatus('error');
+      setMessage('The active ticker changed before confirmation. Review the destination and try again.');
+      return;
+    }
+
+    setPendingSave(null);
+    setStatus('saving');
+    setMessage('');
+
+    try {
+      await runNamedRequests('One or more market inputs could not be saved:', plan.requests.map(request => ({
+        label: request.label,
+        request: saveManualInput(request.endpoint, request.payload),
+      })));
+      const savedRecord = plan.record;
+
+      const savedRowKey = manualRowKey(plan.ticker, plan.tradeDate);
       setManualRowsByDate(current => ({ ...current, [savedRowKey]: savedRecord }));
       setRows(current => [
-        ...current.filter(record => record.tradeDate !== form.tradeDate),
+        ...current.filter(record => record.tradeDate !== plan.tradeDate),
         savedRecord,
       ].sort((a, b) => b.tradeDate.localeCompare(a.tradeDate)));
       setEditingDate('');
       setStatus('success');
-      setMessage(`Saved Manual Input data for ${form.tradeDate}. Run consolidation when all additions and deletions are complete.`);
+      setMessage(`Saved Manual Input data for ${plan.tradeDate} to ${plan.ticker}. Run consolidation when all additions and deletions are complete.`);
     } catch (error) {
       setStatus('error');
       setMessage(error instanceof Error ? error.message : 'Unable to save Manual Input V2 records.');
@@ -1099,6 +1160,50 @@ export function MarketDataOperationsClient() {
   }
 
   return (
+    <>
+      {pendingSave ? (
+        <div className="ops-confirm-backdrop" role="presentation">
+          <section className="ops-confirm-modal ops-save-confirm-modal" role="dialog" aria-modal="true" aria-labelledby="market-save-confirm-title">
+            <div className="ops-confirm-modal__icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24"><path d="M12 3v12M8 11l4 4 4-4" /><path d="M5 19h14" /></svg>
+            </div>
+            <div className="ops-save-confirm-modal__body">
+              <span>API destination check</span>
+              <h2 id="market-save-confirm-title">Confirm save destination</h2>
+              <p>No data has been sent yet. Confirm that the ticker and every API endpoint below are correct.</p>
+              <dl className="ops-save-confirm-summary">
+                <div><dt>Active workspace ticker</dt><dd>{pendingSave.workspaceTicker}</dd></div>
+                <div><dt>API ticker</dt><dd>{pendingSave.ticker}</dd></div>
+                <div><dt>Trade date</dt><dd>{pendingSave.tradeDate}</dd></div>
+                <div><dt>Requests</dt><dd>{pendingSave.requests.length}</dd></div>
+              </dl>
+              {pendingSave.workspaceTicker !== pendingSave.ticker || normalizeTicker(selectedTicker) !== pendingSave.ticker ? (
+                <p className="is-error">Ticker mismatch detected. Cancel this save and reload the correct company workspace.</p>
+              ) : null}
+              <div className="ops-save-confirm-requests">
+                {pendingSave.requests.map(request => (
+                  <article key={request.endpoint}>
+                    <strong>{request.label}</strong>
+                    <code>{request.method} {request.endpoint}</code>
+                    <pre>{JSON.stringify(request.payload, null, 2)}</pre>
+                  </article>
+                ))}
+              </div>
+            </div>
+            <footer>
+              <button className="ops-secondary-button" type="button" onClick={cancelSaveConfirmation}>Cancel</button>
+              <button
+                className="ops-primary-button"
+                type="button"
+                onClick={() => void confirmSaveRecord()}
+                disabled={pendingSave.workspaceTicker !== pendingSave.ticker || normalizeTicker(selectedTicker) !== pendingSave.ticker}
+              >
+                Confirm and save
+              </button>
+            </footer>
+          </section>
+        </div>
+      ) : null}
     <div className="ops-market-data-page">
       <div className="ops-market-data-grid">
       <div className="ops-market-entry-column">
@@ -1116,7 +1221,7 @@ export function MarketDataOperationsClient() {
             <span className={`ops-status ${status === 'error' ? 'bad' : status === 'success' ? 'good' : ''}`}>{status}</span>
           </div>
         </div>
-        <form className="ops-sec-form" onSubmit={saveRecord}>
+        <form className="ops-sec-form" onSubmit={requestSaveConfirmation}>
           <div className="ops-form-grid three">
             <label>Trade Date<input type="date" value={form.tradeDate} onChange={event => selectTradeDate(event.target.value)} required suppressHydrationWarning /></label>
             <label>Issued Share<input inputMode="numeric" value={form.issuedShare} onChange={event => updateField('issuedShare', formatShareInput(event.target.value))} disabled={inputFieldsDisabled} suppressHydrationWarning /></label>
@@ -1377,5 +1482,6 @@ export function MarketDataOperationsClient() {
         rows={apiDebugRows}
       />
     </div>
+    </>
   );
 }

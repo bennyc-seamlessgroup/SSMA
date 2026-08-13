@@ -423,6 +423,11 @@ const operationsZhHant: Record<string, string> = {
   'Unable to load Manual Input V2 records.': '無法載入手動輸入 V2 記錄。',
   'Unable to verify operations access.': '無法驗證後台操作權限。', 'Unable to save Manual Input V2 records.': '無法儲存手動輸入 V2 記錄。',
   'Unable to delete Manual Input V2 records.': '無法刪除手動輸入 V2 記錄。',
+  'API destination check': 'API 目的地檢查', 'Confirm save destination': '確認儲存目的地',
+  'No data has been sent yet. Confirm that the ticker and every API endpoint below are correct.': '尚未傳送任何資料。請確認股票代碼及下方每個 API 端點均正確。',
+  'Active workspace ticker': '目前工作區代碼', 'API ticker': 'API 股票代碼', 'Requests': '請求數量',
+  'Ticker mismatch detected. Cancel this save and reload the correct company workspace.': '偵測到股票代碼不一致。請取消儲存並重新載入正確的公司工作區。',
+  'Confirm and save': '確認並儲存', 'confirming': '確認中',
 
   // SEC filings
   'SEC Filing Record': 'SEC 申報記錄', 'Company': '公司', 'Form type': '表格類型', 'Form description': '表格說明',

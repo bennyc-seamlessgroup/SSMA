@@ -4,6 +4,58 @@ This file is the persistent implementation memory for changes made by Codex.
 Read it before modifying existing portal behavior, and update it after every
 completed change.
 
+## 2026-08-13 - Confirm Market Data API destinations before saving
+
+- Area: Operations Portal -> Market Data -> Daily Market Inputs.
+- APIs/data:
+  - `PUT /manual-input/issued-share?ticker={ticker}&tradeDate={date}` when an
+    issued-share value is present.
+  - `PUT /manual-input/utilization?ticker={ticker}&tradeDate={date}`.
+  - `PUT /manual-input/manual-availability?ticker={ticker}&tradeDate={date}`.
+  - `PUT /manual-input/margins?ticker={ticker}&tradeDate={date}`.
+  - `PUT /manual-input/short-score?ticker={ticker}&tradeDate={date}`.
+- Reported problem and root cause:
+  - An operations save intended for MIMI appeared in both MIMI and CURR, so the
+    team needed a temporary, explicit checkpoint showing the exact ticker and
+    endpoints before any write begins.
+  - The previous Save Data action executed the requests immediately and did not
+    expose the resolved request destinations for human verification.
+- Intended behavior and invariants:
+  - Save Data now prepares a frozen save plan and opens a confirmation dialog;
+    it does not call an API before confirmation.
+  - The dialog shows the active workspace ticker, API ticker, trade date,
+    request count, exact HTTP method and endpoint, and JSON payload for every
+    request that will be made.
+  - Confirm and save executes the same captured endpoint and payload objects
+    displayed in the dialog, preventing the diagnostic display from drifting
+    from the actual network requests.
+  - If the workspace ticker, component ticker, or captured API ticker differ,
+    the save is blocked and the operator must reload the correct workspace.
+  - Cancel and Escape close the dialog without writing. Existing storage,
+    validation, saved-row updates, and manual consolidation behavior remain
+    unchanged.
+  - Date-specific Manual Input updates remain `PUT`, as documented; the UI does
+    not incorrectly label them as `POST`.
+- Files changed:
+  - `app/operations/market-data/MarketDataOperationsClient.tsx`
+  - `app/globals.css`
+  - `lib/portal-page-translations.ts`
+  - `docs/CODEX_CHANGE_LOG.md`
+- Verification:
+  - TypeScript type-check passed.
+  - Production build passed, including all 29 statically generated pages.
+  - The existing localhost development process was found serving a stale client
+    bundle and returning HTTP 500 after `.next` was replaced by the production
+    build. It was restarted cleanly on port 3000, and the Market Data route was
+    verified to return HTTP 200 with the confirmation code in the compiled
+    application.
+  - Whitespace validation passed.
+- Remaining backend dependency / limitation:
+  - This checkpoint proves what the browser is about to send, but it cannot
+    prevent or detect an API Lambda writing the same request into an additional
+    ticker path. Backend request logs and resolved S3 keys are still required to
+    diagnose any confirmed cross-ticker duplication after submission.
+
 ## 2026-08-13 - Distinguish recent ownership activity from quarterly history
 
 - Area: User Portal -> Ownership -> Recent Institutional Activity and Quarterly

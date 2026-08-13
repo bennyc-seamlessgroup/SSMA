@@ -4240,6 +4240,102 @@ html[data-design-b-theme="dark"] .monitor-portal .report-history-pagination butt
   border-top: 1px solid var(--ci-border, #e5e7eb);
 }
 
+.ops-save-confirm-modal {
+  width: min(820px, 100%);
+  max-height: calc(100vh - 40px);
+  overflow: hidden;
+}
+
+.ops-save-confirm-modal__body {
+  min-width: 0;
+  overflow: hidden;
+}
+
+.ops-save-confirm-summary {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+  margin: 16px 0 12px;
+}
+
+.ops-save-confirm-summary > div {
+  min-width: 0;
+  padding: 9px 10px;
+  border: 1px solid var(--ci-border, #dbe4f0);
+  border-radius: 7px;
+  background: color-mix(in srgb, #2563eb 4%, var(--ci-surface, #fff));
+}
+
+.ops-save-confirm-summary dt {
+  color: var(--ci-muted, #64748b);
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+
+.ops-save-confirm-summary dd {
+  margin: 4px 0 0;
+  overflow-wrap: anywhere;
+  color: var(--ci-text, #102039);
+  font-size: 13px;
+  font-weight: 850;
+}
+
+.ops-save-confirm-requests {
+  display: grid;
+  gap: 8px;
+  max-height: min(430px, calc(100vh - 330px));
+  overflow: auto;
+  padding-right: 4px;
+}
+
+.ops-save-confirm-requests article {
+  display: grid;
+  gap: 6px;
+  padding: 10px 11px;
+  border: 1px solid var(--ci-border, #dbe4f0);
+  border-radius: 7px;
+  background: color-mix(in srgb, #f8fafc 92%, var(--ci-surface, #fff));
+}
+
+.ops-save-confirm-requests strong {
+  font-size: 11px;
+}
+
+.ops-save-confirm-requests code {
+  display: block;
+  overflow-wrap: anywhere;
+  color: #1d4ed8;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 11px;
+  font-weight: 800;
+  line-height: 1.5;
+}
+
+.ops-save-confirm-requests pre {
+  margin: 0;
+  overflow: auto;
+  padding: 8px;
+  border-radius: 5px;
+  background: color-mix(in srgb, #0f172a 6%, var(--ci-surface, #fff));
+  color: var(--ci-muted, #475569);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 10px;
+  line-height: 1.45;
+  white-space: pre-wrap;
+}
+
+html[data-design-b-theme="dark"] .ops-save-confirm-requests code {
+  color: #93c5fd;
+}
+
+@media (max-width: 720px) {
+  .ops-save-confirm-summary {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
 .ops-destination-tags span {
   display: inline-flex;
   align-items: center;
