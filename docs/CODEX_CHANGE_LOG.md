@@ -4,6 +4,43 @@ This file is the persistent implementation memory for changes made by Codex.
 Read it before modifying existing portal behavior, and update it after every
 completed change.
 
+## 2026-08-13 - Align Latest Filings with quarterly filing columns
+
+- Area: User Portal -> Ownership -> Latest Filings.
+- APIs/data:
+  - `GET /market-data/current?ticker={ticker}&category=ownership-current`
+  - `institutionBreakdown` from the current ownership snapshot.
+- Reported problem and root cause:
+  - Latest Filings used a separate nine-column layout that did not match the
+    completed-quarter Institutions table displayed below it.
+  - Maintaining two independently defined table headers allowed their column
+    labels, order, alignment, and minimum widths to drift.
+- Intended behavior and invariants:
+  - Latest Filings uses the same ten-column manual filing schema as the
+    quarterly table: File Date, Effective Date, Source, Investor, Type, Avg
+    Price Est., Shares, Shares %, Reported Value, and Value Change %.
+  - Both sections reuse the same table-header component and base table width so
+    subsequent column-label changes remain synchronized.
+  - Fields absent from `ownership-current.institutionBreakdown`, including
+    Reported Value and Value Change %, display `N/A`; the frontend does not
+    invent or derive unsupported filing values.
+  - Newest-first ordering, search, pagination, status row colors, and exclusion
+    of Put/Call records remain unchanged.
+- Files changed:
+  - `app/monitor/[ticker]/institutional/OwnershipTable.tsx`
+  - `app/monitor/[ticker]/institutional/LatestInstitutionalFilings.tsx`
+  - `app/globals.css`
+  - `docs/CODEX_CHANGE_LOG.md`
+- Verification:
+  - TypeScript type-check passed.
+  - Whitespace validation passed.
+  - Browser inspection confirmed both rendered tables expose the same ten
+    headers in the same order.
+- Remaining backend dependency / limitation:
+  - `ownership-current.institutionBreakdown` does not currently expose Reported
+    Value or Value Change %, so those aligned columns remain `N/A` until the
+    backend adds those values.
+
 ## 2026-08-12 — Label fictional demo sections at their point of use
 
 - Area: Authenticated demo → Internal Float and Ownership.

@@ -3,6 +3,7 @@
 import { ApiSourceTags } from '@/components/ApiSourceTags';
 import { formatExactNumber, portalNumber } from '@/lib/number-format';
 import { useMemo, useState } from 'react';
+import { OwnershipTableHeader } from './OwnershipTable';
 
 export type LatestInstitutionalFiling = {
   holderName?: unknown;
@@ -33,15 +34,12 @@ function dateText(value: unknown) {
     : text;
 }
 
-function priceText(value: unknown) {
+function decimalText(value: unknown) {
   const numeric = portalNumber(value);
   return numeric === null
     ? 'N/A'
     : numeric.toLocaleString('en-US', {
-        style: 'currency',
-        currency: 'USD',
-        currencyDisplay: 'narrowSymbol',
-        minimumFractionDigits: 2,
+        minimumFractionDigits: 0,
         maximumFractionDigits: 4,
       });
 }
@@ -72,16 +70,6 @@ function isOptionRecord(value: unknown) {
   return /\b(?:put|call)\b/i.test(String(value ?? '').trim());
 }
 
-function sharesChange(row: LatestInstitutionalFiling) {
-  const current = portalNumber(row.shares);
-  const previous = portalNumber(row.prevShares);
-  if (current === null || previous === null) return normalizedStatus(row.positionStatus) === 'new' ? 'New' : 'N/A';
-  if (previous === 0) return current > 0 ? 'New' : '0.00%';
-  const change = (current - previous) / previous * 100;
-  const sign = change > 0 ? '+' : '';
-  return `${sign}${change.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}%`;
-}
-
 export function LatestInstitutionalFilings({
   rows,
   ticker,
@@ -103,8 +91,9 @@ export function LatestInstitutionalFilings({
         row.formType,
         row.holderName,
         row.shares,
-        row.prevShares,
         row.avgPrice,
+        row.percentOfInstitutionalShares,
+        row.type,
         row.positionStatus,
       ].some(value => String(value ?? '').toLowerCase().includes(query)))
       .sort((a, b) => {
@@ -162,19 +151,7 @@ export function LatestInstitutionalFilings({
 
       <div className="ownership-table-wrap institutional-latest-filings__table-wrap">
         <table className="ownership-table institutional-latest-filings__table">
-          <thead>
-            <tr>
-              <th>File Date</th>
-              <th>Effective Date</th>
-              <th>Form</th>
-              <th>Investor</th>
-              <th className="num">Shares</th>
-              <th className="num">Previous Shares</th>
-              <th className="num">Shares Changed (%)</th>
-              <th className="num">Avg Price</th>
-              <th className="num">Institutional Share %</th>
-            </tr>
-          </thead>
+          <OwnershipTableHeader manualSchema />
           <tbody>
             {pageRows.length ? pageRows.map((row, index) => (
               <tr
@@ -185,14 +162,15 @@ export function LatestInstitutionalFilings({
                 <td>{dateText(row.effectiveDate)}</td>
                 <td>{String(row.formType ?? 'N/A')}</td>
                 <td className="investor-cell">{String(row.holderName ?? 'Unknown holder')}</td>
+                <td>{String(row.type ?? '')}</td>
+                <td className="num">{decimalText(row.avgPrice)}</td>
                 <td className="num">{formatExactNumber(row.shares, { maximumFractionDigits: 0 })}</td>
-                <td className="num">{formatExactNumber(row.prevShares, { maximumFractionDigits: 0 })}</td>
-                <td className="num">{sharesChange(row)}</td>
-                <td className="num">{priceText(row.avgPrice)}</td>
                 <td className="num">{percentText(row.percentOfInstitutionalShares)}</td>
+                <td className="num">N/A</td>
+                <td className="num">N/A</td>
               </tr>
             )) : (
-              <tr><td colSpan={9} className="ownership-table-empty">No current institutional filings are available.</td></tr>
+              <tr><td colSpan={10} className="ownership-table-empty">No current institutional filings are available.</td></tr>
             )}
           </tbody>
         </table>

@@ -24132,11 +24132,7 @@ html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .dashbo
 }
 
 .institutional-latest-filings__table {
-  min-width: 1120px;
-}
-
-.institutional-latest-filings__table th.num {
-  text-align: right;
+  min-width: 920px;
 }
 
 @media (max-width: 720px) {

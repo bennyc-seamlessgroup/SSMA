@@ -193,7 +193,7 @@ export function OwnershipTable({ holdings, ticker, companyName, manualSchema = f
   );
 }
 
-function OwnershipTableHeader({ manualSchema }: { manualSchema: boolean }) {
+export function OwnershipTableHeader({ manualSchema }: { manualSchema: boolean }) {
   return (
     <thead>
       <tr>
