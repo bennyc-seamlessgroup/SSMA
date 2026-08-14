@@ -4,6 +4,60 @@ This file is the persistent implementation memory for changes made by Codex.
 Read it before modifying existing portal behavior, and update it after every
 completed change.
 
+## 2026-08-14 - Save Internal Float suggestion decisions through supported auditLog
+
+- Area: User Portal -> Internal Float -> Suggested Changes and Management /
+  Strategic Holdings.
+- API/data:
+  - `GET/PUT /manual-input/internal-float-inputs-user?ticker={ticker}`
+  - Allowed user-input fields: `managementStrategicHoldings`,
+    `privateFriendlyHolders`, and `auditLog`.
+  - Ticker-wide suggestion source remains
+    `GET /manual-input/management-holdings?ticker={ticker}`.
+- Reported problem and root cause:
+  - Applying a suggested change failed with HTTP 400 because the frontend sent
+    the proposed `managementSuggestionDecisions` top-level field.
+  - That field was never added to the deployed API contract; the backend
+    correctly rejected it as unrecognized.
+- Intended behavior and invariants:
+  - User-scoped PUT requests no longer send `managementSuggestionDecisions`.
+  - Apply saves the changed `managementStrategicHoldings.records` and a
+    per-user decision marker inside the supported `auditLog` array in the same
+    request. Discard saves the unchanged holdings and its decision marker.
+  - Decision markers use only the documented audit-entry properties and carry
+    the source suggestion ID, version, decision, and timestamp in a recognized
+    structured message. Existing non-decision audit entries are preserved.
+  - The frontend reconstructs decisions from the echoed audit log and removes
+    a suggestion only after the server confirms the matching user-specific
+    marker. Revised source versions remain reviewable.
+  - Legacy `managementSuggestionDecisions` values are still readable if a
+    future or older response supplies them, but the unsupported field is never
+    written.
+  - Previously accepted behavior remains intact: normal holding add/edit/delete
+    sends only supported fields; decisions never update the global
+    management-holdings status or affect another user; the demo remains
+    session-only; the Ownership consolidation prompt still follows an applied
+    holding change.
+- Files changed:
+  - `lib/internal-float-types.ts`
+  - `lib/internal-float-suggestion-decisions.ts`
+  - `app/monitor/[ticker]/internal-float/InternalFloatRoleView.tsx`
+  - `app/monitor/[ticker]/internal-float/InternalFloatClient.tsx`
+  - `lib/portal-page-translations.ts`
+  - `docs/api/USER_SCOPED_MANAGEMENT_SUGGESTION_DECISIONS.md`
+  - `docs/CODEX_CHANGE_LOG.md`
+- Verification:
+  - TypeScript type-check passed.
+  - Focused decision encode/decode checks confirmed that applied/discarded
+    markers round-trip through `auditLog`, replace the matching source/version
+    decision, and preserve unrelated audit entries.
+  - All seven focused Ownership tests passed.
+  - Production build passed, including all 29 statically generated pages.
+  - Whitespace validation passed.
+- Remaining backend dependency / limitation:
+  - Confirmation depends on the current API continuing to persist and echo the
+    allowed `auditLog` array. No new backend field or endpoint is required.
+
 ## 2026-08-14 - Use compact raw-share labels in ownership charts
 
 - Area: User Portal -> Ownership -> filing table -> ownership-history popup

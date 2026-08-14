@@ -145,6 +145,7 @@ const zhHant: Record<string, string> = {
   'Deducted Holdings': '已扣減持股',
   'No strategic holders added yet.': '尚未加入策略股東。', 'No tokenized share rows added yet.': '尚未加入代幣化股份列。',
   'No collateralized share rows added yet.': '尚未加入抵押股份列。', 'Sample': '範例', 'Internal Float API Data': '內部流通股 API 資料',
+  'The server did not confirm this user-specific suggestion decision. Please try again.': '伺服器未能確認此用戶專屬的建議決定，請再試一次。',
   'Internal Float data unavailable': '內部流通股資料暫時無法使用', 'New to Internal Float?': '初次使用內部流通股頁面？',
   'Take a guided tour of the page and learn what to review, update, and monitor.': '進行頁面導覽，了解需要檢閱、更新及監察的內容。',
 

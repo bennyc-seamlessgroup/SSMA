@@ -25,32 +25,46 @@ The frontend reads and replaces the authenticated user's data through:
 
 The authenticated token determines the user. No user ID query parameter should be accepted from the browser.
 
-The user input payload requires this additional envelope:
+The deployed API rejects the previously proposed top-level
+`managementSuggestionDecisions` field. The current contract accepts
+`managementStrategicHoldings`, `privateFriendlyHolders`, and `auditLog`, so the
+frontend stores decision markers as structured messages inside the existing
+user-scoped `auditLog` array:
 
 ```json
 {
-  "managementSuggestionDecisions": {
-    "records": [
-      {
-        "id": "management-suggestion-decision-...",
-        "suggestionId": "operations-suggestion-id",
-        "suggestionVersion": "2026-08-07T10:15:00.000Z",
-        "decision": "applied",
-        "decidedAt": "2026-08-07T10:20:00.000Z"
-      }
-    ]
-  }
+  "managementStrategicHoldings": { "records": [] },
+  "privateFriendlyHolders": { "shares": 0, "ratio": 0 },
+  "auditLog": [
+    {
+      "id": "management-suggestion-decision-...",
+      "action": "updated",
+      "section": "managementStrategicHoldings",
+      "recordId": "operations-suggestion-id",
+      "message": "Management suggestion decision: {\"id\":\"management-suggestion-decision-...\",\"suggestionId\":\"operations-suggestion-id\",\"suggestionVersion\":\"2026-08-07T10:15:00.000Z\",\"decision\":\"applied\",\"decidedAt\":\"2026-08-07T10:20:00.000Z\"}",
+      "createdAt": "2026-08-07T10:20:00.000Z"
+    }
+  ]
 }
 ```
 
 `decision` is either `applied` or `discarded`. `suggestionVersion` is the source record's `updatedAt`, falling back to `createdAt` or its effective date. If Operations edits a recommendation, the changed version makes it reviewable again.
 
+Non-decision audit entries are preserved unchanged. Decision entries are
+identified only by the `Management suggestion decision: ` message prefix; the
+frontend does not reinterpret ordinary audit records.
+
 ## Apply and discard behavior
 
-- Apply sends the updated `managementStrategicHoldings.records` and the updated `managementSuggestionDecisions.records` in the same user-scoped PUT.
-- Discard sends the unchanged `managementStrategicHoldings.records` and an updated decision array.
-- The PUT response must echo the persisted `managementSuggestionDecisions.records` and all persisted holding records.
-- Unknown fields must not be silently dropped. The current frontend treats a missing echoed decision as a failed save and keeps the suggestion visible.
+- Apply sends the updated `managementStrategicHoldings.records` and the updated
+  `auditLog` in the same user-scoped PUT.
+- Discard sends the unchanged `managementStrategicHoldings.records` and an
+  updated `auditLog`.
+- The PUT response must echo the persisted `auditLog` and all persisted holding
+  records.
+- The frontend reconstructs decisions from the echoed audit entries. A missing
+  echoed decision is treated as a failed save and the suggestion remains
+  visible.
 - A later PUT that changes another user-input section must preserve existing decisions.
 
 For full atomicity, the backend should commit the holding and decision together or reject both.
@@ -66,4 +80,6 @@ For full atomicity, the backend should commit the holding and decision together 
 
 ## Current backend dependency
 
-`docs/INTEGRATION (7).md` does not yet document `managementSuggestionDecisions`. The API must persist and echo this field before Apply and Discard can be confirmed in the live portal.
+No new top-level field is required. This workflow depends on the documented
+`internal-float-inputs-user` behavior continuing to accept, persist, and echo
+the existing `auditLog` array.

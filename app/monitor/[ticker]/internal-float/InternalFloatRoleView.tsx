@@ -10,7 +10,11 @@ import {
   demoInternalFloatUserInputs,
   sampleTraditionalCustodyRows,
 } from '@/lib/internal-float-demo';
-import type { FloatAdjustments, InternalFloatUserInput, ManagementSuggestionDecision } from '@/lib/internal-float-types';
+import type { FloatAdjustments, InternalFloatAuditEntry, InternalFloatUserInput, ManagementSuggestionDecision } from '@/lib/internal-float-types';
+import {
+  managementSuggestionDecisionsFromAuditLog,
+  mergeManagementSuggestionDecisions,
+} from '@/lib/internal-float-suggestion-decisions';
 import type { ManagementHoldingInputRecord } from '@/lib/operations/data-types';
 import { normalizeTicker } from '@/lib/ticker-data';
 import { InternalFloatClient, type InsiderSuggestionSource, type InstitutionalOwnershipOverview } from './InternalFloatClient';
@@ -35,6 +39,7 @@ type InternalFloatCurrent = {
 type InternalFloatInputs = {
   managementStrategicHoldings?: { records?: Array<Record<string, unknown>> };
   managementSuggestionDecisions?: { records?: ManagementSuggestionDecision[] };
+  auditLog?: InternalFloatAuditEntry[];
   tokenizedShares?: { records?: Array<Record<string, unknown>> };
   collateralizedShares?: { records?: Array<Record<string, unknown>> };
   privateFriendlyHolders?: { shares?: number; ratio?: number };
@@ -143,6 +148,7 @@ function LiveInternalFloat({ ticker, demoMode = false }: { ticker: string; demoM
     .filter(row => row.holderName && row.shares > 0);
   const tokenRecords = payloads.tickerInputs.tokenizedShares?.records ?? [];
   const collateralRecords = payloads.tickerInputs.collateralizedShares?.records ?? [];
+  const userAuditLog = payloads.userInputs.auditLog ?? [];
   const apiInputs: InternalFloatUserInput = {
     userId: `workspace:${ticker}`,
     workspaceId: ticker,
@@ -157,7 +163,11 @@ function LiveInternalFloat({ ticker, demoMode = false }: { ticker: string; demoM
     })),
     managementSuggestionDecisions: demoMode
       ? demoInternalFloatUserInputs.managementSuggestionDecisions
-      : payloads.userInputs.managementSuggestionDecisions?.records ?? [],
+      : mergeManagementSuggestionDecisions(
+        managementSuggestionDecisionsFromAuditLog(userAuditLog),
+        payloads.userInputs.managementSuggestionDecisions?.records,
+      ),
+    auditLog: demoMode ? [] : userAuditLog,
     privateFriendlyHolders: demoMode
       ? demoInternalFloatUserInputs.privateFriendlyHolders
       : payloads.userInputs.privateFriendlyHolders,

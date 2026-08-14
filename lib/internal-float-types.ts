@@ -24,10 +24,21 @@ export type ManagementSuggestionDecision = {
   decision: 'applied' | 'discarded';
   decidedAt: string;
 };
+export type InternalFloatAuditEntry = {
+  id?: string;
+  action?: string;
+  section?: string;
+  recordId?: string;
+  message?: string;
+  createdBy?: string;
+  createdAt?: string;
+  [key: string]: unknown;
+};
 export type InternalFloatUserInput = {
   userId: string; workspaceId?: string; ticker: string;
   privateHoldings: InternalFloatPrivateHolding[];
   managementSuggestionDecisions?: ManagementSuggestionDecision[];
+  auditLog?: InternalFloatAuditEntry[];
   privateFriendlyHolders?: { shares?: number; ratio?: number };
   custodyRows: Array<{ id: string; name: string; shares: number }>;
   tokenChains: Array<{ id: string; chain: string; shares: number; provider: string }>;
