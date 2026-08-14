@@ -257,24 +257,50 @@ function OwnershipHistoryChart({
           {filings.map(point => {
             const centerX = xForDate(point.date);
             const y = yForShares(point.sharesHeld);
+            const isClosedAtZero = point.sharesHeld === 0;
+            const markerY = isClosedAtZero ? bottom - 3 : y;
+            const showTooltip = () => setTooltip({
+              x: centerX,
+              y: markerY,
+              date: fullOwnershipDate(point.date),
+              label: 'Reported Shares Held (x1000)',
+              value: point.sharesHeld.toLocaleString('en-US', { maximumFractionDigits: 1 }),
+            });
             return (
-              <rect
-                className="ownership-chart-bar"
+              <g
+                className="ownership-chart-bar-group"
                 key={point.dateKey}
-                x={centerX - 10}
-                y={y}
-                width="20"
-                height={bottom - y}
-                rx="2"
-                onMouseEnter={() => setTooltip({
-                  x: centerX,
-                  y,
-                  date: fullOwnershipDate(point.date),
-                  label: 'Reported Shares Held (x1000)',
-                  value: point.sharesHeld.toLocaleString('en-US', { maximumFractionDigits: 1 }),
-                })}
+                onMouseEnter={showTooltip}
                 onMouseLeave={() => setTooltip(null)}
-              />
+              >
+                {isClosedAtZero ? (
+                  <>
+                    <line
+                      className="ownership-chart-zero-marker"
+                      x1={centerX - 10}
+                      x2={centerX + 10}
+                      y1={markerY}
+                      y2={markerY}
+                    />
+                    <rect
+                      className="ownership-chart-zero-hit-area"
+                      x={centerX - 13}
+                      y={bottom - 14}
+                      width="26"
+                      height="16"
+                    />
+                  </>
+                ) : (
+                  <rect
+                    className="ownership-chart-bar"
+                    x={centerX - 10}
+                    y={y}
+                    width="20"
+                    height={bottom - y}
+                    rx="2"
+                  />
+                )}
+              </g>
             );
           })}
 

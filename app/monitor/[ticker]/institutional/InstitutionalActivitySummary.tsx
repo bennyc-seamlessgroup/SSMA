@@ -368,7 +368,7 @@ export function InstitutionalActivitySummary({
           <ActivityMetric label="Newly reported" description="Number of institutions opening a brand-new position or reporting for the first time."><DirectionValue value={summaryValue(data, 'summary.newReported', 'newReported', 'IO_Summary_New_reported')} /></ActivityMetric>
           <ActivityMetric label="Exited / no longer reported" description="Number of institutions that completely liquidated their position or fell below reporting thresholds."><DirectionValue value={summaryValue(data, 'summary.exitedOwner', 'exitedOwner', 'IO_Summary_Exit_no_longer_reported')} /></ActivityMetric>
           <ActivityMetric label="Net shares changed" description="Total net share volume added (+) or removed (-) across all reporting institutions."><DirectionValue value={summaryValue(data, 'summary.netSharesChanged', 'netSharesChanged', 'IO_Summary_net_shares_changed')} formatter={formatCompactQuantity} /></ActivityMetric>
-          <ActivityMetric label="Net value changed ($1000)" description="Estimated net dollar value of shares bought or sold across all institutions."><DirectionValue value={summaryValue(data, 'summary.netValuesChanged', 'netValuesChanged', 'IO_Summary_net_values_changed')} formatter={thousandsCurrency} /></ActivityMetric>
+          <ActivityMetric label="Net value changed" description="Estimated net dollar value of shares bought or sold across all institutions."><DirectionValue value={summaryValue(data, 'summary.netValuesChanged', 'netValuesChanged', 'IO_Summary_net_values_changed')} formatter={thousandsCurrency} /></ActivityMetric>
         </article>
 
         <article>

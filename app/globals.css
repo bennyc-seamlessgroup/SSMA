@@ -23683,7 +23683,18 @@ html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .dashbo
 .ownership-chart-bar-group {
   cursor: pointer;
 }
-.ownership-chart-bar:hover {
+.ownership-chart-zero-marker {
+  stroke: #12471f;
+  stroke-width: 4;
+  stroke-linecap: round;
+  transition: opacity .16s ease, filter .16s ease;
+}
+.ownership-chart-zero-hit-area {
+  fill: transparent;
+  stroke: none;
+}
+.ownership-chart-bar-group:hover .ownership-chart-bar,
+.ownership-chart-bar-group:hover .ownership-chart-zero-marker {
   filter: brightness(1.16);
   opacity: .92;
 }
@@ -24422,6 +24433,12 @@ html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .dashbo
   line-height: 1.35;
   text-align: right;
   white-space: nowrap;
+}
+
+.institutional-activity-cards > article:first-child .info-tooltip__bubble,
+.institutional-activity-details > article:first-child .info-tooltip__bubble {
+  left: 0;
+  transform: none;
 }
 
 .institutional-activity-value.is-up {

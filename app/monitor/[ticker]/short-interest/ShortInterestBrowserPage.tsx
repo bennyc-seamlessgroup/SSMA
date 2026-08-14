@@ -391,8 +391,8 @@ type FtdRow = {
 
 const shortVolumeBaseColumns: Array<{ key: keyof ShortVolumeRow; label: string }> = [
   { key: 'date', label: 'Date' },
-  { key: 'totalShortVolume', label: 'Total Short Volume' },
   { key: 'totalVolume', label: 'Total Volume' },
+  { key: 'totalShortVolume', label: 'Total Short Volume' },
   { key: 'offExchangeNonExempt', label: 'Off Exchange Non-Exempt' },
   { key: 'offExchangeExempt', label: 'Off Exchange Exempt' },
   { key: 'nasdaqBx', label: 'Nasdaq BX' },

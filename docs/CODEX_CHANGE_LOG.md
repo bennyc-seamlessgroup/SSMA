@@ -4,6 +4,96 @@ This file is the persistent implementation memory for changes made by Codex.
 Read it before modifying existing portal behavior, and update it after every
 completed change.
 
+## 2026-08-14 - Show closed ownership positions on popup charts
+
+- Area: User Portal -> Ownership -> filing table -> ownership-history popup
+  chart.
+- APIs/data:
+  - `GET /manual-input/manual-security-ownership?ticker={ticker}&effectiveDate={YYYY-MM-DD}`
+  - `GET /market-data/history?ticker={ticker}&category=market-history`
+- Reported problem and root cause:
+  - A quarterly filing that closed a holder's position at zero shares appeared
+    to be missing from the popup chart.
+  - The zero filing point was present in the series, but its SVG bar had a
+    calculated height of zero and was therefore invisible.
+- Intended behavior and invariants:
+  - A zero-share quarterly filing renders as a short horizontal marker just
+    above the zero baseline at its actual effective date.
+  - The zero marker has a practical hover target and retains the existing
+    filing tooltip, which reports exactly `0` shares held.
+  - Positive filing bars, closing-price history, axes, scale calculations,
+    filing dates, and source filtering remain unchanged.
+  - No zero values are fabricated; the marker is rendered only when the API
+    filing value is explicitly numeric zero.
+- Files changed:
+  - `app/monitor/[ticker]/institutional/OwnershipHistoryChart.tsx`
+  - `app/globals.css`
+  - `docs/CODEX_CHANGE_LOG.md`
+- Verification:
+  - TypeScript type-check passed.
+  - All seven focused Ownership helper tests passed.
+  - Production build passed, including all 29 statically generated pages.
+  - Whitespace validation passed.
+- Remaining backend dependency / limitation:
+  - The effective-date filing series must include the explicit zero-share
+    record for the closed quarter.
+
+## 2026-08-14 - Keep Ownership summary tooltips clear of the sidebar
+
+- Area: User Portal -> Ownership -> Institutional Activity Summary.
+- API/data:
+  - `GET /market-data/current?ticker={ticker}&category=ownership-summary-current`
+- Reported problem and root cause:
+  - Information bubbles in the summary's left column were centered over icons
+    close to the page edge, causing the left side of each bubble to extend
+    underneath the portal sidebar.
+  - The Net value changed label included `($1000)` even though that unit should
+    not be part of the visible metric name.
+- Intended behavior and invariants:
+  - Tooltips in the first summary-card and detail-table columns open rightward
+    from their icons and remain within the main content area.
+  - Tooltips in other columns retain their existing centered placement.
+  - The label reads `Net value changed`; its value, formatter, API source, and
+    description remain unchanged.
+- Files changed:
+  - `app/monitor/[ticker]/institutional/InstitutionalActivitySummary.tsx`
+  - `app/globals.css`
+  - `docs/CODEX_CHANGE_LOG.md`
+- Verification:
+  - TypeScript type-check passed.
+  - Whitespace validation passed.
+  - Browser inspection confirmed that the first-column tooltip opens within
+    the main content area and no longer overlaps the sidebar.
+  - Browser inspection confirmed the visible label is `Net value changed`.
+- Remaining backend dependency / limitation:
+  - None. This is a frontend presentation change only.
+
+## 2026-08-14 - Reorder Short Volume table totals
+
+- Area: User Portal -> Short Interest -> Short Volume table.
+- API/data:
+  - `GET /market-data/history?ticker={ticker}&category=short-volume-history`
+- Reported problem and root cause:
+  - The user requested the Total Volume and Total Short Volume columns to trade
+    places in the visible table.
+  - The shared column definition previously placed Total Short Volume before
+    Total Volume.
+- Intended behavior and invariants:
+  - The table now displays Date, Total Volume, then Total Short Volume before
+    the existing venue-level columns.
+  - Header and row values continue to use the same keyed column definition, so
+    each value remains aligned with its correct label in every display mode.
+  - API loading, field mappings, percentages, date filtering, sorting,
+    pagination, and Development Data remain unchanged.
+- Files changed:
+  - `app/monitor/[ticker]/short-interest/ShortInterestBrowserPage.tsx`
+  - `docs/CODEX_CHANGE_LOG.md`
+- Verification:
+  - TypeScript type-check passed.
+  - Whitespace validation passed.
+- Remaining backend dependency / limitation:
+  - None. This is a frontend presentation-order change only.
+
 ## 2026-08-14 - Add Ownership explanation tooltips from supplied wording CSV
 
 - Area: User Portal -> Ownership -> quarterly Institution tables and
