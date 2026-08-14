@@ -4,6 +4,70 @@ This file is the persistent implementation memory for changes made by Codex.
 Read it before modifying existing portal behavior, and update it after every
 completed change.
 
+## 2026-08-14 - Keep tiny positive ownership filings visible
+
+- Area: User Portal -> Ownership -> filing table -> ownership-history popup
+  chart.
+- APIs/data:
+  - `GET /manual-input/manual-security-ownership?ticker={ticker}&effectiveDate={YYYY-MM-DD}`
+  - `GET /market-data/history?ticker={ticker}&category=market-history`
+- Reported problem and root cause:
+  - Citigroup appeared to have missing filing markers around September 2025 and
+    March 2026 even after explicit zero positions received baseline markers.
+  - Those quarters contain tiny positive share values rather than exact zero.
+    After conversion to the chart's `Shares Held (x1000)` unit, their natural
+    SVG bar height was below one display pixel and therefore looked absent.
+- Intended behavior and invariants:
+  - Every positive filing point receives a minimum four-pixel visual bar when
+    its proportional height would otherwise be smaller.
+  - The bar remains anchored to the zero baseline and its tooltip continues to
+    show the exact API value; the minimum height is visual only and does not
+    alter chart data, tick values, or scale calculations.
+  - Explicit zero positions retain the short horizontal zero marker introduced
+    by the preceding fix.
+  - Normal-sized positive bars, price history, dates, and filing-source filters
+    remain unchanged.
+- Files changed:
+  - `app/monitor/[ticker]/institutional/OwnershipHistoryChart.tsx`
+  - `docs/CODEX_CHANGE_LOG.md`
+- Verification:
+  - TypeScript type-check passed.
+  - All seven focused Ownership helper tests passed.
+  - Production build passed, including all 29 statically generated pages.
+  - Whitespace validation passed.
+- Remaining backend dependency / limitation:
+  - The filing series must contain the quarter's record; the frontend does not
+    fabricate missing quarterly filings.
+
+## 2026-08-14 - Repair Put / Call Ratio tooltip layout
+
+- Area: User Portal -> Ownership -> Institutional Activity Summary -> Reported
+  Institutional Options Exposure.
+- API/data:
+  - `GET /market-data/current?ticker={ticker}&category=ownership-summary-current`
+- Reported problem and root cause:
+  - The Put / Call Ratio label and information tooltip broke the final table
+    row's layout.
+  - A broad `.institutional-options-ratio span` selector applied sentiment-chip
+    borders, padding, colors, and sizing to every nested span, including the
+    label wrapper, information icon, and tooltip bubble.
+- Intended behavior and invariants:
+  - Only the actual Bullish/Bearish sentiment label uses chip styling.
+  - The Put / Call Ratio label and information icon retain the shared tooltip
+    layout and accessible hover/focus behavior.
+  - Ratio value, sentiment text, API mappings, and calculations are unchanged.
+- Files changed:
+  - `app/monitor/[ticker]/institutional/InstitutionalActivitySummary.tsx`
+  - `app/globals.css`
+  - `docs/CODEX_CHANGE_LOG.md`
+- Verification:
+  - Browser inspection confirmed a normal-height ratio row, a 15px information
+    icon, a separate sentiment chip, and a standard tooltip panel.
+  - TypeScript type-check passed.
+  - Whitespace validation passed.
+- Remaining backend dependency / limitation:
+  - None. This is a frontend selector-scope correction only.
+
 ## 2026-08-14 - Show closed ownership positions on popup charts
 
 - Area: User Portal -> Ownership -> filing table -> ownership-history popup

@@ -258,7 +258,9 @@ function OwnershipHistoryChart({
             const centerX = xForDate(point.date);
             const y = yForShares(point.sharesHeld);
             const isClosedAtZero = point.sharesHeld === 0;
-            const markerY = isClosedAtZero ? bottom - 3 : y;
+            const naturalBarHeight = bottom - y;
+            const visibleBarHeight = isClosedAtZero ? 0 : Math.max(naturalBarHeight, 4);
+            const markerY = isClosedAtZero ? bottom - 3 : bottom - visibleBarHeight;
             const showTooltip = () => setTooltip({
               x: centerX,
               y: markerY,
@@ -294,9 +296,9 @@ function OwnershipHistoryChart({
                   <rect
                     className="ownership-chart-bar"
                     x={centerX - 10}
-                    y={y}
+                    y={markerY}
                     width="20"
-                    height={bottom - y}
+                    height={visibleBarHeight}
                     rx="2"
                   />
                 )}

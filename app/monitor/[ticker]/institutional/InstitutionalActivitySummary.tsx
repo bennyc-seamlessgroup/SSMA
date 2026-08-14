@@ -442,7 +442,7 @@ export function InstitutionalActivitySummary({
                   <th><span className="with-info">Put / Call Ratio<InfoTooltip text="Ratio of Put share exposure (or value) to Call share exposure. Values below 1.0 indicate a Call-heavy (bullish) institutional stance, while values above 1.0 indicate a Put-heavy (bearish) stance." /></span></th>
                   <td colSpan={2}>
                     <strong>{ratio === null ? 'N/A' : ratio.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</strong>
-                    {ratioSentiment ? <span className={`is-${ratioSentiment.toLowerCase().replace(/\s+/g, '-')}`}>{ratioSentiment}</span> : null}
+                    {ratioSentiment ? <span className={`institutional-options-ratio__sentiment is-${ratioSentiment.toLowerCase().replace(/\s+/g, '-')}`}>{ratioSentiment}</span> : null}
                   </td>
                 </tr>
               </tbody>

@@ -24552,7 +24552,7 @@ html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .dashbo
 }
 
 .institutional-options-value em,
-.institutional-options-ratio span {
+.institutional-options-ratio__sentiment {
   display: inline-flex;
   align-items: center;
   border: 1px solid rgba(13, 155, 92, .32);
@@ -24589,8 +24589,8 @@ html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .dashbo
   font-size: 13px;
 }
 
-.institutional-options-ratio span.is-bearish,
-.institutional-options-ratio span.is-strongly-bearish {
+.institutional-options-ratio__sentiment.is-bearish,
+.institutional-options-ratio__sentiment.is-strongly-bearish {
   border-color: rgba(229, 72, 93, .32);
   background: rgba(229, 72, 93, .08);
   color: #d6364d;
@@ -25265,7 +25265,7 @@ html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .instit
 }
 
 html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .institutional-page .institutional-options-value em,
-html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .institutional-page .institutional-options-ratio span {
+html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .institutional-page .institutional-options-ratio__sentiment {
   border-color: rgba(52, 211, 153, .28);
   background: rgba(16, 185, 129, .12);
   color: #6ee7b7;
