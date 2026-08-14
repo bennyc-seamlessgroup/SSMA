@@ -4,6 +4,36 @@ This file is the persistent implementation memory for changes made by Codex.
 Read it before modifying existing portal behavior, and update it after every
 completed change.
 
+## 2026-08-14 - Restore Ownership largest-holder summary value
+
+- Area: User Portal -> Ownership -> Institutional Activity Summary -> Reported
+  Institutional Options Exposure.
+- API/data:
+  - `GET /market-data/current?ticker={ticker}&category=ownership-summary-current`
+  - Primary field: `summary.oeLargetHolder`.
+- Reported problem and root cause:
+  - Largest Holder displayed `--` even though the ownership summary response had
+    a value.
+  - The live response uses the field spelling `oeLargetHolder`, while the
+    frontend only looked for `oeLargestHolder` and older aliases.
+- Intended behavior and invariants:
+  - Largest Holder reads `summary.oeLargetHolder` first and displays its value.
+  - `summary.oeLargestHolder` and the existing legacy/nested aliases remain
+    supported for backward compatibility.
+  - A dash is still shown only when none of the supported fields has a value;
+    the other ownership summary metrics are unchanged.
+- Files changed:
+  - `app/monitor/[ticker]/institutional/InstitutionalActivitySummary.tsx`
+  - `docs/CODEX_CHANGE_LOG.md`
+- Verification:
+  - TypeScript type-check passed.
+  - Production build passed, including all 29 statically generated pages.
+  - Whitespace validation passed.
+- Remaining backend dependency / limitation:
+  - The backend field currently contains the spelling `Larget`. The frontend
+    deliberately supports both `oeLargetHolder` and `oeLargestHolder` so a
+    future backend spelling correction will not cause another regression.
+
 ## 2026-08-13 - Confirm Market Data API destinations before saving
 
 - Area: Operations Portal -> Market Data -> Daily Market Inputs.

@@ -300,11 +300,13 @@ export function InstitutionalActivitySummary({
   const sourceRows = Array.isArray(sourceData)
     ? sourceData.filter(row => row && typeof row === 'object') as SummarySourceRow[]
     : [];
+  const optionsLargestHolder = directSummaryValue(data, 'oeLargetHolder', 'summary.oeLargetHolder')
+    ?? directSummaryValue(data, 'oeLargestHolder', 'summary.oeLargestHolder', 'IO_Summary_OE_largest_holder', 'summary.optionsExposure.largestHolder', 'summary.optionsExposureLargestHolder');
   const calls = {
     holders: directSummaryNumber(data, 'oeCount', 'summary.oeCount', 'IO_Summary_OE_count', 'summary.optionsExposure.count', 'summary.optionsExposure.holders', 'summary.optionsExposureCount'),
     shares: directSummaryNumber(data, 'oeShares', 'summary.oeShares', 'IO_Summary_OE_shares', 'summary.optionsExposure.shares', 'summary.optionsExposure.underlyingShares', 'summary.optionsExposureShares'),
     value: directSummaryNumber(data, 'oeValue', 'summary.oeValue', 'IO_Summary_OE_value', 'summary.optionsExposure.value', 'summary.optionsExposure.reportedValue', 'summary.optionsExposureValue'),
-    largestHolder: directSummaryValue(data, 'oeLargestHolder', 'summary.oeLargestHolder', 'IO_Summary_OE_largest_holder', 'summary.optionsExposure.largestHolder', 'summary.optionsExposureLargestHolder'),
+    largestHolder: optionsLargestHolder,
     holderTag: directSummaryValue(data, 'oeLargestHolderTag', 'summary.oeLargestHolderTag', 'IO_Summary_OE_largest_holder_tag', 'summary.optionsExposure.largestHolderTag', 'summary.optionsExposure.holderTag', 'summary.optionsExposureLargestHolderTag'),
     index: directSummaryValue(data, 'oeSharesIndex', 'summary.oeSharesIndex', 'IO_Summary_OE_shares_index', 'summary.optionsExposure.sharesIndex', 'summary.optionsExposure.index', 'summary.optionsExposureSharesIndex'),
   };
