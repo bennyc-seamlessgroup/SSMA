@@ -4,6 +4,56 @@ This file is the persistent implementation memory for changes made by Codex.
 Read it before modifying existing portal behavior, and update it after every
 completed change.
 
+## 2026-08-14 - Add Ownership explanation tooltips from supplied wording CSV
+
+- Area: User Portal -> Ownership -> quarterly Institution tables and
+  Institutional Activity Summary.
+- APIs/data:
+  - `GET /manual-input/manual-security-ownership?ticker={ticker}&effectiveDate={YYYY-MM-DD}`
+  - `GET /market-data/current?ticker={ticker}&category=ownership-summary-current`
+  - Wording reference: `Portal add suggest wording - Sheet1.csv`.
+- Reported problem and root cause:
+  - The listed ownership columns, activity-summary sections, and sub-metrics did
+    not explain their business meaning in the UI.
+  - The page already had an accessible information-tooltip pattern, but it was
+    only used for two summary-detail headings and not for the requested items.
+- Intended behavior and invariants:
+  - All 24 non-empty descriptions supplied in the CSV are available through an
+    information icon: Shares %, Value Change %, Ownership Flow, New / Exited,
+    Concentration, their listed sub-metrics, Put / Call Ratio, and the Hedged
+    and Directional holder tags.
+  - Icons use the existing keyboard-focusable `InfoTooltip` component, so the
+    descriptions are available by hover, focus, and accessible label.
+  - Quarterly-table header tooltips open below their icons and the last-column
+    tooltip is right-aligned to avoid clipping inside the horizontal table.
+  - Hedged and Directional descriptions appear only when the corresponding API
+    tag is present; unknown tags are displayed unchanged without an invented
+    definition.
+  - The supplied wording is translated for Traditional and Simplified Chinese
+    through the existing portal language system.
+  - Ownership values, calculations, API requests, data mappings, quarterly
+    grouping, and existing fallback behavior remain unchanged.
+- Files changed:
+  - `app/monitor/[ticker]/institutional/InstitutionalActivitySummary.tsx`
+  - `app/monitor/[ticker]/institutional/OwnershipTable.tsx`
+  - `app/globals.css`
+  - `lib/portal-page-translations.ts`
+  - `docs/CODEX_CHANGE_LOG.md`
+- Verification:
+  - The supplied CSV was imported with the bundled spreadsheet runtime; all 24
+    populated wording rows were found in both the intended UI components and
+    the translation catalog.
+  - TypeScript type-check passed.
+  - All seven focused Ownership tests passed.
+  - Production build passed, including all 29 statically generated pages.
+  - Browser navigation reached the local portal, but the isolated browser
+    session redirected to Cognito sign-in before authenticated Ownership UI
+    inspection could be completed.
+  - Whitespace validation passed.
+- Remaining backend dependency / limitation:
+  - None. This is an explanatory frontend-only change over the existing API
+    data and does not modify any ownership logic or payload.
+
 ## 2026-08-14 - Restore Ownership largest-holder summary value
 
 - Area: User Portal -> Ownership -> Institutional Activity Summary -> Reported

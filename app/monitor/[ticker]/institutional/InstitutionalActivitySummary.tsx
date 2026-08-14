@@ -270,8 +270,32 @@ function DirectionValue({ value, direction, formatter = exactInteger }: {
   );
 }
 
-function ActivityMetric({ label, children }: { label: string; children: ReactNode }) {
-  return <div className="institutional-activity-metric"><span>{label}</span>{children}</div>;
+function ActivityHeading({ label, description }: { label: string; description: string }) {
+  return <h3 className="with-info">{label}<InfoTooltip text={description} /></h3>;
+}
+
+function ActivityMetric({ label, description, children }: {
+  label: string;
+  description: string;
+  children: ReactNode;
+}) {
+  return (
+    <div className="institutional-activity-metric">
+      <span className="with-info">{label}<InfoTooltip text={description} /></span>
+      {children}
+    </div>
+  );
+}
+
+function HolderSentimentTooltip({ sentiment }: { sentiment: unknown }) {
+  const normalized = String(sentiment ?? '').trim().toLowerCase();
+  if (normalized === 'hedged') {
+    return <InfoTooltip text="The institution does hold physical shares (buying Calls/Puts as a portfolio insurance/hedging strategy)." />;
+  }
+  if (normalized === 'directional') {
+    return <InfoTooltip text="The institution does not hold any physical shares (making a pure directional speculative bet using options)." />;
+  }
+  return null;
 }
 
 function exposureIndex(value: unknown) {
@@ -337,32 +361,32 @@ export function InstitutionalActivitySummary({
 
       <div className="institutional-activity-cards">
         <article>
-          <h3>Ownership Flow</h3>
-          <ActivityMetric label="Buyers"><DirectionValue value={summaryValue(data, 'summary.buyer', 'buyer', 'IO_Summary_Buy')} direction="up" /></ActivityMetric>
-          <ActivityMetric label="Sellers"><DirectionValue value={summaryValue(data, 'summary.seller', 'seller', 'IO_Summary_Sellers')} direction="down" /></ActivityMetric>
-          <ActivityMetric label="Unchanged"><DirectionValue value={summaryValue(data, 'summary.unchangedOwner', 'unchangedOwner', 'IO_Summary_Unchanged')} /></ActivityMetric>
-          <ActivityMetric label="Newly reported"><DirectionValue value={summaryValue(data, 'summary.newReported', 'newReported', 'IO_Summary_New_reported')} /></ActivityMetric>
-          <ActivityMetric label="Exited / no longer reported"><DirectionValue value={summaryValue(data, 'summary.exitedOwner', 'exitedOwner', 'IO_Summary_Exit_no_longer_reported')} /></ActivityMetric>
-          <ActivityMetric label="Net shares changed"><DirectionValue value={summaryValue(data, 'summary.netSharesChanged', 'netSharesChanged', 'IO_Summary_net_shares_changed')} formatter={formatCompactQuantity} /></ActivityMetric>
-          <ActivityMetric label="Net value changed ($1000)"><DirectionValue value={summaryValue(data, 'summary.netValuesChanged', 'netValuesChanged', 'IO_Summary_net_values_changed')} formatter={thousandsCurrency} /></ActivityMetric>
+          <ActivityHeading label="Ownership Flow" description="Summarizes quarterly position adjustments across disclosed institutional holders, showing the net change in total shares and market value." />
+          <ActivityMetric label="Buyers" description="Number of institutions that increased their share count during the reporting period."><DirectionValue value={summaryValue(data, 'summary.buyer', 'buyer', 'IO_Summary_Buy')} direction="up" /></ActivityMetric>
+          <ActivityMetric label="Sellers" description="Number of institutions that reduced their share count without fully closing the position."><DirectionValue value={summaryValue(data, 'summary.seller', 'seller', 'IO_Summary_Sellers')} direction="down" /></ActivityMetric>
+          <ActivityMetric label="Unchanged" description="Number of institutions holding the exact same number of shares as the prior quarter."><DirectionValue value={summaryValue(data, 'summary.unchangedOwner', 'unchangedOwner', 'IO_Summary_Unchanged')} /></ActivityMetric>
+          <ActivityMetric label="Newly reported" description="Number of institutions opening a brand-new position or reporting for the first time."><DirectionValue value={summaryValue(data, 'summary.newReported', 'newReported', 'IO_Summary_New_reported')} /></ActivityMetric>
+          <ActivityMetric label="Exited / no longer reported" description="Number of institutions that completely liquidated their position or fell below reporting thresholds."><DirectionValue value={summaryValue(data, 'summary.exitedOwner', 'exitedOwner', 'IO_Summary_Exit_no_longer_reported')} /></ActivityMetric>
+          <ActivityMetric label="Net shares changed" description="Total net share volume added (+) or removed (-) across all reporting institutions."><DirectionValue value={summaryValue(data, 'summary.netSharesChanged', 'netSharesChanged', 'IO_Summary_net_shares_changed')} formatter={formatCompactQuantity} /></ActivityMetric>
+          <ActivityMetric label="Net value changed ($1000)" description="Estimated net dollar value of shares bought or sold across all institutions."><DirectionValue value={summaryValue(data, 'summary.netValuesChanged', 'netValuesChanged', 'IO_Summary_net_values_changed')} formatter={thousandsCurrency} /></ActivityMetric>
         </article>
 
         <article>
-          <h3>New / Exited</h3>
-          <ActivityMetric label="Newly reported"><DirectionValue value={summaryValue(data, 'summary.newReported', 'newReported', 'IO_Summary_New_reported')} /></ActivityMetric>
-          <ActivityMetric label="New shares"><DirectionValue value={summaryValue(data, 'summary.newShares', 'newShares', 'IO_Summary_New_shares')} formatter={formatCompactQuantity} /></ActivityMetric>
-          <ActivityMetric label="New value ($1000)"><DirectionValue value={summaryValue(data, 'summary.newValue', 'newValue', 'IO_Summary_New_value')} formatter={thousandsCurrency} /></ActivityMetric>
+          <ActivityHeading label="New / Exited" description="Highlights newly opened institutional positions versus completely liquidated positions, along with the total shares and capital involved." />
+          <ActivityMetric label="Newly reported" description="Count of institutions initiating a new position during the latest reporting cycle."><DirectionValue value={summaryValue(data, 'summary.newReported', 'newReported', 'IO_Summary_New_reported')} /></ActivityMetric>
+          <ActivityMetric label="New shares" description="Combined number of shares accumulated across all newly established positions."><DirectionValue value={summaryValue(data, 'summary.newShares', 'newShares', 'IO_Summary_New_shares')} formatter={formatCompactQuantity} /></ActivityMetric>
+          <ActivityMetric label="New value ($1000)" description="Total estimated market value (in thousands) of all newly established positions."><DirectionValue value={summaryValue(data, 'summary.newValue', 'newValue', 'IO_Summary_New_value')} formatter={thousandsCurrency} /></ActivityMetric>
           <div className="institutional-activity-card-divider" />
-          <ActivityMetric label="Exited / no longer reported"><DirectionValue value={summaryValue(data, 'summary.exitedOwner', 'exitedOwner', 'IO_Summary_Exit_no_longer_reported')} /></ActivityMetric>
-          <ActivityMetric label="Prior shares exited"><DirectionValue value={summaryValue(data, 'summary.priorSharesExited', 'priorSharesExited', 'IO_Summary_Prior_shares_exited')} formatter={formatCompactQuantity} /></ActivityMetric>
-          <ActivityMetric label="Prior value exited ($1000)"><DirectionValue value={summaryValue(data, 'summary.priorValueExited', 'priorValueExited', 'IO_Summary_Prior_value_exited')} formatter={thousandsCurrency} /></ActivityMetric>
+          <ActivityMetric label="Exited / no longer reported" description="Count of institutions that fully closed their position or dropped off regulatory disclosures."><DirectionValue value={summaryValue(data, 'summary.exitedOwner', 'exitedOwner', 'IO_Summary_Exit_no_longer_reported')} /></ActivityMetric>
+          <ActivityMetric label="Prior shares exited" description="Total share volume previously owned by institutions that have now fully exited."><DirectionValue value={summaryValue(data, 'summary.priorSharesExited', 'priorSharesExited', 'IO_Summary_Prior_shares_exited')} formatter={formatCompactQuantity} /></ActivityMetric>
+          <ActivityMetric label="Prior value exited ($1000)" description="Estimated market value (in thousands) of the exited positions prior to liquidation."><DirectionValue value={summaryValue(data, 'summary.priorValueExited', 'priorValueExited', 'IO_Summary_Prior_value_exited')} formatter={thousandsCurrency} /></ActivityMetric>
         </article>
 
         <article>
-          <h3>Concentration</h3>
-          <ActivityMetric label="Total disclosed shares"><DirectionValue value={summaryValue(data, 'summary.totalDisclosedShares', 'totalDisclosedShares', 'IO_Summary_Total_disclosed_shares')} formatter={formatCompactQuantity} /></ActivityMetric>
-          <ActivityMetric label="Top 5 concentration"><DirectionValue value={summaryValue(data, 'summary.top5Concentration', 'top5Concentration', 'IO_Summary_Top_5_concentration')} formatter={exactPercent} /></ActivityMetric>
-          <ActivityMetric label="Top 10 concentration"><DirectionValue value={summaryValue(data, 'summary.top10Concentration', 'top10Concentration', 'IO_Summary_Top_10_concentration')} formatter={exactPercent} /></ActivityMetric>
+          <ActivityHeading label="Concentration" description="Shows total disclosed institutional shares and the percentage controlled by the top 5 and top 10 largest institutional holders." />
+          <ActivityMetric label="Total disclosed shares" description="Aggregate share volume reported across all valid institutional filings (13F, NPORT, etc.)."><DirectionValue value={summaryValue(data, 'summary.totalDisclosedShares', 'totalDisclosedShares', 'IO_Summary_Total_disclosed_shares')} formatter={formatCompactQuantity} /></ActivityMetric>
+          <ActivityMetric label="Top 5 concentration" description="Share percentage controlled by the 5 largest institutional holders relative to total disclosed institutional shares."><DirectionValue value={summaryValue(data, 'summary.top5Concentration', 'top5Concentration', 'IO_Summary_Top_5_concentration')} formatter={exactPercent} /></ActivityMetric>
+          <ActivityMetric label="Top 10 concentration" description="Share percentage controlled by the 10 largest institutional holders relative to total disclosed institutional shares."><DirectionValue value={summaryValue(data, 'summary.top10Concentration', 'top10Concentration', 'IO_Summary_Top_10_concentration')} formatter={exactPercent} /></ActivityMetric>
           <p className="institutional-activity-card-note">Concentration is measured against total disclosed institutional shares.</p>
         </article>
 
@@ -411,11 +435,11 @@ export function InstitutionalActivitySummary({
                 <tr><th>Reported Value ($1000)</th><td>{thousandsCurrency(calls.value)}</td><td>{thousandsCurrency(puts.value)}</td></tr>
                 <tr>
                   <th>Largest Holder</th>
-                  <td><span className="institutional-options-value">{String(calls.largestHolder ?? '—')}{calls.holderTag ? <em className="is-directional">{String(calls.holderTag)}</em> : null}</span></td>
-                  <td><span className="institutional-options-value">{String(puts.largestHolder ?? '—')}{puts.holderTag ? <em className="is-directional">{String(puts.holderTag)}</em> : null}</span></td>
+                  <td><span className="institutional-options-value">{String(calls.largestHolder ?? '—')}{calls.holderTag ? <em className="is-directional">{String(calls.holderTag)}</em> : null}{calls.holderTag ? <HolderSentimentTooltip sentiment={calls.holderTag} /> : null}</span></td>
+                  <td><span className="institutional-options-value">{String(puts.largestHolder ?? '—')}{puts.holderTag ? <em className="is-directional">{String(puts.holderTag)}</em> : null}{puts.holderTag ? <HolderSentimentTooltip sentiment={puts.holderTag} /> : null}</span></td>
                 </tr>
                 <tr className="institutional-options-ratio">
-                  <th>Put / Call Ratio</th>
+                  <th><span className="with-info">Put / Call Ratio<InfoTooltip text="Ratio of Put share exposure (or value) to Call share exposure. Values below 1.0 indicate a Call-heavy (bullish) institutional stance, while values above 1.0 indicate a Put-heavy (bearish) stance." /></span></th>
                   <td colSpan={2}>
                     <strong>{ratio === null ? 'N/A' : ratio.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</strong>
                     {ratioSentiment ? <span className={`is-${ratioSentiment.toLowerCase().replace(/\s+/g, '-')}`}>{ratioSentiment}</span> : null}

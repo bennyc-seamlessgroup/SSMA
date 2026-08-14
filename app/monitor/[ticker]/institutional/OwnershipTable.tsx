@@ -3,6 +3,7 @@
 import { useMemo, useState } from 'react';
 import type { InstitutionalHolding } from '@/lib/types';
 import { formatSignedPercent } from '@/lib/number-format';
+import { InfoTooltip } from '@/components/InfoTooltip';
 import { OwnershipHistoryChartModal, type OwnershipMarketHistoryRecord } from './OwnershipHistoryChart';
 
 type OwnershipTableProps = {
@@ -223,11 +224,11 @@ export function OwnershipTableHeader({
             <th>Type</th>
             <th>Avg Price Est.</th>
             <th>Shares</th>
-            <th>{latestSchema ? '% of Institutional Shares' : 'Shares %'}</th>
+            <th>{latestSchema ? '% of Institutional Shares' : <span className="ownership-table-header-label with-info">Shares %<InfoTooltip text="Shares Change Compare Previous Quarter" /></span>}</th>
             {!latestSchema ? (
               <>
                 <th>Reported Value</th>
-                <th>Value Change %</th>
+                <th><span className="ownership-table-header-label with-info">Value Change %<InfoTooltip text="Value Change Compare Previous Quarter" /></span></th>
               </>
             ) : null}
           </>
