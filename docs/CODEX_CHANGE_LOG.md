@@ -4,6 +4,39 @@ This file is the persistent implementation memory for changes made by Codex.
 Read it before modifying existing portal behavior, and update it after every
 completed change.
 
+## 2026-08-14 - Use compact raw-share labels in ownership charts
+
+- Area: User Portal -> Ownership -> filing table -> ownership-history popup
+  chart.
+- API/data:
+  - `GET /manual-input/manual-security-ownership?ticker={ticker}&effectiveDate={YYYY-MM-DD}`
+- Reported problem and root cause:
+  - Ownership chart hover details and the share axis used a fixed `x1000` unit,
+    making small holdings appear as fractions and requiring users to mentally
+    convert every value.
+  - The chart divided API share values by 1,000 before plotting and formatting.
+- Intended behavior and invariants:
+  - Filing points retain their raw API share quantities for chart scaling and
+    display.
+  - The shared `formatCompactQuantity` formatter is used for hover values and
+    Y-axis ticks: values below 1,000 remain exact, thousands use `K`, and
+    millions use `M`.
+  - The Y-axis title, tooltip label, and legend no longer claim a fixed
+    `x1000` unit.
+  - Exact-zero markers, minimum-height rendering for tiny positive holdings,
+    filing dates, price history, and tooltip interactions remain unchanged.
+- Files changed:
+  - `app/monitor/[ticker]/institutional/OwnershipHistoryChart.tsx`
+  - `docs/CODEX_CHANGE_LOG.md`
+- Verification:
+  - TypeScript type-check passed.
+  - All seven focused Ownership helper tests passed.
+  - Production build passed, including all 29 statically generated pages.
+  - Whitespace validation passed.
+- Remaining backend dependency / limitation:
+  - None. This is a frontend unit and formatting correction over existing raw
+    share values.
+
 ## 2026-08-14 - Keep tiny positive ownership filings visible
 
 - Area: User Portal -> Ownership -> filing table -> ownership-history popup
@@ -51,10 +84,14 @@ completed change.
   - A broad `.institutional-options-ratio span` selector applied sentiment-chip
     borders, padding, colors, and sizing to every nested span, including the
     label wrapper, information icon, and tooltip bubble.
+  - After the selector correction, the centered ratio tooltip still extended
+    left into the neighboring Source Breakdown column.
 - Intended behavior and invariants:
   - Only the actual Bullish/Bearish sentiment label uses chip styling.
   - The Put / Call Ratio label and information icon retain the shared tooltip
     layout and accessible hover/focus behavior.
+  - The ratio tooltip opens rightward from its icon and remains inside the
+    Options Exposure column.
   - Ratio value, sentiment text, API mappings, and calculations are unchanged.
 - Files changed:
   - `app/monitor/[ticker]/institutional/InstitutionalActivitySummary.tsx`
@@ -63,6 +100,8 @@ completed change.
 - Verification:
   - Browser inspection confirmed a normal-height ratio row, a 15px information
     icon, a separate sentiment chip, and a standard tooltip panel.
+  - Browser geometry inspection confirmed the tooltip starts inside the
+    Options Exposure card and no longer crosses into the left detail card.
   - TypeScript type-check passed.
   - Whitespace validation passed.
 - Remaining backend dependency / limitation:

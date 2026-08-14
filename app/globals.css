@@ -24589,6 +24589,11 @@ html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .dashbo
   font-size: 13px;
 }
 
+.institutional-options-ratio .info-tooltip__bubble {
+  left: 0;
+  transform: none;
+}
+
 .institutional-options-ratio__sentiment.is-bearish,
 .institutional-options-ratio__sentiment.is-strongly-bearish {
   border-color: rgba(229, 72, 93, .32);

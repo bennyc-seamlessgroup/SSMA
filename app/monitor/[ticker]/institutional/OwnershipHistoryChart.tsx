@@ -1,6 +1,7 @@
 'use client';
 
 import type { InstitutionalHolding } from '@/lib/types';
+import { formatCompactQuantity } from '@/lib/number-format';
 import { useEffect, useMemo, useState } from 'react';
 
 export type OwnershipMarketHistoryRecord = Record<string, unknown>;
@@ -84,7 +85,7 @@ function filingSeries(selected: InstitutionalHolding, holdings: InstitutionalHol
     const shares = numericValue(row.shares);
     if (!date || shares === null) return;
     const key = dateKey(date);
-    byDate.set(key, { date, dateKey: key, sharesHeld: shares / 1000 });
+    byDate.set(key, { date, dateKey: key, sharesHeld: shares });
   });
 
   return [...byDate.values()].sort((a, b) => a.date.getTime() - b.date.getTime());
@@ -230,7 +231,7 @@ function OwnershipHistoryChart({
       <p>Reported Institutional Ownership</p>
       {filings.length || prices.length ? (
         <svg viewBox={`0 0 ${width} ${height}`} role="img" aria-label={`Reported ownership and closing-price history for ${holding.fund_name}`}>
-          <text className="ownership-chart-axis-title" x="23" y={top + plotHeight / 2} transform={`rotate(-90 23 ${top + plotHeight / 2})`}>Shares Held (x1000)</text>
+          <text className="ownership-chart-axis-title" x="23" y={top + plotHeight / 2} transform={`rotate(-90 23 ${top + plotHeight / 2})`}>Shares Held</text>
           <text className="ownership-chart-axis-title" x={width - 20} y={top + plotHeight / 2} transform={`rotate(90 ${width - 20} ${top + plotHeight / 2})`}>Closing Price</text>
 
           {shareTicks.map((tick, index) => {
@@ -238,7 +239,7 @@ function OwnershipHistoryChart({
             return (
               <g key={`share-${index}`}>
                 <line className="ownership-chart-grid" x1={left} x2={width - right} y1={y} y2={y} />
-                <text className="ownership-chart-tick" x={left - 14} y={y + 4} textAnchor="end">{tick.toLocaleString('en-US', { maximumFractionDigits: 1 })}</text>
+                <text className="ownership-chart-tick" x={left - 14} y={y + 4} textAnchor="end">{formatCompactQuantity(tick)}</text>
               </g>
             );
           })}
@@ -265,8 +266,8 @@ function OwnershipHistoryChart({
               x: centerX,
               y: markerY,
               date: fullOwnershipDate(point.date),
-              label: 'Reported Shares Held (x1000)',
-              value: point.sharesHeld.toLocaleString('en-US', { maximumFractionDigits: 1 }),
+              label: 'Reported Shares Held',
+              value: formatCompactQuantity(point.sharesHeld),
             });
             return (
               <g
@@ -340,7 +341,7 @@ function OwnershipHistoryChart({
       )}
       <div className="ownership-chart-legend">
         <span><i className="price" />Closing Price</span>
-        <span><i className="shares" />Reported Shares Held (x1000)</span>
+        <span><i className="shares" />Reported Shares Held</span>
       </div>
       <small className="ownership-chart-note">Bars reflect disclosed filing snapshots. The line reflects market closing prices and does not imply daily ownership changes.</small>
     </div>
