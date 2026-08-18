@@ -8,6 +8,7 @@ const zhHant: Record<string, string> = {
   'Download': '下載', 'Upload': '上載', 'Publish': '發佈', 'Actions': '操作', 'Action': '操作', 'Access': '存取權',
   'Loading page data': '正在載入頁面資料', 'Checking secure session': '正在檢查安全工作階段', 'No data': '暫無資料',
   'No chart data available': '暫無圖表資料', 'No prior update': '沒有先前更新', 'No messages': '沒有訊息', 'Pending': '待處理',
+  'vs previous day': '與前一日比較',
   'Source:': '來源：', 'Author:': '作者：', 'Date': '日期', 'Ticker': '股票代碼', 'Category': '類別', 'Notes': '備註',
   'Status': '狀態', 'Role': '角色', 'Account': '帳戶', 'Governance': '管治', 'Policy': '政策', 'Professional': '專業版',
   'Reset Defaults': '重設預設值', 'Rows per page': '每頁列數', 'Page number': '頁碼', 'Open source': '開啟來源',
@@ -704,6 +705,7 @@ function translateEnglishDate(value: string, chartText: boolean) {
 }
 
 const dynamicPatterns: Array<[RegExp, string]> = [
+  [/^(.+) vs previous day$/, '$1，與前一日比較'],
   [/^Page (\d+) of (\d+)$/, '第 $1 頁，共 $2 頁'],
   [/^Page (\d+)$/, '第 $1 頁'],
   [/^(\d+) records$/, '$1 筆記錄'],

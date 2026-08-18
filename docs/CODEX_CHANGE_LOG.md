@@ -4,6 +4,40 @@ This file is the persistent implementation memory for changes made by Codex.
 Read it before modifying existing portal behavior, and update it after every
 completed change.
 
+## 2026-08-18 - Standardize daily comparison wording across market pages
+
+- Area: User Portal -> Dashboard, Short Interest, and Lending Pressure metric
+  comparisons.
+- API/data:
+  - `GET /market-data/current?ticker={ticker}&category=market-current`
+  - `GET /market-data/history?ticker={ticker}&category=market-history`
+- Reported problem and root cause:
+  - Dashboard used `vs previous day`, while Short Interest and Lending Pressure
+    used `vs yesterday` for the same preceding-day comparison.
+  - The two pages each carried their own older label text instead of matching
+    the Dashboard terminology.
+- Intended behavior and invariants:
+  - Short Interest and Lending Pressure now use `vs previous day`, matching the
+    Dashboard.
+  - The wording is translated in Traditional and Simplified Chinese.
+  - Comparison calculations are unchanged: each metric still uses its own
+    preceding valid observation; when that observation is older than the
+    immediately preceding calendar day, the UI continues to show its explicit
+    date rather than incorrectly calling it the previous day.
+  - Metric as-of dates, values, API sources, and missing-data handling remain
+    unchanged.
+- Files changed:
+  - `app/monitor/[ticker]/short-interest/ShortInterestBrowserPage.tsx`
+  - `app/monitor/[ticker]/lending-pressure/LendingPressureBrowserPage.tsx`
+  - `lib/portal-page-translations.ts`
+  - `docs/CODEX_CHANGE_LOG.md`
+- Verification:
+  - TypeScript type-check passed.
+  - Whitespace validation passed.
+  - Focused source scan confirmed Dashboard, Short Interest, and Lending
+    Pressure all use `vs previous day` for immediately preceding-day baselines.
+- Remaining backend dependency / limitation: None identified.
+
 ## 2026-08-14 - Save Internal Float suggestion decisions through supported auditLog
 
 - Area: User Portal -> Internal Float -> Suggested Changes and Management /

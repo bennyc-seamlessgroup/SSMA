@@ -209,7 +209,7 @@ function latestAvailableComparisonLabel(latestValue: unknown, previousValue: unk
   const actualPreviousDate = `${previousMatch[1]}-${previousMatch[2]}-${previousMatch[3]}`;
 
   return actualPreviousDate === expectedPreviousDate
-    ? 'vs yesterday'
+    ? 'vs previous day'
     : `vs ${fullMarketDateLabel(actualPreviousDate)}`;
 }
 
@@ -314,7 +314,7 @@ function DeltaBadge({ info, suffix = '', display }: { info: ReturnType<typeof de
     return (
       <span className={`short-kpi-delta ${display.startsWith('-') ? 'down' : display.startsWith('+') ? 'up' : 'neutral'}`}>
         <strong>{match?.[1]?.trim() ?? display}</strong>
-        <em>{match ? `${match[2]} vs yesterday` : 'vs yesterday'}</em>
+        <em>{match ? `${match[2]} vs previous day` : 'vs previous day'}</em>
       </span>
     );
   }
@@ -326,7 +326,7 @@ function DeltaBadge({ info, suffix = '', display }: { info: ReturnType<typeof de
   return (
     <span className={`short-kpi-delta ${tone}`}>
       <strong>{info.valueText}{suffix}</strong>
-      <em>({sign}{Math.abs(info.percent).toLocaleString('en-US', { maximumFractionDigits: 2 })}%) vs yesterday</em>
+      <em>({sign}{Math.abs(info.percent).toLocaleString('en-US', { maximumFractionDigits: 2 })}%) vs previous day</em>
     </span>
   );
 }

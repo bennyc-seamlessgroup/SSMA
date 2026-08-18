@@ -323,7 +323,7 @@ function latestAvailableComparisonLabel(latestValue: unknown, previousValue: unk
   const actualPreviousDate = `${previousMatch[1]}-${previousMatch[2]}-${previousMatch[3]}`;
 
   return actualPreviousDate === expectedPreviousDate
-    ? 'vs yesterday'
+    ? 'vs previous day'
     : `vs ${fullMarketDateLabel(actualPreviousDate)}`;
 }
 
