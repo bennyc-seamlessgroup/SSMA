@@ -347,6 +347,7 @@ html[data-portal-design="b"] .monitor-portal button.report-primary-button {
 }
 
 .monitor-portal :is(.modal-backdrop) {
+  z-index: 1000;
   background: rgba(15, 23, 42, .62);
   backdrop-filter: blur(3px);
 }
@@ -973,10 +974,65 @@ html[data-portal-design="b"] .monitor-portal button.report-primary-button {
 /* Compact shell controls */
 html[data-portal-design='b'] .portal-design-b-company-main {
   align-items: center;
+  height: 36px;
+  max-height: 36px;
 }
 
 html[data-portal-design='b'] .portal-design-b-company-main > :is(strong, span, svg) {
   align-self: center;
+}
+
+/* Safari can preserve an unsized inline SVG's 300x150 intrinsic dimensions
+   inside a grid cell. Size and draw the company chevron explicitly so it
+   cannot stretch the top bar or render as a filled triangle on iPad. */
+html[data-portal-design='b'] .portal-design-b-company-main > svg {
+  display: block;
+  width: 16px;
+  min-width: 16px;
+  height: 16px;
+  min-height: 16px;
+  overflow: visible;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.8;
+}
+
+html[data-portal-design='b'] .portal-design-b-topbar-row {
+  height: 38px;
+  max-height: 38px;
+}
+
+html[data-portal-design='b'] .portal-design-b-actions,
+html[data-portal-design='b'] .portal-design-b-actions > .company-switcher {
+  height: 36px;
+  max-height: 36px;
+}
+
+/* Do not leave the score ring's block size to WebKit's grid/aspect-ratio
+   calculation. Equal physical dimensions guarantee a circle on iPad. */
+html[data-portal-design='b'] .monitor-portal .short-score-radial {
+  box-sizing: border-box;
+  width: 112px;
+  min-width: 112px;
+  max-width: 112px;
+  height: 112px;
+  min-height: 112px;
+  max-height: 112px;
+  aspect-ratio: auto;
+  place-self: center;
+}
+
+@media (max-width: 520px) {
+  html[data-portal-design='b'] .monitor-portal .short-score-radial {
+    width: 96px;
+    min-width: 96px;
+    max-width: 96px;
+    height: 96px;
+    min-height: 96px;
+    max-height: 96px;
+  }
 }
 
 .monitor-portal button.dev-mode-toggle,
@@ -1916,5 +1972,472 @@ html[data-design-b-theme='dark'] .ops-company-indicator__name {
     height: auto;
     overflow: visible;
     padding: 14px 10px 24px;
+  }
+}
+
+/* iPad and small-tablet layout safety.
+   Keep dialogs, dense controls, and the operations workspace inside the
+   visible viewport in both 768px portrait and 1024px landscape layouts. */
+@media (max-width: 1320px) {
+  html[data-portal-design="b"] .monitor-portal .internal-float-holder-grid-shell {
+    border: 0;
+    background: transparent;
+    padding: 2px;
+  }
+
+  html[data-portal-design="b"] .monitor-portal .internal-float-holder-grid,
+  html[data-portal-design="b"] .monitor-portal .internal-float-holder-grid.compact {
+    counter-reset: internal-float-record;
+    display: grid;
+    gap: 10px;
+    width: 100%;
+    min-width: 0;
+  }
+
+  html[data-portal-design="b"] .monitor-portal .internal-float-holder-grid__header,
+  html[data-portal-design="b"] .monitor-portal .internal-float-holder-grid.compact .internal-float-holder-grid__header {
+    display: none;
+  }
+
+  html[data-portal-design="b"] .monitor-portal .internal-float-holder-row label::before {
+    content: attr(aria-label);
+    display: block;
+    margin-bottom: 5px;
+    color: var(--ci-muted);
+    font-size: 9px;
+    font-weight: 800;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+  }
+
+  html[data-portal-design="b"] .monitor-portal .internal-float-holder-row-group {
+    counter-increment: internal-float-record;
+    overflow: hidden;
+    border: 1px solid var(--ci-border);
+    border-radius: 10px;
+    background: var(--ci-surface);
+    box-shadow: 0 1px 2px rgba(15, 23, 42, .04);
+  }
+
+  html[data-portal-design="b"] .monitor-portal .internal-float-holder-row-group::before {
+    content: "Holding record " counter(internal-float-record);
+    display: flex;
+    min-height: 32px;
+    align-items: center;
+    border-bottom: 1px solid var(--ci-border-soft);
+    background: var(--ci-surface-muted);
+    padding: 7px 14px;
+    color: var(--ci-muted);
+    font-size: 9px;
+    font-weight: 850;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+  }
+
+  html[data-portal-design="b"] .monitor-portal .internal-float-holder-grid.compact .internal-float-holder-row-group::before {
+    content: "Entry " counter(internal-float-record);
+  }
+
+  html[data-portal-design="b"] .monitor-portal .internal-float-holder-row-group:last-child {
+    border-bottom: 1px solid var(--ci-border);
+  }
+
+  html[data-portal-design="b"] .monitor-portal .internal-float-holder-row,
+  html[data-portal-design="b"] .monitor-portal .internal-float-holder-grid.compact .internal-float-holder-row {
+    grid-template-columns: minmax(0, 1.45fr) minmax(170px, .85fr) minmax(150px, .65fr);
+    grid-template-areas:
+      "holder category shares"
+      "impact note delete";
+    align-items: end;
+    gap: 14px 16px;
+    padding: 14px;
+  }
+
+  html[data-portal-design="b"] .monitor-portal .internal-float-holder-row > :nth-child(1) { grid-area: holder; }
+  html[data-portal-design="b"] .monitor-portal .internal-float-holder-row > :nth-child(2) { grid-area: category; }
+  html[data-portal-design="b"] .monitor-portal .internal-float-holder-row > :nth-child(3) { grid-area: shares; }
+  html[data-portal-design="b"] .monitor-portal .internal-float-holder-row > :nth-child(4) { grid-area: impact; }
+  html[data-portal-design="b"] .monitor-portal .internal-float-holder-row > :nth-child(5) { grid-area: note; }
+  html[data-portal-design="b"] .monitor-portal .internal-float-holder-row > :nth-child(6) { grid-area: delete; }
+
+  html[data-portal-design="b"] .monitor-portal .internal-float-holder-grid.compact .internal-float-holder-row {
+    grid-template-areas:
+      "holder shares category"
+      "impact . delete";
+  }
+
+  html[data-portal-design="b"] .monitor-portal .internal-float-holder-grid.compact .internal-float-holder-row > :nth-child(1) { grid-area: holder; }
+  html[data-portal-design="b"] .monitor-portal .internal-float-holder-grid.compact .internal-float-holder-row > :nth-child(2) { grid-area: shares; }
+  html[data-portal-design="b"] .monitor-portal .internal-float-holder-grid.compact .internal-float-holder-row > :nth-child(3) { grid-area: category; }
+  html[data-portal-design="b"] .monitor-portal .internal-float-holder-grid.compact .internal-float-holder-row > :nth-child(4) { grid-area: impact; }
+  html[data-portal-design="b"] .monitor-portal .internal-float-holder-grid.compact .internal-float-holder-row > :nth-child(5) { grid-area: delete; }
+
+  html[data-portal-design="b"] .monitor-portal .internal-float-holder-row :is(.input, .select) {
+    width: 100%;
+  }
+
+  html[data-portal-design="b"] .monitor-portal .internal-float-holder-row :is(
+    .internal-float-impact-toggle,
+    .internal-float-note-toggle,
+    .internal-float-trash-button,
+    .internal-float-grid-impact
+  ) {
+    min-height: 38px;
+  }
+
+  html[data-portal-design="b"] .monitor-portal .internal-float-holder-row :is(.input, .select) {
+    border: 1px solid var(--ci-border) !important;
+    background: var(--ci-surface-muted) !important;
+    padding-inline: 10px;
+  }
+
+  html[data-portal-design="b"] .monitor-portal .internal-float-holder-row :is(.input, .select):focus {
+    border-color: var(--ci-accent) !important;
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--ci-accent) 14%, transparent);
+  }
+
+  html[data-portal-design="b"] .monitor-portal .internal-float-impact-toggle,
+  html[data-portal-design="b"] .monitor-portal .internal-float-note-toggle,
+  html[data-portal-design="b"] .monitor-portal .internal-float-grid-impact {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    justify-self: start;
+    width: auto;
+    min-width: 132px;
+    padding-inline: 12px;
+  }
+
+  html[data-portal-design="b"] .monitor-portal .internal-float-impact-toggle::before,
+  html[data-portal-design="b"] .monitor-portal .internal-float-note-toggle::before,
+  html[data-portal-design="b"] .monitor-portal .internal-float-grid-impact::before {
+    color: var(--ci-muted);
+    font-size: 9px;
+    font-weight: 800;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+  }
+
+  html[data-portal-design="b"] .monitor-portal .internal-float-impact-toggle::before {
+    content: "Float impact";
+  }
+
+  html[data-portal-design="b"] .monitor-portal .internal-float-note-toggle::before {
+    content: "Notes";
+  }
+
+  html[data-portal-design="b"] .monitor-portal .internal-float-grid-impact::before {
+    content: "Impact";
+  }
+
+  html[data-portal-design="b"] .monitor-portal .internal-float-trash-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    justify-self: end;
+    gap: 7px;
+    width: auto;
+    min-width: 84px;
+    padding-inline: 12px;
+  }
+
+  html[data-portal-design="b"] .monitor-portal .internal-float-trash-button::after {
+    content: "Delete";
+    font-size: 11px;
+    font-weight: 750;
+  }
+
+  html[data-portal-design="b"] .monitor-portal .internal-float-holder-notes {
+    margin: 0;
+    border-top: 1px solid var(--ci-border-soft);
+    padding: 12px 14px 14px;
+  }
+}
+
+@media (max-width: 900px) {
+  .monitor-portal .modal-backdrop,
+  .ops-confirm-backdrop {
+    align-items: center;
+    padding: 12px;
+  }
+
+  .monitor-portal .modal-card,
+  .monitor-portal .internal-float-edit-modal,
+  .monitor-portal .internal-float-suggestion-modal,
+  .monitor-portal .internal-float-reminder-modal,
+  .ops-confirm-modal,
+  .ops-save-confirm-modal {
+    width: 100%;
+    max-width: calc(100vw - 24px);
+    max-height: calc(100dvh - 24px);
+  }
+
+  .monitor-portal .modal-card,
+  .monitor-portal .internal-float-edit-modal,
+  .monitor-portal .internal-float-suggestion-modal,
+  .monitor-portal .internal-float-reminder-modal,
+  .ops-confirm-modal {
+    overflow-y: auto;
+    overscroll-behavior: contain;
+  }
+
+  .monitor-portal :is(
+    .page__header,
+    .section-heading,
+    .terminal-section__head,
+    .dashboard-chart-head,
+    .institutional-chart-card__head,
+    .narrative-section-head,
+    .settings-panel__head,
+    .ownership-toolbar,
+    .report-history-toolbar,
+    .sec-filings-panel__head
+  ) {
+    align-items: flex-start;
+    flex-wrap: wrap;
+  }
+
+  .monitor-portal :is(
+    .tabs,
+    .institutional-tabs__bar,
+    .narrative-filter-group,
+    .dashboard-period-control,
+    .api-source-tags
+  ) {
+    max-width: 100%;
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+    scrollbar-width: thin;
+  }
+
+  html[data-portal-design="b"] .monitor-portal .internal-float-edit-modal {
+    padding: 16px;
+  }
+
+  html[data-portal-design="b"] .monitor-portal .internal-float-holder-grid-shell {
+    width: 100%;
+    max-height: min(46dvh, 480px);
+    overflow-x: hidden;
+    overflow-y: auto;
+  }
+
+  html[data-portal-design="b"] .monitor-portal .internal-float-holder-grid,
+  html[data-portal-design="b"] .monitor-portal .internal-float-holder-grid.compact {
+    width: 100%;
+    min-width: 0;
+  }
+
+  html[data-portal-design="b"] .monitor-portal .internal-float-holder-grid__header,
+  html[data-portal-design="b"] .monitor-portal .internal-float-holder-grid.compact .internal-float-holder-grid__header {
+    display: none;
+  }
+
+  html[data-portal-design="b"] .monitor-portal .internal-float-holder-row,
+  html[data-portal-design="b"] .monitor-portal .internal-float-holder-grid.compact .internal-float-holder-row {
+    grid-template-columns: minmax(0, 1.35fr) minmax(0, .9fr) minmax(0, .75fr);
+    align-items: end;
+    gap: 10px;
+    padding: 12px;
+  }
+
+  html[data-portal-design="b"] .monitor-portal .internal-float-holder-row > :last-child {
+    justify-self: end;
+  }
+
+  html[data-portal-design="b"] .monitor-portal .internal-float-edit-modal .modal-actions {
+    bottom: -16px;
+    flex-wrap: wrap;
+    margin: 14px -16px -16px;
+    padding: 12px 16px;
+  }
+
+  .report-html-viewer-backdrop {
+    padding: 8px;
+  }
+
+  .report-html-viewer {
+    width: 100%;
+    max-width: calc(100vw - 16px);
+    max-height: calc(100dvh - 16px);
+  }
+
+  .report-html-viewer__toolbar {
+    gap: 10px;
+    padding-inline: 12px;
+  }
+
+  .ops-shell {
+    display: block;
+    height: auto;
+    min-height: 100vh;
+    overflow: visible;
+  }
+
+  .ops-sidebar {
+    position: static;
+    height: auto;
+    min-height: 0;
+    overflow: visible;
+    padding: 10px 12px;
+  }
+
+  .ops-brand {
+    min-height: 42px;
+    padding-bottom: 8px;
+  }
+
+  .ops-sidebar__scroll {
+    min-height: 0;
+    flex: none;
+    overflow: visible;
+    padding: 8px 0;
+  }
+
+  .ops-nav {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 5px;
+  }
+
+  .ops-nav__section {
+    display: contents;
+  }
+
+  .ops-nav__section > span {
+    grid-column: 1 / -1;
+  }
+
+  .ops-sidebar__utilities {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    padding-top: 8px;
+  }
+
+  .ops-main {
+    width: 100%;
+    height: auto;
+    min-height: 0;
+    overflow: visible;
+    padding: 14px 12px 28px;
+  }
+
+  .ops-page-header,
+  .ops-panel-head,
+  .ops-record-tools,
+  .ops-history-toolbar,
+  .ops-access-toolbar,
+  .ops-ticker-toolbar {
+    min-width: 0;
+  }
+
+  .ops-panel-head,
+  .ops-record-tools,
+  .ops-history-toolbar {
+    align-items: flex-start;
+    flex-wrap: wrap;
+  }
+
+  .ops-save-confirm-summary {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .ops-save-confirm-modal__body {
+    overflow-y: auto;
+    overscroll-behavior: contain;
+  }
+
+  .ops-save-confirm-requests {
+    max-height: min(42dvh, 380px);
+  }
+
+  .ops-company-indicator {
+    max-width: calc(100vw - 24px);
+    max-height: calc(100dvh - 24px);
+  }
+}
+
+@media (max-width: 700px) {
+  html[data-portal-design="b"] .monitor-portal .internal-float-holder-row {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-areas:
+      "holder holder"
+      "category shares"
+      "impact note"
+      "delete delete";
+  }
+
+  html[data-portal-design="b"] .monitor-portal .internal-float-holder-grid.compact .internal-float-holder-row {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-areas:
+      "holder shares"
+      "category category"
+      "impact delete";
+  }
+}
+
+@media (max-width: 620px) {
+  html[data-portal-design="b"] .monitor-portal .internal-float-modal-impact-summary,
+  html[data-portal-design="b"] .monitor-portal .internal-float-holder-row,
+  html[data-portal-design="b"] .monitor-portal .internal-float-holder-grid.compact .internal-float-holder-row,
+  .ops-save-confirm-summary {
+    grid-template-columns: 1fr;
+  }
+
+  html[data-portal-design="b"] .monitor-portal .internal-float-holder-row > :last-child {
+    justify-self: start;
+    grid-column: auto;
+  }
+
+  html[data-portal-design="b"] .monitor-portal .internal-float-edit-modal .modal-actions .button,
+  .ops-confirm-modal footer button {
+    width: 100%;
+  }
+
+  html[data-portal-design="b"] .monitor-portal .internal-float-holder-row {
+    grid-template-areas:
+      "holder"
+      "category"
+      "shares"
+      "impact"
+      "note"
+      "delete";
+  }
+
+  html[data-portal-design="b"] .monitor-portal .internal-float-holder-grid.compact .internal-float-holder-row {
+    grid-template-areas:
+      "holder"
+      "shares"
+      "category"
+      "impact"
+      "delete";
+  }
+
+  .monitor-portal .modal-card__head {
+    align-items: flex-start;
+  }
+
+  .ops-nav {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .ops-confirm-modal {
+    grid-template-columns: 1fr;
+    padding: 16px;
+  }
+
+  .ops-confirm-modal footer {
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+
+  .report-html-viewer-backdrop {
+    padding: 0;
+  }
+
+  .report-html-viewer {
+    max-width: none;
+    max-height: none;
+    border: 0 !important;
+    border-radius: 0 !important;
   }
 }

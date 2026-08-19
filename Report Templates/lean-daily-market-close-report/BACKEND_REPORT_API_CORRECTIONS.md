@@ -280,8 +280,8 @@ Required score ranges:
 |---|---|---|
 | `0-39` | Low | Pressure is relatively contained. |
 | `40-64` | Moderate | Pressure is developing. |
-| `65-79` | High | Elevated squeeze sensitivity. |
-| `80-100` | Extreme | Severe pressure warrants review. |
+| `65-80` | High | Elevated squeeze sensitivity. |
+| `>80` | Extreme | Severe pressure warrants review. |
 
 Return all four rows and mark exactly one `active: true` when a valid score is
 available.
@@ -302,8 +302,8 @@ Required shape:
     "ranges": [
       { "range": "0-39", "level": "Low", "description": "Pressure is relatively contained.", "active": false },
       { "range": "40-64", "level": "Moderate", "description": "Pressure is developing.", "active": false },
-      { "range": "65-79", "level": "High", "description": "Elevated squeeze sensitivity.", "active": true },
-      { "range": "80-100", "level": "Extreme", "description": "Severe pressure warrants review.", "active": false }
+      { "range": "65-80", "level": "High", "description": "Elevated squeeze sensitivity.", "active": true },
+      { "range": ">80", "level": "Extreme", "description": "Severe pressure warrants review.", "active": false }
     ],
     "aiAnalysis": null,
     "aiSourceScope": "none"

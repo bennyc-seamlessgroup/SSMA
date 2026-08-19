@@ -549,6 +549,11 @@ function CurrentExchangeVolume({ entries }: { entries: VenueValue[] }) {
       path: pieSlicePath(startAngle, endAngle),
     };
   });
+  const legendColumnSize = Math.ceil(sortedEntries.length / 2);
+  const legendColumns = [
+    sortedEntries.slice(0, legendColumnSize),
+    sortedEntries.slice(legendColumnSize),
+  ].filter(column => column.length > 0);
   const hoveredEntry = hoveredKey ? slices.find(entry => entry.key === hoveredKey) ?? null : null;
 
   if (!entries.length || !total) {
@@ -584,11 +589,18 @@ function CurrentExchangeVolume({ entries }: { entries: VenueValue[] }) {
         <small>Slice size reflects each volume value returned by the API.</small>
       </div>
       <div className="exchange-volume-pie-legend">
-        {sortedEntries.map((entry, index) => (
-          <div className="exchange-volume-pie-legend-row" key={entry.key}>
-            <span><i style={{ background: chartColors[index % chartColors.length] }} />{entry.label}</span>
-            <strong>{formatVolume(entry.volume)}</strong>
-            {entry.percent !== null ? <small>{entry.percent.toLocaleString('en-US', { maximumFractionDigits: 4 })}% supplied by API</small> : null}
+        {legendColumns.map((column, columnIndex) => (
+          <div className="exchange-volume-pie-legend-column" key={`legend-column-${columnIndex + 1}`}>
+            {column.map((entry, rowIndex) => {
+              const rankIndex = columnIndex * legendColumnSize + rowIndex;
+              return (
+                <div className="exchange-volume-pie-legend-row" key={entry.key}>
+                  <span><i style={{ background: chartColors[rankIndex % chartColors.length] }} />{entry.label}</span>
+                  <strong>{formatVolume(entry.volume)}</strong>
+                  {entry.percent !== null ? <small>{entry.percent.toLocaleString('en-US', { maximumFractionDigits: 4 })}% supplied by API</small> : null}
+                </div>
+              );
+            })}
           </div>
         ))}
       </div>

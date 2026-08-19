@@ -71,6 +71,33 @@ function normalizeMarginKpi(value: unknown) {
   };
 }
 
+function normalizeShortInterestScore(value: unknown) {
+  const source = objectValue(value);
+  const score = finiteNumber(source.score);
+  const level = score === null
+    ? String(source.level ?? 'Unavailable')
+    : score > 80
+      ? 'Extreme'
+      : score >= 65
+        ? 'High'
+        : score >= 40
+          ? 'Moderate'
+          : 'Low';
+  const tone = level.toLowerCase();
+
+  return {
+    ...source,
+    level,
+    tone,
+    ranges: [
+      { range: '0-39', level: 'Low', description: 'Pressure is relatively contained.', active: score !== null && score < 40 },
+      { range: '40-64', level: 'Moderate', description: 'Pressure is developing.', active: score !== null && score >= 40 && score < 65 },
+      { range: '65-80', level: 'High', description: 'Elevated squeeze sensitivity.', active: score !== null && score >= 65 && score <= 80 },
+      { range: '>80', level: 'Extreme', description: 'Severe pressure warrants review.', active: score !== null && score > 80 },
+    ],
+  };
+}
+
 function normalizedSentimentScore(value: unknown) {
   const numeric = finiteNumber(value);
   if (numeric === null) return null;
@@ -318,7 +345,7 @@ function normalizeReportPayload(
   const snapshotKpis = Array.isArray(payload.snapshotKpis)
     ? payload.snapshotKpis.map(normalizeMarginKpi)
     : [];
-  const shortInterestScore = objectValue(payload.shortInterestScore);
+  const shortInterestScore = normalizeShortInterestScore(payload.shortInterestScore);
   const shortLending = objectValue(payload.shortLending);
   const ftdChart = objectValue(shortLending.ftdChart);
   const sentiment = normalizeSevenDaySentiment(payload, currentSentiment, report.reportDate);

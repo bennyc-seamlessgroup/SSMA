@@ -4,6 +4,322 @@ This file is the persistent implementation memory for changes made by Codex.
 Read it before modifying existing portal behavior, and update it after every
 completed change.
 
+## 2026-08-19 - Stabilize the portal top bar and score ring on iPad Safari
+
+- Area: User Portal -> shared top bar and Short Interest score card.
+- API/data:
+  - No API, payload, calculation, or data-display changes.
+- Reported problem and root cause:
+  - On iPad Safari, the company switcher's unsized inline chevron SVG could
+    retain its intrinsic SVG dimensions inside the grid. It rendered as a
+    large filled triangle and stretched the company control and top-bar row.
+  - The Short Interest score ring specified its width but relied on WebKit to
+    derive its height from `aspect-ratio` inside nested grids. When the two
+    dimensions diverged, the 50% border radius produced an oval.
+- Intended behavior and invariants:
+  - The company switcher and top-bar row retain compact 36px and 38px heights,
+    respectively, and the chevron is always a 16x16 unfilled stroked icon.
+  - The Short Interest score ring is explicitly square at 112x112, with the
+    existing 96x96 narrow-screen size preserved.
+  - Tablet and phone layouts must not develop horizontal page overflow.
+  - Company switching, navigation, score values, ranges, colors, API requests,
+    and all other portal behavior remain unchanged.
+- Files changed:
+  - `app/portal-theme.css`
+  - `docs/CODEX_CHANGE_LOG.md`
+- Verification:
+  - Browser checks at 1024x768 confirmed a 90px top bar, 38px top row, 36px
+    company selector, 16x16 outlined chevron, and 112x112 score ring.
+  - Browser checks at 768x1024 confirmed the same compact top bar and square
+    ring with no horizontal page overflow.
+  - Browser checks at 390x844 confirmed the compact company control, hidden
+    company name, 16x16 chevron, and preserved 96x96 score ring without page
+    overflow.
+  - TypeScript type-check and whitespace validation passed.
+- Remaining backend dependency / limitation:
+  - None. This is a frontend-only Safari sizing fix.
+
+## 2026-08-19 - Clarify existing-record choices in the Internal Float suggestion dialog
+
+- Area: User Portal -> Internal Float -> Suggested Changes -> Add/Deduct from
+  holding dialog.
+- API/data:
+  - No API or payload changes.
+  - Existing suggestion application through `GET/PUT
+    /manual-input/internal-float-inputs-user?ticker={ticker}` remains unchanged.
+- Reported problem and root cause:
+  - The `Add as new record` control aligned with only the holder-name row rather
+    than the full suggestion summary, and the existing holding rows did not
+    explain that selecting one changes that record's current balance.
+- Intended behavior and invariants:
+  - Suggestion details and the new-record action use a two-column summary, with
+    the action vertically centered against the complete blue summary box.
+  - A concise heading and action-specific sentence above the holdings list
+    explains that selecting a row adds shares to or deducts shares from that
+    existing record.
+  - Positive suggestions retain `Add as new record`; deduction suggestions
+    continue to require an existing target.
+  - Existing save, audit, loading, and error behavior remains unchanged.
+- Files changed:
+  - `app/monitor/[ticker]/internal-float/InternalFloatClient.tsx`
+  - `app/globals.css`
+  - `docs/CODEX_CHANGE_LOG.md`
+- Verification:
+  - TypeScript type-check and whitespace validation passed.
+  - Automated browser verification was blocked by the active Cognito login
+    redirect; the component structure and responsive CSS were inspected
+    directly.
+- Remaining backend dependency / limitation:
+  - None. This is a frontend guidance and alignment change only.
+
+## 2026-08-19 - Separate Internal Float tablet fields from record actions
+
+- Area: User Portal -> Internal Float -> Management / Strategic Holdings,
+  Tokenized Shares, and Collateralized Shares edit dialogs.
+- API/data:
+  - No API or payload changes.
+  - Existing user- and ticker-scoped Internal Float GET/PUT behavior remains
+    unchanged.
+- Reported problem and root cause:
+  - The first labelled-card treatment made records visible, but input fields
+    and action buttons still shared equal-width grid cells. This gave every
+    control the same visual importance and made adjacent records hard to scan.
+- Intended behavior and invariants:
+  - Each record uses a familiar portal record-card pattern with a numbered
+    header, one clearly grouped field row, and a separate compact action row.
+  - Holder/chain receives the most field width; category/provider and shares
+    receive smaller purpose-sized columns.
+  - Float Impact, Notes, and Delete are compact actions aligned left, center,
+    and right instead of looking like additional input fields.
+  - Tokenized and collateralized records use the same hierarchy with only
+    their relevant fields and actions.
+  - The earlier viewport-safe modal, no-horizontal-overflow, sticky Save/Cancel,
+    field labels, input borders, and per-record note behavior must remain.
+  - Desktop layout, data values, calculations, API requests, and mutations are
+    unchanged.
+- Files changed:
+  - `app/portal-theme.css`
+  - `docs/CODEX_CHANGE_LOG.md`
+- Verification:
+  - Browser inspection confirmed the Management / Strategic Holdings editor at
+    1124x811 and 768x1024 uses distinct numbered cards, a three-column field
+    row, and compact separated actions without horizontal overflow.
+  - The Tokenized Shares editor was checked at 768x1024 and retained the same
+    hierarchy with its chain, shares, provider, impact, and delete controls.
+  - TypeScript type-check, production build, and whitespace validation passed.
+- Remaining backend dependency / limitation:
+  - None. This is a frontend presentation change only.
+
+## 2026-08-19 - Move the Internal Float new-record action into the suggestion summary
+
+- Area: User Portal -> Internal Float -> Suggested Changes -> Add to holding
+  dialog.
+- API/data:
+  - No API or payload changes.
+  - The existing `GET/PUT
+    /manual-input/internal-float-inputs-user?ticker={ticker}` workflow and
+    management-holdings suggestion handling remain unchanged.
+- Reported problem and root cause:
+  - `Add New Record` appeared as the final row in the existing-holdings target
+    list, so the create action looked like another selectable holding and was
+    easy to miss.
+- Intended behavior and invariants:
+  - The suggested entity summary displays a compact `Add as new record` button
+    beside the entity name for positive-share suggestions.
+  - The target list contains existing Management / Strategic holdings only.
+  - Selecting the new-record button continues to invoke the same suggestion
+    apply path and preserves saving, audit, and error handling behavior.
+  - Deduction suggestions continue to require an existing target and do not
+    offer creation of a new holding.
+- Files changed:
+  - `app/monitor/[ticker]/internal-float/InternalFloatClient.tsx`
+  - `app/globals.css`
+  - `docs/CODEX_CHANGE_LOG.md`
+- Verification:
+  - TypeScript type-check and whitespace validation passed.
+  - The dialog was checked to confirm the create action appears in the blue
+    summary area and no longer appears as a holdings-list row.
+- Remaining backend dependency / limitation:
+  - None. This is a frontend interaction and presentation change only.
+
+## 2026-08-19 - Redesign Internal Float tablet editors as labelled cards
+
+- Area: User Portal -> Internal Float -> Management / Strategic Holdings,
+  Tokenized Shares, and Collateralized Shares edit dialogs.
+- API/data:
+  - No API or payload changes.
+  - Existing `GET/PUT
+    /manual-input/internal-float-inputs-user?ticker={ticker}` and ticker-scoped
+    Internal Float requests remain unchanged.
+- Reported problem and root cause:
+  - The earlier iPad overflow fix prevented clipping, but the responsive layout
+    still looked like a desktop table split into two columns. Its six headings
+    were detached from the corresponding controls, making each holding record
+    difficult to scan and understand.
+- Intended behavior and invariants:
+  - At tablet widths, each record is presented as a distinct edit card.
+  - Holder/chain, category/provider, and shares display their own labels and
+    visually identifiable input fields.
+  - Float Impact, Notes, and Delete are named actions in consistent positions.
+  - Expanded notes stay attached to their record, and tokenized/collateralized
+    editors use the same card treatment.
+  - The earlier no-clipping, no-horizontal-overflow, viewport-safe modal, and
+    sticky Save/Cancel behavior must remain intact.
+  - Desktop table layout, saved values, calculations, API calls, and mutation
+    behavior remain unchanged.
+- Files changed:
+  - `app/portal-theme.css`
+  - `docs/CODEX_CHANGE_LOG.md`
+- Verification:
+  - Browser inspection confirmed the labelled-card layout at 1124x811 and
+    768x1024 with no document or editor horizontal overflow.
+  - The Management / Strategic Holdings and Tokenized Shares editors were both
+    visually checked; controls, action labels, and sticky Save/Cancel buttons
+    remained visible and correctly grouped.
+  - TypeScript type-check, production build, and whitespace validation passed.
+- Remaining backend dependency / limitation:
+  - None. This is a frontend presentation change only.
+
+## 2026-08-19 - Make user and operations portals safe at iPad sizes
+
+- Area:
+  - User Portal -> all routes at 768px portrait and 1024px landscape.
+  - Internal Float -> Management / Strategic Holdings, Tokenized Shares, and
+    Collateralized Shares edit dialogs.
+  - Report Archive -> report viewer dialog.
+  - Operations Portal -> navigation, dense page controls, save confirmation,
+    and floating company indicator.
+- API/data:
+  - No API or data contract changes.
+  - Internal Float continues to use `GET/PUT
+    /manual-input/internal-float-inputs-user?ticker={ticker}` with the same
+    user-scoped fields and save behavior.
+- Reported problem and root cause:
+  - The Internal Float editor appeared cut off on iPad because its editable
+    grid retained a 900px minimum width after the page had switched to a
+    tablet layout.
+  - The shared modal backdrop also sat below the collapsed portal sidebar, so
+    the left side of a full-width tablet dialog could be visually covered.
+  - Several shared controls only switched to a compact layout below 720px,
+    missing the common 768px iPad portrait width.
+- Intended behavior and invariants:
+  - Dialogs remain inside the visible viewport, scroll vertically when needed,
+    and render above the portal sidebar in portrait and landscape.
+  - Internal Float editable rows use responsive columns, retain visible field
+    labels, and do not require horizontal scrolling at iPad widths.
+  - User-portal headers and dense option rows wrap or scroll within their own
+    containers without causing page-wide overflow.
+  - The Operations Portal uses a compact top navigation at tablet portrait
+    width; confirmation dialogs and the floating company indicator are bounded
+    to the viewport.
+  - Desktop layouts, API calls, calculations, saving, demo behavior, and all
+    data values remain unchanged.
+- Files changed:
+  - `app/portal-theme.css`
+  - `docs/CODEX_CHANGE_LOG.md`
+- Verification:
+  - TypeScript type-check passed.
+  - Browser inspection confirmed the Internal Float editor is fully visible at
+    768x1024 and 1024x768, is above the sidebar, and has no internal horizontal
+    overflow.
+  - All 14 user-portal routes were audited at both iPad viewport sizes; every
+    route retained a document width equal to the viewport width. The hidden
+    settings navigation slider remains intentionally clipped inside its own
+    navigation rail.
+  - Whitespace validation passed.
+- Remaining backend dependency / limitation:
+  - None. This is a frontend responsive-layout change only.
+
+## 2026-08-19 - Fill Exchange Volume ranking columns vertically
+
+- Area: User Portal -> Exchange Volume -> Latest Exchange Volume.
+- API/data:
+  - `GET /market-data/current?ticker={ticker}&category=market-current`
+  - Field: `exchangeVolume`.
+- Reported problem and root cause:
+  - The latest venue ranking was sorted correctly by volume, but the two-column
+    CSS grid placed records row by row: highest at top-left, second-highest at
+    top-right, third-highest on the next left row, and so on.
+- Intended behavior and invariants:
+  - Venues remain sorted from highest to lowest volume.
+  - The highest-ranked half fills the left column from top to bottom; the
+    remaining venues continue from the top of the right column.
+  - On narrow screens, the columns stack in the same descending order.
+  - Pie slices, colors, labels, raw API values, hover behavior, and calculations
+    remain unchanged.
+- Files changed:
+  - `app/monitor/[ticker]/exchange-volume/ExchangeVolumeBrowserPage.tsx`
+  - `app/globals.css`
+  - `docs/CODEX_CHANGE_LOG.md`
+- Verification:
+  - TypeScript type-check passed.
+  - Whitespace validation passed.
+  - Browser inspection confirmed the left column contains the highest values
+    in descending order and the right column continues from the left column's
+    final rank.
+- Remaining backend dependency / limitation:
+  - None. This is a frontend ordering change only.
+
+## 2026-08-18 - Remove the Short Score 100-point ceiling
+
+- Area:
+  - User Portal -> Short Interest -> Short Interest Score.
+  - Operations Portal -> Market Data -> Daily Market Inputs.
+  - User Portal -> Alert Rules -> Short Score thresholds.
+  - Daily report -> Short Interest Score.
+- API/data:
+  - `GET /market-data/current?ticker={ticker}&category=market-current`
+  - `GET /market-data/history?ticker={ticker}&category=market-history`
+  - `GET/PUT /manual-input/short-score?ticker={ticker}&tradeDate={date}`
+  - `GET /rule-catalog` and `GET/POST /rule-catalog/user-settings`
+  - Dated daily report payload field `shortInterestScore.score`.
+- Reported problem and root cause:
+  - Short Score can exceed 100, but several frontend surfaces still described
+    it as a 100-point scale, capped operator input and alert thresholds at 100,
+    and labelled Extreme as `80-100`.
+  - These limits came from the superseded 0-to-100 frontend assumption. The
+    current Manual Input V2 contract defines `shortScore` as a numeric value
+    without an upper bound.
+- Intended behavior and invariants:
+  - Short Score displays its raw value without `/100` on the Short Interest
+    page and in the daily report.
+  - Risk bands are `0-39 Low`, `40-64 Moderate`, `65-80 High`, and `>80
+    Extreme`; therefore 80 remains High and values greater than 80 are Extreme.
+  - Operations can enter any non-negative Short Score, including values above
+    100, with up to two decimal places.
+  - Short Score alert thresholds use the unit label `score` and are no longer
+    capped at 100; negative thresholds continue to normalize to zero.
+  - The daily report frontend normalizes backend-provided score bands and the
+    level to the same rules, so archived API wording cannot restore the old
+    ceiling.
+  - Other percentage, sentiment, lending-pressure, and explicitly normalized
+    100-point metrics remain unchanged.
+- Replaces:
+  - Earlier change-log requirements that constrained Short Score to 0 through
+    100 are superseded by this user-confirmed unbounded score contract.
+- Files changed:
+  - `app/monitor/[ticker]/short-interest/ShortInterestBrowserPage.tsx`
+  - `app/operations/market-data/MarketDataOperationsClient.tsx`
+  - `app/monitor/[ticker]/settings/alerts/CustomAlertSettingsClient.tsx`
+  - `app/monitor/[ticker]/reports/daily-report-data.ts`
+  - `Report Templates/lean-daily-market-close-report/render.js`
+  - `Report Templates/lean-daily-market-close-report/report-data.json`
+  - `Report Templates/lean-daily-market-close-report/BACKEND_REPORT_API_REQUIREMENTS.md`
+  - `Report Templates/lean-daily-market-close-report/REPORT_DATA_CONTRACT.md`
+  - `Report Templates/lean-daily-market-close-report/BACKEND_REPORT_API_CORRECTIONS.md`
+  - `docs/CODEX_CHANGE_LOG.md`
+- Verification:
+  - TypeScript type-check passed.
+  - Report JSON fixture parsing and renderer checks passed; the four expected
+    ranges were present and `/100` was absent.
+  - Focused source scan found no remaining old Short Score cap, input maximum,
+    `65-79`, or `80-100` text in the affected frontend/report surfaces.
+  - Production build passed, including all 29 statically generated pages.
+  - Whitespace validation passed.
+- Remaining backend dependency / limitation:
+  - The report API should adopt the new `65-80` and `>80` range labels, though
+    the frontend now normalizes older payloads for display.
+
 ## 2026-08-18 - Standardize daily comparison wording across market pages
 
 - Area: User Portal -> Dashboard, Short Interest, and Lending Pressure metric

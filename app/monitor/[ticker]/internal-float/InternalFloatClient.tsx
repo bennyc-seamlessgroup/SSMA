@@ -1083,17 +1083,37 @@ export function InternalFloatClient({
             <div>
               <h2 id="internal-float-suggestion-title">{action === 'deduct' ? 'Deduct from holding' : 'Add to holding'}</h2>
               <p className="section-subtitle">
-                Select the existing record to update. Use Add New Record when this entity is not already in the list.
+                {action === 'deduct'
+                  ? 'Select which existing holding should be reduced.'
+                  : 'Choose whether to update an existing holding or create a separate record.'}
               </p>
             </div>
             <button className="icon-button" type="button" aria-label="Close suggestion modal" onClick={() => setActiveSuggestion(null)} disabled={saving}>x</button>
           </div>
           <div className="internal-float-suggestion-summary">
-            <strong>{holderName}</strong>
-            <span>{action === 'deduct' ? '-' : '+'}{formatNumber(Math.abs(signedDifference))} shares</span>
-            <small>{[activeSuggestion.category, activeSuggestion.effectiveDate ?? activeSuggestion.latestEffectiveDate ?? activeSuggestion.latestFileDate].filter(Boolean).join(' · ')}</small>
+            <div className="internal-float-suggestion-summary__details">
+              <strong>{holderName}</strong>
+              <span>{action === 'deduct' ? '-' : '+'}{formatNumber(Math.abs(signedDifference))} shares</span>
+              <small>{[activeSuggestion.category, activeSuggestion.effectiveDate ?? activeSuggestion.latestEffectiveDate ?? activeSuggestion.latestFileDate].filter(Boolean).join(' · ')}</small>
+            </div>
+            {action === 'add' && (
+              <button
+                className="internal-float-suggestion-new-button"
+                type="button"
+                disabled={saving}
+                onClick={() => applyManagementSuggestion(activeSuggestion, '__new__')}
+              >
+                Add as new record
+              </button>
+            )}
           </div>
-          <div className="internal-float-suggestion-targets" role="radiogroup" aria-label="Select holding target">
+          <div className="internal-float-suggestion-targets-intro" id="internal-float-suggestion-targets-help">
+            <strong>{action === 'deduct' ? 'Deduct from an existing record' : 'Add to an existing record'}</strong>
+            <p>
+              Select a holding below to {action === 'deduct' ? 'deduct' : 'add'} {formatNumber(Math.abs(signedDifference))} shares {action === 'deduct' ? 'from' : 'to'} its current balance.
+            </p>
+          </div>
+          <div className="internal-float-suggestion-targets" role="radiogroup" aria-label="Select holding target" aria-describedby="internal-float-suggestion-targets-help">
             {privateHoldings.map(row => (
               <button
                 key={row.id}
@@ -1106,17 +1126,6 @@ export function InternalFloatClient({
                 <small>{row.category}</small>
               </button>
             ))}
-            {action === 'add' && (
-              <button
-                type="button"
-                disabled={saving}
-                onClick={() => applyManagementSuggestion(activeSuggestion, '__new__')}
-              >
-                <span>Add New Record</span>
-                <strong>{holderName}</strong>
-                <small>Create a new Management / Strategic holding</small>
-              </button>
-            )}
           </div>
           <div className="modal-actions">
             <button className="button secondary" type="button" onClick={() => setActiveSuggestion(null)} disabled={saving}>Cancel</button>

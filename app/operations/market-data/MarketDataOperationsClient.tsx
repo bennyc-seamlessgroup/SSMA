@@ -927,9 +927,9 @@ export function MarketDataOperationsClient() {
     const shortScoreValue = numberOrUndefined(form.shortScore);
     const shortScore = shortScoreValue === undefined ? undefined : roundDecimal(shortScoreValue, 2);
 
-    if (shortScore !== undefined && (shortScore < 0 || shortScore > 100)) {
+    if (shortScore !== undefined && shortScore < 0) {
       setStatus('error');
-      setMessage('Short Score must be between 0 and 100.');
+      setMessage('Short Score must be 0 or greater.');
       return;
     }
 
@@ -1225,7 +1225,7 @@ export function MarketDataOperationsClient() {
           <div className="ops-form-grid three">
             <label>Trade Date<input type="date" value={form.tradeDate} onChange={event => selectTradeDate(event.target.value)} required suppressHydrationWarning /></label>
             <label>Issued Share<input inputMode="numeric" value={form.issuedShare} onChange={event => updateField('issuedShare', formatShareInput(event.target.value))} disabled={inputFieldsDisabled} suppressHydrationWarning /></label>
-            <label>Short Score<input type="number" inputMode="decimal" min="0" max="100" step="0.01" value={form.shortScore} onChange={event => updateField('shortScore', event.target.value)} disabled={inputFieldsDisabled} suppressHydrationWarning /></label>
+            <label>Short Score<input type="number" inputMode="decimal" min="0" step="0.01" value={form.shortScore} onChange={event => updateField('shortScore', event.target.value)} disabled={inputFieldsDisabled} suppressHydrationWarning /></label>
           </div>
           <div className="ops-broker-input-grid">
             <fieldset className="ops-broker-input-group">

@@ -24,7 +24,7 @@ function inputSuffix(rule: AlertRuleSetting) {
   if (rule.unit === '%') return '%';
   if (rule.unit === '$') return '$';
   if (rule.unit === 'x') return 'x';
-  if (rule.unit === 'score') return '/100';
+  if (rule.unit === 'score') return 'score';
   return 'shares';
 }
 
@@ -156,9 +156,7 @@ export function CustomAlertSettingsClient({ ticker }: { ticker: string }) {
     const parsed = Number(String(draft ?? rule.threshold).replace(/,/g, ''));
     if (Number.isFinite(parsed)) {
       patchRule(rule.id, {
-        threshold: rule.unit === 'score'
-          ? Math.min(100, Math.max(0, parsed))
-          : parsed,
+        threshold: rule.unit === 'score' ? Math.max(0, parsed) : parsed,
       });
     }
     setThresholdDrafts(current => {
@@ -256,9 +254,7 @@ export function CustomAlertSettingsClient({ ticker }: { ticker: string }) {
                               const parsed = Number(draft.replace(/,/g, ''));
                               if (draft.trim() && draft !== '-' && Number.isFinite(parsed)) {
                                 patchRule(rule.id, {
-                                  threshold: rule.unit === 'score'
-                                    ? Math.min(100, Math.max(0, parsed))
-                                    : parsed,
+                                  threshold: rule.unit === 'score' ? Math.max(0, parsed) : parsed,
                                 });
                               }
                             }}

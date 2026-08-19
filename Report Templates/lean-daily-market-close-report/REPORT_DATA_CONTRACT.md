@@ -77,7 +77,7 @@ user-specific analysis cannot be persisted in or inherited from that shared
 file. When the separate AI response is unavailable, the report displays the
 standard unavailable message and continues rendering the remaining sections.
 
-Use the same score ranges as the portal: `0-39 Low`, `40-64 Moderate`, `65-79 High`, and `80-100 Extreme`. Do not generate or split the AI text in the frontend.
+Use the same score ranges as the portal: `0-39 Low`, `40-64 Moderate`, `65-80 High`, and `>80 Extreme`. Short Score has no upper limit. Do not generate or split the AI text in the frontend.
 
 ## Short and Lending
 

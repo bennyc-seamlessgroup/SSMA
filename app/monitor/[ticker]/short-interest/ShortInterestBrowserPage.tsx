@@ -1068,8 +1068,8 @@ export function ShortInterestBrowserPage({ ticker }: { ticker: string }) {
   const utilization = currentUtilization?.value ?? numeric(latestUtilization.shortAvailabilityPct) ?? numeric(shortCurrent.shortAvailabilityPct);
   const shortScoreValue = currentShortScore?.value ?? numeric(latestShortScore.score) ?? numeric(shortCurrent.shortScore);
   const shortScore = shortScoreValue ?? 0;
-  const shortScoreLevel = shortScore >= 80 ? 'Extreme' : shortScore >= 65 ? 'High' : shortScore >= 40 ? 'Moderate' : 'Low';
-  const shortScoreTone = shortScore >= 80 ? 'extreme' : shortScore >= 65 ? 'high' : shortScore >= 40 ? 'moderate' : 'low';
+  const shortScoreLevel = shortScore > 80 ? 'Extreme' : shortScore >= 65 ? 'High' : shortScore >= 40 ? 'Moderate' : 'Low';
+  const shortScoreTone = shortScore > 80 ? 'extreme' : shortScore >= 65 ? 'high' : shortScore >= 40 ? 'moderate' : 'low';
   const daysToCover = currentDaysToCover?.value ?? numeric(latestDaysToCover.daysToCover) ?? numeric(shortCurrent.daysToCoverQuantity);
   const shortInterestDelta = observationDelta(currentShortInterestShares, shortInterestShares, numeric(previousShortInterestShares.shortInterestShares), { maximumFractionDigits: 0 });
   const shortInterestPctDelta = observationDelta(currentShortInterestPercent, shortInterestPercent, numeric(previousShortInterestPercent.shortInterestPcFreeFloat), { maximumFractionDigits: 2 });
@@ -1100,8 +1100,8 @@ export function ShortInterestBrowserPage({ ticker }: { ticker: string }) {
   const scoreRanges = [
     { range: '0-39', level: 'Low', description: 'Short-side pressure is relatively contained.', active: shortScore < 40 },
     { range: '40-64', level: 'Moderate', description: 'Pressure is developing and should be monitored.', active: shortScore >= 40 && shortScore < 65 },
-    { range: '65-79', level: 'High', description: 'Elevated conditions may increase squeeze risk.', active: shortScore >= 65 && shortScore < 80 },
-    { range: '80-100', level: 'Extreme', description: 'Severe short-side pressure warrants close review.', active: shortScore >= 80 },
+    { range: '65-80', level: 'High', description: 'Elevated conditions may increase squeeze risk.', active: shortScore >= 65 && shortScore <= 80 },
+    { range: '>80', level: 'Extreme', description: 'Severe short-side pressure warrants close review.', active: shortScore > 80 },
   ];
   const scoreProgress = Math.min(100, Math.max(0, shortScore));
 
@@ -1134,7 +1134,6 @@ export function ShortInterestBrowserPage({ ticker }: { ticker: string }) {
                 >
                   <div>
                     <strong>{shortScoreValue === null ? 'N/A' : shortScore.toFixed(2)}</strong>
-                    <small>/ 100</small>
                   </div>
                 </div>
                 <div className="short-score-compact__copy">

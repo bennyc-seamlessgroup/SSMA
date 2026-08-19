@@ -203,7 +203,7 @@ history/{ticker}/market-history.json
 | Utilization | `utilizationPercent` | Percentage points; optional for publication readiness but valid in report when present |
 | Average Duration | `averageDurationDays` | Values less than or equal to zero are invalid/missing |
 | Days to Cover | `daysToCover` | Days |
-| Short Interest Score | `shortScore` | Float, 0 to 100, preserve 2 decimals |
+| Short Interest Score | `shortScore` | Non-negative float with no upper limit; preserve 2 decimals |
 | Borrow Fee Trend | `borrowFeePercent` | Latest 7 valid dated values on or before report date |
 | Shortable Shares Trend | `availableShares` | Latest 7 valid dated values on or before report date |
 | Utilization Trend | `utilizationPercent` | Latest 7 valid dated values on or before report date |
@@ -343,8 +343,8 @@ future frontend formatting.
     "ranges": [
       { "range": "0-39", "level": "Low", "description": "Pressure is relatively contained.", "active": false },
       { "range": "40-64", "level": "Moderate", "description": "Pressure is developing.", "active": false },
-      { "range": "65-79", "level": "High", "description": "Elevated squeeze sensitivity.", "active": true },
-      { "range": "80-100", "level": "Extreme", "description": "Severe pressure warrants review.", "active": false }
+      { "range": "65-80", "level": "High", "description": "Elevated squeeze sensitivity.", "active": true },
+      { "range": ">80", "level": "Extreme", "description": "Severe pressure warrants review.", "active": false }
     ],
     "aiAnalysis": "**Current Interpretation**\n\nDaily AI interpretation text.",
     "aiSourceScope": "user"
@@ -430,8 +430,8 @@ API.
 |---|---|---|---|
 | 0 to less than 40 | Low | `low` | Current short-side pressure is relatively contained. |
 | 40 to less than 65 | Moderate | `moderate` | Short-side pressure is developing and should be monitored. |
-| 65 to less than 80 | High | `high` | Elevated short-side conditions may increase squeeze sensitivity. |
-| 80 to 100 | Extreme | `extreme` | Severe short-side pressure warrants close review. |
+| 65 through 80 | High | `high` | Elevated short-side conditions may increase squeeze sensitivity. |
+| Greater than 80 | Extreme | `extreme` | Severe short-side pressure warrants close review. |
 
 `aiAnalysis` must contain the complete
 `short_interest_current_interpretation` value. Do not split, summarize, or
