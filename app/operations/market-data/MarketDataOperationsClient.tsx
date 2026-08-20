@@ -544,6 +544,7 @@ export function MarketDataOperationsClient() {
   const [historyPage, setHistoryPage] = useState(1);
   const [historyRefreshing, setHistoryRefreshing] = useState(false);
   const [historyRefreshMessage, setHistoryRefreshMessage] = useState('');
+  const [savedInputsLoadError, setSavedInputsLoadError] = useState('');
   const [manualRowsByDate, setManualRowsByDate] = useState<Record<string, MarketInputRow>>({});
   const [pendingSave, setPendingSave] = useState<PendingMarketSave | null>(null);
   const activeTickerRef = useRef('CURR');
@@ -551,30 +552,39 @@ export function MarketDataOperationsClient() {
   const [nowMs, setNowMs] = useState(() => Date.now());
 
   async function loadApi(endpoint: string) {
-    try {
-      const payload = await authenticatedFetch(endpoint, { cache: 'no-store' });
-      return {
-        payload,
-        debug: {
-          endpoint: `GET ${endpoint}`,
-          source: 'API Gateway',
-          state: 'ok',
-          recordCount: payloadRecordCount(payload),
-          updatedAt: payloadGeneratedAt(payload),
+    let lastError: unknown;
+    for (let attempt = 0; attempt < 2; attempt += 1) {
+      try {
+        const payload = await authenticatedFetch(endpoint, { cache: 'no-store' });
+        return {
           payload,
-        },
-      };
-    } catch (error) {
-      return {
-        payload: null,
-        debug: {
-          endpoint: `GET ${endpoint}`,
-          source: 'API Gateway',
-          state: error instanceof Error ? `error: ${error.message}` : 'error',
-          payload: null,
-        },
-      };
+          debug: {
+            endpoint: `GET ${endpoint}`,
+            source: 'API Gateway',
+            state: attempt ? 'ok after retry' : 'ok',
+            recordCount: payloadRecordCount(payload),
+            updatedAt: payloadGeneratedAt(payload),
+            payload,
+          },
+        };
+      } catch (error) {
+        lastError = error;
+        const reason = error instanceof Error ? error.message : String(error);
+        const retryable = /could not reach the API|failed \((?:408|425|429|5\d\d)(?:\s|\))/i.test(reason);
+        if (!retryable || attempt === 1) break;
+        await new Promise(resolve => window.setTimeout(resolve, 400));
+      }
     }
+
+    return {
+      payload: null,
+      debug: {
+        endpoint: `GET ${endpoint}`,
+        source: 'API Gateway',
+        state: lastError instanceof Error ? `error: ${lastError.message}` : 'error',
+        payload: null,
+      },
+    };
   }
 
   async function loadRecords(
@@ -585,16 +595,21 @@ export function MarketDataOperationsClient() {
     const normalized = normalizeTicker(ticker);
     const loadGeneration = loadGenerationRef.current + 1;
     loadGenerationRef.current = loadGeneration;
+    const tickerChanged = activeTickerRef.current !== normalized;
     activeTickerRef.current = normalized;
     const selectedTradeDate = form.tradeDate || latestClosedUsMarketDate();
     setSelectedTicker(normalized);
     setOperationsTicker(normalized);
-    setRows([]);
-    setMarketHistory([]);
-    setManualRowsByDate({});
+    if (tickerChanged) {
+      setRows([]);
+      setMarketHistory([]);
+      setManualRowsByDate({});
+    }
     setEditingDate('');
     setForm(formFromDailyRecord(selectedTradeDate, undefined, undefined));
     setStatus('loading');
+    setSavedInputsLoadError('');
+    setHistoryRefreshMessage('');
     if (!preserveFeedback) setMessage('');
     try {
       const endpoints = [
@@ -618,25 +633,47 @@ export function MarketDataOperationsClient() {
         ...[marketHistoryResult, issuedShareResult, utilizationResult, availabilityResult, marginsResult, shortScoreResult].map(result => result.debug),
         ...additionalDebugRows,
       ]);
-      const historyRecords = tickerRecordsFromPayload<MarketPublicationRecord & DateSpecificRecord>(
-        categoryPayload(marketHistoryResult.payload, 'market-history'),
-        normalized,
-      );
-      setMarketHistory(historyRecords);
-      const manualRows = manualRowsFromPayloads(
-        normalized,
-        {
-          issuedShare: issuedShareResult.payload,
-          utilization: utilizationResult.payload,
-          availability: availabilityResult.payload,
-          margins: marginsResult.payload,
-          shortScore: shortScoreResult.payload,
-        },
-      );
-      setRows(manualRows);
-      setManualRowsByDate(Object.fromEntries(
-        manualRows.map(record => [manualRowKey(normalized, record.tradeDate), record]),
-      ));
+      const manualResults = [issuedShareResult, utilizationResult, availabilityResult, marginsResult, shortScoreResult];
+      const failedManualResults = manualResults.filter(result => result.debug.state.startsWith('error'));
+      const historyFailed = marketHistoryResult.debug.state.startsWith('error');
+
+      if (!historyFailed) {
+        const historyRecords = tickerRecordsFromPayload<MarketPublicationRecord & DateSpecificRecord>(
+          categoryPayload(marketHistoryResult.payload, 'market-history'),
+          normalized,
+        );
+        setMarketHistory(historyRecords);
+      }
+
+      if (!failedManualResults.length) {
+        const manualRows = manualRowsFromPayloads(
+          normalized,
+          {
+            issuedShare: issuedShareResult.payload,
+            utilization: utilizationResult.payload,
+            availability: availabilityResult.payload,
+            margins: marginsResult.payload,
+            shortScore: shortScoreResult.payload,
+          },
+        );
+        setRows(manualRows);
+        setManualRowsByDate(Object.fromEntries(
+          manualRows.map(record => [manualRowKey(normalized, record.tradeDate), record]),
+        ));
+      }
+
+      if (historyFailed || failedManualResults.length) {
+        const failedCount = Number(historyFailed) + failedManualResults.length;
+        const loadError = `${failedCount} Market Data API${failedCount === 1 ? '' : 's'} could not be loaded. Existing data has been kept where available. Use Refresh to try again; Development Data shows the exact failed endpoint.`;
+        if (failedManualResults.length) {
+          setSavedInputsLoadError(loadError);
+          setHistoryRefreshMessage(loadError);
+        }
+        setStatus('error');
+        setMessage(loadError);
+        return;
+      }
+
       setStatus(preserveFeedback ? 'success' : 'idle');
     } catch (error) {
       if (loadGenerationRef.current !== loadGeneration || activeTickerRef.current !== normalized) return;
@@ -667,7 +704,11 @@ export function MarketDataOperationsClient() {
     ]);
 
     if (results.some(result => result.debug.state.startsWith('error'))) {
-      setHistoryRefreshMessage('Unable to refresh one or more Manual Input history APIs.');
+      const refreshError = 'One or more saved-input APIs could not be loaded. Existing rows have been kept. Use Refresh to try again; Development Data shows the exact failed endpoint.';
+      setSavedInputsLoadError(refreshError);
+      setHistoryRefreshMessage(refreshError);
+      setStatus('error');
+      setMessage(refreshError);
       setHistoryRefreshing(false);
       return;
     }
@@ -684,6 +725,11 @@ export function MarketDataOperationsClient() {
       manualRows.map(record => [manualRowKey(requestTicker, record.tradeDate), record]),
     ));
     setHistoryPage(1);
+    if (savedInputsLoadError) {
+      setStatus('idle');
+      setMessage('');
+    }
+    setSavedInputsLoadError('');
     setHistoryRefreshMessage(`Refreshed ${manualRows.length.toLocaleString()} saved Manual Input dates.`);
     setHistoryRefreshing(false);
   }
@@ -1463,7 +1509,15 @@ export function MarketDataOperationsClient() {
                   </tr>
                 );
               })}
-              {!visibleHistoryRows.length && <tr><td colSpan={12}>{busy ? 'Loading saved manual inputs...' : 'No saved inputs match the selected date range.'}</td></tr>}
+              {!visibleHistoryRows.length && (
+                <tr>
+                  <td colSpan={12}>
+                    {busy
+                      ? 'Loading saved manual inputs...'
+                      : savedInputsLoadError || 'No saved inputs match the selected date range.'}
+                  </td>
+                </tr>
+              )}
             </tbody>
           </table>
         </div>

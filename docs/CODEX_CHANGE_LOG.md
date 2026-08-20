@@ -4,6 +4,34 @@ This file is the persistent implementation memory for changes made by Codex.
 Read it before modifying existing portal behavior, and update it after every
 completed change.
 
+## 2026-08-20 - Show complete SEC filing audit metadata in Development Data
+
+- Area: User Portal -> SEC Filings -> Development Data table.
+- API/data:
+  - `GET /manual-input/sec-filings?ticker={ticker}`.
+  - No request, response, or backend behavior changes.
+- Reported problem and root cause:
+  - The API supplies `updatedAt` and `updatedBy`, but the frontend's manually
+    defined record type and preferred-column list ended at `createdAt` and
+    `createdBy`, so update audit metadata was omitted from the table.
+- Intended behavior and invariants:
+  - Audit columns appear in the order `Created At`, `Created By`, `Updated At`,
+    and `Updated By`.
+  - Values are displayed directly from the API response; missing update audit
+    fields show `N/A` and are not inferred from creation metadata.
+  - The normal SEC Filings list, API request, sorting behavior, and all filing
+    data remain unchanged.
+- Files changed:
+  - `app/monitor/[ticker]/event-calendar/EventCalendarBrowserPage.tsx`
+  - `docs/CODEX_CHANGE_LOG.md`
+- Verification:
+  - Browser inspection confirmed all four audit headers are rendered and the
+    final two cells contain the API's `updatedAt` and `updatedBy` values.
+  - TypeScript type-check and whitespace validation passed.
+- Remaining backend dependency / limitation:
+  - Older records that do not contain update audit metadata will display
+    `N/A` until the backend supplies those fields.
+
 ## 2026-08-19 - Stabilize the portal top bar and score ring on iPad Safari
 
 - Area: User Portal -> shared top bar and Short Interest score card.
@@ -6005,3 +6033,57 @@ completed change.
   - Schema version 1 supplies one aggregate options-exposure set, which is
     displayed under Calls; Puts remain zero unless future put-specific fields
     are returned.
+
+## 2026-08-20 - Stabilize Operations Market Data loading across session refresh
+
+- Area: Operations Portal -> Market Data, plus shared authenticated API access.
+- APIs/data:
+  - `GET /market-data/history?ticker={ticker}&category=market-history`
+  - `GET /manual-input/issued-share?ticker={ticker}`
+  - `GET /manual-input/utilization?ticker={ticker}`
+  - `GET /manual-input/manual-availability?ticker={ticker}`
+  - `GET /manual-input/margins?ticker={ticker}`
+  - `GET /manual-input/short-score?ticker={ticker}`
+  - Cognito OAuth refresh-token exchange.
+- Reported problem and root cause:
+  - Market Data could intermittently show zero saved dates and no records until
+    the operator logged out and back in.
+  - The page requests six large history datasets together. When the ID token
+    expired, those requests could independently start concurrent Cognito token
+    refreshes. A transient API failure was then converted into a null payload,
+    and the initial loader treated the null payload as a successful empty
+    dataset.
+  - The page also cleared the last valid rows before replacement responses had
+    arrived, so a temporary request failure looked identical to a legitimate
+    empty account.
+- Intended behavior and invariants:
+  - Authenticated requests refresh an ID token shortly before expiry rather
+    than waiting for the first failed API request.
+  - All simultaneous authenticated requests share one in-flight Cognito refresh
+    operation. A `401` is retried once with the newest available ID token.
+  - Transient network, rate-limit, timeout, and `5xx` Market Data reads are
+    retried once.
+  - A failed initial load or manual Refresh preserves the last valid rows for
+    the same ticker and displays an explicit retry message. Development Data
+    retains the exact endpoint-level error instead of presenting the failure as
+    a valid zero-record response.
+  - Switching companies never retains rows from the previous ticker.
+  - A successful empty API response still renders as a genuine empty dataset.
+  - Save, edit, delete, ticker routing, and consolidation behavior are unchanged.
+- Files changed:
+  - `lib/auth-client.ts`
+  - `app/operations/market-data/MarketDataOperationsClient.tsx`
+  - `docs/CODEX_CHANGE_LOG.md`
+- Verification:
+  - TypeScript type-check passed.
+  - Production build passed, including all 29 statically generated pages.
+  - Local Market Data route rendered on the restarted development server with
+    no browser console errors. The isolated verification tab had no operator
+    session, so live authenticated history responses were not modified or
+    exercised.
+  - Whitespace validation passed.
+- Remaining backend dependency / limitation:
+  - The documented manual-input list endpoints do not provide pagination or a
+    date-range parameter, so the frontend still has to request each category's
+    complete history. Backend pagination or a combined Market Data history
+    endpoint would further reduce payload size and peak loading time.

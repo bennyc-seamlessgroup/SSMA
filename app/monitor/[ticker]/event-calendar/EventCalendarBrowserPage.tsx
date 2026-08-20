@@ -24,6 +24,8 @@ type ApiSecFilingRecord = {
   notes?: string;
   createdAt?: string;
   createdBy?: string;
+  updatedAt?: string;
+  updatedBy?: string;
 };
 
 const devColumns = [
@@ -38,6 +40,8 @@ const devColumns = [
   'filingsUrl',
   'createdAt',
   'createdBy',
+  'updatedAt',
+  'updatedBy',
 ];
 
 function text(value: unknown) {

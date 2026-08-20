@@ -47,7 +47,9 @@ const apiGatewayUrl = process.env.NEXT_PUBLIC_API_GATEWAY_URL ?? '';
 const configuredRedirectUri = process.env.NEXT_PUBLIC_REDIRECT_URI ?? '';
 const configuredLogoutUri = process.env.NEXT_PUBLIC_LOGOUT_URI ?? '';
 const authenticatedGetCacheTtlMs = Math.max(5, Number(process.env.NEXT_PUBLIC_API_CACHE_SECONDS ?? 900)) * 1000;
+const proactiveTokenRefreshSeconds = 120;
 let profileRequest: Promise<AuthenticatedProfile> | null = null;
+let tokenRefreshRequest: Promise<AuthTokens> | null = null;
 const authenticatedResponseCache = new Map<string, { expiresAt: number; value: unknown }>();
 const authenticatedRequestsInFlight = new Map<string, Promise<unknown>>();
 
@@ -275,29 +277,39 @@ export async function handleOAuthCallback() {
 export async function refreshTokens(refreshToken = sessionStorage.getItem(tokenKeys.refreshToken)) {
   assertAuthConfig();
   if (!refreshToken) throw new Error('Missing refresh token.');
+  if (tokenRefreshRequest) return tokenRefreshRequest;
 
-  const response = await fetch(`https://${cognitoDomain}/oauth2/token`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-    body: new URLSearchParams({
-      grant_type: 'refresh_token',
-      client_id: clientId,
-      refresh_token: refreshToken,
-    }),
-  });
+  const request = (async () => {
+    const response = await fetch(`https://${cognitoDomain}/oauth2/token`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams({
+        grant_type: 'refresh_token',
+        client_id: clientId,
+        refresh_token: refreshToken,
+      }),
+    });
 
-  const data = await response.json();
-  if (!response.ok) {
-    throw new Error(data.error_description || data.error || 'Token refresh failed.');
+    const data = await response.json();
+    if (!response.ok) {
+      throw new Error(data.error_description || data.error || 'Token refresh failed.');
+    }
+
+    const tokens: AuthTokens = {
+      accessToken: data.access_token,
+      idToken: data.id_token,
+      refreshToken: data.refresh_token || refreshToken,
+    };
+    storeTokens(tokens);
+    return tokens;
+  })();
+
+  tokenRefreshRequest = request;
+  try {
+    return await request;
+  } finally {
+    if (tokenRefreshRequest === request) tokenRefreshRequest = null;
   }
-
-  const tokens = {
-    accessToken: data.access_token,
-    idToken: data.id_token,
-    refreshToken: data.refresh_token || refreshToken,
-  };
-  storeTokens(tokens);
-  return tokens;
 }
 
 export function signOut() {
@@ -311,7 +323,7 @@ export function signOut() {
 }
 
 export async function authenticatedFetch(path: string, options: RequestInit = {}) {
-  const tokens = getStoredTokens();
+  let tokens = getStoredTokens();
   if (!tokens?.idToken) throw new Error('Not authenticated');
   const isMultipart = typeof FormData !== 'undefined' && options.body instanceof FormData;
   const method = String(options.method ?? 'GET').toUpperCase();
@@ -343,11 +355,29 @@ export async function authenticatedFetch(path: string, options: RequestInit = {}
     }
   };
 
+  if (!isTokenValid(tokens.idToken, proactiveTokenRefreshSeconds)) {
+    try {
+      tokens = await refreshTokens(tokens.refreshToken);
+    } catch {
+      clearAuthSession();
+      if (typeof window !== 'undefined') {
+        const next = encodeURIComponent(`${window.location.pathname}${window.location.search}`);
+        window.location.assign(`/login?next=${next}`);
+      }
+      throw new Error('Your session has expired. Please sign in again.');
+    }
+  }
+
   let response = await doFetch(tokens.idToken);
   if (response.status === 401) {
     try {
-      const refreshed = await refreshTokens(tokens.refreshToken);
-      response = await doFetch(refreshed.idToken);
+      const latestTokens = getStoredTokens();
+      if (latestTokens?.idToken && latestTokens.idToken !== tokens.idToken && isTokenValid(latestTokens.idToken)) {
+        tokens = latestTokens;
+      } else {
+        tokens = await refreshTokens(tokens.refreshToken);
+      }
+      response = await doFetch(tokens.idToken);
     } catch {
       clearAuthSession();
       if (typeof window !== 'undefined') {
