@@ -4,6 +4,48 @@ This file is the persistent implementation memory for changes made by Codex.
 Read it before modifying existing portal behavior, and update it after every
 completed change.
 
+## 2026-08-25 - Explain Off Exchange volume in the latest venue legend
+
+- Area: User Portal -> Exchange Volume -> Latest Exchange Volume.
+- APIs/data:
+  - Existing `GET /market-data/current?ticker={ticker}&category=market-current`
+    exchange-volume data only.
+  - No API request, response, mapping, or calculation changes.
+- Reported problem and root cause:
+  - `Off Exchange` appeared as a venue category without explaining that it
+    represents trading away from public exchanges, which could be mistaken for
+    unreported or necessarily short-sale activity.
+  - The initial icon rendered, but its tooltip did not appear. The legend's
+    direct-child `span` rule also matched the tooltip component and applied
+    `overflow: hidden`, clipping the bubble to the icon's 15px box.
+- Intended behavior and invariants:
+  - An information icon appears directly beside the `Off Exchange` legend
+    label in Latest Exchange Volume.
+  - Legend truncation applies only to the venue-label text and never to the
+    tooltip container, so the bubble remains visible outside the icon bounds.
+  - Hovering, focusing, or tapping the icon explains alternative trading
+    systems/dark pools, broker-dealer internalization, FINRA reporting, and
+    that the category does not by itself indicate short selling or unusual
+    activity.
+  - The explanation is available in English, Traditional Chinese, and
+    Simplified Chinese.
+  - Venue ordering, colors, values, percentages, chart interactions, API data,
+    and historical-volume presentation remain unchanged.
+- Files changed:
+  - `app/monitor/[ticker]/exchange-volume/ExchangeVolumeBrowserPage.tsx`
+  - `app/globals.css`
+  - `lib/portal-page-translations.ts`
+  - `docs/CODEX_CHANGE_LOG.md`
+- Verification:
+  - TypeScript type-check passed.
+  - Production build passed, including all 29 statically generated pages.
+  - Whitespace validation passed.
+  - Authenticated visual verification was blocked by the isolated browser
+    session redirecting to sign-in; component structure and responsive legend
+    styles were inspected directly.
+- Remaining backend dependency / limitation:
+  - None. This is a frontend-only explanatory UI change.
+
 ## 2026-08-20 - Show complete SEC filing audit metadata in Development Data
 
 - Area: User Portal -> SEC Filings -> Development Data table.
@@ -6087,3 +6129,40 @@ completed change.
     date-range parameter, so the frontend still has to request each category's
     complete history. Backend pagination or a combined Market Data history
     endpoint would further reduce payload size and peak loading time.
+
+## 2026-08-25 - Expose Report Archive API composition in Development Data
+
+- Area: User Portal -> Report Archive -> Development Data.
+- APIs/data:
+  - `GET /market-data/reports?ticker={ticker}&limit=100&page=1`
+  - `GET /market-data/reports?ticker={ticker}&date={YYYY-MM-DD}`
+  - `GET /market-data/ai-report?ticker={ticker}&date={YYYY-MM-DD}`
+  - `GET /market-data/current?ticker={ticker}&category=sentiment-current`
+- Reported problem and root cause:
+  - Report Archive did not expose a Development Data section, making it hard
+    to distinguish the primary dated report response from the separate AI
+    Analysis request and the date-gated sentiment fallback.
+  - The dated report API supplies most report content, but the current frontend
+    report composition is not a single-request flow.
+- Intended behavior and invariants:
+  - Dev Mode displays an API map and separate, uncombined response tabs for the
+    archive index, selected dated report, AI Analysis, and sentiment fallback.
+  - Developers can select any available report date and inspect the exact raw
+    response fields returned for that date.
+  - The panel loads report-detail APIs only while Dev Mode is enabled, avoiding
+    extra report requests for normal users.
+  - Existing View Report, Download PDF, report pagination, and report data
+    normalization behavior remain unchanged.
+- Files changed:
+  - `app/monitor/[ticker]/reports/ReportArchiveDevTables.tsx`
+  - `app/monitor/[ticker]/reports/ReportArchiveBrowserPage.tsx`
+  - `app/globals.css`
+  - `docs/CODEX_CHANGE_LOG.md`
+- Verification:
+  - TypeScript type-check passed.
+  - Production build passed, including all 29 statically generated pages.
+- Remaining backend dependency / limitation:
+  - Historical sentiment still requires the dated report API to persist a
+    complete seven-day sentiment block. The live `sentiment-current` fallback
+    is intentionally accepted only when its period end matches the selected
+    report date.

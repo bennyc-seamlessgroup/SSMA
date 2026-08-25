@@ -41,6 +41,8 @@ const chartColors = [
   '#ca8a04', '#dc2626', '#475569', '#14b8a6', '#6366f1', '#84cc16', '#f97316', '#ec4899',
 ];
 
+const offExchangeExplanation = 'Trades executed away from public stock exchanges, such as through alternative trading systems (dark pools) or broker-dealer internalization. These trades are still reported through FINRA facilities and do not necessarily indicate short selling or unusual activity.';
+
 const exchangeHistoryVenueFields = [
   ['exNasdaqGsm', 'Nasdaq GSM'],
   ['exNyseArca', 'NYSE Arca'],
@@ -595,7 +597,11 @@ function CurrentExchangeVolume({ entries }: { entries: VenueValue[] }) {
               const rankIndex = columnIndex * legendColumnSize + rowIndex;
               return (
                 <div className="exchange-volume-pie-legend-row" key={entry.key}>
-                  <span><i style={{ background: chartColors[rankIndex % chartColors.length] }} />{entry.label}</span>
+                  <div className="exchange-volume-pie-legend-name">
+                    <i style={{ background: chartColors[rankIndex % chartColors.length] }} />
+                    <span className="exchange-volume-pie-legend-text">{entry.label}</span>
+                    {entry.label === 'Off Exchange' ? <InfoTooltip text={offExchangeExplanation} /> : null}
+                  </div>
                   <strong>{formatVolume(entry.volume)}</strong>
                   {entry.percent !== null ? <small>{entry.percent.toLocaleString('en-US', { maximumFractionDigits: 4 })}% supplied by API</small> : null}
                 </div>

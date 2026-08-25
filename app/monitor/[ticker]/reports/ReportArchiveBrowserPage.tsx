@@ -8,6 +8,7 @@ import type { ReportArchiveRecord } from '@/lib/report-archive';
 import { normalizeTicker } from '@/lib/ticker-data';
 import { ymdInPortalTimeZone } from '@/lib/timezone';
 import { ReportArchiveCenter } from './ReportArchiveCenter';
+import { ReportArchiveDevTables } from './ReportArchiveDevTables';
 import { PageDisclaimerNotice } from '@/components/PageDisclaimerNotice';
 
 type ReportIndexPayload = {
@@ -107,6 +108,7 @@ export function ReportArchiveBrowserPage({ ticker }: { ticker: string }) {
     <div className="page report-archive-page">
       {loadError ? <div className="report-generation-error" role="alert">{loadError}</div> : null}
       <ReportArchiveCenter ticker={normalizedTicker} reports={reports} todayDate={todayDate} />
+      <ReportArchiveDevTables ticker={normalizedTicker} reports={reports} />
       <PageDisclaimerNotice noticeKey="reports" disclaimerKey="report" />
     </div>
   );

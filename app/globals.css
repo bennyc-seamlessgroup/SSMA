@@ -11448,6 +11448,43 @@ html[data-dev-mode="true"] .import-data-dev-panel {
   display: block !important;
 }
 
+.report-archive-dev-panel__head {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 20px;
+}
+
+.report-archive-dev-panel__date {
+  display: grid;
+  gap: 6px;
+  min-width: 190px;
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.report-archive-dev-panel__date select {
+  min-height: 36px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--surface);
+  color: var(--ink);
+  padding: 0 34px 0 10px;
+  font: inherit;
+}
+
+@media (max-width: 720px) {
+  .report-archive-dev-panel__head {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .report-archive-dev-panel__date {
+    min-width: 0;
+  }
+}
+
 html[data-dev-mode="true"] .portal-sidebar__dev-divider.dev-only {
   display: flex !important;
 }
@@ -31237,20 +31274,24 @@ button[aria-busy="true"]::before {
   border-bottom: 1px solid #edf1f5;
 }
 
-.exchange-volume-pie-legend-row span {
+.exchange-volume-pie-legend-name {
   min-width: 0;
   display: inline-flex;
   align-items: center;
   gap: 7px;
-  overflow: hidden;
   color: #52657c;
   font-size: 11px;
   font-weight: 650;
+}
+
+.exchange-volume-pie-legend-text {
+  min-width: 0;
+  overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.exchange-volume-pie-legend-row span i {
+.exchange-volume-pie-legend-name > i {
   width: 9px;
   height: 9px;
   border-radius: 50%;
@@ -31396,7 +31437,7 @@ html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal :where(
   .exchange-volume-legend-items button,
   .exchange-volume-legend-toolbar > span,
   .exchange-volume-pie-wrap > small,
-  .exchange-volume-pie-legend-row span,
+  .exchange-volume-pie-legend-text,
   .exchange-volume-pie-legend-row small
 ) {
   color: #aebdd0;

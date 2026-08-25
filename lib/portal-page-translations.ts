@@ -57,6 +57,8 @@ const zhHant: Record<string, string> = {
   'Exchanges': '交易所', 'Show all': '全部顯示', 'Hide all': '全部隱藏', 'Line chart view': '折線圖檢視', 'Table view': '表格檢視',
   'Exchange volume history view': '交易所成交量歷史檢視', 'Exchange series toggles': '交易所數據系列開關',
   'Latest exchange volume by venue': '各交易場所最新成交量',
+  'Off Exchange': '場外交易',
+  'Trades executed away from public stock exchanges, such as through alternative trading systems (dark pools) or broker-dealer internalization. These trades are still reported through FINRA facilities and do not necessarily indicate short selling or unusual activity.': '在公開證券交易所以外執行的交易，例如透過另類交易系統（暗池）或由經紀交易商內部撮合。這些交易仍會透過 FINRA 設施申報，並不一定代表沽空或異常活動。',
   'Slice size reflects each volume value returned by the API.': '扇形大小反映 API 傳回的各項成交量數值。',
   'Latest venue volumes from market-current.exchangeVolume': '來自 market-current.exchangeVolume 的最新交易場所成交量',
   '. Slice sizes visualize the returned volume values; labels retain the raw API values.': '。扇形大小以視覺方式呈現傳回的成交量數值；標籤保留 API 原始數值。',
