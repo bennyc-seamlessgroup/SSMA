@@ -531,6 +531,7 @@ const operationsZhHant: Record<string, string> = {
   'From date': '開始日期', 'To date': '結束日期', 'Data vendors': '資料供應商',
   'Writes enabled': '啟用寫入', 'Submitting...': '正在提交…',
   'Start Historical Init': '開始歷史資料初始化', 'Initialization Running': '正在初始化歷史資料',
+  'Status Check Unavailable': '無法檢查狀態',
   'Consolidation Running': '正在執行整合',
   'Checking status': '正在檢查狀態', 'Ready to initialize': '可開始初始化', 'Status unavailable': '無法取得狀態', 'Select ticker': '選擇股票代碼',
   'Refresh Status': '重新整理狀態', 'Checking...': '正在檢查…',

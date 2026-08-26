@@ -7082,3 +7082,65 @@ completed change.
 - Remaining backend dependency / limitation:
   - Neither status endpoint reports final worker success or failure; both expose
     only whether the corresponding lock is active.
+
+## 2026-08-26 - Keep idle pipeline status failures non-intrusive
+
+- Area: Operations Portal -> Company Management -> Initialize History.
+- APIs/data:
+  - `GET /tickers/historical-init/status?ticker={ticker}`
+  - `GET /manual-input/consolidate/status?ticker={ticker}`
+- Reported problem and root cause:
+  - Entering a ticker triggered the automatic background status requests, and a
+    backend `403` response immediately rendered its full authorization text as a
+    large form error even though the operator had not submitted any action.
+- Intended behavior and invariants:
+  - Background status failures before an operator action remain visible as
+    neutral availability labels and in Development Data, without injecting a
+    detailed error paragraph into the form.
+  - Status badges become error-styled and detailed feedback appears only after
+    an initialization or consolidation action makes the failure actionable.
+  - Automatic 15-second retries remain unchanged.
+- Files changed:
+  - `app/operations/tickers/TickerManagementOperationsClient.tsx`
+  - `docs/CODEX_CHANGE_LOG.md`
+- Verification:
+  - TypeScript type-check passed.
+  - Whitespace validation passed.
+- Remaining backend dependency / limitation:
+  - The captured `403` says the authorization header is being interpreted as an
+    AWS Signature Version 4 header. The backend status routes must accept the
+    documented Cognito ID token for status checks to succeed.
+
+## 2026-08-26 - Stop indefinite optimistic pipeline running states
+
+- Area: Operations Portal -> Company Management -> Initialize History.
+- APIs/data:
+  - `POST /tickers/historical-init`
+  - `GET /tickers/historical-init/status?ticker={ticker}`
+  - `POST /manual-input/consolidate?ticker={ticker}`
+  - `GET /manual-input/consolidate/status?ticker={ticker}`
+- Reported problem and root cause:
+  - An accepted initialization request was kept in the optimistic `Running`
+    state when every follow-up status request failed, so the interface could
+    appear to run forever without confirmation from the backend.
+- Intended behavior and invariants:
+  - An accepted POST shows `Running` only until the first status response.
+  - A failed status request changes the corresponding badge to `Unavailable`
+    and explains that the request was accepted but its current state cannot be
+    confirmed.
+  - The page continues retrying an unavailable status every 15 seconds while
+    visible, and a later successful response restores `Running` or `Ready`.
+  - While an accepted history job has an unknown status, both duplicate
+    initialization and consolidation are disabled.
+  - Consolidation follows the same unavailable-and-retry behavior.
+- Files changed:
+  - `app/operations/tickers/TickerManagementOperationsClient.tsx`
+  - `lib/portal-page-translations.ts`
+  - `docs/CODEX_CHANGE_LOG.md`
+- Verification:
+  - TypeScript type-check passed.
+  - Whitespace validation passed.
+- Remaining backend dependency / limitation:
+  - The frontend cannot determine whether an asynchronous job completed until
+    its documented status GET becomes reachable and returns `IN_PROGRESS` or
+    `AVAILABLE`.
