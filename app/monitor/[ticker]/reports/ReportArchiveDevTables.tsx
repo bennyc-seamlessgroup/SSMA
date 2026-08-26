@@ -5,6 +5,7 @@ import { ImportDataTable } from '@/components/ImportDataTable';
 import { ImportDataTabs } from '@/components/ImportDataTabs';
 import { cachedAuthenticatedFetch } from '@/lib/auth-client';
 import type { ReportArchiveRecord } from '@/lib/report-archive';
+import { reportSentimentDiagnostics } from './daily-report-data';
 
 type SourceResult = {
   data: unknown;
@@ -146,6 +147,10 @@ export function ReportArchiveDevTables({
 
   const encodedTicker = encodeURIComponent(ticker);
   const encodedDate = encodeURIComponent(selectedDate);
+  const sentimentMappingRows = useMemo(
+    () => reportSentimentDiagnostics(reportSource.data, selectedDate),
+    [reportSource.data, selectedDate],
+  );
   const tabs = [
     {
       id: 'api-map',
@@ -170,6 +175,20 @@ export function ReportArchiveDevTables({
       sourcePlatform: 'API Gateway · Primary report payload',
       recordCount: sourceCount(reportSource),
       status: sourceStatus(reportSource),
+    },
+    {
+      id: 'sentiment-mapping',
+      title: 'Sentiment Mapping',
+      file: `Normalized from GET /market-data/reports?ticker=${encodedTicker}&date=${encodedDate}`,
+      sourcePlatform: 'Report Archive · Dated sentiment candidates',
+      recordCount: sentimentMappingRows.length,
+      status: reportSource.loading
+        ? 'loading'
+        : reportSource.error
+          ? `error: ${reportSource.error}`
+          : sentimentMappingRows.length
+            ? 'ready'
+            : 'no sentiment candidates found',
     },
     {
       id: 'ai-report',
@@ -203,6 +222,26 @@ export function ReportArchiveDevTables({
         <ImportDataTable columns={['api', 'purpose', 'reportData']} rows={apiMapRows} pageSize={10} />
         <ImportDataTable columns={['field', 'value']} rows={flattenedRows(indexSource.data)} pageSize={25} />
         <ImportDataTable columns={['field', 'value']} rows={flattenedRows(reportSource.data)} pageSize={25} />
+        <ImportDataTable
+          columns={[
+            'selectedFor',
+            'path',
+            'explicit7D',
+            'matchesReportDate',
+            'window',
+            'windowStart',
+            'windowEnd',
+            'directMentions',
+            'timelineMentions',
+            'score',
+            'distribution',
+            'platformRows',
+            'platformMentions',
+          ]}
+          rows={sentimentMappingRows}
+          pageSize={25}
+          expandableColumns={['path']}
+        />
         <ImportDataTable columns={['field', 'value']} rows={flattenedRows(aiSource.data)} pageSize={25} expandableColumns={['value']} />
       </ImportDataTabs>
     </section>

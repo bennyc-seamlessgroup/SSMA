@@ -17,6 +17,12 @@ type DailyReportPayload = Row & {
   sentiment?: unknown;
 };
 
+type SentimentCandidate = {
+  value: Row;
+  explicitSevenDay: boolean;
+  path: string;
+};
+
 const unavailableAiAnalysis = 'AI analysis is not available for this report date.';
 const marginKeys = new Set(['initialMargin', 'maintenanceMargin']);
 const sentimentPlatformNames = ['Reddit', 'X', 'Facebook', 'LinkedIn', 'Stocktwits'] as const;
@@ -125,16 +131,16 @@ function sentimentPlatformName(value: unknown) {
 }
 
 function sentimentSourceRoots(payload: DailyReportPayload) {
-  const roots: Row[] = [];
+  const roots: Array<{ value: Row; path: string }> = [];
   const visited = new Set<unknown>();
 
-  function visit(value: unknown, sentimentContext: boolean, depth: number) {
+  function visit(value: unknown, sentimentContext: boolean, depth: number, path: string) {
     if (depth > 8 || !value) return;
     if (typeof value === 'string') {
       const serialized = value.trim();
       if (serialized.length <= 2_000_000 && (serialized.startsWith('{') || serialized.startsWith('['))) {
         try {
-          visit(JSON.parse(serialized), sentimentContext, depth + 1);
+          visit(JSON.parse(serialized), sentimentContext, depth + 1, `${path} (parsed JSON)`);
         } catch {
           // Ignore ordinary report strings that happen to begin with JSON punctuation.
         }
@@ -145,7 +151,7 @@ function sentimentSourceRoots(payload: DailyReportPayload) {
     visited.add(value);
 
     if (Array.isArray(value)) {
-      value.forEach(entry => visit(entry, sentimentContext, depth + 1));
+      value.forEach((entry, index) => visit(entry, sentimentContext, depth + 1, `${path}[${index}]`));
       return;
     }
 
@@ -162,42 +168,49 @@ function sentimentSourceRoots(payload: DailyReportPayload) {
         || Array.isArray(row.platformBreakdown)
       );
     if ((sentimentContext || hasAggregate) && (row.window !== undefined || hasSevenDayPeriod || hasAggregate)) {
-      roots.push(row);
+      roots.push({ value: row, path });
     }
 
     Object.entries(row).forEach(([key, nestedValue]) => {
       const nestedSentimentContext = sentimentContext || key.toLowerCase().includes('sentiment');
-      visit(nestedValue, nestedSentimentContext, depth + 1);
+      visit(nestedValue, nestedSentimentContext, depth + 1, `${path}.${key}`);
     });
   }
 
-  visit(payload, false, 0);
+  visit(payload, false, 0, '$');
   return roots;
 }
 
 function sevenDaySentimentCandidates(payload: DailyReportPayload) {
-  const candidates = new Map<Row, boolean>();
-  const addCandidate = (value: Row, explicitSevenDay: boolean) => {
-    candidates.set(value, Boolean(candidates.get(value)) || explicitSevenDay);
+  const candidates = new Map<Row, SentimentCandidate>();
+  const addCandidate = (value: Row, explicitSevenDay: boolean, path: string) => {
+    const current = candidates.get(value);
+    candidates.set(value, {
+      value,
+      explicitSevenDay: Boolean(current?.explicitSevenDay) || explicitSevenDay,
+      path: current?.path ?? path,
+    });
   };
 
-  sentimentSourceRoots(payload).forEach(root => {
+  sentimentSourceRoots(payload).forEach(source => {
+    const root = source.value;
     const periods = objectValue(root.periods);
-    const sevenDay = objectValue(periods['7D'] ?? periods['7d'] ?? periods['1W'] ?? periods['1w']);
+    const sevenDayKey = ['7D', '7d', '1W', '1w'].find(key => Object.keys(objectValue(periods[key])).length) ?? '';
+    const sevenDay = objectValue(sevenDayKey ? periods[sevenDayKey] : undefined);
     const rootIsSevenDay = ['7D', '7 DAYS', '7-DAY', '1W'].includes(String(root.window ?? '').trim().toUpperCase());
 
     // Some dated report files contain a populated aggregate on the sentiment
     // root while retaining an older empty periods.7D object. Keep both so the
     // populated candidate can win instead of discarding it at collection time.
     if (rootIsSevenDay || !Object.keys(sevenDay).length) {
-      addCandidate(root, rootIsSevenDay);
+      addCandidate(root, rootIsSevenDay, source.path);
     }
     if (Object.keys(sevenDay).length) {
-      addCandidate(sevenDay, true);
+      addCandidate(sevenDay, true, `${source.path}.periods.${sevenDayKey}`);
     }
   });
 
-  return [...candidates].map(([value, explicitSevenDay]) => ({ value, explicitSevenDay }));
+  return [...candidates.values()];
 }
 
 function sentimentRows(period: Row) {
@@ -210,7 +223,7 @@ function rowMentions(row: Row) {
   return finiteNumber(row.mentions ?? row.totalMentions ?? row.mentionCount ?? row.count) ?? 0;
 }
 
-function candidateWeight(candidate: { value: Row; explicitSevenDay: boolean }) {
+function candidateWeight(candidate: SentimentCandidate) {
   const directMentions = finiteNumber(candidate.value.mentions ?? candidate.value.totalMentions ?? candidate.value.mentionCount);
   const timelineMentions = sentimentRows(candidate.value).reduce((sum, row) => sum + rowMentions(row), 0);
   const mentions = directMentions ?? timelineMentions;
@@ -275,7 +288,7 @@ function hasSentimentDistribution(period: Row) {
 }
 
 function hasMatchingSevenDayWindow(
-  candidate: { value: Row; explicitSevenDay: boolean } | undefined,
+  candidate: SentimentCandidate | undefined,
   reportDate: string,
 ) {
   if (!candidate?.explicitSevenDay) return false;
@@ -293,7 +306,7 @@ function hasMatchingSevenDayWindow(
   );
 }
 
-function distributionCandidateWeight(candidate: { value: Row; explicitSevenDay: boolean }) {
+function distributionCandidateWeight(candidate: SentimentCandidate) {
   const distribution = objectValue(
     candidate.value.distribution
     ?? candidate.value.sentimentDistribution
@@ -322,7 +335,7 @@ function platformRowsForPeriod(period: Row) {
   return sentimentRows(period).filter(row => sentimentPlatformName(row.platform ?? row.name));
 }
 
-function platformCandidateWeight(candidate: { value: Row; explicitSevenDay: boolean }) {
+function platformCandidateWeight(candidate: SentimentCandidate) {
   const rows = platformRowsForPeriod(candidate.value);
   const recognizedRows = rows.filter(row => sentimentPlatformName(row.platform ?? row.name));
   const mentions = recognizedRows.reduce((sum, row) => sum + rowMentions(row), 0);
@@ -331,7 +344,7 @@ function platformCandidateWeight(candidate: { value: Row; explicitSevenDay: bool
     + candidateWeight(candidate);
 }
 
-function normalizeSevenDaySentiment(payload: DailyReportPayload, reportDate: string) {
+function selectSevenDaySentimentCandidates(payload: DailyReportPayload, reportDate: string) {
   const candidates = sevenDaySentimentCandidates(payload);
   candidates.sort((a, b) => {
     const matchingWindowDifference = Number(hasMatchingSevenDayWindow(b, reportDate))
@@ -346,6 +359,61 @@ function normalizeSevenDaySentiment(payload: DailyReportPayload, reportDate: str
   const platformCandidate = [...matchingCandidates]
     .sort((a, b) => platformCandidateWeight(b) - platformCandidateWeight(a))[0]
     ?? selectedCandidate;
+
+  return {
+    candidates,
+    matchingCandidates,
+    selectedCandidate,
+    distributionCandidate,
+    platformCandidate,
+  };
+}
+
+export function reportSentimentDiagnostics(payload: unknown, reportDate: string) {
+  const selection = selectSevenDaySentimentCandidates(payload as DailyReportPayload, reportDate);
+
+  return selection.candidates.map(candidate => {
+    const period = candidate.value;
+    const timeline = sentimentRows(period);
+    const directMentions = finiteNumber(period.mentions ?? period.totalMentions ?? period.mentionCount);
+    const timelineMentions = timeline.reduce((sum, row) => sum + rowMentions(row), 0);
+    const overall = objectValue(period.overall);
+    const score = normalizedSentimentScore(
+      overall.score ?? period.overallSentimentScore ?? period.sentimentScore,
+    );
+    const counts = distributionCounts(period);
+    const platformRows = platformRowsForPeriod(period);
+    const platformMentions = platformRows.reduce((sum, row) => sum + rowMentions(row), 0);
+    const selectedFor = [
+      selection.selectedCandidate === candidate ? 'Overall' : '',
+      selection.distributionCandidate === candidate ? 'Distribution' : '',
+      selection.platformCandidate === candidate ? 'Platforms' : '',
+    ].filter(Boolean).join(', ') || 'Not selected';
+
+    return {
+      selectedFor,
+      path: candidate.path,
+      explicit7D: candidate.explicitSevenDay ? 'Yes' : 'No',
+      matchesReportDate: hasMatchingSevenDayWindow(candidate, reportDate) ? 'Yes' : 'No',
+      window: String(period.window ?? 'N/A'),
+      windowStart: datePart(period.windowStart ?? period.windowStartUtc ?? period.start) || 'N/A',
+      windowEnd: datePart(period.windowEnd ?? period.windowEndUtc ?? period.end) || 'N/A',
+      directMentions: directMentions === null ? 'N/A' : String(directMentions),
+      timelineMentions: String(timelineMentions),
+      score: score === null ? 'N/A' : String(score),
+      distribution: `${counts.bullish} / ${counts.neutral} / ${counts.bearish}`,
+      platformRows: String(platformRows.length),
+      platformMentions: String(platformMentions),
+    };
+  });
+}
+
+function normalizeSevenDaySentiment(payload: DailyReportPayload, reportDate: string) {
+  const {
+    selectedCandidate,
+    distributionCandidate,
+    platformCandidate,
+  } = selectSevenDaySentimentCandidates(payload, reportDate);
   const period = selectedCandidate?.value ?? {};
   const matchingWindow = hasMatchingSevenDayWindow(selectedCandidate, reportDate);
   const timeline = sentimentRows(period);

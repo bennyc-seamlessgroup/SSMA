@@ -4,6 +4,51 @@ This file is the persistent implementation memory for changes made by Codex.
 Read it before modifying existing portal behavior, and update it after every
 completed change.
 
+## 2026-08-26 - Expose the dated report sentiment candidate mapping
+
+- Area: User Portal -> Reports -> Development Data -> Sentiment Mapping.
+- API/data:
+  - Existing dated
+    `GET /market-data/reports?ticker={ticker}&date={date}` response only.
+  - No additional API request or live sentiment fallback.
+- Reported problem and root cause:
+  - The Aug 25 report correctly displayed the canonical Aug 19–25 observation
+    period, but the rendered Overall, Distribution, and Platform values still
+    remained `N/A` / zero.
+  - A focused regression using the documented direct `sentiment` object maps
+    13 mentions, score `61.54`, distribution `6 / 5 / 2`, and the platform
+    counts correctly. This proves the renderer and documented-shape normalizer
+    work, but does not prove that the authenticated dated response used by the
+    portal contains that object at the expected path.
+  - The authenticated production response is not available in the workspace,
+    so further schema guesses would risk selecting the wrong frozen report
+    data.
+- Intended behavior and invariants:
+  - When Dev Mode is enabled, Reports exposes a `Sentiment Mapping` tab for the
+    selected dated response.
+  - Every discovered seven-day candidate shows its exact source path, date
+    window, mentions, score, distribution, platform totals, report-date match,
+    and whether it was selected for Overall, Distribution, or Platforms.
+  - The diagnostic contains only aggregate structure and values; it does not
+    expose social post content or introduce a user-visible report fallback.
+  - Existing frozen-report, canonical Aug 19–25 range, and shared HTML/PDF data
+    path remain unchanged.
+- Files changed:
+  - `app/monitor/[ticker]/reports/daily-report-data.ts`
+  - `app/monitor/[ticker]/reports/ReportArchiveDevTables.tsx`
+  - `docs/CODEX_CHANGE_LOG.md`
+- Verification:
+  - Focused documented-shape regression selected `$.sentiment` for all three
+    subsections and normalized 13 mentions, score `61.54`, distribution
+    `6 / 5 / 2`, X `9`, and Reddit `4` for Aug 19–25.
+  - `npm run typecheck` passed.
+  - `npm run build` passed, including all 29 generated static pages.
+  - `git diff --check` passed.
+- Remaining backend dependency / limitation:
+  - The actual candidate path and values in the signed-in Aug 25 dated response
+    must be read from the new diagnostic before changing the frozen report
+    mapping again.
+
 ## 2026-08-26 - Map populated dated sentiment into all report subsections
 
 - Area: User Portal -> Reports -> Daily Market Close Report -> Market
@@ -6824,3 +6869,32 @@ completed change.
   - The prerequisite is tracked for the current browser session because the
     status API reports only lock availability, not whether a ticker has ever
     completed historical initialization.
+
+## 2026-08-26 - Clarify consolidation status feedback
+
+- Area: Operations Portal -> Company Management -> Initialize History.
+- APIs/data:
+  - `POST /manual-input/consolidate?ticker={ticker}`
+  - `GET /manual-input/consolidate/status?ticker={ticker}`
+- Reported problem and root cause:
+  - The consolidation message still emphasized request acceptance and could be
+    mistaken for either confirmed completion or a consolidation failure when
+    only the follow-up status request was unavailable.
+- Intended behavior and invariants:
+  - `IN_PROGRESS` states that consolidation is running and that status updates
+    automatically.
+  - `AVAILABLE` states that consolidation is no longer running and asks the
+    operator to refresh affected portal data to confirm the latest values.
+  - A failed status request explicitly says the consolidation request was
+    accepted but its current status could not be checked, and directs the
+    operator to Refresh Status.
+  - Request failures continue to display the original API error.
+- Files changed:
+  - `app/operations/tickers/TickerManagementOperationsClient.tsx`
+  - `docs/CODEX_CHANGE_LOG.md`
+- Verification:
+  - TypeScript type-check passed.
+  - Whitespace validation passed.
+- Remaining backend dependency / limitation:
+  - `AVAILABLE` remains a lock-availability result rather than a verified worker
+    success response.

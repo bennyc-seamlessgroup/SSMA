@@ -142,6 +142,26 @@ function pipelineStatusText(label: string, status: PipelineStatus, lockAgeSecond
   return `${label} · Select ticker`;
 }
 
+function consolidationFeedback(
+  ticker: string,
+  requestState: ConsolidationState,
+  pipelineStatus: PipelineStatus,
+  fallbackMessage: string,
+) {
+  if (requestState === 'error') return fallbackMessage;
+  if (requestState !== 'success') return fallbackMessage;
+  if (pipelineStatus === 'in_progress') {
+    return `Consolidation is running for ${ticker}. Status updates automatically.`;
+  }
+  if (pipelineStatus === 'available') {
+    return `Consolidation is no longer running for ${ticker}. Refresh affected portal data to confirm the latest values.`;
+  }
+  if (pipelineStatus === 'error') {
+    return `The consolidation request for ${ticker} was accepted, but its current status could not be checked. Use Refresh Status to try again.`;
+  }
+  return fallbackMessage;
+}
+
 export function TickerManagementOperationsClient() {
   const [authorized, setAuthorized] = useState<boolean | null>(null);
   const [records, setRecords] = useState<TickerRecord[]>([]);
@@ -715,7 +735,11 @@ export function TickerManagementOperationsClient() {
             </button>
           </div>
           {historicalMessage && <p className={`ops-form-message ${historicalState === 'error' ? 'bad' : 'good'}`} role="status">{historicalMessage}</p>}
-          {consolidationMessage && <p className={`ops-form-message ${consolidationState === 'error' ? 'bad' : 'good'}`} role="status" aria-live="polite">{consolidationState === 'success' && consolidationStatus === 'available' ? `Consolidation is no longer running for ${historicalTicker.trim().toUpperCase()}. Refresh affected portal data to confirm the latest output.` : consolidationMessage}</p>}
+          {consolidationMessage && (
+            <p className={`ops-form-message ${consolidationState === 'error' || consolidationStatus === 'error' ? 'bad' : 'good'}`} role="status" aria-live="polite">
+              {consolidationFeedback(historicalTicker.trim().toUpperCase(), consolidationState, consolidationStatus, consolidationMessage)}
+            </p>
+          )}
         </form>
       </section>
 
