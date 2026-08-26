@@ -222,6 +222,10 @@ function platformRows(platforms) {
   </div>`).join('')}</div>`;
 }
 
+function sentimentSubsectionUnavailable(label) {
+  return `<div class="sentiment-subsection-unavailable"><strong>${esc(label)} unavailable</strong><span>This dated report does not contain this sentiment breakdown.</span></div>`;
+}
+
 function filingRows(items) {
   if (!items?.length) return '<div class="empty-state">No filing records are available for this report.</div>';
   return `<table class="table"><thead><tr><th>Date</th><th>Form</th><th>Filing</th></tr></thead><tbody>${items.slice(0, 5).map(row => `<tr><td>${esc(row.date)}</td><td><span class="form-pill">${esc(row.formType)}</span></td><td><b>${esc(row.title)}</b></td></tr>`).join('')}</tbody></table>`;
@@ -248,6 +252,9 @@ function renderReport(data) {
   const shortLending = data.shortLending || {};
   const sentiment = data.sentiment || {};
   const sentimentAvailable = sentiment.available !== false;
+  const overallAvailable = sentiment.overallAvailable !== false;
+  const distributionAvailable = sentiment.distributionAvailable !== false;
+  const platformsAvailable = sentiment.platformsAvailable !== false;
   const sentimentWindow = sentimentWindowMeta(sentiment, data.reportDateIso);
 
   return `
@@ -286,10 +293,10 @@ function renderReport(data) {
   ${sentimentAvailable ? `
     <div class="sentiment-window-summary"><span>Sentiment observation period</span><strong>${esc(sentimentWindow.dateRange || sentimentWindow.periodLabel)}</strong></div>
     <div class="two-column sentiment-primary-grid">
-      <div class="card sentiment-overall-card"><div class="card-head"><h3>${sentimentWindow.isSevenDay ? '7-Day Overall Sentiment' : 'Overall Sentiment'}</h3><span class="count-badge">${esc(sentimentWindow.shortLabel)}</span></div>${sentimentGauge(sentiment.overall)}<div class="sentiment-delta ${esc(sentiment.overall?.deltaTone || '')}">${esc(sentiment.overall?.changeDisplay || '--')} <span>${esc(sentimentWindow.comparisonLabel)}</span></div><small>${esc(sentiment.mentionsDisplay)} mentions</small></div>
-      <div class="card sentiment-distribution-card"><div class="card-head"><h3>Sentiment Distribution</h3><span class="count-badge">${esc(sentiment.mentionsDisplay)} mentions</span></div>${sentimentDistribution(sentiment.distribution)}</div>
+      <div class="card sentiment-overall-card"><div class="card-head"><h3>${sentimentWindow.isSevenDay ? '7-Day Overall Sentiment' : 'Overall Sentiment'}</h3><span class="count-badge">${esc(sentimentWindow.shortLabel)}</span></div>${overallAvailable ? `${sentimentGauge(sentiment.overall)}<div class="sentiment-delta ${esc(sentiment.overall?.deltaTone || '')}">${esc(sentiment.overall?.changeDisplay || '--')} <span>${esc(sentimentWindow.comparisonLabel)}</span></div><small>${esc(sentiment.mentionsDisplay)} mentions</small>` : sentimentSubsectionUnavailable('Overall sentiment')}</div>
+      <div class="card sentiment-distribution-card"><div class="card-head"><h3>Sentiment Distribution</h3><span class="count-badge">${esc(sentiment.mentionsDisplay)} mentions</span></div>${distributionAvailable ? sentimentDistribution(sentiment.distribution) : sentimentSubsectionUnavailable('Sentiment distribution')}</div>
     </div>
-    <div class="card platform-breakdown-card"><div class="card-head"><h3>Platform Breakdown</h3><span class="count-badge">${esc(sentimentWindow.shortLabel)}</span></div>${platformRows(sentiment.platforms)}</div>
+    <div class="card platform-breakdown-card"><div class="card-head"><h3>Platform Breakdown</h3><span class="count-badge">${esc(sentimentWindow.shortLabel)}</span></div>${platformsAvailable ? platformRows(sentiment.platforms) : sentimentSubsectionUnavailable('Platform breakdown')}</div>
   ` : `
     <div class="card sentiment-report-unavailable" role="status">
       <strong>${esc(sentiment.unavailableMessage || 'Sentiment data unavailable for this report.')}</strong>

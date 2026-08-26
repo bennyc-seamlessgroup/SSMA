@@ -55,6 +55,7 @@
     - [PUT /manual-input/{category}](#put-manual-inputcategory)
     - [DELETE /manual-input/{category}](#delete-manual-inputcategory)
     - [POST/PUT /manual-input/consolidate](#postput-manual-inputconsolidate)
+    - [GET /manual-input/consolidate/status](#get-manual-inputconsolidatestatus)
     - [POST /manual-input/import](#post-manual-inputimport)
   - [GET /hotkeys](#get-hotkeys)
   - [POST /hotkeys](#post-hotkeys)
@@ -2301,6 +2302,56 @@ Content-Type: application/json
     "rebuild_from_date": "2026-07-15",
     "force_rebuild": true
   }
+}
+```
+
+---
+
+### GET /manual-input/consolidate/status
+
+Query the consolidation status for a target stock ticker. Restricted to users with `OPERATOR` or `ADMIN` roles.
+
+The API inspects the presence and age of the S3 lock guard (`.in_progress_consolidation/{ticker}`) in S3 bucket `data-sync-platform-centralized-v2` / `MANUAL_INPUT_BUCKET`. If an active consolidation lock exists (age <= 15 minutes / 900 seconds), returns status `"IN_PROGRESS"` along with `lock_age_seconds`. If no lock file exists or the lock age exceeds 15 minutes (stale lock), returns status `"AVAILABLE"`.
+
+```
+GET /manual-input/consolidate/status?ticker=AAPL
+Authorization: <id_token>
+```
+
+**Query Parameters:**
+
+| Parameter | Type | Required | Description |
+|---|---|---|---|
+| `ticker` | `string` | **Yes** | Stock ticker symbol (e.g. `"AAPL"`). Alphanumeric with dots/hyphens (`^[A-Z0-9.\-]+$`). Case-insensitive. |
+
+**Response** `200 OK` (Consolidation in progress):
+```json
+{
+  "ticker": "AAPL",
+  "status": "IN_PROGRESS",
+  "lock_age_seconds": 120.5
+}
+```
+
+**Response** `200 OK` (Consolidation available / no active lock):
+```json
+{
+  "ticker": "AAPL",
+  "status": "AVAILABLE"
+}
+```
+
+**Response** `400 Bad Request` (Missing or invalid ticker parameter):
+```json
+{
+  "message": "Missing required query parameter: ticker"
+}
+```
+
+**Response** `403 Forbidden` (User is not an operator or admin):
+```json
+{
+  "message": "Access Denied: Consolidation status enquiry is restricted to Operators/Admins only. Your role is [USER]."
 }
 ```
 

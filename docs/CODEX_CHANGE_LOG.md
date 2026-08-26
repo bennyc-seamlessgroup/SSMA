@@ -4,6 +4,191 @@ This file is the persistent implementation memory for changes made by Codex.
 Read it before modifying existing portal behavior, and update it after every
 completed change.
 
+## 2026-08-26 - Map populated dated sentiment into all report subsections
+
+- Area: User Portal -> Reports -> Daily Market Close Report -> Market
+  Perception.
+- API/data:
+  - Existing dated
+    `GET /market-data/reports?ticker={ticker}&date={date}` response only.
+  - No `sentiment-current`, social-feed, or sentiment-history request.
+- Reported problem and root cause:
+  - After correcting the Aug 19–25 label, Overall Sentiment still showed `N/A`
+    and Distribution/Platform Breakdown still showed zeros.
+  - One selected candidate previously supplied every subsection. Dated report
+    payloads can place the populated aggregate, distribution, and platform rows
+    in separate sentiment-owned objects or JSON-encoded report wrappers, while
+    an older directly recognized object remains zero-valued.
+  - Preserving the correct label therefore did not guarantee that each report
+    card read its best populated dated source.
+- Intended behavior and invariants:
+  - Overall Sentiment selects the strongest explicit, report-date-matched 7D
+    aggregate and maps its mentions, score, previous score, change, and label.
+  - Sentiment Distribution independently selects the strongest populated dated
+    distribution and maps positive/bullish, neutral, and negative/bearish
+    counts and percentages.
+  - Platform Breakdown independently selects the strongest populated dated
+    platform array and maps mentions, share, score, and label into the five
+    established platform rows.
+  - Candidate discovery recognizes sentiment objects by shape as well as key
+    name, traverses nested report wrappers, and parses JSON-encoded report-owned
+    objects with a bounded size/depth.
+  - All three sources must still be explicit 7D objects ending on the selected
+    report date. No current/live data is mixed into an archive.
+  - The canonical Aug 19–25 display boundary remains unchanged.
+- Files changed:
+  - `app/monitor/[ticker]/reports/daily-report-data.ts`
+  - `app/monitor/[ticker]/reports/client-report-pdf.ts`
+  - `Report Templates/lean-daily-market-close-report/REPORT_DATA_CONTRACT.md`
+  - `docs/CODEX_CHANGE_LOG.md`
+- Verification:
+  - A focused normalization check supplied a zero-valued direct object, a
+    JSON-encoded populated aggregate, a nested populated distribution, and a
+    separate nested platform object for Aug 25.
+  - Normalized output was Aug 19–25, 13 mentions, score `61.54`, change
+    `+11.54`, distribution counts `6 / 5 / 2`, X mentions `9`, and Reddit
+    mentions `4`.
+  - `npm run typecheck` passed.
+  - `npm run build` passed, including all 29 generated static pages.
+  - `git diff --check` passed.
+- Remaining backend dependency / limitation:
+  - The displayed values remain limited to populated fields actually contained
+    in the dated Aug 25 report response.
+
+## 2026-08-26 - Canonicalize the report's inclusive 7D sentiment label
+
+- Area: User Portal -> Reports -> Daily Market Close Report -> Market
+  Perception -> Sentiment Observation Period.
+- API/data:
+  - Existing dated
+    `GET /market-data/reports?ticker={ticker}&date={date}` report date and
+    sentiment snapshot.
+  - No additional API or live-data fallback.
+- Reported problem and root cause:
+  - Both the HTML report and downloaded PDF displayed `Aug 20, 2026 – Aug 25,
+    2026` while labeling the range as Previous 7 Days. That inclusive range is
+    only six calendar dates.
+  - The label forwarded the selected legacy sentiment candidate's incorrect
+    `windowStart`, allowing candidate-selection problems to produce an invalid
+    7D presentation even though the immutable report date was known.
+- Intended behavior and invariants:
+  - The displayed 7D range is inclusive and anchored to the report date.
+  - Its end is the report date and its start is exactly six calendar days
+    earlier; report date Aug 25 therefore always displays Aug 19–25.
+  - HTML viewing and PDF download continue using the same normalized report
+    object, so the corrected label is identical in both outputs.
+  - This label correction does not source or fabricate sentiment values and
+    does not reintroduce `sentiment-current`.
+  - Candidate selection and placement of Overall, Distribution, and Platform
+    values remain separate from this display-boundary correction.
+- Files changed:
+  - `app/monitor/[ticker]/reports/daily-report-data.ts`
+  - `app/monitor/[ticker]/reports/client-report-pdf.ts`
+  - `Report Templates/lean-daily-market-close-report/REPORT_DATA_CONTRACT.md`
+  - `docs/CODEX_CHANGE_LOG.md`
+- Verification:
+  - A focused normalizer check supplied the incorrect Aug 20–25 upstream range
+    for report date Aug 25 and received normalized boundaries
+    `2026-08-19` / `2026-08-25`.
+  - A focused renderer check produced exactly
+    `Aug 19, 2026 – Aug 25, 2026`.
+  - `npm run typecheck` passed.
+  - `npm run build` passed, including all 29 generated static pages.
+  - `git diff --check` passed.
+- Remaining backend dependency / limitation:
+  - This guarantees the correct displayed 7D boundary. Sentiment values still
+    depend on the populated dated report candidate and are addressed
+    independently.
+
+## 2026-08-26 - Prefer populated dated report sentiment over empty legacy data
+
+- Area: User Portal -> Reports -> Daily Market Close Report -> Market
+  Perception.
+- API/data:
+  - Existing dated
+    `GET /market-data/reports?ticker={ticker}&date={date}` sentiment candidates.
+  - The separate dated AI report remains unchanged.
+  - No live `sentiment-current`, social-feed, or sentiment-history fallback was
+    added.
+- Reported problem and root cause:
+  - The Aug 25 report rendered `N/A` for Overall Sentiment and zero values for
+    every breakdown even though the dated report contained a populated 7D
+    sentiment object.
+  - The dated report can expose sentiment inside a report-owned wrapper not
+    covered by the four fixed paths (`sentiment`, `sentimentSnapshot`, and their
+    direct `data` equivalents). The screenshot proves the populated object has
+    an Aug 19 start, while the rendered Aug 20 start came from a different empty
+    object that the fixed-path collector did recognize.
+  - A sentiment object can also carry the populated 7D aggregate on its root
+    while retaining an older empty `periods.7D`. Fixed-path and nested-only
+    collection could therefore discard a populated object before candidate
+    ranking ran.
+  - Candidate ranking used the maximum of direct aggregate mentions and nested
+    timeline mentions, but rendering correctly preserved an explicitly
+    supplied direct `mentions: 0`. An empty Aug 20–25 aggregate could therefore
+    receive a high timeline-based rank and then render as zero, ahead of the
+    populated Aug 19–25 aggregate.
+  - The selected empty object was structurally valid, so the renderer displayed
+    `N/A` and zeros instead of the whole-section unavailable state.
+- Intended behavior and invariants:
+  - Among explicit dated 7D candidates, a report-date-matched populated object
+    outranks an empty legacy object. Mention count and score determine the
+    populated preference after date matching.
+  - A sentiment root aggregate and its nested `periods.7D` / `periods.1W`
+    aggregate are both retained as candidates when both exist.
+  - Candidate discovery follows sentiment-keyed containers inside the dated
+    report, including nested report wrappers, while retaining the explicit 7D
+    and report-date-match requirements.
+  - Candidate ranking prefers a populated direct aggregate. Timeline totals are
+    considered only when the candidate does not supply a direct aggregate
+    mention count; they cannot override an explicit zero during ranking.
+  - Overall Sentiment, Sentiment Distribution, and Platform Breakdown have
+    independent availability. A missing platform subsection cannot suppress a
+    valid dated overall score or distribution.
+  - A missing subsection displays its own unavailable message; the whole
+    sentiment unavailable state is used only when no dated sentiment
+    subsection is usable.
+  - The frozen-report rule remains intact: every displayed market-sentiment
+    value still comes from the selected dated report payload.
+  - The report developer panel no longer requests or labels
+    `sentiment-current` as a fallback source; its API map now matches actual
+    report generation.
+  - Legitimate zero-mention dated snapshots remain valid and continue to show
+    `N/A` / zero distributions rather than fabricated sentiment.
+- Files changed:
+  - `app/monitor/[ticker]/reports/daily-report-data.ts`
+  - `app/monitor/[ticker]/reports/ReportArchiveDevTables.tsx`
+  - `app/monitor/[ticker]/reports/client-report-pdf.ts`
+  - `public/report-templates/daily-close/render.js`
+  - `public/report-templates/daily-close/styles.css`
+  - `Report Templates/lean-daily-market-close-report/render.js`
+  - `Report Templates/lean-daily-market-close-report/styles.css`
+  - `Report Templates/lean-daily-market-close-report/REPORT_DATA_CONTRACT.md`
+  - `docs/CODEX_CHANGE_LOG.md`
+- Verification:
+  - `npm run typecheck` passed.
+  - `npm run build` passed, including all 29 generated static pages.
+  - Both report renderer files passed JavaScript syntax checks.
+  - Editable and public renderer/style mirrors match.
+  - A focused normalization regression check placed the populated Aug 19–25
+    sentiment object inside a nested report wrapper and supplied a separately
+    recognized empty Aug 20–25 object whose nested timeline claimed 200
+    mentions. The populated direct aggregate still won and produced 13
+    mentions, score `61.54`, distribution counts `6 / 5 / 2`, X mentions `9`,
+    and Reddit mentions `4`.
+  - A focused renderer check confirmed Overall and Distribution remain visible
+    while only an absent Platform Breakdown shows its subsection-level
+    unavailable message.
+  - A report-layout mapping check confirmed score `61.54` and 13 mentions enter
+    Overall Sentiment; distribution counts `6 / 5 / 2` render as
+    `46% / 38% / 15%`; and X `9` / Reddit `4` enter Platform Breakdown. The
+    Aug 19 timestamp renders as `Aug 19, 2026`, not Aug 20.
+  - `git diff --check` passed.
+- Remaining backend dependency / limitation:
+  - A subsection can display only fields present in the dated report response.
+    Missing platform data remains unavailable rather than being sourced from a
+    current or historical endpoint.
+
 ## 2026-08-26 - Freeze report sentiment to the dated report snapshot
 
 - Area: User Portal -> Reports -> Daily Market Close Report -> Market
@@ -181,6 +366,7 @@ completed change.
 - Verification:
   - TypeScript type-check passed.
   - Whitespace validation passed.
+  - Production build passed, including all 29 statically generated pages.
   - Production build passed, including all 29 statically generated pages.
   - Source inspection confirmed the consolidation button is the adjacent
     sibling of the validation/initialization button inside a wrapping action
@@ -6533,3 +6719,108 @@ completed change.
   - The endpoint reports only an active lock younger than 15 minutes. An
     `AVAILABLE` response can mean no run, a finished run, or a stale lock; it
     does not expose worker completion or failure details.
+
+## 2026-08-26 - Separate history initialization and consolidation feedback
+
+- Area: Operations Portal -> Company Management -> Initialize History.
+- APIs/data:
+  - `POST /tickers/historical-init`
+  - `GET /tickers/historical-init/status?ticker={ticker}`
+  - Existing `POST /manual-input/consolidate?ticker={ticker}`
+- Reported problem and root cause:
+  - Starting historical initialization displayed both its accepted message and
+    an old consolidation result, incorrectly implying that initialization had
+    also run consolidation.
+  - Both workflows retained and rendered their previous feedback independently.
+- Intended behavior and invariants:
+  - Starting historical initialization clears stale consolidation feedback.
+  - Starting consolidation clears stale historical-request feedback, so only
+    the operation currently being performed is described below the controls.
+  - Consolidation cannot be started while the historical initialization status
+    is `IN_PROGRESS`.
+  - Historical initialization and consolidation remain separate API actions;
+    initialization does not trigger consolidation automatically.
+- Files changed:
+  - `app/operations/tickers/TickerManagementOperationsClient.tsx`
+  - `docs/CODEX_CHANGE_LOG.md`
+- Verification:
+  - TypeScript type-check passed.
+  - Whitespace validation passed.
+- Remaining backend dependency / limitation:
+  - The historical status API still reports lock availability rather than
+    worker completion, so consolidation becomes available when the lock is no
+    longer active rather than from an explicit successful-completion state.
+
+## 2026-08-26 - Add consolidation pipeline availability status
+
+- Area: Operations Portal -> Company Management -> Initialize History.
+- APIs/data:
+  - `GET /manual-input/consolidate/status?ticker={ticker}`
+  - Existing `POST /manual-input/consolidate?ticker={ticker}`
+  - Existing `GET /tickers/historical-init/status?ticker={ticker}`
+- Reported problem and root cause:
+  - Consolidation feedback previously inferred completion by comparing market
+    payloads for up to five minutes after the POST request.
+  - That inference was slow and ambiguous when a valid consolidation produced
+    no visible payload change, and it could leave operators with stale status
+    messages after switching tickers.
+- Intended behavior and invariants:
+  - Selecting a valid ticker loads historical-initialization and consolidation
+    status as separate, uncached API requests.
+  - The page displays distinct History and Consolidation status badges so the
+    two asynchronous workflows cannot be mistaken for each other.
+  - An active consolidation is polled every 15 seconds while the browser tab is
+    visible, and duplicate or conflicting pipeline actions are disabled.
+  - A consolidation POST is followed by the status endpoint instead of waiting
+    five minutes for inferred market-payload changes.
+  - Changing ticker clears prior request messages and status payloads before
+    checking the newly selected company.
+  - Development Data exposes the raw consolidation status response separately
+    from the consolidation request response.
+  - Ticker registry editing and historical initialization inputs remain
+    unchanged.
+- Files changed:
+  - `app/operations/tickers/TickerManagementOperationsClient.tsx`
+  - `app/globals.css`
+  - `lib/portal-page-translations.ts`
+  - `docs/CODEX_CHANGE_LOG.md`
+- Verification:
+  - TypeScript type-check passed.
+  - Whitespace validation passed.
+  - Production build passed, including all 29 statically generated pages.
+- Remaining backend dependency / limitation:
+  - `AVAILABLE` means that no active consolidation lock exists. It does not
+    confirm that the worker succeeded or that every consolidated output changed;
+    affected portal data must still be refreshed to confirm the resulting data.
+
+## 2026-08-26 - Require historical initialization before consolidation
+
+- Area: Operations Portal -> Company Management -> Initialize History.
+- APIs/data:
+  - `POST /tickers/historical-init`
+  - `POST /manual-input/consolidate?ticker={ticker}`
+  - Existing historical-initialization and consolidation status APIs.
+- Reported problem and root cause:
+  - The Run Consolidation control became available from pipeline lock status
+    alone, even when the operator had not started historical initialization for
+    the selected ticker during the current workflow.
+- Intended behavior and invariants:
+  - Run Consolidation is disabled and visually dimmed until a historical
+    initialization request is accepted for the currently selected ticker.
+  - The prerequisite is reset when the operator switches to another ticker.
+  - Consolidation remains disabled while historical initialization or another
+    consolidation is active.
+  - The consolidation action independently enforces the same prerequisite so
+    stale or programmatic UI actions cannot bypass it.
+  - Ticker registry management, date/vendor validation, and pipeline status
+    polling remain unchanged.
+- Files changed:
+  - `app/operations/tickers/TickerManagementOperationsClient.tsx`
+  - `docs/CODEX_CHANGE_LOG.md`
+- Verification:
+  - TypeScript type-check passed.
+  - Whitespace validation passed.
+- Remaining backend dependency / limitation:
+  - The prerequisite is tracked for the current browser session because the
+    status API reports only lock availability, not whether a ticker has ever
+    completed historical initialization.

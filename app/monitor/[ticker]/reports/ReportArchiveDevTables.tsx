@@ -90,11 +90,6 @@ const apiMapRows = [
     purpose: 'Short-interest AI Analysis',
     reportData: 'short_interest_current_interpretation. A missing response produces the report unavailable message.',
   },
-  {
-    api: 'GET /market-data/current?ticker={ticker}&category=sentiment-current',
-    purpose: 'Date-matched sentiment fallback',
-    reportData: 'The 7D sentiment period is used only when its ending date matches the selected report date.',
-  },
 ];
 
 export function ReportArchiveDevTables({
@@ -113,7 +108,6 @@ export function ReportArchiveDevTables({
   const [indexSource, setIndexSource] = useState<SourceResult>(emptySource);
   const [reportSource, setReportSource] = useState<SourceResult>(emptySource);
   const [aiSource, setAiSource] = useState<SourceResult>(emptySource);
-  const [sentimentSource, setSentimentSource] = useState<SourceResult>(emptySource);
 
   useEffect(() => {
     if (!sortedReports.some(report => report.reportDate === selectedDate)) {
@@ -129,24 +123,20 @@ export function ReportArchiveDevTables({
     const indexPath = `/market-data/reports?ticker=${encodedTicker}&limit=100&page=1`;
     const reportPath = `/market-data/reports?ticker=${encodedTicker}&date=${encodedDate}`;
     const aiPath = `/market-data/ai-report?ticker=${encodedTicker}&date=${encodedDate}`;
-    const sentimentPath = `/market-data/current?ticker=${encodedTicker}&category=sentiment-current`;
 
     setIndexSource({ data: null, error: '', loading: true });
     setReportSource({ data: null, error: '', loading: true });
     setAiSource({ data: null, error: '', loading: true });
-    setSentimentSource({ data: null, error: '', loading: true });
 
     void Promise.all([
       readSource(indexPath),
       readSource(reportPath),
       readSource(aiPath),
-      readSource(sentimentPath),
-    ]).then(([index, report, ai, sentiment]) => {
+    ]).then(([index, report, ai]) => {
       if (!active) return;
       setIndexSource(index);
       setReportSource(report);
       setAiSource(ai);
-      setSentimentSource(sentiment);
     });
 
     return () => {
@@ -189,14 +179,6 @@ export function ReportArchiveDevTables({
       recordCount: sourceCount(aiSource),
       status: sourceStatus(aiSource),
     },
-    {
-      id: 'sentiment-current',
-      title: 'Sentiment Fallback',
-      file: `GET /market-data/current?ticker=${encodedTicker}&category=sentiment-current`,
-      sourcePlatform: 'API Gateway · Used only when its 7D end date matches the report date',
-      recordCount: sourceCount(sentimentSource),
-      status: sourceStatus(sentimentSource),
-    },
   ];
 
   return (
@@ -222,7 +204,6 @@ export function ReportArchiveDevTables({
         <ImportDataTable columns={['field', 'value']} rows={flattenedRows(indexSource.data)} pageSize={25} />
         <ImportDataTable columns={['field', 'value']} rows={flattenedRows(reportSource.data)} pageSize={25} />
         <ImportDataTable columns={['field', 'value']} rows={flattenedRows(aiSource.data)} pageSize={25} expandableColumns={['value']} />
-        <ImportDataTable columns={['field', 'value']} rows={flattenedRows(sentimentSource.data)} pageSize={25} />
       </ImportDataTabs>
     </section>
   );

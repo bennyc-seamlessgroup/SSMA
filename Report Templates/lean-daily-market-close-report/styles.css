@@ -400,6 +400,9 @@ body { font-size: 12px; }
 .sentiment-report-unavailable { display: grid; min-height: 286px; place-content: center; margin-bottom: 12px; text-align: center; }
 .sentiment-report-unavailable strong { color: var(--ink); font-size: 13px; }
 .sentiment-report-unavailable p { max-width: 390px; margin: 7px auto 0; color: var(--muted); font-size: 9px; line-height: 1.5; }
+.sentiment-subsection-unavailable { display: grid; flex: 1; place-content: center; min-height: 145px; text-align: center; }
+.sentiment-subsection-unavailable strong { color: var(--ink); font-size: 10px; }
+.sentiment-subsection-unavailable span { max-width: 230px; margin-top: 5px; color: var(--muted); font-size: 8px; line-height: 1.4; }
 .platform-list { display: grid; gap: 10px; }
 .platform-row { display: grid; grid-template-columns: 72px minmax(90px, 1fr) 42px 58px; align-items: center; gap: 8px; min-height: 25px; }
 .platform-row span { font-size: 9px; font-weight: 700; }

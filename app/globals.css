@@ -6725,6 +6725,21 @@ html[data-design-b-theme="dark"] .ops-import-refreshed {
   line-height: 1.45;
 }
 
+.ops-ticker-pipeline-statuses {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 6px;
+  flex: 0 0 auto;
+}
+
+.ops-ticker-pipeline-statuses .ops-status {
+  max-width: 100%;
+  padding: 5px 8px;
+  font-size: 10px;
+  text-align: right;
+}
+
 .ops-ticker-form-grid,
 .ops-ticker-history-fields,
 .ops-ticker-edit-form {
