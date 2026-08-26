@@ -6833,34 +6833,6 @@ html[data-design-b-theme="dark"] .ops-import-refreshed {
   accent-color: #2563eb;
 }
 
-.ops-ticker-dry-run {
-  display: flex !important;
-  grid-template-columns: auto 1fr;
-  align-items: flex-start;
-  gap: 9px !important;
-  padding: 10px 11px;
-  border: 1px solid #dbe3ee;
-  border-radius: 8px;
-  background: #f8fafc;
-}
-
-.ops-ticker-dry-run > span {
-  display: grid;
-  gap: 2px;
-  letter-spacing: 0 !important;
-  text-transform: none !important;
-}
-
-.ops-ticker-dry-run strong {
-  color: #0f172a;
-  font-size: 11px;
-}
-
-.ops-ticker-dry-run small {
-  color: #64748b;
-  line-height: 1.4;
-}
-
 .ops-ticker-history-summary {
   display: flex;
   flex-wrap: wrap;
@@ -7052,7 +7024,6 @@ html[data-design-b-theme='dark'] .ops-ticker-management-page input:disabled {
 }
 
 html[data-design-b-theme='dark'] .ops-ticker-vendors label,
-html[data-design-b-theme='dark'] .ops-ticker-dry-run,
 html[data-design-b-theme='dark'] .ops-ticker-include-deleted,
 html[data-design-b-theme='dark'] .ops-ticker-audit div {
   border-color: var(--ci-border);
@@ -7061,13 +7032,11 @@ html[data-design-b-theme='dark'] .ops-ticker-audit div {
 
 html[data-design-b-theme='dark'] .ops-ticker-management-page label > span,
 html[data-design-b-theme='dark'] .ops-ticker-vendors legend,
-html[data-design-b-theme='dark'] .ops-ticker-dry-run small,
 html[data-design-b-theme='dark'] .ops-ticker-audit dt {
   color: var(--ci-muted);
 }
 
 html[data-design-b-theme='dark'] .ops-ticker-vendors label > span,
-html[data-design-b-theme='dark'] .ops-ticker-dry-run strong,
 html[data-design-b-theme='dark'] .ops-ticker-include-deleted > span,
 html[data-design-b-theme='dark'] .ops-ticker-audit dd {
   color: var(--ci-text) !important;

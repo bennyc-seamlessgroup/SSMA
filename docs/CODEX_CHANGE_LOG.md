@@ -4,6 +4,46 @@ This file is the persistent implementation memory for changes made by Codex.
 Read it before modifying existing portal behavior, and update it after every
 completed change.
 
+## 2026-08-26 - Remove Dry Run access from Company Management
+
+- Area: Operations Portal -> Company Management -> Initialize History.
+- API/data:
+  - Existing `POST /tickers/historical-init`.
+  - Historical initialization now always sends `dry_run: false` explicitly.
+- Reported problem and root cause:
+  - The Historical Data panel exposed the backend's optional Dry Run mode to
+    operations users. The checkbox defaulted to enabled, so merely hiding the
+    control would have continued submitting validation-only requests.
+- Intended behavior and invariants:
+  - The Dry Run checkbox, explanation, validation-only status, and
+    `Run Validation` action are removed from Company Management.
+  - The historical action is always labeled `Start Historical Init`, requires
+    the existing confirmation, and always performs a live asynchronous run
+    with `dry_run: false`.
+  - The summary explicitly states `Writes enabled`.
+  - `Run Consolidation` remains beside `Start Historical Init`; the two
+    operations retain mutual busy-state protection and separate messages.
+  - Ticker, date-range, vendor, 180-day, and future-date validation remain
+    unchanged.
+- Files changed:
+  - `app/operations/tickers/TickerManagementOperationsClient.tsx`
+  - `app/globals.css`
+  - `lib/portal-page-translations.ts`
+  - `docs/CODEX_CHANGE_LOG.md`
+- Verification:
+  - `npm run typecheck` passed.
+  - `npm run build` passed, including all 29 generated static pages.
+  - `git diff --check` passed.
+  - Source audit confirmed that the Dry Run control, validation-only action,
+    status, styles, and translations were removed; the request now explicitly
+    sends `dry_run: false`.
+  - No live historical-init or consolidation request was submitted during
+    verification.
+- Remaining backend dependency / limitation:
+  - The backend endpoint still supports `dry_run: true`; this change removes
+    access from the portal UI only. Direct API callers remain governed by
+    backend authorization and can bypass frontend restrictions.
+
 ## 2026-08-26 - Add manual consolidation to Company Management
 
 - Area: Operations Portal -> Company Management -> Initialize History.

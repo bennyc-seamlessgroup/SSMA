@@ -161,7 +161,6 @@ export function TickerManagementOperationsClient() {
   const [fromDate, setFromDate] = useState(daysAgo(29));
   const [toDate, setToDate] = useState(localDate());
   const [vendors, setVendors] = useState<Vendor[]>(allVendors);
-  const [dryRun, setDryRun] = useState(true);
 
   const today = localDate();
   const historicalDays = dateRangeDays(fromDate, toDate);
@@ -409,20 +408,18 @@ export function TickerManagementOperationsClient() {
       setHistoricalMessage('Select at least one data vendor.');
       return;
     }
-    if (!dryRun && !window.confirm(`Start historical initialization for ${ticker} from ${fromDate} to ${toDate}?`)) return;
+    if (!window.confirm(`Start historical initialization for ${ticker} from ${fromDate} to ${toDate}?`)) return;
 
     setHistoricalState('saving');
-    setHistoricalMessage(dryRun ? 'Validating historical initialization...' : 'Starting historical initialization...');
+    setHistoricalMessage('Starting historical initialization...');
     try {
       const payload = await authenticatedFetch('/tickers/historical-init', {
         method: 'POST',
-        body: JSON.stringify({ ticker, from_date: fromDate, to_date: toDate, vendors, dry_run: dryRun }),
+        body: JSON.stringify({ ticker, from_date: fromDate, to_date: toDate, vendors, dry_run: false }),
       });
       setHistoricalPayload(payload);
       setHistoricalState('success');
-      setHistoricalMessage(dryRun
-        ? `Dry run accepted for ${ticker}. No files were persisted and no lock was acquired.`
-        : `Historical initialization was accepted for ${ticker}. Processing continues asynchronously.`);
+      setHistoricalMessage(`Historical initialization was accepted for ${ticker}. Processing continues asynchronously.`);
     } catch (error) {
       setHistoricalState('error');
       setHistoricalMessage(error instanceof Error ? error.message : 'Unable to start historical initialization.');
@@ -562,7 +559,7 @@ export function TickerManagementOperationsClient() {
         <form className="ops-panel ops-ticker-history-panel" onSubmit={runHistoricalInit}>
           <div className="ops-panel-head">
             <div><span className="ops-eyebrow">Historical Data</span><h2>Initialize History</h2><p>Collect up to 180 days from selected vendors. Accepted jobs run asynchronously.</p></div>
-            <span className={`ops-status ${historicalState === 'error' ? 'bad' : historicalState === 'success' ? 'good' : ''}`}>{historicalState === 'saving' ? 'requesting' : dryRun ? 'dry run' : 'live run'}</span>
+            <span className={`ops-status ${historicalState === 'error' ? 'bad' : historicalState === 'success' ? 'good' : ''}`}>{historicalState === 'saving' ? 'requesting' : 'live run'}</span>
           </div>
           <div className="ops-ticker-history-fields">
             <label><span>Ticker</span><input required maxLength={20} value={historicalTicker} onChange={event => setHistoricalTicker(event.target.value.toUpperCase())} placeholder="Select a ticker below" /></label>
@@ -570,10 +567,9 @@ export function TickerManagementOperationsClient() {
             <label><span>To date</span><input required type="date" max={today} value={toDate} onChange={event => setToDate(event.target.value)} /></label>
           </div>
           <fieldset className="ops-ticker-vendors"><legend>Data vendors</legend>{allVendors.map(vendor => <label key={vendor}><input type="checkbox" checked={vendors.includes(vendor)} onChange={() => toggleVendor(vendor)} /><span>{vendor}</span></label>)}</fieldset>
-          <label className="ops-ticker-dry-run"><input type="checkbox" checked={dryRun} onChange={event => setDryRun(event.target.checked)} /><span><strong>Dry run</strong><small>Validate without writing files or acquiring the 15-minute S3 lock.</small></span></label>
-          <div className="ops-ticker-history-summary"><span>{Number.isFinite(historicalDays) ? historicalDays : '—'} days</span><span>{vendors.length} vendors</span><span>{dryRun ? 'No persistence' : 'Writes enabled'}</span></div>
+          <div className="ops-ticker-history-summary"><span>{Number.isFinite(historicalDays) ? historicalDays : '—'} days</span><span>{vendors.length} vendors</span><span>Writes enabled</span></div>
           <div className="ops-ticker-history-actions">
-            <button className="ops-primary-button" type="submit" disabled={historicalState === 'saving' || consolidationState === 'consolidating'}>{historicalState === 'saving' ? 'Submitting...' : dryRun ? 'Run Validation' : 'Start Historical Init'}</button>
+            <button className="ops-primary-button" type="submit" disabled={historicalState === 'saving' || consolidationState === 'consolidating'}>{historicalState === 'saving' ? 'Submitting...' : 'Start Historical Init'}</button>
             <button className="ops-secondary-button" type="button" disabled={historicalState === 'saving' || consolidationState === 'consolidating'} onClick={() => void runConsolidation()}>{consolidationState === 'consolidating' ? 'Consolidating...' : 'Run Consolidation'}</button>
           </div>
           {historicalMessage && <p className={`ops-form-message ${historicalState === 'error' ? 'bad' : 'good'}`} role="status">{historicalMessage}</p>}
