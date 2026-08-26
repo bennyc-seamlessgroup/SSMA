@@ -1,6 +1,6 @@
 'use client';
 
-import { FormEvent, useEffect, useState } from 'react';
+import { FormEvent, useCallback, useEffect, useState } from 'react';
 import { OperationsDevelopmentData, type OperationsDevelopmentDatum } from '@/components/OperationsDevelopmentData';
 import { authenticatedFetch, getAuthenticatedProfile } from '@/lib/auth-client';
 import {
@@ -12,6 +12,7 @@ import { setOperationsTicker } from '@/lib/operations/ticker-client';
 type TickerStatus = 'ACTIVE' | 'INACTIVE' | 'DELETED';
 type RequestState = 'idle' | 'loading' | 'saving' | 'error' | 'success';
 type ConsolidationState = 'idle' | 'consolidating' | 'error' | 'success';
+type HistoricalInitStatus = 'idle' | 'loading' | 'available' | 'in_progress' | 'error';
 type Vendor = 'chartexchange' | 'massive' | 'fintel';
 
 type TickerRecord = {
@@ -111,6 +112,29 @@ function dateRangeDays(fromDate: string, toDate: string) {
   return Math.floor((end - start) / 86_400_000) + 1;
 }
 
+function normalizeHistoricalInitStatus(payload: unknown) {
+  const root = payload && typeof payload === 'object' ? payload as Record<string, unknown> : {};
+  const data = root.data && typeof root.data === 'object' ? root.data as Record<string, unknown> : {};
+  const status = String(root.status ?? data.status ?? '').trim().toUpperCase();
+  const lockAgeValue = root.lock_age_seconds ?? data.lock_age_seconds;
+  const lockAgeSeconds = Number.isFinite(Number(lockAgeValue)) ? Math.max(0, Number(lockAgeValue)) : null;
+  if (status !== 'AVAILABLE' && status !== 'IN_PROGRESS') {
+    throw new Error('Historical initialization status returned an unsupported response.');
+  }
+  return {
+    status: status === 'IN_PROGRESS' ? 'in_progress' as const : 'available' as const,
+    lockAgeSeconds,
+  };
+}
+
+function formatElapsedSeconds(value: number | null) {
+  if (value === null) return '';
+  const seconds = Math.floor(value);
+  const minutes = Math.floor(seconds / 60);
+  const remainingSeconds = seconds % 60;
+  return minutes ? `${minutes}m ${String(remainingSeconds).padStart(2, '0')}s` : `${remainingSeconds}s`;
+}
+
 function marketConsolidatedOutputEndpoints(ticker: string) {
   const tickerParam = encodeURIComponent(ticker);
   return [
@@ -127,10 +151,13 @@ export function TickerManagementOperationsClient() {
   const [detailPayload, setDetailPayload] = useState<unknown>();
   const [actionPayload, setActionPayload] = useState<unknown>();
   const [historicalPayload, setHistoricalPayload] = useState<unknown>();
+  const [historicalStatusPayload, setHistoricalStatusPayload] = useState<unknown>();
   const [consolidationPayload, setConsolidationPayload] = useState<unknown>();
   const [listState, setListState] = useState<RequestState>('loading');
   const [actionState, setActionState] = useState<RequestState>('idle');
   const [historicalState, setHistoricalState] = useState<RequestState>('idle');
+  const [historicalInitStatus, setHistoricalInitStatus] = useState<HistoricalInitStatus>('idle');
+  const [historicalLockAgeSeconds, setHistoricalLockAgeSeconds] = useState<number | null>(null);
   const [consolidationState, setConsolidationState] = useState<ConsolidationState>('idle');
   const [message, setMessage] = useState('');
   const [historicalMessage, setHistoricalMessage] = useState('');
@@ -164,6 +191,32 @@ export function TickerManagementOperationsClient() {
 
   const today = localDate();
   const historicalDays = dateRangeDays(fromDate, toDate);
+
+  const loadHistoricalInitStatus = useCallback(async (tickerInput: string, silent = false) => {
+    const ticker = tickerInput.trim().toUpperCase();
+    if (!tickerPattern.test(ticker)) {
+      setHistoricalInitStatus('idle');
+      setHistoricalLockAgeSeconds(null);
+      setHistoricalStatusPayload(undefined);
+      return null;
+    }
+    if (!silent) setHistoricalInitStatus('loading');
+    const endpoint = `/tickers/historical-init/status?ticker=${encodeURIComponent(ticker)}`;
+    try {
+      const payload = await authenticatedFetch(endpoint, { cache: 'no-store' });
+      const normalized = normalizeHistoricalInitStatus(payload);
+      setHistoricalStatusPayload(payload);
+      setHistoricalInitStatus(normalized.status);
+      setHistoricalLockAgeSeconds(normalized.lockAgeSeconds);
+      return normalized;
+    } catch (error) {
+      const reason = error instanceof Error ? error.message : 'Unable to load historical initialization status.';
+      setHistoricalStatusPayload({ ticker, error: reason });
+      setHistoricalInitStatus('error');
+      setHistoricalLockAgeSeconds(null);
+      return null;
+    }
+  }, []);
 
   function populateEditor(record: TickerRecord) {
     setSelectedTicker(record);
@@ -228,6 +281,31 @@ export function TickerManagementOperationsClient() {
     // Initial operator workspace load only.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  useEffect(() => {
+    if (authorized !== true) return;
+    const ticker = historicalTicker.trim().toUpperCase();
+    if (!tickerPattern.test(ticker)) {
+      setHistoricalInitStatus('idle');
+      setHistoricalLockAgeSeconds(null);
+      setHistoricalStatusPayload(undefined);
+      return;
+    }
+    const timer = window.setTimeout(() => {
+      void loadHistoricalInitStatus(ticker);
+    }, 250);
+    return () => window.clearTimeout(timer);
+  }, [authorized, historicalTicker, loadHistoricalInitStatus]);
+
+  useEffect(() => {
+    if (authorized !== true || historicalInitStatus !== 'in_progress') return;
+    const ticker = historicalTicker.trim().toUpperCase();
+    if (!tickerPattern.test(ticker)) return;
+    const interval = window.setInterval(() => {
+      if (document.visibilityState === 'visible') void loadHistoricalInitStatus(ticker, true);
+    }, 15_000);
+    return () => window.clearInterval(interval);
+  }, [authorized, historicalInitStatus, historicalTicker, loadHistoricalInitStatus]);
 
   async function applyFilters(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -419,10 +497,14 @@ export function TickerManagementOperationsClient() {
       });
       setHistoricalPayload(payload);
       setHistoricalState('success');
+      setHistoricalInitStatus('in_progress');
+      setHistoricalLockAgeSeconds(0);
       setHistoricalMessage(`Historical initialization was accepted for ${ticker}. Processing continues asynchronously.`);
+      void loadHistoricalInitStatus(ticker, true);
     } catch (error) {
       setHistoricalState('error');
       setHistoricalMessage(error instanceof Error ? error.message : 'Unable to start historical initialization.');
+      void loadHistoricalInitStatus(ticker, true);
     }
   }
 
@@ -522,6 +604,13 @@ export function TickerManagementOperationsClient() {
       payload: historicalPayload ?? { state: 'not requested' },
     },
     {
+      endpoint: `GET /tickers/historical-init/status?ticker=${historicalTicker.trim().toUpperCase() || '{ticker}'}`,
+      source: 'Historical Initialization Status API',
+      state: historicalInitStatus,
+      recordCount: historicalStatusPayload ? 1 : 0,
+      payload: historicalStatusPayload ?? { state: 'not requested' },
+    },
+    {
       endpoint: `POST /manual-input/consolidate?ticker=${historicalTicker.trim().toUpperCase() || '{ticker}'}`,
       source: 'Manual Input V2 API',
       state: consolidationState,
@@ -559,7 +648,20 @@ export function TickerManagementOperationsClient() {
         <form className="ops-panel ops-ticker-history-panel" onSubmit={runHistoricalInit}>
           <div className="ops-panel-head">
             <div><span className="ops-eyebrow">Historical Data</span><h2>Initialize History</h2><p>Collect up to 180 days from selected vendors. Accepted jobs run asynchronously.</p></div>
-            <span className={`ops-status ${historicalState === 'error' ? 'bad' : historicalState === 'success' ? 'good' : ''}`}>{historicalState === 'saving' ? 'requesting' : 'live run'}</span>
+            <span
+              className={`ops-status ${historicalInitStatus === 'available' ? 'good' : historicalInitStatus === 'error' ? 'bad' : ''}`}
+              aria-live="polite"
+            >
+              {historicalInitStatus === 'loading'
+                ? 'Checking status'
+                : historicalInitStatus === 'in_progress'
+                  ? `Initialization in progress${historicalLockAgeSeconds === null ? '' : ` · ${formatElapsedSeconds(historicalLockAgeSeconds)}`}`
+                  : historicalInitStatus === 'available'
+                    ? 'Ready to initialize'
+                    : historicalInitStatus === 'error'
+                      ? 'Status unavailable'
+                      : 'Select ticker'}
+            </span>
           </div>
           <div className="ops-ticker-history-fields">
             <label><span>Ticker</span><input required maxLength={20} value={historicalTicker} onChange={event => setHistoricalTicker(event.target.value.toUpperCase())} placeholder="Select a ticker below" /></label>
@@ -569,7 +671,8 @@ export function TickerManagementOperationsClient() {
           <fieldset className="ops-ticker-vendors"><legend>Data vendors</legend>{allVendors.map(vendor => <label key={vendor}><input type="checkbox" checked={vendors.includes(vendor)} onChange={() => toggleVendor(vendor)} /><span>{vendor}</span></label>)}</fieldset>
           <div className="ops-ticker-history-summary"><span>{Number.isFinite(historicalDays) ? historicalDays : '—'} days</span><span>{vendors.length} vendors</span><span>Writes enabled</span></div>
           <div className="ops-ticker-history-actions">
-            <button className="ops-primary-button" type="submit" disabled={historicalState === 'saving' || consolidationState === 'consolidating'}>{historicalState === 'saving' ? 'Submitting...' : 'Start Historical Init'}</button>
+            <button className="ops-primary-button" type="submit" disabled={historicalState === 'saving' || historicalInitStatus === 'loading' || historicalInitStatus === 'in_progress' || consolidationState === 'consolidating'}>{historicalState === 'saving' ? 'Submitting...' : historicalInitStatus === 'in_progress' ? 'Initialization Running' : 'Start Historical Init'}</button>
+            <button className="ops-secondary-button" type="button" disabled={!tickerPattern.test(historicalTicker.trim().toUpperCase()) || historicalInitStatus === 'loading'} onClick={() => void loadHistoricalInitStatus(historicalTicker)}>{historicalInitStatus === 'loading' ? 'Checking...' : 'Refresh Status'}</button>
             <button className="ops-secondary-button" type="button" disabled={historicalState === 'saving' || consolidationState === 'consolidating'} onClick={() => void runConsolidation()}>{consolidationState === 'consolidating' ? 'Consolidating...' : 'Run Consolidation'}</button>
           </div>
           {historicalMessage && <p className={`ops-form-message ${historicalState === 'error' ? 'bad' : 'good'}`} role="status">{historicalMessage}</p>}
@@ -640,7 +743,7 @@ export function TickerManagementOperationsClient() {
         </section>
       )}
 
-      <OperationsDevelopmentData title="Ticker Management API Responses" description="Raw authenticated ticker registry, historical initialization, and consolidation responses." rows={developmentRows} />
+      <OperationsDevelopmentData title="Ticker Management API Responses" description="Raw authenticated ticker registry, historical initialization status, initialization request, and consolidation responses." rows={developmentRows} />
     </div>
   );
 }

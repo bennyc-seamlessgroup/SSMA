@@ -184,31 +184,75 @@ function previousDate(value: string) {
   return date.toISOString().slice(0, 10);
 }
 
-function matchedCurrentSevenDayPeriod(payload: unknown, reportDate: string) {
-  const payloadRoot = objectValue(payload);
-  const category = objectValue(payloadRoot['sentiment-current']);
-  const unwrapped = Object.keys(category).length ? category : payloadRoot;
-  const data = objectValue(unwrapped.data);
-  const root = Object.keys(data).length ? data : unwrapped;
-  const periods = objectValue(root.periods);
-  const period = objectValue(periods['7D'] ?? periods['7d'] ?? periods['1W'] ?? periods['1w']);
-  if (!Object.keys(period).length) return null;
-
-  const endDate = datePart(period.end ?? period.windowEnd ?? period.windowEndUtc);
-  const matchesReportDate = endDate === reportDate || previousDate(endDate) === reportDate;
-  return matchesReportDate ? period : null;
+function hasSentimentDistribution(period: Row) {
+  const distribution = objectValue(period.distribution ?? period.sentimentDistribution ?? period.sentiment_distribution);
+  const hasBullish = finiteNumber(
+    distribution.bullishCount
+    ?? distribution.positiveCount
+    ?? distribution.bullishPercent
+    ?? distribution.positivePercent,
+  ) !== null;
+  const hasNeutral = finiteNumber(distribution.neutralCount ?? distribution.neutralPercent) !== null;
+  const hasBearish = finiteNumber(
+    distribution.bearishCount
+    ?? distribution.negativeCount
+    ?? distribution.bearishPercent
+    ?? distribution.negativePercent,
+  ) !== null;
+  return hasBullish && hasNeutral && hasBearish;
 }
 
-function normalizeSevenDaySentiment(payload: DailyReportPayload, currentSentiment: unknown, reportDate: string) {
+function hasCompleteSevenDaySentiment(
+  candidate: { value: Row; explicitSevenDay: boolean } | undefined,
+  reportDate: string,
+) {
+  if (!candidate?.explicitSevenDay) return false;
+
+  const period = candidate.value;
+  const windowStart = datePart(period.windowStart ?? period.windowStartUtc ?? period.start);
+  const windowEnd = datePart(period.windowEnd ?? period.windowEndUtc ?? period.end);
+  const windowEndsOnReportDate = windowEnd === reportDate || previousDate(windowEnd) === reportDate;
+  const mentions = finiteNumber(period.mentions ?? period.totalMentions ?? period.mentionCount);
+  const overall = objectValue(period.overall);
+  const overallScore = normalizedSentimentScore(
+    overall.score ?? period.overallSentimentScore ?? period.sentimentScore,
+  );
+  const rawPlatforms = Array.isArray(period.platforms)
+    ? period.platforms.map(objectValue)
+    : Array.isArray(period.platformBreakdown)
+      ? period.platformBreakdown.map(objectValue)
+      : [];
+  const hasAllPlatforms = sentimentPlatformNames.every(name => rawPlatforms.some(row => (
+    sentimentPlatformName(row.platform ?? row.name) === name
+    && finiteNumber(row.mentions ?? row.totalMentions ?? row.mentionCount ?? row.count) !== null
+  )));
+
+  return Boolean(
+    windowStart
+    && windowEnd
+    && windowStart <= windowEnd
+    && windowEndsOnReportDate
+    && mentions !== null
+    && overallScore !== null
+    && hasSentimentDistribution(period)
+    && hasAllPlatforms
+  );
+}
+
+function normalizeSevenDaySentiment(payload: DailyReportPayload, reportDate: string) {
   const candidates = sevenDaySentimentCandidates(payload);
-  const currentPeriod = matchedCurrentSevenDayPeriod(currentSentiment, reportDate);
-  if (currentPeriod) candidates.push({ value: currentPeriod, explicitSevenDay: true });
-  candidates.sort((a, b) => candidateWeight(b) - candidateWeight(a));
-  const period = candidates[0]?.value ?? {};
+  candidates.sort((a, b) => {
+    const completenessDifference = Number(hasCompleteSevenDaySentiment(b, reportDate))
+      - Number(hasCompleteSevenDaySentiment(a, reportDate));
+    return completenessDifference || candidateWeight(b) - candidateWeight(a);
+  });
+  const selectedCandidate = candidates[0];
+  const period = selectedCandidate?.value ?? {};
+  const available = hasCompleteSevenDaySentiment(selectedCandidate, reportDate);
   const timeline = sentimentRows(period);
   const directMentions = finiteNumber(period.mentions ?? period.totalMentions ?? period.mentionCount);
   const timelineMentions = timeline.reduce((sum, row) => sum + rowMentions(row), 0);
-  const mentions = directMentions && directMentions > 0 ? directMentions : timelineMentions;
+  const mentions = directMentions ?? timelineMentions;
   const overall = objectValue(period.overall);
   const directScore = normalizedSentimentScore(
     overall.score ?? period.overallSentimentScore ?? period.sentimentScore,
@@ -289,6 +333,8 @@ function normalizeSevenDaySentiment(payload: DailyReportPayload, currentSentimen
     : numericChange === null ? '--' : `${numericChange >= 0 ? '+' : ''}${numericChange.toFixed(2)}`;
 
   return {
+    available,
+    unavailableMessage: available ? undefined : 'Sentiment data unavailable for this report.',
     window: '7D',
     windowStart: period.windowStart ?? period.windowStartUtc ?? period.start,
     windowEnd: period.windowEnd ?? period.windowEndUtc ?? period.end,
@@ -324,7 +370,6 @@ function normalizeReportPayload(
   payload: DailyReportPayload,
   report: ReportArchiveRecord,
   aiAnalysis: string,
-  currentSentiment: unknown,
 ) {
   const responseTicker = String(payload.ticker ?? '').trim().toUpperCase();
   const reportDateIso = String(payload.reportDateIso ?? '').trim();
@@ -348,7 +393,7 @@ function normalizeReportPayload(
   const shortInterestScore = normalizeShortInterestScore(payload.shortInterestScore);
   const shortLending = objectValue(payload.shortLending);
   const ftdChart = objectValue(shortLending.ftdChart);
-  const sentiment = normalizeSevenDaySentiment(payload, currentSentiment, report.reportDate);
+  const sentiment = normalizeSevenDaySentiment(payload, report.reportDate);
 
   return {
     ...payload,
@@ -379,23 +424,20 @@ function normalizeReportPayload(
 export async function buildDailyReportData(report: ReportArchiveRecord) {
   const ticker = report.ticker.toUpperCase();
   const reportPath = `/market-data/reports?ticker=${encodeURIComponent(ticker)}&date=${encodeURIComponent(report.reportDate)}`;
-  const currentSentimentPath = `/market-data/current?ticker=${encodeURIComponent(ticker)}&category=sentiment-current`;
 
   // A dated report can be regenerated by the backend without changing its URL.
   // Always refresh both dated payloads before generating a new PDF.
   invalidateAuthenticatedFetchCache(reportPath);
   invalidateAuthenticatedFetchCache('/market-data/ai-report');
-  invalidateAuthenticatedFetchCache(currentSentimentPath);
 
-  const [payload, aiReport, currentSentiment] = await Promise.all([
+  const [payload, aiReport] = await Promise.all([
     cachedAuthenticatedFetch<DailyReportPayload>(reportPath),
     fetchAiReport(ticker, report.reportDate).catch((): AiReport => ({})),
-    cachedAuthenticatedFetch(currentSentimentPath).catch(() => null),
   ]);
   const aiAnalysis = typeof aiReport.short_interest_current_interpretation === 'string'
     && aiReport.short_interest_current_interpretation.trim()
     ? aiReport.short_interest_current_interpretation
     : unavailableAiAnalysis;
 
-  return normalizeReportPayload(payload, report, aiAnalysis, currentSentiment);
+  return normalizeReportPayload(payload, report, aiAnalysis);
 }

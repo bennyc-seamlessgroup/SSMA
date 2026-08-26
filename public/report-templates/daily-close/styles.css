@@ -397,6 +397,9 @@ body { font-size: 12px; }
 
 .platform-breakdown-card { margin-bottom: 12px; }
 .platform-breakdown-card .platform-list { grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: 22px; row-gap: 7px; margin-top: 4px; }
+.sentiment-report-unavailable { display: grid; min-height: 286px; place-content: center; margin-bottom: 12px; text-align: center; }
+.sentiment-report-unavailable strong { color: var(--ink); font-size: 13px; }
+.sentiment-report-unavailable p { max-width: 390px; margin: 7px auto 0; color: var(--muted); font-size: 9px; line-height: 1.5; }
 .platform-list { display: grid; gap: 10px; }
 .platform-row { display: grid; grid-template-columns: 72px minmax(90px, 1fr) 42px 58px; align-items: center; gap: 8px; min-height: 25px; }
 .platform-row span { font-size: 9px; font-weight: 700; }

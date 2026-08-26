@@ -364,6 +364,7 @@ function ExecutiveMetric({ label, value, changePercent, comparisonLabel = 'vs pr
 type ShortVolumeRow = {
   date: string;
   totalShortVolume: number;
+  totalShortVolumePercentage: number | null;
   totalVolume: number;
   offExchangeNonExempt: number;
   offExchangeExempt: number;
@@ -393,6 +394,7 @@ const shortVolumeBaseColumns: Array<{ key: keyof ShortVolumeRow; label: string }
   { key: 'date', label: 'Date' },
   { key: 'totalVolume', label: 'Total Volume' },
   { key: 'totalShortVolume', label: 'Total Short Volume' },
+  { key: 'totalShortVolumePercentage', label: 'Total Short Volume %' },
   { key: 'offExchangeNonExempt', label: 'Off Exchange Non-Exempt' },
   { key: 'offExchangeExempt', label: 'Off Exchange Exempt' },
   { key: 'nasdaqBx', label: 'Nasdaq BX' },
@@ -428,6 +430,7 @@ function formatMarketTableValue(value: unknown, mode?: 'currency' | 'percent') {
 
 function shortVolumeValue(row: ShortVolumeRow, key: keyof ShortVolumeRow, mode: ShortVolumeMode) {
   if (key === 'date') return row.date;
+  if (key === 'totalShortVolumePercentage') return formatMarketTableValue(row[key], 'percent');
   const value = row[key] as number;
   if (mode === 'volume') return formatMarketTableValue(value);
   const denominator = mode === 'totalPercent' ? row.totalVolume : row.totalShortVolume;
@@ -914,6 +917,7 @@ function apiShortVolumeRows(payload: ApiFile): ShortVolumeRow[] {
   return apiRecords(payload, 'short-volume-history').map(row => ({
     date: String(row.date ?? ''),
     totalShortVolume: numeric(row.totalShortVolumeReported) ?? 0,
+    totalShortVolumePercentage: numeric(row.totalShortVolumePercentage),
     totalVolume: numeric(row.totalVolumeReported) ?? 0,
     offExchangeNonExempt: numeric(row.offExchangeNonExempt) ?? 0,
     offExchangeExempt: numeric(row.offExchangeExempt) ?? 0,

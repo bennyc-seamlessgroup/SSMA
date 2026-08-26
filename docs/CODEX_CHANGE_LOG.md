@@ -4,6 +4,106 @@ This file is the persistent implementation memory for changes made by Codex.
 Read it before modifying existing portal behavior, and update it after every
 completed change.
 
+## 2026-08-26 - Freeze report sentiment to the dated report snapshot
+
+- Area: User Portal -> Reports -> Daily Market Close Report -> Market
+  Perception.
+- APIs/data:
+  - Authoritative sentiment source remains the dated
+    `GET /market-data/reports?ticker={ticker}&date={date}` payload.
+  - Removed the report-generation request to
+    `GET /market-data/current?ticker={ticker}&category=sentiment-current`.
+  - The separate dated `GET /market-data/ai-report?ticker={ticker}&date={date}`
+    request remains unchanged because its response can be user-specific.
+- Reported problem and root cause:
+  - The current four-page report layout uses only the seven-day sentiment
+    aggregate; it does not render daily sentiment bars or points.
+  - Report generation nevertheless requested live `sentiment-current` and
+    allowed its matching 7D period to compete with the archived report
+    snapshot. This could make a regenerated historical report change after
+    consolidation data changed and violated the existing frozen-report
+    invariant.
+- Intended behavior and invariants:
+  - Report sentiment is read only from the selected dated report payload,
+    including supported nested `sentimentSnapshot` and `periods.7D` / `1W`
+    shapes. No live sentiment fallback is allowed.
+  - A usable snapshot must be explicitly seven-day, have valid window dates
+    ending on the requested report date (or the supported next-day exclusive
+    boundary), total mentions, an overall score, all three distribution
+    buckets, and numeric mention totals for Reddit, X, Facebook, LinkedIn, and
+    Stocktwits.
+  - Zero mentions is preserved as a valid aggregate value and is not replaced
+    by timeline-derived totals.
+  - An incomplete legacy snapshot displays `Sentiment data unavailable for
+    this report.` while the SEC filing section and the rest of the report keep
+    rendering.
+  - Historical report data remains immutable; older incomplete report files
+    must be regenerated or migrated by the backend rather than supplemented
+    from current frontend APIs.
+  - The previously accepted dated ticker/date validation, separate user-aware
+    AI interpretation, margin normalization, short-score ranges, and report
+    layout remain intact.
+- Files changed:
+  - `app/monitor/[ticker]/reports/daily-report-data.ts`
+  - `app/monitor/[ticker]/reports/client-report-pdf.ts`
+  - `public/report-templates/daily-close/render.js`
+  - `public/report-templates/daily-close/styles.css`
+  - `Report Templates/lean-daily-market-close-report/render.js`
+  - `Report Templates/lean-daily-market-close-report/styles.css`
+  - `Report Templates/lean-daily-market-close-report/REPORT_DATA_CONTRACT.md`
+  - `docs/CODEX_CHANGE_LOG.md`
+- Verification:
+  - `npm run typecheck` passed.
+  - `npm run build` passed, including all 29 generated static pages.
+  - Both editable and public report renderer/style mirrors match.
+  - Both report renderer files passed JavaScript syntax checks.
+  - A focused renderer check confirmed that incomplete sentiment shows the
+    unavailable message without a gauge, while complete sentiment renders the
+    gauge normally.
+  - `git diff --check` passed.
+  - Source audit confirmed `buildDailyReportData` requests only the dated
+    consolidated report and the separate dated AI report; it no longer
+    requests `sentiment-current`.
+- Remaining backend dependency / limitation:
+  - Archived reports without a complete frozen seven-day sentiment aggregate
+    show the explicit unavailable state until the backend regenerates or
+    migrates those dated report files.
+
+## 2026-08-26 - Show backend total short-volume percentage
+
+- Area: User Portal -> Short Interest -> Short Volume & Fails-to-Deliver ->
+  Short Volume table.
+- API/data:
+  - Existing `GET /market-data/history?ticker={ticker}&category=short-volume-history`.
+  - New backend record field `totalShortVolumePercentage`.
+- Reported problem and root cause:
+  - The backend added the total short-volume percentage, but the frontend row
+    mapping and table columns did not consume or display it.
+- Intended behavior and invariants:
+  - `Total Short Volume %` appears immediately to the right of
+    `Total Short Volume`.
+  - The value comes directly from `totalShortVolumePercentage`, is formatted
+    to two decimal places with a percent sign, and is not recalculated by the
+    frontend or transformed by the table's display-mode selector.
+  - A missing backend field displays as unavailable rather than zero.
+  - Existing column order, API loading, sorting, date filtering, pagination,
+    Fails-to-Deliver table behavior, and other short-volume fields remain
+    unchanged.
+- Files changed:
+  - `app/monitor/[ticker]/short-interest/ShortInterestBrowserPage.tsx`
+  - `lib/portal-page-translations.ts`
+  - `docs/CODEX_CHANGE_LOG.md`
+- Verification:
+  - `npm run typecheck` passed.
+  - `npm run build` passed, including all 29 generated static pages.
+  - `git diff --check` passed.
+  - Source audit confirmed the new column follows `Total Short Volume`, maps
+    only `totalShortVolumePercentage`, and uses percent formatting without a
+    frontend percentage calculation.
+- Remaining backend dependency / limitation:
+  - Older short-volume history records that do not provide
+    `totalShortVolumePercentage` remain unavailable in this new column.
+
 ## 2026-08-26 - Remove Dry Run access from Company Management
 
 - Area: Operations Portal -> Company Management -> Initialize History.
@@ -6396,3 +6496,40 @@ completed change.
     styles.
 - Remaining backend dependency / limitation:
   - Report dates and availability remain determined by the report index API.
+
+## 2026-08-26 - Add historical initialization availability status
+
+- Area: Operations Portal -> Company Management -> Initialize History.
+- APIs/data:
+  - `GET /tickers/historical-init/status?ticker={ticker}`
+  - Existing `POST /tickers/historical-init`
+- Reported problem and root cause:
+  - Historical initialization ran asynchronously, but the operations screen
+    did not inspect the backend lock status before allowing another request.
+  - The previous static `live run` label did not indicate whether a ticker was
+    available or already being initialized.
+- Intended behavior and invariants:
+  - Selecting or entering a valid ticker checks its historical initialization
+    status without caching the response.
+  - `AVAILABLE` is presented as `Ready to initialize`; it is not described as
+    successful completion because the endpoint only reports lock availability.
+  - `IN_PROGRESS` shows the returned lock age, disables the start button, and
+    refreshes every 15 seconds while the browser tab is visible.
+  - A successful initialization request immediately enters the running state
+    and confirms it against the status endpoint. A failed or conflicting POST
+    also refreshes status so an existing backend lock is reflected in the UI.
+  - Operators can manually refresh status, and Development Data exposes the
+    raw GET response separately from the initialization POST response.
+  - Ticker registry editing, initialization date/vendor validation, workspace
+    navigation, and consolidation behavior remain unchanged.
+- Files changed:
+  - `app/operations/tickers/TickerManagementOperationsClient.tsx`
+  - `lib/portal-page-translations.ts`
+  - `docs/CODEX_CHANGE_LOG.md`
+- Verification:
+  - TypeScript type-check passed.
+  - Production build passed, including all 29 statically generated pages.
+- Remaining backend dependency / limitation:
+  - The endpoint reports only an active lock younger than 15 minutes. An
+    `AVAILABLE` response can mean no run, a finished run, or a stale lock; it
+    does not expose worker completion or failure details.
