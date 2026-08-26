@@ -27,9 +27,14 @@ export function isPublicDemoEmail(value: unknown) {
   return String(value ?? '').trim().toLowerCase() === publicDemoEmail;
 }
 
+export function isPublicDemoRole(value: unknown) {
+  return String(value ?? '').trim().toUpperCase() === 'DEMO';
+}
+
 export function isPublicDemoProfile(profile: unknown) {
   if (!profile || typeof profile !== 'object' || Array.isArray(profile)) return false;
-  return isPublicDemoEmail((profile as Record<string, unknown>).email);
+  const record = profile as Record<string, unknown>;
+  return isPublicDemoRole(record.role) || isPublicDemoEmail(record.email);
 }
 
 export function startPublicDemoSession() {

@@ -495,7 +495,7 @@ export function UserAccessOperationsClient() {
                     setAssignTicker(event.target.value.toUpperCase());
                     clearAssignmentFeedback();
                   }}
-                  placeholder="NIVF"
+                  placeholder="Ticker symbol"
                 />
                 <datalist id="managed-access-tickers">
                   {activeTickerOptions.map(option => (

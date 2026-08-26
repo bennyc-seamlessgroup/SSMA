@@ -531,7 +531,7 @@ const operationsZhHant: Record<string, string> = {
   'From date': '開始日期', 'To date': '結束日期', 'Data vendors': '資料供應商', 'Dry run': '測試執行',
   'Validate without writing files or acquiring the 15-minute S3 lock.': '進行驗證，但不寫入檔案或取得 15 分鐘 S3 鎖定。',
   'No persistence': '不寫入資料', 'Writes enabled': '啟用寫入', 'Submitting...': '正在提交…',
-  'Run Validation': '執行驗證', 'Start Historical Init': '開始歷史資料初始化',
+  'Run Validation': '執行驗證', 'Start Historical Init': '開始歷史資料初始化', 'Run Consolidation': '執行整合', 'Consolidating...': '正在整合…',
   'Managed Tickers': '受管理股票代碼', 'Search, inspect, update, restore, or soft delete ticker definitions.': '搜尋、檢視、更新、還原或軟刪除股票代碼設定。',
   'Search ticker or company...': '搜尋股票代碼或公司…', 'Search managed tickers': '搜尋受管理股票代碼',
   'Filter ticker status': '篩選股票代碼狀態', 'All active statuses': '所有有效狀態', 'Ticker rows per page': '每頁股票代碼列數',

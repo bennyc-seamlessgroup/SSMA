@@ -3,6 +3,8 @@
 import {
   clearPublicDemoAdapterSession,
   isPublicDemoEmail,
+  isPublicDemoProfile,
+  isPublicDemoRole,
 } from './public-demo';
 
 export type CognitoUser = {
@@ -328,8 +330,22 @@ export async function authenticatedFetch(path: string, options: RequestInit = {}
   const isMultipart = typeof FormData !== 'undefined' && options.body instanceof FormData;
   const method = String(options.method ?? 'GET').toUpperCase();
   const isMutation = !['GET', 'HEAD'].includes(method);
-  if (isMutation && isPublicDemoEmail(decodeJWT(tokens.idToken)?.email)) {
-    throw new Error('The demo account is read-only. Sign in with a regular account to save changes.');
+  if (isMutation) {
+    const tokenUser = decodeJWT(tokens.idToken);
+    const tokenRole = tokenUser?.role ?? tokenUser?.['custom:role'];
+    let isDemoAccount = isPublicDemoEmail(tokenUser?.email) || isPublicDemoRole(tokenRole);
+
+    if (!isDemoAccount) {
+      try {
+        isDemoAccount = isPublicDemoProfile(await getAuthenticatedProfile());
+      } catch {
+        throw new Error('Unable to verify account permissions. Please refresh the page before saving changes.');
+      }
+    }
+
+    if (isDemoAccount) {
+      throw new Error('The demo account is read-only. Sign in with a regular account to save changes.');
+    }
   }
   const useSameOriginProxy = typeof window !== 'undefined'
     && (isMutation || ['localhost', '127.0.0.1'].includes(window.location.hostname));

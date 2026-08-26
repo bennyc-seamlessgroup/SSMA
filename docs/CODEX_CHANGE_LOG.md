@@ -4,6 +4,105 @@ This file is the persistent implementation memory for changes made by Codex.
 Read it before modifying existing portal behavior, and update it after every
 completed change.
 
+## 2026-08-26 - Add manual consolidation to Company Management
+
+- Area: Operations Portal -> Company Management -> Initialize History.
+- APIs/data:
+  - Existing `POST /manual-input/consolidate?ticker={ticker}`.
+  - Verification reads:
+    - `GET /market-data/current?ticker={ticker}&category=market-current`.
+    - `GET /market-data/history?ticker={ticker}&category=market-history`.
+  - Existing `POST /tickers/historical-init` validation and initialization
+    workflow remains unchanged.
+- Reported problem and root cause:
+  - Company Management could validate or initialize historical vendor data but
+    had no nearby way to run the manual consolidation step. Operators had to
+    leave the page and use Data Import or Market Data for the same ticker.
+- Intended behavior and invariants:
+  - `Run Consolidation` appears directly beside `Run Validation` /
+    `Start Historical Init` in the Historical Data panel.
+  - Consolidation always uses the normalized ticker displayed in that panel;
+    an invalid or empty ticker is rejected before an API request is sent.
+  - The request body and query string both carry the same ticker.
+  - After the backend accepts the asynchronous request, the page uses the
+    shared Data Import verification workflow: it captures the current/history
+    baseline, checks every 10 seconds for up to five minutes, and reports
+    confirmed change, unchanged-but-available output, or unavailable output.
+  - Historical initialization and consolidation cannot be started on top of
+    each other, but their messages and Development Data payloads remain
+    separate.
+  - The exact consolidation request, response, baseline, and verification
+    checks appear in Development Data.
+- Files changed:
+  - `app/operations/tickers/TickerManagementOperationsClient.tsx`
+  - `app/globals.css`
+  - `lib/portal-page-translations.ts`
+  - `docs/CODEX_CHANGE_LOG.md`
+- Verification:
+  - TypeScript type-check passed.
+  - Whitespace validation passed.
+  - Production build passed, including all 29 statically generated pages.
+  - Source inspection confirmed the consolidation button is the adjacent
+    sibling of the validation/initialization button inside a wrapping action
+    row, with mutual busy-state disabling and separate status messages.
+  - No live consolidation request was submitted during verification.
+- Remaining backend dependency / limitation:
+  - The consolidation endpoint returns acceptance rather than a job ID or
+    completion status. As on Data Import, unchanged output after five minutes
+    can mean the output was already current; the frontend cannot prove which
+    specific asynchronous run completed without backend status support.
+
+## 2026-08-26 - Apply demo restrictions to every account with the DEMO role
+
+- Area: Shared authentication and authorization across the User Portal and
+  Operations Portal.
+- APIs/data:
+  - Authenticated `GET /profile`, specifically the normalized `role` field.
+  - All non-GET/HEAD requests made through `authenticatedFetch`.
+  - Existing ticker access fields remain unchanged.
+- Reported problem and root cause:
+  - The backend creates uninvited accounts with `role: "DEMO"`, but the shared
+    frontend demo detector recognized only the configured public-demo email.
+  - Ticker access already treated the DEMO role as CURR-only, while other
+    restrictions—including read-only profile and alert controls, fictional
+    holdings, Operations Portal denial, and the central mutation guard—could
+    be missed by another account carrying the same role.
+- Intended behavior and invariants:
+  - A profile is treated as a demo account when its normalized role is exactly
+    `DEMO` or when it is the configured public-demo email.
+  - Every DEMO-role account is restricted to CURR, cannot enable Development
+    Mode, cannot enter the Operations Portal, sees profile and alert settings
+    as read-only, and receives the existing demo holdings presentation.
+  - Before any POST, PUT, PATCH, or DELETE request is sent through the shared
+    authenticated client, the frontend verifies the cached/authenticated
+    profile. DEMO accounts receive the existing read-only error and no
+    mutation request is transmitted.
+  - If the profile role cannot be verified, mutations fail closed with a
+    refresh instruction rather than being sent with unknown permissions.
+  - The configured public demo account remains recognized immediately by its
+    token email, preserving the existing `/demo` behavior.
+  - USER, ADMIN, and OPERATOR read access, ticker access, and mutation behavior
+    remain unchanged after their profile is verified.
+- Files changed:
+  - `lib/public-demo.ts`
+  - `lib/auth-client.ts`
+  - `docs/CODEX_CHANGE_LOG.md`
+- Verification:
+  - TypeScript type-check passed.
+  - Production build passed, including all 29 statically generated pages.
+  - Whitespace validation passed.
+  - Source-level authorization audit confirmed all current User Portal API
+    mutations use `authenticatedFetch`, so they pass through the shared
+    role-aware demo guard. The only remaining direct POST requests are Cognito
+    authentication/token flows and the server-side demo-login route.
+  - Existing consumers of `isPublicDemoProfile` were verified for CURR route
+    enforcement, Operations Portal denial, Development Mode denial, read-only
+    alert/profile controls, and demo Internal Float/Ownership presentation.
+- Remaining backend dependency / limitation:
+  - These are frontend safeguards, not a security boundary. The backend must
+    also reject unauthorized DEMO-role mutations because a direct API caller
+    can bypass browser code.
+
 ## 2026-08-26 - Assign additional tickers while locking each user's primary ticker
 
 - Area: Operations Portal -> Team Access.
@@ -33,6 +132,8 @@ completed change.
     exposed only when the page can identify the registered profile and its
     primary ticker from `GET /tickers/invite`.
   - Operators may add any active managed ticker that is not already assigned.
+  - The add-ticker input uses the generic `Ticker symbol` placeholder and does
+    not imply a particular company.
   - The portal never exposes or sends the API's `replace` action.
   - A removal requires an inline confirmation. Assignment attempts and exact
     request/response payloads appear in Development Data.
@@ -47,6 +148,8 @@ completed change.
   - `docs/CODEX_CHANGE_LOG.md`
 - Verification:
   - TypeScript type-check passed.
+  - Verified the Manage Existing User add-ticker field no longer contains a
+    company-specific placeholder.
   - Production build passed, including all 29 statically generated pages.
   - Whitespace validation passed.
   - Local browser inspection confirmed both workflow tabs, the primary-lock

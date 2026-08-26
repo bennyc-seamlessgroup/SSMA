@@ -6781,11 +6781,16 @@ html[data-design-b-theme="dark"] .ops-import-refreshed {
 }
 
 .ops-ticker-form-actions,
+.ops-ticker-history-actions,
 .ops-ticker-detail-actions {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
   margin-top: 12px;
+}
+
+.ops-ticker-history-actions {
+  margin-top: 0;
 }
 
 .ops-ticker-vendors {
