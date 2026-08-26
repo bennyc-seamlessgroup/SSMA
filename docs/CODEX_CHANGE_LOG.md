@@ -4,6 +4,64 @@ This file is the persistent implementation memory for changes made by Codex.
 Read it before modifying existing portal behavior, and update it after every
 completed change.
 
+## 2026-08-26 - Assign additional tickers while locking each user's primary ticker
+
+- Area: Operations Portal -> Team Access.
+- APIs/data:
+  - Existing `GET /tickers/invite` remains the source for invitation history
+    and registered-user profile details (`registered_user.ticker` and
+    `registered_user.tickers`).
+  - `GET /tickers?status=ACTIVE&includeDeleted=false&limit=100` supplies active
+    managed-ticker suggestions.
+  - Existing `POST /tickers/invite` remains the new-account workflow.
+  - New `POST /tickers/assign` is used only with `action: "add"` or
+    `action: "remove"` for existing registered users.
+- Reported problem and root cause:
+  - `POST /tickers/invite` correctly returns `409 User already exists` when an
+    operator tries to grant a new company to an existing account, so the Team
+    Access page had no supported way to give the account an additional ticker.
+  - The assignment API also supports `remove` and `replace`, but the agreed
+    portal policy requires every user to retain their dedicated primary
+    `ticker` and the same symbol in `tickers`.
+- Intended behavior and invariants:
+  - New accounts continue through `Invite New User`; registered accounts use a
+    separate `Manage Existing User` tab.
+  - The user's primary `registered_user.ticker` is displayed as
+    `Primary · Locked`, has no remove control, and is guarded again before any
+    removal request is sent.
+  - Only ticker symbols beyond the primary ticker are removable. Removal is
+    exposed only when the page can identify the registered profile and its
+    primary ticker from `GET /tickers/invite`.
+  - Operators may add any active managed ticker that is not already assigned.
+  - The portal never exposes or sends the API's `replace` action.
+  - A removal requires an inline confirmation. Assignment attempts and exact
+    request/response payloads appear in Development Data.
+  - If an operator modifies their own access, the authenticated profile cache
+    is refreshed so the company switcher can receive the updated ticker list.
+  - Existing invitation filtering, pagination, operator-only page access, and
+    new-user invitation behavior remain intact.
+- Files changed:
+  - `app/operations/user-access/UserAccessOperationsClient.tsx`
+  - `app/globals.css`
+  - `lib/portal-page-translations.ts`
+  - `docs/CODEX_CHANGE_LOG.md`
+- Verification:
+  - TypeScript type-check passed.
+  - Production build passed, including all 29 statically generated pages.
+  - Whitespace validation passed.
+  - Local browser inspection confirmed both workflow tabs, the primary-lock
+    policy, no page-level horizontal overflow at a 1024 x 768 iPad viewport,
+    and correct responsive form bounds. The isolated browser was not
+    authenticated, so live assignment mutation was not submitted.
+- Remaining backend dependency / limitation:
+  - Primary-ticker protection is intentionally frontend-only. A direct caller
+    of `POST /tickers/assign` can still request `remove` or `replace`; the
+    backend does not enforce this portal policy.
+  - `GET /tickers/invite` is an invitation-backed list rather than a dedicated
+    full-user directory. Adding access can target another registered email,
+    but safe removal is available only for accounts whose registered profile
+    (including the primary ticker) is returned by that endpoint.
+
 ## 2026-08-25 - Explain Off Exchange volume in the latest venue legend
 
 - Area: User Portal -> Exchange Volume -> Latest Exchange Volume.
@@ -6166,3 +6224,32 @@ completed change.
     complete seven-day sentiment block. The live `sentiment-current` fallback
     is intentionally accepted only when its period end matches the selected
     report date.
+
+## 2026-08-25 - Simplify Report Archive copy and hierarchy
+
+- Area: User Portal -> Report Archive.
+- API: Existing report index and dated report APIs; no contract change.
+- Reported problem and root cause:
+  - Repeated cadence descriptions, report explanations, and market-close labels
+    made the archive slower to scan without adding useful decision context.
+  - Weekly and monthly placeholders repeated the same problem with descriptive
+    preview cards.
+- Intended behavior and invariants:
+  - Keep report frequency names, useful dates, availability, report titles,
+    pagination, and report actions.
+  - Remove cadence subtitles, repeated daily-report explanations, repeated
+    market-close labels, and verbose coming-soon previews.
+  - Reduce cadence-tab and coming-soon placeholder height to match the simpler
+    content hierarchy.
+  - Report availability, View Report, Download PDF, archive filtering, and the
+    Development Data panel remain unchanged.
+- Files changed:
+  - `app/monitor/[ticker]/reports/ReportArchiveCenter.tsx`
+  - `app/globals.css`
+  - `docs/CODEX_CHANGE_LOG.md`
+- Verification:
+  - TypeScript type-check passed.
+  - Confirmed the removed copy no longer exists in the Report Archive source or
+    styles.
+- Remaining backend dependency / limitation:
+  - Report dates and availability remain determined by the report index API.

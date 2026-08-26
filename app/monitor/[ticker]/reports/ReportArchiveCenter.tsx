@@ -15,42 +15,24 @@ type ReportCadence = 'daily' | 'weekly' | 'monthly';
 const reportCadences: Array<{
   id: ReportCadence;
   label: string;
-  description: string;
   available: boolean;
 }> = [
-  { id: 'daily', label: 'Daily Reports', description: 'Trading-day close intelligence', available: true },
-  { id: 'weekly', label: 'Weekly Reports', description: 'Five-session executive review', available: false },
-  { id: 'monthly', label: 'Monthly Reports', description: 'Strategic monthly intelligence', available: false },
+  { id: 'daily', label: 'Daily Reports', available: true },
+  { id: 'weekly', label: 'Weekly Reports', available: false },
+  { id: 'monthly', label: 'Monthly Reports', available: false },
 ];
 
 const comingSoonContent: Record<Exclude<ReportCadence, 'daily'>, {
   eyebrow: string;
   title: string;
-  description: string;
-  cadence: string;
-  features: Array<{ title: string; description: string }>;
 }> = {
   weekly: {
     eyebrow: 'Weekly Intelligence',
     title: 'Weekly Reports are coming soon',
-    description: 'A concise five-session review designed to separate temporary daily movement from meaningful changes in market structure.',
-    cadence: 'Planned cadence · End of each trading week',
-    features: [
-      { title: 'Five-session trend', description: 'Price, lending, short activity, ownership, and sentiment changes across the week.' },
-      { title: 'Risk changes', description: 'What strengthened, normalized, or became more urgent since the prior weekly report.' },
-      { title: 'Management watchlist', description: 'The most important conditions and events to monitor in the coming week.' },
-    ],
   },
   monthly: {
     eyebrow: 'Monthly Intelligence',
     title: 'Monthly Reports are coming soon',
-    description: 'A strategic month-end review for longer-horizon changes that are difficult to see in individual daily reports.',
-    cadence: 'Planned cadence · After each month end',
-    features: [
-      { title: 'Month-over-month review', description: 'A structured comparison of market, lending, short, and sentiment conditions.' },
-      { title: 'Structural positioning', description: 'Ownership, float, institutional activity, and sustained pressure developments.' },
-      { title: 'Executive outlook', description: 'Material risks, catalysts, and management priorities for the next month.' },
-    ],
   },
 };
 
@@ -90,18 +72,7 @@ function ComingSoonReport({ cadence }: { cadence: Exclude<ReportCadence, 'daily'
         <span className="report-coming-soon-mark">{reportDocumentIcon()}</span>
         <span className="report-archive-kicker">{content.eyebrow}</span>
         <h2>{content.title}</h2>
-        <p>{content.description}</p>
-        <strong>{content.cadence}</strong>
         <span className="report-coming-soon">COMING SOON</span>
-      </div>
-      <div className="report-coming-preview-grid">
-        {content.features.map((feature, index) => (
-          <article key={feature.title}>
-            <span>{String(index + 1).padStart(2, '0')}</span>
-            <h3>{feature.title}</h3>
-            <p>{feature.description}</p>
-          </article>
-        ))}
       </div>
     </section>
   );
@@ -199,7 +170,6 @@ export function ReportArchiveCenter({
         <div>
           <span className="report-archive-kicker">Report Library</span>
           <h2>Intelligence Reports</h2>
-          <p>Browse recurring intelligence by reporting cadence.</p>
         </div>
         <div className="report-cadence-tabs" role="tablist" aria-label="Report frequency">
           {reportCadences.map(cadence => (
@@ -214,7 +184,6 @@ export function ReportArchiveCenter({
               onClick={() => setActiveCadence(cadence.id)}
             >
               <span>{cadence.label}</span>
-              <small>{cadence.description}</small>
               {!cadence.available ? <em>Coming soon</em> : <em>{sortedReports.length} available</em>}
             </button>
           ))}
@@ -233,11 +202,9 @@ export function ReportArchiveCenter({
               <p>{latestReport
                 ? `${formatDisplayDate(latestReport.reportDate, timeZone)} · ${formatWeekday(latestReport.reportDate, timeZone)}`
                 : 'No daily report is currently available.'}</p>
-              <small>One consolidated report covering the completed trading day, material market changes, and management watch items.</small>
             </div>
             <div className="report-daily-feature__status">
               <span className={latestReport ? 'is-ready' : ''}>{latestReport ? 'Available' : 'Unavailable'}</span>
-              {latestReport ? <small>Daily · US Market Close</small> : null}
             </div>
             <div className="report-daily-feature__actions">
               {latestReport ? (
@@ -259,7 +226,6 @@ export function ReportArchiveCenter({
                 <span className="report-center-icon">{reportDocumentIcon()}</span>
                 <div>
                   <h2>Daily Report Archive</h2>
-                  <p>One report per completed trading day</p>
                 </div>
               </div>
               <div className="report-history-controls">
@@ -283,7 +249,7 @@ export function ReportArchiveCenter({
                   </div>
                   <div className="report-daily-history-document">
                     <span>{reportDocumentIcon()}</span>
-                    <div><strong>{report.title}</strong><small>Daily · US Market Close</small></div>
+                    <div><strong>{report.title}</strong></div>
                   </div>
                   <div className="report-history-row-menu">
                     <button type="button" onClick={() => openReport(report)} disabled={loadingReportId === report.id}>

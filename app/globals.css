@@ -2432,13 +2432,6 @@ body { min-height: 100vh; }
   line-height: 1.2;
 }
 
-.report-cadence-nav > div:first-child > p {
-  margin: 6px 0 0;
-  color: #64748b;
-  font-size: 12px;
-  font-weight: 600;
-}
-
 .report-cadence-tabs {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -2448,7 +2441,7 @@ body { min-height: 100vh; }
 .report-cadence-tabs button {
   position: relative;
   display: grid;
-  min-height: 76px;
+  min-height: 58px;
   gap: 3px;
   padding: 12px 14px;
   border: 1px solid #dfe6ef;
@@ -2480,12 +2473,6 @@ body { min-height: 100vh; }
 
 .report-cadence-tabs button.active span {
   color: #1d4ed8;
-}
-
-.report-cadence-tabs button small {
-  font-size: 10px;
-  font-weight: 650;
-  line-height: 1.3;
 }
 
 .report-cadence-tabs button em {
@@ -2546,16 +2533,6 @@ body { min-height: 100vh; }
   font-weight: 700;
 }
 
-.report-daily-feature__copy > small {
-  display: block;
-  max-width: 700px;
-  margin-top: 7px;
-  color: #64748b;
-  font-size: 11px;
-  font-weight: 600;
-  line-height: 1.45;
-}
-
 .report-daily-feature__status {
   display: grid;
   justify-items: end;
@@ -2579,12 +2556,6 @@ body { min-height: 100vh; }
 .report-daily-feature__status > span.is-ready {
   background: #ecfdf5;
   color: #047857;
-}
-
-.report-daily-feature__status small {
-  color: #64748b;
-  font-size: 10px;
-  font-weight: 650;
 }
 
 .report-daily-feature__actions {
@@ -2663,7 +2634,7 @@ body { min-height: 100vh; }
 
 .report-cadence-coming-soon__hero {
   display: flex;
-  min-height: 240px;
+  min-height: 190px;
   flex-direction: column;
   align-items: center;
   justify-content: center;
@@ -2674,22 +2645,6 @@ body { min-height: 100vh; }
 
 .report-cadence-coming-soon__hero .report-coming-soon-mark {
   margin-bottom: 14px;
-}
-
-.report-cadence-coming-soon__hero > p {
-  max-width: 650px;
-  margin: 9px auto 0;
-  color: #64748b;
-  font-size: 12px;
-  font-weight: 600;
-  line-height: 1.55;
-}
-
-.report-cadence-coming-soon__hero > strong {
-  margin-top: 12px;
-  color: #475569;
-  font-size: 11px;
-  font-weight: 750;
 }
 
 .report-cadence-coming-soon__hero > .report-coming-soon {
@@ -2704,55 +2659,17 @@ body { min-height: 100vh; }
   letter-spacing: .12em;
 }
 
-.report-coming-preview-grid {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  border-top: 1px solid #e3e8f0;
-}
-
-.report-coming-preview-grid article {
-  min-height: 126px;
-  padding: 18px 20px;
-  border-left: 1px solid #e3e8f0;
-}
-
-.report-coming-preview-grid article:first-child {
-  border-left: 0;
-}
-
-.report-coming-preview-grid article > span {
-  color: #2563eb;
-  font-size: 9px;
-  font-weight: 850;
-  letter-spacing: .12em;
-}
-
-.report-coming-preview-grid h3 {
-  margin: 8px 0 0;
-  color: #17263b;
-  font-size: 12px;
-  font-weight: 800;
-}
-
-.report-coming-preview-grid p {
-  margin: 6px 0 0;
-  color: #64748b;
-  font-size: 10px;
-  font-weight: 600;
-  line-height: 1.5;
-}
-
 html[data-design-b-theme="dark"] .monitor-portal :where(.report-cadence-nav, .report-daily-feature, .report-cadence-coming-soon) {
   border-color: rgba(148,163,184,.18);
   background: rgba(10, 22, 39, .92);
   box-shadow: none;
 }
 
-html[data-design-b-theme="dark"] .monitor-portal :where(.report-cadence-nav h2, .report-daily-feature h2, .report-cadence-coming-soon h2, .report-cadence-tabs button span, .report-coming-preview-grid h3) {
+html[data-design-b-theme="dark"] .monitor-portal :where(.report-cadence-nav h2, .report-daily-feature h2, .report-cadence-coming-soon h2, .report-cadence-tabs button span) {
   color: #edf4ff;
 }
 
-html[data-design-b-theme="dark"] .monitor-portal :where(.report-cadence-nav p, .report-daily-feature__copy > p, .report-daily-feature__copy > small, .report-daily-feature__status small, .report-cadence-coming-soon__hero > p, .report-cadence-coming-soon__hero > strong, .report-coming-preview-grid p) {
+html[data-design-b-theme="dark"] .monitor-portal .report-daily-feature__copy > p {
   color: #9fb2ca;
 }
 
@@ -2783,11 +2700,6 @@ html[data-design-b-theme="dark"] .monitor-portal .report-daily-feature__actions 
   color: #ffffff;
 }
 
-html[data-design-b-theme="dark"] .monitor-portal .report-coming-preview-grid,
-html[data-design-b-theme="dark"] .monitor-portal .report-coming-preview-grid article {
-  border-color: rgba(148,163,184,.18);
-}
-
 @media (max-width: 980px) {
   .report-cadence-nav {
     grid-template-columns: 1fr;
@@ -2803,8 +2715,7 @@ html[data-design-b-theme="dark"] .monitor-portal .report-coming-preview-grid art
 }
 
 @media (max-width: 700px) {
-  .report-cadence-tabs,
-  .report-coming-preview-grid {
+  .report-cadence-tabs {
     grid-template-columns: 1fr;
   }
 
@@ -2822,16 +2733,6 @@ html[data-design-b-theme="dark"] .monitor-portal .report-coming-preview-grid art
     grid-column: 1 / -1;
     justify-items: start;
     text-align: left;
-  }
-
-  .report-coming-preview-grid article {
-    min-height: 0;
-    border-top: 1px solid #e3e8f0;
-    border-left: 0;
-  }
-
-  .report-coming-preview-grid article:first-child {
-    border-top: 0;
   }
 }
 
@@ -5896,6 +5797,7 @@ html[data-design-b-theme="dark"] :where(
   .ops-market-data-form select,
   .ops-market-data-form textarea,
   .ops-access-invite-form input,
+  .ops-access-assign-form input,
   .ops-access-toolbar input,
   .ops-access-toolbar select
 ) {
@@ -5916,6 +5818,47 @@ html[data-design-b-theme="dark"] .ops-access-contract-note {
 
 html[data-design-b-theme="dark"] .ops-access-contract-note strong {
   color: #d7e1ed;
+}
+
+html[data-design-b-theme="dark"] .ops-access-mode-tabs,
+html[data-design-b-theme="dark"] .ops-current-access-card {
+  border-color: #334155;
+  background: #172235;
+}
+
+html[data-design-b-theme="dark"] .ops-current-access-head strong {
+  color: #edf4ff;
+}
+
+html[data-design-b-theme="dark"] .ops-current-access-card > p,
+html[data-design-b-theme="dark"] .ops-current-access-head span,
+html[data-design-b-theme="dark"] .ops-current-access-head > small,
+html[data-design-b-theme="dark"] .ops-access-no-extra {
+  color: #9fb0c5;
+}
+
+html[data-design-b-theme="dark"] .ops-access-primary-chip {
+  border-color: #315ea8;
+  color: #bfdbfe;
+  background: #17335d;
+}
+
+html[data-design-b-theme="dark"] .ops-access-extra-chip {
+  border-color: #405169;
+  color: #dbe7f5;
+  background: #202c3d;
+}
+
+html[data-design-b-theme="dark"] .ops-access-extra-chip:hover:not(:disabled) {
+  border-color: #9f5261;
+  color: #fecdd3;
+  background: #42202a;
+}
+
+html[data-design-b-theme="dark"] .ops-access-remove-confirm {
+  border-color: #7f3145;
+  color: #fecdd3;
+  background: #3a1c27;
 }
 
 html[data-design-b-theme="dark"] :where(.ops-table, .ops-record-table, .ops-access-table) th {
@@ -6417,6 +6360,35 @@ html[data-design-b-theme="dark"] .ops-import-refreshed {
   margin-bottom: 14px;
 }
 
+.ops-access-mode-tabs {
+  display: inline-flex;
+  gap: 4px;
+  margin: 0 0 14px;
+  padding: 4px;
+  border: 1px solid #d9e2ee;
+  border-radius: 10px;
+  background: #f5f8fc;
+}
+
+.ops-access-mode-tabs button {
+  min-height: 34px;
+  padding: 0 14px;
+  border: 0;
+  border-radius: 7px;
+  color: #52657c;
+  background: transparent;
+  font: inherit;
+  font-size: 11px;
+  font-weight: 750;
+  cursor: pointer;
+}
+
+.ops-access-mode-tabs button.active {
+  color: #fff;
+  background: #2563eb;
+  box-shadow: 0 4px 12px rgba(37, 99, 235, .2);
+}
+
 .ops-access-invite-form {
   display: grid;
   grid-template-columns: minmax(260px, 1.5fr) minmax(150px, .55fr) minmax(130px, .45fr) auto;
@@ -6424,7 +6396,15 @@ html[data-design-b-theme="dark"] .ops-import-refreshed {
   gap: 12px;
 }
 
-.ops-access-invite-form label {
+.ops-access-assign-form {
+  display: grid;
+  grid-template-columns: minmax(260px, 1.4fr) minmax(180px, .7fr) auto;
+  align-items: end;
+  gap: 12px;
+}
+
+.ops-access-invite-form label,
+.ops-access-assign-form label {
   display: grid;
   gap: 6px;
   color: #334155;
@@ -6432,7 +6412,8 @@ html[data-design-b-theme="dark"] .ops-import-refreshed {
   font-weight: 750;
 }
 
-.ops-access-invite-form label > span {
+.ops-access-invite-form label > span,
+.ops-access-assign-form label > span {
   color: #64748b;
   font-size: 10px;
   font-weight: 800;
@@ -6442,6 +6423,7 @@ html[data-design-b-theme="dark"] .ops-import-refreshed {
 
 .ops-access-invite-form input,
 .ops-access-invite-form select,
+.ops-access-assign-form input,
 .ops-access-toolbar input,
 .ops-access-toolbar select {
   min-height: 36px;
@@ -6458,6 +6440,7 @@ html[data-design-b-theme="dark"] .ops-import-refreshed {
 
 .ops-access-invite-form input:focus,
 .ops-access-invite-form select:focus,
+.ops-access-assign-form input:focus,
 .ops-access-toolbar input:focus,
 .ops-access-toolbar select:focus {
   border-color: #93c5fd;
@@ -6481,6 +6464,138 @@ html[data-design-b-theme="dark"] .ops-import-refreshed {
 
 .ops-access-contract-note strong {
   color: #334155;
+}
+
+.ops-existing-access-manager {
+  display: grid;
+  gap: 12px;
+}
+
+.ops-access-inline-warning {
+  margin: 0;
+  color: #9a5b00;
+  font-size: 11px;
+  font-weight: 650;
+}
+
+.ops-current-access-card {
+  padding: 13px;
+  border: 1px solid #dce5f0;
+  border-radius: 10px;
+  background: #f8fafc;
+}
+
+.ops-current-access-card > p {
+  margin: 0;
+  color: #64748b;
+  font-size: 11px;
+  line-height: 1.5;
+}
+
+.ops-current-access-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+
+.ops-current-access-head > div {
+  display: grid;
+  gap: 2px;
+}
+
+.ops-current-access-head span {
+  color: #64748b;
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: .09em;
+  text-transform: uppercase;
+}
+
+.ops-current-access-head strong {
+  color: #17233a;
+  font-size: 12px;
+}
+
+.ops-current-access-head > small {
+  color: #64748b;
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.ops-access-chip-list {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.ops-access-primary-chip,
+.ops-access-extra-chip {
+  min-height: 38px;
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  padding: 0 11px;
+  border-radius: 9px;
+}
+
+.ops-access-primary-chip {
+  border: 1px solid #a9c8ff;
+  color: #1749a3;
+  background: #eaf2ff;
+}
+
+.ops-access-extra-chip {
+  border: 1px solid #d8e1ed;
+  color: #25344a;
+  background: #fff;
+  font: inherit;
+  cursor: pointer;
+}
+
+.ops-access-extra-chip:hover:not(:disabled) {
+  border-color: #f2a7b2;
+  color: #b4233a;
+  background: #fff5f6;
+}
+
+.ops-access-primary-chip b,
+.ops-access-extra-chip b {
+  font-size: 11px;
+  letter-spacing: .04em;
+}
+
+.ops-access-primary-chip small,
+.ops-access-extra-chip small {
+  font-size: 9px;
+  font-weight: 750;
+}
+
+.ops-access-no-extra {
+  color: #718198;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.ops-access-remove-confirm {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 11px 12px;
+  border: 1px solid #fecdd3;
+  border-radius: 9px;
+  color: #881337;
+  background: #fff5f7;
+  font-size: 11px;
+}
+
+.ops-access-remove-confirm > div {
+  display: flex;
+  gap: 7px;
+  flex: 0 0 auto;
 }
 
 .ops-access-toolbar {
@@ -6524,7 +6639,7 @@ html[data-design-b-theme="dark"] .ops-import-refreshed {
 }
 
 .ops-access-table {
-  min-width: 1040px;
+  min-width: 1130px;
 }
 
 .ops-table-empty {
@@ -6558,8 +6673,23 @@ html[data-design-b-theme="dark"] .ops-import-refreshed {
 
 @media (max-width: 760px) {
   .ops-access-invite-form,
+  .ops-access-assign-form,
   .ops-access-toolbar {
     grid-template-columns: 1fr;
+  }
+
+  .ops-access-mode-tabs {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .ops-access-remove-confirm {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .ops-access-remove-confirm > div {
+    justify-content: flex-end;
   }
 }
 
@@ -30488,7 +30618,8 @@ html[data-design-b-theme="dark"] :where(
   .ops-sec-form label,
   .ops-record-tools label,
   .ops-ticker-context label,
-  .ops-access-invite-form label
+  .ops-access-invite-form label,
+  .ops-access-assign-form label
 ) {
   color: #bdcada;
 }
@@ -30505,6 +30636,7 @@ html[data-design-b-theme="dark"] :where(
   .ops-market-data-form select,
   .ops-market-data-form textarea,
   .ops-access-invite-form input,
+  .ops-access-assign-form input,
   .ops-access-toolbar input,
   .ops-access-toolbar select
 ) {
@@ -30522,6 +30654,7 @@ html[data-design-b-theme="dark"] :where(
   .ops-market-data-form input,
   .ops-market-data-form textarea,
   .ops-access-invite-form input,
+  .ops-access-assign-form input,
   .ops-access-toolbar input
 )::placeholder {
   color: #71849e;

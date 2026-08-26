@@ -30,6 +30,7 @@
   - [DELETE /tickers/{ticker}](#delete-tickersticker)
   - [POST /tickers/invite](#post-tickersinvite)
   - [GET /tickers/invite](#get-tickersinvite)
+  - [POST /tickers/assign](#post-tickersassign)
   - [POST /tickers/historical-init](#post-tickershistorical-init)
   - [GET /user-inputs](#get-user-inputs)
   - [PUT /user-inputs/private-holdings](#put-user-inputsprivate-holdings)
@@ -890,6 +891,70 @@ Content-Type: application/json
 
 ---
 
+### POST /tickers/assign
+
+Assign, remove, or replace stock tickers for a target user account in DynamoDB `user_profiles` table. Restricted to users with the `OPERATOR` role.
+
+```
+POST /tickers/assign
+Authorization: <id_token>
+Content-Type: application/json
+```
+
+**Request Payload:**
+
+```json
+{
+  "email": "user@example.com",
+  "ticker": "AAPL",
+  "action": "add"
+}
+```
+
+**Request Parameters:**
+
+| Parameter | Type | Required | Default | Description |
+|---|---|---|---|---|
+| `email` | `string` | **Conditional** | — | Target user's registered email address (required if `sub` is omitted). |
+| `sub` / `user_sub` | `string` | **Conditional** | — | Target user's Cognito `sub` UUID (required if `email` is omitted). |
+| `ticker` / `tickers` | `string` or `array[string]` | **Yes** | — | Single ticker string (e.g. `"AAPL"`) or array of ticker strings. Validated against regex `^[A-Z0-9.\-]+$`. |
+| `action` | `string` | No | `"add"` | Action mode: `"add"` (append ticker(s)), `"remove"` (remove ticker(s)), or `"replace"` (overwrite tickers list). |
+
+**Response** `200 OK`:
+```json
+{
+  "message": "Ticker assigned successfully.",
+  "sub": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+  "email": "user@example.com",
+  "ticker": "AAPL",
+  "tickers": ["AAPL", "MSFT"],
+  "action": "add"
+}
+```
+
+**Response** `400 Bad Request` (Missing target user identifier, missing ticker, or invalid action/ticker format):
+```json
+{
+  "message": "Target user email or sub is required."
+}
+```
+
+**Response** `403 Forbidden` (User is not an operator):
+```json
+{
+  "message": "Access Denied: Only operators can access this resource."
+}
+```
+
+**Response** `404 Not Found` (Target user profile does not exist in DynamoDB):
+```json
+{
+  "message": "Target user profile not found for 'user@example.com'."
+}
+```
+
+---
+
 ### GET /user-inputs
 
 Fetch the user inputs for the authenticated user (identified by the `sub` claim in the JWT). 
@@ -1565,13 +1630,7 @@ Content-Type: text/csv
 **Target S3 Location**:
 - Stocktwits: Saved as `kwatch/{ticker}/Stocktwits/{date}/{messages__id}.json`.
 - Reddit / Twitter: Saved as `kwatch/{ticker}/{platform}/{date}/{platform}_{ticker}_{sanitized_datetime}.json` (where colons in datetime are replaced with underscores).
-- The `{date}` folder is calculated dynamically based on the row's `datetime` value:
-  - Before 4:00 AM UTC: `ref_date = datetime - 1 day`
-  - At/After 4:00 AM UTC: `ref_date = datetime`
-  - If `ref_date` is a Monday: `date = ref_date - 3 days` (Friday)
-  - If `ref_date` is a Sunday: `date = ref_date - 3 days` (Thursday)
-  - If `ref_date` is a Saturday: `date = ref_date - 2 days` (Thursday)
-  - Otherwise: `date = ref_date - 1 day`
+- The `{date}` folder is calculated dynamically directly from the row's `datetime` value (`YYYY-MM-DD`).
 
 **Background Data Handling**:
 - **Deletion by Prefix**: Before uploading the new CSV rows, the background processor retrieves all existing objects in S3 matching the prefix `kwatch/{ticker}/{platform}/` (e.g., `kwatch/CURR/Reddit/`) using a paginator (`list_objects_v2`).
@@ -2765,7 +2824,7 @@ For `manual-input` and `kwatch` exports, CSV column headers strictly align with 
 | `manual-input` | `utilization` | `tradeDate,utilizationPercent` |
 | `manual-input` | `sec-filings` | `tradeDate,id,recordTicker,companyName,formType,formDescription,filingDate,reportingDate,act,filmNumber,fileNumber,accessionNumber,filingsUrl,notes` |
 | `manual-input` | `margins` | `tradeDate,initialMarginIbkr,initialMarginFutu,maintenanceMarginIbkr,maintenanceMarginFutu,averageDurationDays,valueFormat,displayFormat` |
-| `manual-input` | `manual-security-ownership` | `fileDate,effectiveDate,source,investor,optionType,type,avgPriceEst,shares,sharesPct,reportedValue,valueChangePct,portAlloc` |
+| `manual-input` | `manual-security-ownership` | `fileDate,effectiveDate,source,investor,optionType,type,avgPriceEst,shares,sharesPct,reportedValue,valueChangePct,portAlloc,positionStatus` |
 | `kwatch` | `reddit` | `platform,query,datetime,link,author,content,sentiment` |
 | `kwatch` | `twitter` | `platform,query,datetime,link,author,content,sentiment` |
 | `kwatch` | `stocktwits` | `messages__id,author,datetime,user__followers,content,Reshares,likes,link,sentiment_label,sentiment_score,analysis_catalyst_tag,platform` |
