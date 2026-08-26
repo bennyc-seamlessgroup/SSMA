@@ -4,6 +4,96 @@ This file is the persistent implementation memory for changes made by Codex.
 Read it before modifying existing portal behavior, and update it after every
 completed change.
 
+## 2026-08-26 - Discover nested dated 7D sentiment windows by boundary
+
+- Area: User Portal -> Reports -> Daily Market Close Report and Development
+  Data -> Sentiment Mapping.
+- API/data:
+  - Existing dated
+    `GET /market-data/reports?ticker={ticker}&date={date}` response only.
+- Reported problem and root cause:
+  - The backend team advised that report JSON may already contain different 7D
+    windows. Candidate discovery recognized explicit `window: "7D"`,
+    `periods.7D` / `periods.1W`, or complete aggregate-shaped objects, but a
+    historical window inside an array or date map could be missed when the
+    child supplied only `windowStart` / `windowEnd` plus its data.
+  - Repository search found no checked-in Aug 2026 production report JSON; the
+    only local report fixtures are older sample snapshots. The report contract
+    still defines each `date=` response as the raw dated report file.
+- Intended behavior and invariants:
+  - Recursively discover sentiment-owned objects with valid start/end
+    boundaries, including objects nested in arrays, date maps, and supported
+    JSON-encoded wrappers.
+  - Infer 7D for both inclusive seven-calendar-day boundaries (six date
+    intervals) and next-day-exclusive boundaries (seven date intervals), even
+    when the child omits a `window` label.
+  - Select only a candidate ending on the requested report date; stale or
+    future windows remain visible in diagnostics as `Not selected`.
+  - Existing explicit `window: "7D"`, `periods.7D`, frozen-report, and no-live-
+    fallback behavior remain unchanged.
+- Files changed:
+  - `app/monitor/[ticker]/reports/daily-report-data.ts`
+  - `docs/CODEX_CHANGE_LOG.md`
+- Verification:
+  - A focused Aug 21 response contained two unlabeled nested windows: Aug
+    20–26 and Aug 15–21. Diagnostics found both, selected Aug 15–21 for all
+    three subsections, and left Aug 20–26 unselected.
+  - Normalized output contained 12 mentions, score `58`, distribution
+    `5 / 6 / 1`, X `8`, and Reddit `4` for Aug 15–21.
+  - `npm run typecheck` passed.
+  - `npm run build` passed, including all 29 generated static pages.
+  - `git diff --check` passed.
+- Remaining backend dependency / limitation:
+  - If refreshed diagnostics still show only `$.sentiment` Aug 20–26, the Aug
+    15–21 window is not present anywhere in the dated Aug 21 API response and
+    the backend must correct or regenerate that archived file.
+
+## 2026-08-26 - Reject sentiment windows from the wrong report date
+
+- Area: User Portal -> Reports -> Daily Market Close Report and Development
+  Data -> Sentiment Mapping.
+- API/data:
+  - Existing dated
+    `GET /market-data/reports?ticker={ticker}&date={date}` response only.
+- Reported problem and root cause:
+  - Selecting the Aug 21 report correctly requested `date=2026-08-21`, but its
+    archived `$.sentiment` object returned `windowStart=2026-08-20` and
+    `windowEnd=2026-08-26`.
+  - The diagnostic correctly marked `Matches report date = No`, but candidate
+    selection still fell back to the first non-matching object when there were
+    no matching candidates. It therefore incorrectly labelled that stale or
+    future snapshot as selected for all report subsections.
+- Intended behavior and invariants:
+  - Overall, Distribution, and Platform Breakdown can select only explicit 7D
+    candidates whose window ends on the selected report date (including the
+    already supported next-day exclusive boundary).
+  - If every candidate has `Matches report date = No`, none is selected and
+    the report displays a specific archived-window mismatch message.
+  - The report's canonical inclusive display range remains anchored to the
+    selected date; Aug 21 displays Aug 15–21 and never Aug 20–26.
+  - The frontend does not fabricate the missing Aug 15–21 values or substitute
+    current sentiment into a frozen historical report.
+  - Changing the inspected report date in Dev Mode invalidates the matching
+    dated-response cache before loading, so the mapping reflects the latest
+    archived API payload.
+- Files changed:
+  - `app/monitor/[ticker]/reports/daily-report-data.ts`
+  - `app/monitor/[ticker]/reports/ReportArchiveDevTables.tsx`
+  - `docs/CODEX_CHANGE_LOG.md`
+- Verification:
+  - A focused Aug 21 regression supplied the observed Aug 20–26 sentiment
+    candidate. Diagnostics returned `Not selected` / `Matches report date =
+    No`; normalized output returned `available=false`, Aug 15–21, and the
+    archived-window mismatch message.
+  - `npm run typecheck` passed.
+  - `npm run build` passed, including all 29 generated static pages.
+  - `git diff --check` passed.
+- Remaining backend dependency / limitation:
+  - To show real sentiment values for Aug 21, the backend must regenerate
+    `reports/CURR/2026-08-21/CURR_report_data.json` with the matching frozen 7D
+    snapshot. The frontend cannot derive those historical values from the
+    future Aug 20–26 aggregate.
+
 ## 2026-08-26 - Expose the dated report sentiment candidate mapping
 
 - Area: User Portal -> Reports -> Development Data -> Sentiment Mapping.
@@ -6898,3 +6988,97 @@ completed change.
 - Remaining backend dependency / limitation:
   - `AVAILABLE` remains a lock-availability result rather than a verified worker
     success response.
+
+## 2026-08-26 - Expose historical initialization status-check errors
+
+- Area: Operations Portal -> Company Management -> Initialize History.
+- APIs/data:
+  - `POST /tickers/historical-init`
+  - `GET /tickers/historical-init/status?ticker={ticker}`
+- Reported problem and root cause:
+  - History remained labelled `Unavailable` after an initialization request,
+    but the generic badge did not explain that the GET status request had
+    failed or expose its backend error.
+- Intended behavior and invariants:
+  - History continues to recognize only the documented `IN_PROGRESS` and
+    `AVAILABLE` backend states.
+  - A status-request failure is described separately from initialization
+    acceptance or failure and includes the captured API error when available.
+  - Accepted initialization displays running and no-longer-running feedback
+    based on the status endpoint, with automatic polling unchanged.
+  - Operators are directed to Refresh Status when the check is unavailable.
+- Files changed:
+  - `app/operations/tickers/TickerManagementOperationsClient.tsx`
+  - `docs/CODEX_CHANGE_LOG.md`
+- Verification:
+  - TypeScript type-check passed.
+  - Whitespace validation passed.
+- Remaining backend dependency / limitation:
+  - The status endpoint reports lock availability only and cannot confirm the
+    historical worker's success or failure.
+
+## 2026-08-26 - Preserve accepted historical run during status-check failures
+
+- Area: Operations Portal -> Company Management -> Initialize History.
+- APIs/data:
+  - `POST /tickers/historical-init`
+  - `GET /tickers/historical-init/status?ticker={ticker}`
+- Reported problem and root cause:
+  - Immediately after a successful initialization POST, the frontend set the
+    optimistic state to `IN_PROGRESS` and then performed a status GET.
+  - When that GET failed, it replaced the accepted running state with
+    `Unavailable` and stopped the 15-second polling loop.
+- Intended behavior and invariants:
+  - A successfully accepted initialization remains visibly running when a
+    subsequent status check temporarily fails.
+  - The page displays the status-check error as a warning and continues retrying
+    every 15 seconds while the tab is visible.
+  - A later successful status response clears the warning and updates the lock
+    state normally.
+  - Initial status checks for runs not started in the current workflow can still
+    show `Unavailable` when the endpoint fails.
+  - Manual Refresh Status preserves an accepted active run instead of stopping
+    its polling after a transient error.
+- Files changed:
+  - `app/operations/tickers/TickerManagementOperationsClient.tsx`
+  - `docs/CODEX_CHANGE_LOG.md`
+- Verification:
+  - TypeScript type-check passed.
+  - Whitespace validation passed.
+- Remaining backend dependency / limitation:
+  - If the status endpoint remains unavailable, the frontend cannot determine
+    when the accepted backend job stops; it continues showing the accepted run
+    with an explicit status-check warning.
+
+## 2026-08-26 - Automate both pipeline status checks
+
+- Area: Operations Portal -> Company Management -> Initialize History.
+- APIs/data:
+  - `GET /tickers/historical-init/status?ticker={ticker}`
+  - `GET /manual-input/consolidate/status?ticker={ticker}`
+  - Existing historical initialization and consolidation POST actions.
+- Reported problem and root cause:
+  - A manual Refresh Status button duplicated the automatic 15-second polling
+    behavior and consolidation did not preserve an accepted run when its first
+    follow-up status request failed.
+- Intended behavior and invariants:
+  - Remove the manual Refresh Status control.
+  - History and consolidation both retry status every 15 seconds while active,
+    and also retry automatically from an unavailable status.
+  - A temporary status-check failure after an accepted POST preserves the
+    optimistic running state, displays the API error, and keeps polling.
+  - A later successful status response clears the warning and updates the
+    displayed pipeline state.
+  - Run Consolidation remains disabled while its lock status is unavailable so
+    an operator cannot accidentally submit a duplicate job.
+  - Historical initialization remains available after an initial status-check
+    failure because the backend POST remains the authoritative request guard.
+- Files changed:
+  - `app/operations/tickers/TickerManagementOperationsClient.tsx`
+  - `docs/CODEX_CHANGE_LOG.md`
+- Verification:
+  - TypeScript type-check passed.
+  - Whitespace validation passed.
+- Remaining backend dependency / limitation:
+  - Neither status endpoint reports final worker success or failure; both expose
+    only whether the corresponding lock is active.

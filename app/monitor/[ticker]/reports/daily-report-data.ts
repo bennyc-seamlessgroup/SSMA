@@ -130,6 +130,24 @@ function sentimentPlatformName(value: unknown) {
   return null;
 }
 
+function datePart(value: unknown) {
+  return String(value ?? '').match(/^(\d{4}-\d{2}-\d{2})/)?.[1] ?? '';
+}
+
+function hasSevenDayDateBoundary(row: Row) {
+  const windowStart = datePart(row.windowStart ?? row.windowStartUtc ?? row.start);
+  const windowEnd = datePart(row.windowEnd ?? row.windowEndUtc ?? row.end);
+  if (!windowStart || !windowEnd) return false;
+  const startTime = Date.parse(`${windowStart}T00:00:00Z`);
+  const endTime = Date.parse(`${windowEnd}T00:00:00Z`);
+  if (!Number.isFinite(startTime) || !Number.isFinite(endTime)) return false;
+  const calendarDayDifference = Math.round((endTime - startTime) / 86_400_000);
+
+  // Support both inclusive boundaries (Aug 15–21 = six date intervals) and
+  // a next-day exclusive end (Aug 15–22 = seven date intervals).
+  return calendarDayDifference === 6 || calendarDayDifference === 7;
+}
+
 function sentimentSourceRoots(payload: DailyReportPayload) {
   const roots: Array<{ value: Row; path: string }> = [];
   const visited = new Set<unknown>();
@@ -167,7 +185,14 @@ function sentimentSourceRoots(payload: DailyReportPayload) {
         || Array.isArray(row.platforms)
         || Array.isArray(row.platformBreakdown)
       );
-    if ((sentimentContext || hasAggregate) && (row.window !== undefined || hasSevenDayPeriod || hasAggregate)) {
+    const hasWindowBoundary = Boolean(
+      datePart(row.windowStart ?? row.windowStartUtc ?? row.start)
+      && datePart(row.windowEnd ?? row.windowEndUtc ?? row.end),
+    );
+    if (
+      (sentimentContext || hasAggregate)
+      && (row.window !== undefined || hasSevenDayPeriod || hasAggregate || hasWindowBoundary)
+    ) {
       roots.push({ value: row, path });
     }
 
@@ -197,7 +222,8 @@ function sevenDaySentimentCandidates(payload: DailyReportPayload) {
     const periods = objectValue(root.periods);
     const sevenDayKey = ['7D', '7d', '1W', '1w'].find(key => Object.keys(objectValue(periods[key])).length) ?? '';
     const sevenDay = objectValue(sevenDayKey ? periods[sevenDayKey] : undefined);
-    const rootIsSevenDay = ['7D', '7 DAYS', '7-DAY', '1W'].includes(String(root.window ?? '').trim().toUpperCase());
+    const rootIsSevenDay = ['7D', '7 DAYS', '7-DAY', '1W'].includes(String(root.window ?? '').trim().toUpperCase())
+      || hasSevenDayDateBoundary(root);
 
     // Some dated report files contain a populated aggregate on the sentiment
     // root while retaining an older empty periods.7D object. Keep both so the
@@ -247,10 +273,6 @@ function distributionCounts(row: Row) {
     neutral: finiteNumber(distribution.neutralCount ?? distribution.neutral) ?? 0,
     bearish: finiteNumber(distribution.bearishCount ?? distribution.negativeCount ?? distribution.bearish ?? distribution.negative) ?? 0,
   };
-}
-
-function datePart(value: unknown) {
-  return String(value ?? '').match(/^(\d{4}-\d{2}-\d{2})/)?.[1] ?? '';
 }
 
 function previousDate(value: string) {
@@ -352,13 +374,14 @@ function selectSevenDaySentimentCandidates(payload: DailyReportPayload, reportDa
     return matchingWindowDifference || candidateWeight(b) - candidateWeight(a);
   });
   const matchingCandidates = candidates.filter(candidate => hasMatchingSevenDayWindow(candidate, reportDate));
-  const selectedCandidate = matchingCandidates[0] ?? candidates[0];
+  // A dated report must never borrow sentiment from a different report date.
+  // If the archived file contains a stale or future window, leave sentiment
+  // unavailable so the mismatch is visible and can be corrected upstream.
+  const selectedCandidate = matchingCandidates[0];
   const distributionCandidate = [...matchingCandidates]
-    .sort((a, b) => distributionCandidateWeight(b) - distributionCandidateWeight(a))[0]
-    ?? selectedCandidate;
+    .sort((a, b) => distributionCandidateWeight(b) - distributionCandidateWeight(a))[0];
   const platformCandidate = [...matchingCandidates]
-    .sort((a, b) => platformCandidateWeight(b) - platformCandidateWeight(a))[0]
-    ?? selectedCandidate;
+    .sort((a, b) => platformCandidateWeight(b) - platformCandidateWeight(a))[0];
 
   return {
     candidates,
@@ -410,6 +433,8 @@ export function reportSentimentDiagnostics(payload: unknown, reportDate: string)
 
 function normalizeSevenDaySentiment(payload: DailyReportPayload, reportDate: string) {
   const {
+    candidates,
+    matchingCandidates,
     selectedCandidate,
     distributionCandidate,
     platformCandidate,
@@ -515,7 +540,11 @@ function normalizeSevenDaySentiment(payload: DailyReportPayload, reportDate: str
     overallAvailable,
     distributionAvailable,
     platformsAvailable,
-    unavailableMessage: available ? undefined : 'Sentiment data unavailable for this report.',
+    unavailableMessage: available
+      ? undefined
+      : candidates.length && !matchingCandidates.length
+        ? 'Sentiment data unavailable: the archived sentiment window does not match this report date.'
+        : 'Sentiment data unavailable for this report.',
     window: '7D',
     // The report labels an inclusive seven-calendar-day observation window.
     // Anchor it to the immutable report date so an incorrect legacy boundary

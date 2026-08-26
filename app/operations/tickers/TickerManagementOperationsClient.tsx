@@ -147,17 +147,54 @@ function consolidationFeedback(
   requestState: ConsolidationState,
   pipelineStatus: PipelineStatus,
   fallbackMessage: string,
+  statusError: string,
 ) {
   if (requestState === 'error') return fallbackMessage;
   if (requestState !== 'success') return fallbackMessage;
   if (pipelineStatus === 'in_progress') {
+    if (statusError) {
+      return `Consolidation was accepted for ${ticker}, but the latest status check failed. ${statusError} Retrying automatically.`;
+    }
     return `Consolidation is running for ${ticker}. Status updates automatically.`;
   }
   if (pipelineStatus === 'available') {
     return `Consolidation is no longer running for ${ticker}. Refresh affected portal data to confirm the latest values.`;
   }
   if (pipelineStatus === 'error') {
-    return `The consolidation request for ${ticker} was accepted, but its current status could not be checked. Use Refresh Status to try again.`;
+    return `The consolidation request for ${ticker} was accepted, but its current status could not be checked. The page will retry automatically.`;
+  }
+  return fallbackMessage;
+}
+
+function statusPayloadError(payload: unknown) {
+  if (!payload || typeof payload !== 'object') return '';
+  const value = (payload as Record<string, unknown>).error;
+  return typeof value === 'string' ? value.trim() : '';
+}
+
+function historicalFeedback(
+  ticker: string,
+  requestState: RequestState,
+  pipelineStatus: PipelineStatus,
+  fallbackMessage: string,
+  statusError: string,
+) {
+  if (requestState === 'error') return fallbackMessage;
+  if (pipelineStatus === 'error') {
+    const prefix = requestState === 'success'
+      ? `Historical initialization was accepted for ${ticker}, but its current status could not be checked.`
+      : `Historical initialization status could not be checked for ${ticker}.`;
+    return `${prefix}${statusError ? ` ${statusError}` : ''} The page will retry automatically.`;
+  }
+  if (requestState !== 'success') return fallbackMessage;
+  if (pipelineStatus === 'in_progress') {
+    if (statusError) {
+      return `Historical initialization was accepted for ${ticker}, but the latest status check failed. ${statusError} Retrying automatically.`;
+    }
+    return `Historical initialization is running for ${ticker}. Status updates automatically.`;
+  }
+  if (pipelineStatus === 'available') {
+    return `Historical initialization is no longer running for ${ticker}. You can now run consolidation.`;
   }
   return fallbackMessage;
 }
@@ -215,7 +252,7 @@ export function TickerManagementOperationsClient() {
   const today = localDate();
   const historicalDays = dateRangeDays(fromDate, toDate);
 
-  const loadHistoricalInitStatus = useCallback(async (tickerInput: string, silent = false) => {
+  const loadHistoricalInitStatus = useCallback(async (tickerInput: string, silent = false, preserveActiveStatus = false) => {
     const ticker = tickerInput.trim().toUpperCase();
     if (!tickerPattern.test(ticker)) {
       setHistoricalInitStatus('idle');
@@ -235,13 +272,13 @@ export function TickerManagementOperationsClient() {
     } catch (error) {
       const reason = error instanceof Error ? error.message : 'Unable to load historical initialization status.';
       setHistoricalStatusPayload({ ticker, error: reason });
-      setHistoricalInitStatus('error');
+      if (!preserveActiveStatus) setHistoricalInitStatus('error');
       setHistoricalLockAgeSeconds(null);
       return null;
     }
   }, []);
 
-  const loadConsolidationStatus = useCallback(async (tickerInput: string, silent = false) => {
+  const loadConsolidationStatus = useCallback(async (tickerInput: string, silent = false, preserveActiveStatus = false) => {
     const ticker = tickerInput.trim().toUpperCase();
     if (!tickerPattern.test(ticker)) {
       setConsolidationStatus('idle');
@@ -261,7 +298,7 @@ export function TickerManagementOperationsClient() {
     } catch (error) {
       const reason = error instanceof Error ? error.message : 'Unable to load consolidation status.';
       setConsolidationStatusPayload({ ticker, error: reason });
-      setConsolidationStatus('error');
+      if (!preserveActiveStatus) setConsolidationStatus('error');
       setConsolidationLockAgeSeconds(null);
       return null;
     }
@@ -358,24 +395,24 @@ export function TickerManagementOperationsClient() {
   }, [authorized, historicalTicker, loadConsolidationStatus, loadHistoricalInitStatus]);
 
   useEffect(() => {
-    if (authorized !== true || historicalInitStatus !== 'in_progress') return;
+    if (authorized !== true || (historicalInitStatus !== 'in_progress' && historicalInitStatus !== 'error')) return;
     const ticker = historicalTicker.trim().toUpperCase();
     if (!tickerPattern.test(ticker)) return;
     const interval = window.setInterval(() => {
-      if (document.visibilityState === 'visible') void loadHistoricalInitStatus(ticker, true);
+      if (document.visibilityState === 'visible') void loadHistoricalInitStatus(ticker, true, true);
     }, 15_000);
     return () => window.clearInterval(interval);
   }, [authorized, historicalInitStatus, historicalTicker, loadHistoricalInitStatus]);
 
   useEffect(() => {
-    if (authorized !== true || consolidationStatus !== 'in_progress') return;
+    if (authorized !== true || (consolidationStatus !== 'in_progress' && consolidationStatus !== 'error')) return;
     const ticker = historicalTicker.trim().toUpperCase();
     if (!tickerPattern.test(ticker)) return;
     const interval = window.setInterval(() => {
-      if (document.visibilityState === 'visible') void loadConsolidationStatus(ticker, true);
+      if (document.visibilityState === 'visible') void loadConsolidationStatus(ticker, true, consolidationState === 'success');
     }, 15_000);
     return () => window.clearInterval(interval);
-  }, [authorized, consolidationStatus, historicalTicker, loadConsolidationStatus]);
+  }, [authorized, consolidationState, consolidationStatus, historicalTicker, loadConsolidationStatus]);
 
   async function applyFilters(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -570,10 +607,11 @@ export function TickerManagementOperationsClient() {
       setHistoricalPayload(payload);
       setHistoricalState('success');
       setHistoricalInitAcceptedTicker(ticker);
+      setHistoricalStatusPayload(undefined);
       setHistoricalInitStatus('in_progress');
       setHistoricalLockAgeSeconds(0);
       setHistoricalMessage(`Historical initialization was accepted for ${ticker}. Processing continues asynchronously.`);
-      void loadHistoricalInitStatus(ticker, true);
+      void loadHistoricalInitStatus(ticker, true, true);
     } catch (error) {
       setHistoricalState('error');
       setHistoricalMessage(error instanceof Error ? error.message : 'Unable to start historical initialization.');
@@ -612,10 +650,11 @@ export function TickerManagementOperationsClient() {
         state: 'accepted; status tracked by consolidation status API',
       });
       setConsolidationState('success');
+      setConsolidationStatusPayload(undefined);
       setConsolidationStatus('in_progress');
       setConsolidationLockAgeSeconds(0);
       setConsolidationMessage(`Consolidation was accepted for ${ticker}. Status is checked automatically.`);
-      void loadConsolidationStatus(ticker, true);
+      void loadConsolidationStatus(ticker, true, true);
     } catch (error) {
       const reason = error instanceof Error ? error.message : 'Unable to trigger consolidation.';
       setConsolidationPayload({ request, error: reason, state: 'error' });
@@ -723,21 +762,36 @@ export function TickerManagementOperationsClient() {
           <div className="ops-ticker-history-summary"><span>{Number.isFinite(historicalDays) ? historicalDays : '—'} days</span><span>{vendors.length} vendors</span><span>Writes enabled</span></div>
           <div className="ops-ticker-history-actions">
             <button className="ops-primary-button" type="submit" disabled={historicalState === 'saving' || historicalInitStatus === 'loading' || historicalInitStatus === 'in_progress' || consolidationStatus === 'in_progress' || consolidationState === 'consolidating'}>{historicalState === 'saving' ? 'Submitting...' : historicalInitStatus === 'in_progress' ? 'Initialization Running' : 'Start Historical Init'}</button>
-            <button className="ops-secondary-button" type="button" disabled={!tickerPattern.test(historicalTicker.trim().toUpperCase()) || historicalInitStatus === 'loading' || consolidationStatus === 'loading'} onClick={() => void Promise.all([loadHistoricalInitStatus(historicalTicker), loadConsolidationStatus(historicalTicker)])}>{historicalInitStatus === 'loading' || consolidationStatus === 'loading' ? 'Checking...' : 'Refresh Status'}</button>
             <button
               className="ops-secondary-button"
               type="button"
-              disabled={historicalInitAcceptedTicker !== historicalTicker.trim().toUpperCase() || historicalState === 'saving' || historicalInitStatus === 'in_progress' || consolidationStatus === 'loading' || consolidationStatus === 'in_progress' || consolidationState === 'consolidating'}
+              disabled={historicalInitAcceptedTicker !== historicalTicker.trim().toUpperCase() || historicalState === 'saving' || historicalInitStatus === 'in_progress' || historicalInitStatus === 'error' || consolidationStatus === 'loading' || consolidationStatus === 'in_progress' || consolidationStatus === 'error' || consolidationState === 'consolidating'}
               title={historicalInitAcceptedTicker !== historicalTicker.trim().toUpperCase() ? 'Start historical initialization before running consolidation.' : undefined}
               onClick={() => void runConsolidation()}
             >
               {consolidationState === 'consolidating' ? 'Submitting...' : consolidationStatus === 'in_progress' ? 'Consolidation Running' : 'Run Consolidation'}
             </button>
           </div>
-          {historicalMessage && <p className={`ops-form-message ${historicalState === 'error' ? 'bad' : 'good'}`} role="status">{historicalMessage}</p>}
+          {(historicalMessage || historicalInitStatus === 'error') && (
+            <p className={`ops-form-message ${historicalState === 'error' || historicalInitStatus === 'error' || statusPayloadError(historicalStatusPayload) ? 'bad' : 'good'}`} role="status" aria-live="polite">
+              {historicalFeedback(
+                historicalTicker.trim().toUpperCase(),
+                historicalState,
+                historicalInitStatus,
+                historicalMessage,
+                statusPayloadError(historicalStatusPayload),
+              )}
+            </p>
+          )}
           {consolidationMessage && (
-            <p className={`ops-form-message ${consolidationState === 'error' || consolidationStatus === 'error' ? 'bad' : 'good'}`} role="status" aria-live="polite">
-              {consolidationFeedback(historicalTicker.trim().toUpperCase(), consolidationState, consolidationStatus, consolidationMessage)}
+            <p className={`ops-form-message ${consolidationState === 'error' || consolidationStatus === 'error' || statusPayloadError(consolidationStatusPayload) ? 'bad' : 'good'}`} role="status" aria-live="polite">
+              {consolidationFeedback(
+                historicalTicker.trim().toUpperCase(),
+                consolidationState,
+                consolidationStatus,
+                consolidationMessage,
+                statusPayloadError(consolidationStatusPayload),
+              )}
             </p>
           )}
         </form>

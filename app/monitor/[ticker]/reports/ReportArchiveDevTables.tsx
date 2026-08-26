@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { ImportDataTable } from '@/components/ImportDataTable';
 import { ImportDataTabs } from '@/components/ImportDataTabs';
-import { cachedAuthenticatedFetch } from '@/lib/auth-client';
+import { cachedAuthenticatedFetch, invalidateAuthenticatedFetchCache } from '@/lib/auth-client';
 import type { ReportArchiveRecord } from '@/lib/report-archive';
 import { reportSentimentDiagnostics } from './daily-report-data';
 
@@ -124,6 +124,11 @@ export function ReportArchiveDevTables({
     const indexPath = `/market-data/reports?ticker=${encodedTicker}&limit=100&page=1`;
     const reportPath = `/market-data/reports?ticker=${encodedTicker}&date=${encodedDate}`;
     const aiPath = `/market-data/ai-report?ticker=${encodedTicker}&date=${encodedDate}`;
+
+    // A dated report may be regenerated without changing its URL. The
+    // diagnostics must inspect the latest archived payload when the operator
+    // changes dates rather than a previously cached response.
+    invalidateAuthenticatedFetchCache(reportPath);
 
     setIndexSource({ data: null, error: '', loading: true });
     setReportSource({ data: null, error: '', loading: true });
