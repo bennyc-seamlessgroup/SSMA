@@ -7144,3 +7144,102 @@ completed change.
   - The frontend cannot determine whether an asynchronous job completed until
     its documented status GET becomes reachable and returns `IN_PROGRESS` or
     `AVAILABLE`.
+
+## 2026-08-27 - Show history status for every managed company
+
+- Area: Operations Portal -> Company Management -> Initialize History.
+- APIs/data:
+  - `GET /tickers?includeDeleted=false&limit=100` across all result pages.
+  - `GET /tickers/historical-init/status?ticker={ticker}` for each managed
+    company.
+  - Existing selected-company initialization and consolidation APIs remain
+    unchanged.
+- Reported problem and root cause:
+  - The initialization panel only showed the selected company's history status,
+    so operators could not see that another managed company's history job was
+    still running or unavailable.
+- Intended behavior and invariants:
+  - Load every non-deleted managed company and show its history status in one
+    compact board.
+  - Prioritize running and unavailable companies before ready companies, with
+    summary counts and a manual refresh command.
+  - Refresh the board every 15 seconds while at least one company is running.
+  - Isolate per-company request failures so one unavailable status never hides
+    the remaining companies.
+  - Refresh the board after company creation, editing, deletion, and historical
+    initialization.
+  - Preserve the selected-company initialization form, validation, status
+    handling, and consolidation controls.
+  - `Ready` continues to mean that no historical initialization lock is active;
+    it does not prove that historical data is complete.
+- Files changed:
+  - `app/operations/tickers/TickerManagementOperationsClient.tsx`
+  - `app/globals.css`
+  - `lib/portal-page-translations.ts`
+  - `docs/CODEX_CHANGE_LOG.md`
+- Verification:
+  - TypeScript type-check passed.
+  - Whitespace validation passed.
+- Remaining backend dependency / limitation:
+  - The API has no bulk history-status route, so the frontend must make one
+    status request per managed ticker after listing the companies.
+  - The status contract exposes only `IN_PROGRESS` or `AVAILABLE`, not a
+    historical completeness result.
+
+## 2026-08-27 - Limit the company history board to non-ready companies
+
+- Area: Operations Portal -> Company Management -> Initialize History.
+- APIs/data:
+  - Existing all-company `GET /tickers` and per-company
+    `GET /tickers/historical-init/status?ticker={ticker}` requests are unchanged.
+- Reported problem and root cause:
+  - Rendering ready companies as individual rows would make the history board
+    increasingly long as more companies are added.
+- Intended behavior and invariants:
+  - Show rows only for companies whose status is running, unavailable, or not
+    yet checked.
+  - Keep ready companies represented in the compact summary count.
+  - Show a clear all-ready message when no company requires attention.
+  - Preserve all-company checking, polling, manual refresh, and the selected
+    company's initialization and consolidation workflow.
+- Files changed:
+  - `app/operations/tickers/TickerManagementOperationsClient.tsx`
+  - `lib/portal-page-translations.ts`
+  - `docs/CODEX_CHANGE_LOG.md`
+- Verification:
+  - TypeScript type-check passed.
+  - Whitespace validation passed.
+- Remaining backend dependency / limitation:
+  - The frontend still needs one status request per managed ticker because the
+    API does not expose a bulk status endpoint.
+
+## 2026-08-27 - Enable consolidation when all company histories are ready
+
+- Area: Operations Portal -> Company Management -> Initialize History.
+- APIs/data:
+  - `GET /tickers/historical-init/status?ticker={ticker}` for all managed
+    companies.
+  - `POST /manual-input/consolidate?ticker={ticker}`.
+  - `GET /manual-input/consolidate/status?ticker={ticker}`.
+- Reported problem and root cause:
+  - Run Consolidation remained disabled unless historical initialization had
+    been started for the selected ticker during the current browser session,
+    even when every managed company already reported a ready history status.
+- Intended behavior and invariants:
+  - An all-ready company history board permits consolidation for a valid
+    selected ticker without requiring a redundant initialization submission in
+    the current session.
+  - A selected ticker initialized during the current session can still proceed
+    once its initialization is no longer running.
+  - Active initialization, active consolidation, invalid ticker input, and an
+    unavailable consolidation lock status continue to disable the command.
+- Files changed:
+  - `app/operations/tickers/TickerManagementOperationsClient.tsx`
+  - `lib/portal-page-translations.ts`
+  - `docs/CODEX_CHANGE_LOG.md`
+- Verification:
+  - TypeScript type-check passed.
+  - Whitespace validation passed.
+- Remaining backend dependency / limitation:
+  - `AVAILABLE` confirms only that no active history lock exists; the backend
+    does not expose a separate historical completeness result.

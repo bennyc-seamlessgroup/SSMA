@@ -11,6 +11,16 @@ type ConsolidationState = 'idle' | 'consolidating' | 'error' | 'success';
 type PipelineStatus = 'idle' | 'loading' | 'available' | 'in_progress' | 'error';
 type Vendor = 'chartexchange' | 'massive' | 'fintel';
 
+type CompanyHistoryStatus = {
+  ticker: string;
+  companyName: string;
+  registryStatus: TickerStatus;
+  status: PipelineStatus;
+  lockAgeSeconds: number | null;
+  checkedAt: string;
+  payload: unknown;
+};
+
 type TickerRecord = {
   ticker: string;
   companyName: string;
@@ -142,6 +152,24 @@ function pipelineStatusText(label: string, status: PipelineStatus, lockAgeSecond
   return `${label} · Select ticker`;
 }
 
+function companyHistoryStatusLabel(status: PipelineStatus, lockAgeSeconds: number | null) {
+  if (status === 'loading') return 'Checking';
+  if (status === 'in_progress') {
+    const elapsed = formatElapsedSeconds(lockAgeSeconds);
+    return `Running${elapsed ? ` · ${elapsed}` : ''}`;
+  }
+  if (status === 'available') return 'Ready';
+  if (status === 'error') return 'Unavailable';
+  return 'Not checked';
+}
+
+function companyHistoryStatusPriority(status: PipelineStatus) {
+  if (status === 'in_progress') return 0;
+  if (status === 'error') return 1;
+  if (status === 'loading' || status === 'idle') return 2;
+  return 3;
+}
+
 function consolidationFeedback(
   ticker: string,
   requestState: ConsolidationState,
@@ -219,6 +247,10 @@ export function TickerManagementOperationsClient() {
   const [consolidationStatus, setConsolidationStatus] = useState<PipelineStatus>('idle');
   const [consolidationLockAgeSeconds, setConsolidationLockAgeSeconds] = useState<number | null>(null);
   const [consolidationState, setConsolidationState] = useState<ConsolidationState>('idle');
+  const [companyHistoryStatuses, setCompanyHistoryStatuses] = useState<CompanyHistoryStatus[]>([]);
+  const [companyHistoryState, setCompanyHistoryState] = useState<RequestState>('loading');
+  const [companyHistoryUpdatedAt, setCompanyHistoryUpdatedAt] = useState('');
+  const [companyHistoryPayload, setCompanyHistoryPayload] = useState<unknown>();
   const [message, setMessage] = useState('');
   const [historicalMessage, setHistoricalMessage] = useState('');
   const [consolidationMessage, setConsolidationMessage] = useState('');
@@ -251,6 +283,9 @@ export function TickerManagementOperationsClient() {
 
   const today = localDate();
   const historicalDays = dateRangeDays(fromDate, toDate);
+  const allCompanyHistoryReady = companyHistoryState === 'idle'
+    && companyHistoryStatuses.length > 0
+    && companyHistoryStatuses.every(item => item.status === 'available');
 
   const loadHistoricalInitStatus = useCallback(async (tickerInput: string, silent = false) => {
     const ticker = tickerInput.trim().toUpperCase();
@@ -268,13 +303,78 @@ export function TickerManagementOperationsClient() {
       setHistoricalStatusPayload(payload);
       setHistoricalInitStatus(normalized.status);
       setHistoricalLockAgeSeconds(normalized.lockAgeSeconds);
+      setCompanyHistoryStatuses(current => current.map(item => item.ticker === ticker
+        ? { ...item, status: normalized.status, lockAgeSeconds: normalized.lockAgeSeconds, checkedAt: new Date().toISOString(), payload }
+        : item));
       return normalized;
     } catch (error) {
       const reason = error instanceof Error ? error.message : 'Unable to load historical initialization status.';
       setHistoricalStatusPayload({ ticker, error: reason });
       setHistoricalInitStatus('error');
       setHistoricalLockAgeSeconds(null);
+      setCompanyHistoryStatuses(current => current.map(item => item.ticker === ticker
+        ? { ...item, status: 'error', lockAgeSeconds: null, checkedAt: new Date().toISOString(), payload: { ticker, error: reason } }
+        : item));
       return null;
+    }
+  }, []);
+
+  const loadAllCompanyHistoryStatuses = useCallback(async (silent = false) => {
+    if (!silent) setCompanyHistoryState('loading');
+    try {
+      const managedRecords: TickerRecord[] = [];
+      const tickerListPayloads: unknown[] = [];
+      let nextPageToken: string | null = null;
+      let pageGuard = 0;
+      do {
+        const params = new URLSearchParams({ includeDeleted: 'false', limit: '100' });
+        if (nextPageToken) params.set('nextToken', nextPageToken);
+        const payload = await authenticatedFetch(`/tickers?${params.toString()}`, { cache: 'no-store' });
+        const normalized = normalizeTickerList(payload);
+        tickerListPayloads.push(payload);
+        managedRecords.push(...normalized.records.filter(record => record.status !== 'DELETED'));
+        nextPageToken = normalized.nextToken;
+        pageGuard += 1;
+      } while (nextPageToken && pageGuard < 50);
+
+      const uniqueRecords = [...new Map(managedRecords.map(record => [record.ticker, record])).values()];
+      const checkedAt = new Date().toISOString();
+      const statuses = await Promise.all(uniqueRecords.map(async record => {
+        const endpoint = `/tickers/historical-init/status?ticker=${encodeURIComponent(record.ticker)}`;
+        try {
+          const payload = await authenticatedFetch(endpoint, { cache: 'no-store' });
+          const normalized = normalizePipelineStatus(payload, 'Historical initialization');
+          return {
+            ticker: record.ticker,
+            companyName: record.companyName,
+            registryStatus: record.status,
+            status: normalized.status,
+            lockAgeSeconds: normalized.lockAgeSeconds,
+            checkedAt,
+            payload,
+          } satisfies CompanyHistoryStatus;
+        } catch (error) {
+          const reason = error instanceof Error ? error.message : 'Unable to load historical initialization status.';
+          return {
+            ticker: record.ticker,
+            companyName: record.companyName,
+            registryStatus: record.status,
+            status: 'error',
+            lockAgeSeconds: null,
+            checkedAt,
+            payload: { ticker: record.ticker, error: reason },
+          } satisfies CompanyHistoryStatus;
+        }
+      }));
+
+      setCompanyHistoryStatuses(statuses);
+      setCompanyHistoryPayload({ tickerRegistry: tickerListPayloads, statuses });
+      setCompanyHistoryUpdatedAt(checkedAt);
+      setCompanyHistoryState('idle');
+    } catch (error) {
+      setCompanyHistoryState('error');
+      setCompanyHistoryPayload({ error: error instanceof Error ? error.message : 'Unable to load company history statuses.' });
+      if (!silent) setCompanyHistoryStatuses([]);
     }
   }, []);
 
@@ -355,7 +455,10 @@ export function TickerManagementOperationsClient() {
           setMessage('Ticker Management is available only to operations users.');
           return;
         }
-        await loadTickers(null, 1);
+        await Promise.all([
+          loadTickers(null, 1),
+          loadAllCompanyHistoryStatuses(),
+        ]);
       })
       .catch(error => {
         if (cancelled) return;
@@ -367,6 +470,14 @@ export function TickerManagementOperationsClient() {
     // Initial operator workspace load only.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  useEffect(() => {
+    if (authorized !== true || !companyHistoryStatuses.some(item => item.status === 'in_progress')) return;
+    const interval = window.setInterval(() => {
+      if (document.visibilityState === 'visible') void loadAllCompanyHistoryStatuses(true);
+    }, 15_000);
+    return () => window.clearInterval(interval);
+  }, [authorized, companyHistoryStatuses, loadAllCompanyHistoryStatuses]);
 
   useEffect(() => {
     if (authorized !== true) return;
@@ -478,6 +589,7 @@ export function TickerManagementOperationsClient() {
       setDetailPayload(payload);
       setPreviousTokens([]);
       await loadTickers(null, 1);
+      void loadAllCompanyHistoryStatuses(true);
       setActionState('success');
       setMessage(`${ticker} was created successfully.`);
     } catch (error) {
@@ -526,6 +638,7 @@ export function TickerManagementOperationsClient() {
       setDetailPayload(payload);
       populateEditor(record);
       await loadTickers(currentToken, pageNumber);
+      void loadAllCompanyHistoryStatuses(true);
       setActionState('success');
       setMessage(`${record.ticker} was updated successfully.`);
     } catch (error) {
@@ -550,6 +663,7 @@ export function TickerManagementOperationsClient() {
       setDetailPayload(payload);
       populateEditor(record.ticker ? record : { ...selectedTicker, status: 'DELETED' });
       await loadTickers(currentToken, pageNumber);
+      void loadAllCompanyHistoryStatuses(true);
       setActionState('success');
       setMessage(`${selectedTicker.ticker} was soft deleted.`);
     } catch (error) {
@@ -610,6 +724,9 @@ export function TickerManagementOperationsClient() {
       setHistoricalStatusPayload(undefined);
       setHistoricalInitStatus('in_progress');
       setHistoricalLockAgeSeconds(0);
+      setCompanyHistoryStatuses(current => current.map(item => item.ticker === ticker
+        ? { ...item, status: 'in_progress', lockAgeSeconds: 0, checkedAt: new Date().toISOString(), payload }
+        : item));
       setHistoricalMessage(`Historical initialization was accepted for ${ticker}. Processing continues asynchronously.`);
       void loadHistoricalInitStatus(ticker, true);
     } catch (error) {
@@ -626,7 +743,7 @@ export function TickerManagementOperationsClient() {
       setConsolidationMessage('Enter a valid ticker before running consolidation.');
       return;
     }
-    if (historicalInitAcceptedTicker !== ticker) {
+    if (!allCompanyHistoryReady && historicalInitAcceptedTicker !== ticker) {
       setConsolidationState('error');
       setConsolidationMessage(`Start historical initialization for ${ticker} before running consolidation.`);
       return;
@@ -697,6 +814,14 @@ export function TickerManagementOperationsClient() {
       payload: historicalPayload ?? { state: 'not requested' },
     },
     {
+      endpoint: `GET /tickers + GET /tickers/historical-init/status × ${companyHistoryStatuses.length}`,
+      source: 'All Managed Company History Statuses',
+      state: companyHistoryState,
+      recordCount: companyHistoryStatuses.length,
+      updatedAt: companyHistoryUpdatedAt,
+      payload: companyHistoryPayload,
+    },
+    {
       endpoint: `GET /tickers/historical-init/status?ticker=${historicalTicker.trim().toUpperCase() || '{ticker}'}`,
       source: 'Historical Initialization Status API',
       state: historicalInitStatus,
@@ -717,6 +842,23 @@ export function TickerManagementOperationsClient() {
       payload: consolidationStatusPayload ?? { state: 'not requested' },
     },
   ];
+
+  const nonReadyCompanyHistoryStatuses = companyHistoryStatuses.filter(item => item.status !== 'available').sort((a, b) => (
+    companyHistoryStatusPriority(a.status) - companyHistoryStatusPriority(b.status)
+    || a.ticker.localeCompare(b.ticker)
+  ));
+  const runningCompanyCount = companyHistoryStatuses.filter(item => item.status === 'in_progress').length;
+  const unavailableCompanyCount = companyHistoryStatuses.filter(item => item.status === 'error').length;
+  const readyCompanyCount = companyHistoryStatuses.filter(item => item.status === 'available').length;
+  const selectedTickerCanConsolidate = tickerPattern.test(historicalTicker.trim().toUpperCase())
+    && (allCompanyHistoryReady || historicalInitAcceptedTicker === historicalTicker.trim().toUpperCase());
+  const companyHistorySummary = companyHistoryState === 'loading' && !companyHistoryStatuses.length
+    ? 'History · Checking all'
+    : companyHistoryState === 'error' && !companyHistoryStatuses.length
+      ? 'History · Unavailable'
+      : runningCompanyCount || unavailableCompanyCount
+        ? `History · ${runningCompanyCount + unavailableCompanyCount} not ready`
+        : `History · ${readyCompanyCount} ready`;
 
   if (authorized === false) {
     return (
@@ -749,10 +891,44 @@ export function TickerManagementOperationsClient() {
           <div className="ops-panel-head">
             <div><span className="ops-eyebrow">Historical Data</span><h2>Initialize History</h2><p>Collect up to 180 days from selected vendors. Accepted jobs run asynchronously.</p></div>
             <div className="ops-ticker-pipeline-statuses" aria-live="polite">
-              <span className={`ops-status ${historicalInitStatus === 'available' ? 'good' : historicalInitStatus === 'error' && historicalState !== 'idle' ? 'bad' : ''}`}>{pipelineStatusText('History', historicalInitStatus, historicalLockAgeSeconds)}</span>
+              <span className={`ops-status ${unavailableCompanyCount ? 'bad' : readyCompanyCount && !runningCompanyCount ? 'good' : ''}`}>{companyHistorySummary}</span>
               <span className={`ops-status ${consolidationStatus === 'available' ? 'good' : consolidationStatus === 'error' && consolidationState !== 'idle' ? 'bad' : ''}`}>{pipelineStatusText('Consolidation', consolidationStatus, consolidationLockAgeSeconds)}</span>
             </div>
           </div>
+          <section className="ops-company-history-overview" aria-label="Managed company history statuses">
+            <div className="ops-company-history-overview__head">
+              <div>
+                <strong>Companies requiring attention</strong>
+                <span>Only companies that are not ready are shown below.</span>
+              </div>
+              <button className="ops-secondary-button" type="button" disabled={companyHistoryState === 'loading'} onClick={() => void loadAllCompanyHistoryStatuses()}>
+                {companyHistoryState === 'loading' ? 'Checking...' : 'Refresh all'}
+              </button>
+            </div>
+            <div className="ops-company-history-overview__summary" aria-label="Company history status totals">
+              <span className="is-running">{runningCompanyCount} running</span>
+              <span className="is-unavailable">{unavailableCompanyCount} unavailable</span>
+              <span className="is-ready">{readyCompanyCount} ready</span>
+            </div>
+            <div className="ops-company-history-list">
+              {nonReadyCompanyHistoryStatuses.map(item => (
+                <article className={`is-${item.status}${item.ticker === historicalTicker.trim().toUpperCase() ? ' is-selected' : ''}`} key={item.ticker}>
+                  <div>
+                    <strong>{item.ticker}</strong>
+                    <span>{item.companyName || 'Company name unavailable'}</span>
+                  </div>
+                  <div>
+                    {item.registryStatus === 'INACTIVE' && <small>Inactive</small>}
+                    <b>{companyHistoryStatusLabel(item.status, item.lockAgeSeconds)}</b>
+                  </div>
+                </article>
+              ))}
+              {companyHistoryState !== 'loading' && !nonReadyCompanyHistoryStatuses.length && (
+                <p>All managed companies are ready.</p>
+              )}
+            </div>
+            <small className="ops-company-history-overview__note">Ready means no historical initialization job is currently running. It does not verify historical data completeness.</small>
+          </section>
           <div className="ops-ticker-history-fields">
             <label><span>Ticker</span><input required maxLength={20} value={historicalTicker} onChange={event => setHistoricalTicker(event.target.value.toUpperCase())} placeholder="Select a ticker below" /></label>
             <label><span>From date</span><input required type="date" max={today} value={fromDate} onChange={event => setFromDate(event.target.value)} /></label>
@@ -777,8 +953,8 @@ export function TickerManagementOperationsClient() {
             <button
               className="ops-secondary-button"
               type="button"
-              disabled={historicalInitAcceptedTicker !== historicalTicker.trim().toUpperCase() || historicalState === 'saving' || historicalInitStatus === 'in_progress' || historicalInitStatus === 'error' || consolidationStatus === 'loading' || consolidationStatus === 'in_progress' || consolidationStatus === 'error' || consolidationState === 'consolidating'}
-              title={historicalInitAcceptedTicker !== historicalTicker.trim().toUpperCase() ? 'Start historical initialization before running consolidation.' : undefined}
+              disabled={!selectedTickerCanConsolidate || historicalState === 'saving' || historicalInitStatus === 'in_progress' || (!allCompanyHistoryReady && historicalInitStatus === 'error') || consolidationStatus === 'loading' || consolidationStatus === 'in_progress' || consolidationStatus === 'error' || consolidationState === 'consolidating'}
+              title={!selectedTickerCanConsolidate ? 'Start historical initialization or wait until all company histories are ready before running consolidation.' : undefined}
               onClick={() => void runConsolidation()}
             >
               {consolidationState === 'consolidating' ? 'Submitting...' : consolidationStatus === 'in_progress' ? 'Consolidation Running' : 'Run Consolidation'}
