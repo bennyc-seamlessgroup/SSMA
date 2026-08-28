@@ -11,7 +11,7 @@ export type CurrentDataSourceRow = {
 export async function getCurrentDataSourceRows(_rawTicker: string): Promise<CurrentDataSourceRow[]> {
   const rows: CurrentDataSourceRow[] = [];
   const apiRows = [
-    ['Dashboard', '/market-data/current + /market-data/history'],
+    ['Dashboard', '/market-data/current?category=market-current + /market-data/history?category=market-history + /manual-input/sec-filings'],
     ['Exchange Volume', '/market-data/current?category=market-current + /market-data/history?category=exchange-volume-history'],
     ['Ownership', '/market-data/current?category=ownership-current + /market-data/current?category=ownership-summary-current + /manual-input/manual-security-ownership + /market-data/current?category=internal-float-current-user + /manual-input/internal-float-inputs-user + /market-data/history?category=ownership-history'],
     ['Internal Float', '/market-data/current?category=internal-float-current-user + /manual-input/internal-float-inputs-ticker + /manual-input/internal-float-inputs-user'],

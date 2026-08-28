@@ -7,6 +7,12 @@ import { useEffect, useMemo, useState } from 'react';
 
 type Dataset = 'chartexchange' | 'fintel' | 'history' | 'manual-input' | 'kwatch';
 
+const kwatchCategories = [
+  { value: 'reddit', label: 'Reddit' },
+  { value: 'twitter', label: 'Twitter' },
+  { value: 'stocktwits', label: 'Stocktwits' },
+] as const;
+
 const categorySuggestions = [
   'profile',
   'issued-share',
@@ -200,13 +206,19 @@ export function DataExportClient() {
           </label>
           <label>
             <span>Category {categoryRequired ? '' : '(optional)'}</span>
-            <input
-              list="export-category-suggestions"
-              value={category}
-              required={categoryRequired}
-              placeholder={categoryRequired ? 'Choose or enter a category' : 'All available categories'}
-              onChange={event => setCategory(event.target.value)}
-            />
+            {dataset === 'kwatch' ? (
+              <select value={category} required onChange={event => setCategory(event.target.value)}>
+                {kwatchCategories.map(item => <option value={item.value} key={item.value}>{item.label}</option>)}
+              </select>
+            ) : (
+              <input
+                list="export-category-suggestions"
+                value={category}
+                required={categoryRequired}
+                placeholder={categoryRequired ? 'Choose or enter a category' : 'All available categories'}
+                onChange={event => setCategory(event.target.value)}
+              />
+            )}
             <datalist id="export-category-suggestions">
               {categorySuggestions.map(item => <option value={item} key={item} />)}
             </datalist>

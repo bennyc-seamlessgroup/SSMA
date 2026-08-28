@@ -333,9 +333,9 @@ body { font-size: 12px; }
 .risk-pill.low { color: #087656; background: #eafaf4; }
 .score-card-content { display: grid; grid-template-columns: 112px 1fr; align-items: center; gap: 16px; margin: 8px 0 13px; }
 .short-score-ring { display: grid; place-items: center; width: 108px; height: 108px; border-radius: 50%; }
-.short-score-ring > div { display: flex; align-items: baseline; justify-content: center; width: 82px; height: 82px; border-radius: 50%; background: #fff; }
-.short-score-ring b { align-self: center; font-size: 28px; line-height: 1; }
-.short-score-ring small { align-self: center; margin: 8px 0 0 3px; color: var(--muted); font-size: 9px; }
+.short-score-ring > div { display: flex; flex-direction: column; align-items: center; justify-content: center; width: 82px; height: 82px; border-radius: 50%; background: #fff; }
+.short-score-ring b { font-size: 24px; line-height: 1; letter-spacing: -.045em; white-space: nowrap; }
+.short-score-ring small { margin-top: 3px; color: var(--muted); font-size: 8px; line-height: 1; white-space: nowrap; }
 .score-copy p { margin: 8px 0 0; color: #4d627c; font-size: 9.5px; line-height: 1.5; }
 .score-change { color: var(--muted); font-size: 11px; font-weight: 800; }
 .score-change span { color: #718199; font-size: 8px; font-weight: 700; }
@@ -525,7 +525,8 @@ body[data-report-view="html"] .chart-latest { font-size: 13px; }
 body[data-report-view="html"] .chart-subtitle,
 body[data-report-view="html"] .axis-label { font-size: 10.5px; }
 body[data-report-view="html"] .risk-pill { font-size: 9.5px; }
-body[data-report-view="html"] .short-score-ring small { font-size: 10px; }
+body[data-report-view="html"] .short-score-ring b { font-size: 25px; }
+body[data-report-view="html"] .short-score-ring small { font-size: 8.5px; }
 body[data-report-view="html"] .score-copy p { font-size: 11.5px; }
 body[data-report-view="html"] .score-change { font-size: 12px; }
 body[data-report-view="html"] .score-change span { font-size: 9.5px; }

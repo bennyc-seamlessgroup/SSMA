@@ -1,8 +1,9 @@
 'use client';
 
 import { createContext, useContext, useEffect, useRef, useState } from 'react';
-import { useRouter } from 'next/navigation';
-import { authenticatedFetch, invalidateAuthenticatedFetchCache } from '@/lib/auth-client';
+import { usePathname, useRouter } from 'next/navigation';
+import { authenticatedFetch, cachedAuthenticatedFetch, invalidateAuthenticatedFetchCache } from '@/lib/auth-client';
+import { slugFromPathname } from '@/lib/page-data-sources';
 
 export type TickerPageDataStatus = {
   version: string;
@@ -34,6 +35,20 @@ type SocialStatusPayload = {
   records?: Array<{ key?: string; datetime?: string; timestamp?: string }>;
   pagination?: { totalItems?: number };
 };
+
+type ApiStatusResult = Pick<TickerDataStatus, 'companyName' | 'pages' | 'updatedAt'>;
+
+function categoryDataset(payload: unknown, category: string): ApiDataset {
+  if (!payload || typeof payload !== 'object' || Array.isArray(payload)) return null;
+  const root = payload as Record<string, unknown>;
+  const data = root.data && typeof root.data === 'object' && !Array.isArray(root.data)
+    ? root.data as Record<string, unknown>
+    : null;
+  const candidate = root[category] ?? data?.[category] ?? data ?? root;
+  return candidate && typeof candidate === 'object' && !Array.isArray(candidate)
+    ? candidate as ApiDataset
+    : null;
+}
 
 function recordDate(record: Record<string, unknown>) {
   return String(
@@ -91,7 +106,48 @@ function latestFilingStatus(dataset: ApiDataset): TickerPageDataStatus {
   return { ...status, displayDate, dateMode: 'latest-filing' };
 }
 
-async function getApiTickerDataStatus(ticker: string): Promise<Pick<TickerDataStatus, 'companyName' | 'pages' | 'updatedAt'>> {
+async function getDashboardTickerDataStatus(ticker: string, refresh: boolean): Promise<ApiStatusResult> {
+  const encodedTicker = encodeURIComponent(ticker);
+  const currentPath = `/market-data/current?ticker=${encodedTicker}&category=market-current`;
+  const historyPath = `/market-data/history?ticker=${encodedTicker}&category=market-history`;
+  const filingsPath = `/manual-input/sec-filings?ticker=${encodedTicker}`;
+  const profilePath = `/market-data/current?ticker=${encodedTicker}&category=company-profile-current`;
+
+  if (refresh) {
+    [currentPath, historyPath, filingsPath, profilePath].forEach(path => invalidateAuthenticatedFetchCache(path));
+  }
+
+  // DashboardBrowserPage and CompanySwitcher use these same cached paths. On
+  // initial mount, the shared in-flight cache collapses each pair into one
+  // network request instead of issuing broad no-category requests as well.
+  const [currentPayload, historyPayload, filingsPayload, profilePayload] = await Promise.all([
+    cachedAuthenticatedFetch(currentPath),
+    cachedAuthenticatedFetch(historyPath),
+    cachedAuthenticatedFetch(filingsPath),
+    cachedAuthenticatedFetch(profilePath),
+  ]);
+  const marketCurrent = categoryDataset(currentPayload, 'market-current');
+  const marketHistory = categoryDataset(historyPayload, 'market-history');
+  const secFilings = categoryDataset(filingsPayload, 'sec-filings');
+  const companyProfile = categoryDataset(profilePayload, 'company-profile-current') as (ApiDataset & {
+    companyName?: unknown;
+    ticker?: unknown;
+    stockCode?: unknown;
+  }) | null;
+  const dashboard = snapshotApiStatus(marketCurrent, 'market-close', marketCurrent, marketHistory, secFilings);
+  const profileTicker = String(companyProfile?.ticker ?? companyProfile?.stockCode ?? '').trim().toUpperCase();
+  const companyName = profileTicker === ticker.trim().toUpperCase() && typeof companyProfile?.companyName === 'string'
+    ? companyProfile.companyName.trim() || null
+    : null;
+
+  return {
+    companyName,
+    pages: { dashboard },
+    updatedAt: dashboard.updatedAt,
+  };
+}
+
+async function getApiTickerDataStatus(ticker: string): Promise<ApiStatusResult> {
   const [current, history, social] = await Promise.all([
     authenticatedFetch(`/market-data/current?ticker=${encodeURIComponent(ticker)}`) as Promise<CombinedApiPayload>,
     authenticatedFetch(`/market-data/history?ticker=${encodeURIComponent(ticker)}`) as Promise<CombinedApiPayload>,
@@ -141,6 +197,8 @@ async function getApiTickerDataStatus(ticker: string): Promise<Pick<TickerDataSt
 
 export function TickerDataStatusProvider({ ticker, children }: { ticker: string; children: React.ReactNode }) {
   const router = useRouter();
+  const pathname = usePathname();
+  const dashboardOnly = slugFromPathname(pathname) === 'dashboard';
   const [status, setStatus] = useState<TickerDataStatus | null>(null);
   const lastVersion = useRef<string | null>(null);
 
@@ -155,7 +213,9 @@ export function TickerDataStatusProvider({ ticker, children }: { ticker: string;
       if (document.visibilityState === 'hidden' || requestInFlight) return;
       requestInFlight = true;
       try {
-        const apiStatusResult = await getApiTickerDataStatus(ticker);
+        const apiStatusResult = dashboardOnly
+          ? await getDashboardTickerDataStatus(ticker, Boolean(lastVersion.current))
+          : await getApiTickerDataStatus(ticker);
         const pages = apiStatusResult.pages;
         const next: TickerDataStatus = {
           ticker,
@@ -192,7 +252,7 @@ export function TickerDataStatusProvider({ ticker, children }: { ticker: string;
       window.clearInterval(interval);
       document.removeEventListener('visibilitychange', handleVisibility);
     };
-  }, [router, ticker]);
+  }, [dashboardOnly, router, ticker]);
 
   return <TickerDataStatusContext.Provider value={status}>{children}</TickerDataStatusContext.Provider>;
 }

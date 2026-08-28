@@ -4,6 +4,446 @@ This file is the persistent implementation memory for changes made by Codex.
 Read it before modifying existing portal behavior, and update it after every
 completed change.
 
+## 2026-08-28 - Restore all supported KWatch export categories
+
+- Area: Operations Portal -> Data Export.
+- API/data:
+  - Existing `GET /export/csv?dataset=kwatch&ticker={ticker}&category={category}`.
+  - Supported KWatch CSV categories documented by the API are `reddit`,
+    `twitter`, and `stocktwits`.
+- Reported problem and root cause:
+  - Selecting KWatch prefilled the shared autocomplete field with `reddit`.
+    Native datalist filtering then hid the non-matching Twitter and Stocktwits
+    suggestions, making the UI appear to support Reddit only.
+- Intended behavior and invariants:
+  - KWatch uses an explicit category dropdown containing Reddit, Twitter, and
+    Stocktwits, so every backend-supported platform is immediately visible.
+  - Requests continue to send the exact lowercase API category values.
+  - Facebook, LinkedIn, and YouTube are not offered because the CSV Export API
+    contract does not define KWatch export templates for them, even though the
+    separate Social Data read API can return those platforms.
+  - Export endpoint construction, date filters, authorization, CSV ordering,
+    download behavior, and Development Data remain unchanged.
+- Files changed:
+  - `app/operations/data-export/DataExportClient.tsx`
+  - `docs/CODEX_CHANGE_LOG.md`
+- Verification:
+  - `npm run typecheck` passed.
+  - `npm run build` passed, including all 29 generated static pages.
+  - `git diff --check` passed.
+  - Source audit confirmed the KWatch dropdown exposes exactly Reddit,
+    Twitter, and Stocktwits while preserving lowercase API values.
+- Remaining backend dependency / limitation:
+  - Additional KWatch platforms should be added only after the backend extends
+    `GET /export/csv` and documents their export templates.
+
+## 2026-08-27 - Fit Short Interest Score typography inside its ring
+
+- Area: User Portal -> Reports -> Daily Market Close Report -> Short Interest
+  Score, in both the HTML preview and downloaded PDF.
+- API/data:
+  - Existing normalized `shortInterestScore.scoreDisplay`; no API or value
+    calculation change.
+- Reported problem and root cause:
+  - A decimal score such as `80.75` nearly filled the inner circle, forcing the
+    adjacent `/ 100` text to wrap and appear misaligned.
+- Intended behavior and invariants:
+  - Keep the full score precision supplied by the report data.
+  - Center the score on one line and place `/ 100` on a smaller second line.
+  - Prevent either line from wrapping, in both screen and print layouts.
+  - Preserve the ring dimensions, risk color, and all score calculations.
+- Files changed:
+  - `public/report-templates/daily-close/styles.css`
+  - `public/report-templates/daily-close/template.html`
+  - `Report Templates/lean-daily-market-close-report/styles.css`
+  - `Report Templates/lean-daily-market-close-report/template.html`
+  - `app/monitor/[ticker]/reports/client-report-pdf.ts`
+  - `docs/CODEX_CHANGE_LOG.md`
+- Verification:
+  - The report fixture rendered `80.75` and `/ 100` as two centered, non-
+    wrapping lines within the 82px inner circle.
+  - `npm run typecheck` passed.
+  - `git diff --check` passed.
+- Remaining backend dependency / limitation:
+  - None; this is a report-template typography correction.
+
+## 2026-08-27 - Use API dates in the grey sentiment observation row
+
+- Area: User Portal -> Reports -> Daily Market Close Report -> Market
+  Perception observation-period row, in both HTML and PDF.
+- API/data:
+  - Existing ordered `windowStart` and `windowEnd` from the exact dated
+    `GET /market-data/reports?ticker={ticker}&date={date}` response.
+- Reported problem and root cause:
+  - The grey row still showed `Previous 7 Days`. The previous change targeted
+    the separate page-header badge, while the observation row fell back to its
+    generic label whenever the boundary candidate failed an additional
+    frontend 7D-span test.
+- Intended behavior and invariants:
+  - Use any ordered API `windowStart`–`windowEnd` pair from the dated report for
+    both the grey observation row and the page-header badge.
+  - Prefer a structurally recognized 7D candidate when more than one ordered
+    API window exists, but do not discard the API dates solely because of the
+    frontend span check.
+  - Preserve independent sentiment subsection mapping and never substitute
+    current/live sentiment data.
+- Files changed:
+  - `app/monitor/[ticker]/reports/daily-report-data.ts`
+  - `app/monitor/[ticker]/reports/client-report-pdf.ts`
+  - `public/report-templates/daily-close/template.html`
+  - `Report Templates/lean-daily-market-close-report/template.html`
+  - `Report Templates/lean-daily-market-close-report/REPORT_DATA_CONTRACT.md`
+  - `docs/CODEX_CHANGE_LOG.md`
+- Verification:
+  - A dated fixture with ordered API boundaries that deliberately fail the
+    legacy frontend 7D-span check still normalized and rendered those exact
+    dates in the grey observation row.
+  - `npm run typecheck` passed.
+  - `git diff --check` passed.
+- Remaining backend dependency / limitation:
+  - If the dated response genuinely provides no ordered `windowStart` and
+    `windowEnd`, the report keeps its generic period fallback rather than
+    inventing dates.
+
+## 2026-08-27 - Show sentiment dates in the report header badge
+
+- Area: User Portal -> Reports -> Daily Market Close Report -> Market
+  Perception header, in both the HTML preview and downloaded PDF.
+- API/data:
+  - Existing `windowStart` and `windowEnd` selected from the exact dated
+    `GET /market-data/reports?ticker={ticker}&date={date}` response.
+- Reported problem and root cause:
+  - The page-header badge still displayed the generic `Previous 7 Days` label
+    even though the report already showed the authoritative API date range in
+    the observation-period row.
+- Intended behavior and invariants:
+  - Display the formatted start-date–end-date range in the page-header badge.
+  - Use the existing generic period label only when the dated response does not
+    provide both boundaries.
+  - Preserve the rebuilt subsection-level sentiment rendering and use no live
+    sentiment fallback.
+- Files changed:
+  - `public/report-templates/daily-close/render.js`
+  - `public/report-templates/daily-close/template.html`
+  - `Report Templates/lean-daily-market-close-report/render.js`
+  - `Report Templates/lean-daily-market-close-report/template.html`
+  - `Report Templates/lean-daily-market-close-report/REPORT_DATA_CONTRACT.md`
+  - `app/monitor/[ticker]/reports/client-report-pdf.ts`
+  - `docs/CODEX_CHANGE_LOG.md`
+- Verification:
+  - Runtime renderer fixture confirmed the header contains
+    `Aug 20, 2026 – Aug 26, 2026` and no longer contains `Previous 7 Days`.
+  - `npm run typecheck` passed.
+  - `git diff --check` passed.
+- Remaining backend dependency / limitation:
+  - The badge falls back to the generic period label when either API boundary
+    is unavailable.
+
+## 2026-08-27 - Rebuild report sentiment page without the all-or-nothing gate
+
+- Area: User Portal -> Reports -> Daily Market Close Report -> Market
+  Perception, for both the HTML preview and downloaded PDF.
+- API/data:
+  - Existing exact dated
+    `GET /market-data/reports?ticker={ticker}&date={date}` response only.
+- Reported problem and root cause:
+  - Reports still replaced the complete sentiment layout with a large
+    unavailable panel even when the dated response contained report-owned
+    sentiment values.
+  - The mapper required one candidate object to contain a valid 7D boundary,
+    overall score, distribution, and platforms. The backend may place the
+    boundary metadata and those three subsections in separate sentiment-owned
+    objects within the same dated response, so the valid values were discarded
+    before the layout rendered.
+  - The report template then used one page-level `sentiment.available` flag,
+    which hid every sentiment card when any candidate-selection prerequisite
+    failed.
+- Intended behavior and invariants:
+  - Select the authoritative 7D window, populated overall aggregate,
+    distribution, and platform breakdown independently from the same dated
+    report payload.
+  - Do not require each data subsection to repeat `windowStart` and `windowEnd`.
+  - Always render the observation row, overall card, distribution card,
+    platform card, and SEC filings. A missing sentiment subsection displays
+    only its own compact unavailable state; it never replaces the full page.
+  - Continue to use no current/live sentiment fallback and no frontend-created
+    sentiment values.
+  - Bump the report template cache version so both the HTML viewer and PDF load
+    the rebuilt renderer immediately.
+- Files changed:
+  - `app/monitor/[ticker]/reports/daily-report-data.ts`
+  - `app/monitor/[ticker]/reports/client-report-pdf.ts`
+  - `public/report-templates/daily-close/render.js`
+  - `public/report-templates/daily-close/template.html`
+  - `Report Templates/lean-daily-market-close-report/render.js`
+  - `Report Templates/lean-daily-market-close-report/template.html`
+  - `Report Templates/lean-daily-market-close-report/REPORT_DATA_CONTRACT.md`
+  - `docs/CODEX_CHANGE_LOG.md`
+- Verification:
+  - A split-object dated fixture normalized Aug 20–26, score `61.54`, 13
+    mentions, distribution `6 / 5 / 2`, X `9`, and Reddit `4`, with all four
+    independent selections available.
+  - The runtime renderer showed the period, score, mentions, platform card,
+    and filings without `sentiment-report-unavailable`.
+  - A no-data fixture still rendered all three sentiment cards with localized
+    unavailable messages and retained the filings section.
+  - `npm run typecheck` passed.
+  - `npm run build` passed, including all 29 generated static pages.
+  - `git diff --check` passed.
+- Remaining backend dependency / limitation:
+  - Each displayed number and boundary must still exist somewhere in the exact
+    dated report response. Missing archived values are not reconstructed from
+    live APIs.
+
+## 2026-08-27 - Recognize the actual dated-report sentiment schema robustly
+
+- Area: User Portal -> Reports -> Daily Market Close Report -> Market
+  Perception and Development Data diagnostics.
+- API/data:
+  - Confirmed report-opening path:
+    `GET /market-data/reports?ticker=CURR&date=2026-08-26` for the Aug 26 CURR
+    report.
+- Reported problem and root cause:
+  - The report still showed sentiment unavailable after removing report-date
+    equality because the remaining candidate recognizer depended on exact
+    camel-case keys and, for inferred windows, an additional frontend date-span
+    calculation.
+  - The dated backend object is already authoritative and may serialize the
+    established fields with different casing or separators. Rejecting an
+    explicitly labelled 7D object at this stage prevented its populated values
+    from reaching the renderer.
+- Intended behavior and invariants:
+  - The Aug 26 archive record constructs exactly the dated endpoint above,
+    invalidates that request path before loading, and adds the endpoint to the
+    normalized sentiment provenance.
+  - Recognize equivalent field forms case-insensitively and separator-
+    insensitively, including `windowStart` / `WindowStart` / `window_start`,
+    their end equivalents, display mention counts, Overall, Distribution, and
+    platform containers.
+  - An explicitly declared `7D` object with ordered start/end boundaries is
+    usable without a second frontend span calculation. Boundary-derived
+    objects without an explicit label must still form a valid 7D interval.
+  - Continue to use only the selected dated report response; no current/live
+    sentiment fallback is introduced.
+- Files changed:
+  - `app/monitor/[ticker]/reports/daily-report-data.ts`
+  - `Report Templates/lean-daily-market-close-report/REPORT_DATA_CONTRACT.md`
+  - `docs/CODEX_CHANGE_LOG.md`
+- Verification:
+  - A focused mixed-case Aug 26 response (`Window`, `WindowStart`, `WindowEnd`,
+    `MentionsDisplay`, `Overall`, `Distribution`, and `PlatformBreakdown`)
+    normalized as available with score `61.54`, 13 mentions, distribution
+    `6 / 5 / 2`, X `9`, and Reddit `4`.
+  - The local report rendered Aug 20–26 and all three sentiment cards from the
+    normalized result rather than the unavailable block.
+  - `npm run typecheck` passed.
+  - `npm run build` passed, including all 29 generated static pages.
+  - `git diff --check` passed.
+- Remaining backend dependency / limitation:
+  - The configured demo Cognito account was not available, so the authenticated
+    production payload itself could not be printed in this run. The request
+    path and response-to-render flow were verified statically and through the
+    schema regression above.
+
+## 2026-08-27 - Unblock valid dated 7D sentiment windows in all reports
+
+- Area: User Portal -> Reports -> Daily Market Close Report -> Market
+  Perception and Development Data -> Sentiment Mapping.
+- API/data:
+  - Existing dated
+    `GET /market-data/reports?ticker={ticker}&date={date}` response only.
+- Reported problem and root cause:
+  - Every report rendered the full-page archived-window mismatch block even
+    though its dated response now contained the correct `windowStart`,
+    `windowEnd`, and sentiment values.
+  - Candidate selection still applied the older requirement that `windowEnd`
+    must equal the report index date (or its next-day-exclusive boundary). The
+    dated endpoint already establishes which frozen report owns the sentiment
+    object, so this second equality check incorrectly rejected valid backend
+    windows before any cards could render.
+- Intended behavior and invariants:
+  - Accept an explicit sentiment candidate when its source boundaries form a
+    structurally valid 7D window (six date intervals for inclusive boundaries
+    or seven for a next-day-exclusive end).
+  - Treat `windowStart` and `windowEnd` from the dated response as authoritative
+    even when `windowEnd` is not the report index date.
+  - Continue selecting only from the exact dated report response; do not call
+    or substitute live/current sentiment data.
+  - Keep populated-candidate ranking and independent Overall, Distribution,
+    and Platform selection so the strongest valid report-owned fields render.
+  - Development diagnostics now label a candidate `Usable for report` instead
+    of incorrectly presenting report-date equality as the eligibility rule.
+- Files changed:
+  - `app/monitor/[ticker]/reports/daily-report-data.ts`
+  - `app/monitor/[ticker]/reports/ReportArchiveDevTables.tsx`
+  - `Report Templates/lean-daily-market-close-report/REPORT_DATA_CONTRACT.md`
+  - `docs/CODEX_CHANGE_LOG.md`
+- Verification:
+  - A focused regression used report date Aug 21 with a valid Aug 20–26 7D
+    sentiment object. It normalized as available with score `61.54`, 13
+    mentions, distribution `6 / 5 / 2`, X `9`, and Reddit `4` instead of the
+    mismatch block.
+  - The local HTML report rendered the full sentiment cards and the API period
+    `Aug 20, 2026 – Aug 26, 2026` for that formerly rejected window.
+  - `npm run typecheck` passed.
+  - `npm run build` passed, including all 29 generated static pages.
+  - `git diff --check` passed.
+- Remaining backend dependency / limitation:
+  - A candidate with missing boundaries or boundaries that do not span a valid
+    7D period remains unavailable. Missing sentiment subsections are not
+    reconstructed from live APIs.
+
+## 2026-08-27 - Use each dated report's authoritative 7D sentiment window
+
+- Area: User Portal -> Reports -> Daily Market Close Report -> Market
+  Perception, in both the HTML viewer and downloaded PDF.
+- API/data:
+  - Existing dated
+    `GET /market-data/reports?ticker={ticker}&date={date}` response only.
+  - No `sentiment-current`, sentiment-history, or social-feed fallback.
+- Reported problem and root cause:
+  - The backend now returns the correct `windowStart` and `windowEnd` for each
+    dated report, but the frontend normalizer still replaced those boundaries
+    with a locally calculated start and the selected report date.
+  - The report renderer separately preferred `reportDateIso` over the supplied
+    `sentiment.windowEnd`, so even a normalized API end boundary could not be
+    authoritative in the displayed observation period.
+  - Some valid report-owned display/count aliases such as `mentionsDisplay`,
+    `recordCount`, `contributionPercent`, and `overall.scoreDisplay` were not
+    accepted by every normalization and candidate-ranking path.
+- Intended behavior and invariants:
+  - For every selected report date, select a matching explicit 7D sentiment
+    object only from that exact dated response.
+  - Preserve and display its `windowStart` and `windowEnd`; do not recalculate
+    or overwrite a valid API period.
+  - Fill Overall Sentiment, total mentions, previous-window change,
+    Distribution, and Platform Breakdown from the corresponding dated
+    sentiment fields. Preserve supplied display values and labels where
+    present, while retaining the established aliases for equivalent report
+    shapes.
+  - HTML preview and downloaded PDF continue to use the same normalized data
+    and report template. Stale/future windows and live/current sentiment remain
+    excluded from historical reports.
+  - A report-date request still invalidates its authenticated response cache so
+    a regenerated backend archive is read on the next view or download.
+- Files changed:
+  - `app/monitor/[ticker]/reports/daily-report-data.ts`
+  - `app/monitor/[ticker]/reports/client-report-pdf.ts`
+  - `public/report-templates/daily-close/render.js`
+  - `public/report-templates/daily-close/template.html`
+  - `Report Templates/lean-daily-market-close-report/render.js`
+  - `Report Templates/lean-daily-market-close-report/template.html`
+  - `Report Templates/lean-daily-market-close-report/REPORT_DATA_CONTRACT.md`
+  - `docs/CODEX_CHANGE_LOG.md`
+- Verification:
+  - Focused normalization with an Aug 15–21 dated response produced score
+    `61.54`, 13 mentions, distribution `6 / 5 / 2`, X `9`, and Reddit `4`,
+    while preserving the source ISO start/end values.
+  - The local HTML report rendered `Aug 15, 2026 – Aug 21, 2026`, 13 mentions,
+    `46% / 38% / 15%`, X `9`, and Reddit `4` from that normalized fixture.
+  - `npm run typecheck` passed.
+  - `npm run build` passed, including all 29 generated static pages.
+  - `git diff --check` passed.
+- Remaining backend dependency / limitation:
+  - A dated report can display only the sentiment subsections and platform rows
+    actually present in that report's frozen API object. The frontend does not
+    reconstruct missing archived values from live data.
+
+## 2026-08-27 - Collapse repeated Alert Center notifications by rule
+
+- Area: User Portal -> Dashboard -> Alert Center, notification inbox, and live
+  WebSocket toasts.
+- APIs/data:
+  - Existing `GET /alerts?ticker={ticker}&limit=100` history response.
+  - Existing WebSocket `alert` messages.
+  - Existing `GET /rule-catalog/user-settings` current rule evaluation.
+- Reported problem and root cause:
+  - The backend can create the same alert repeatedly while its condition stays
+    true. The frontend fingerprint included `createDatetime`, so every repeat
+    was treated as a new alert and displayed simultaneously.
+  - History normalization discarded `ruleId` and `catalogId`, and the Dashboard
+    deduplicated persisted versus currently evaluated alerts using display text
+    only. Formula names such as `availableShares.value` therefore did not
+    reliably match the catalog label `Shortable Shares`.
+- Intended behavior and invariants:
+  - For the active portal day, ticker, and rule, retain only the newest alert
+    across API history, local browser storage, cross-tab storage sync, and live
+    WebSocket messages.
+  - A repeated live message silently refreshes the existing row's timestamp,
+    value, and severity; it does not add another toast or unread count.
+  - The first alert for a rule still creates a row, toast, and unread count.
+    Different rules remain independently visible, and the existing daily reset
+    and backend alert history remain unchanged.
+  - Preserve `alertId`, `ruleId`, and `catalogId` when supplied. Match current
+    rule evaluations by stable ID first, then by a normalized metric alias when
+    the WebSocket contract does not supply IDs.
+  - A history response arriving after a live message must not overwrite that
+    newer in-session message.
+- Files changed:
+  - `components/AlertNotificationProvider.tsx`
+  - `app/monitor/[ticker]/dashboard/CustomAlertCenter.tsx`
+  - `docs/CODEX_CHANGE_LOG.md`
+- Verification:
+  - `npm run typecheck` passed.
+  - `npm run build` passed, including all 29 generated static pages.
+  - The local Dashboard route compiled successfully. The isolated in-app
+    browser reached the secure-session gate, but did not have a signed-in user
+    session with which to trigger a real WebSocket alert.
+  - `git diff --check` passed.
+- Remaining backend dependency / limitation:
+  - The frontend stops repeated in-portal rows and toasts, but the backend will
+    continue writing duplicate history records and may continue sending email
+    alerts until it implements a cooldown or condition re-arm policy.
+  - The current WebSocket contract omits stable rule IDs, so live-to-history
+    matching falls back to the normalized formula until the backend includes
+    `ruleId` or `catalogId` in push messages.
+
+## 2026-08-27 - Remove duplicate broad market API calls from Dashboard
+
+- Area: User Portal -> Dashboard, shared ticker data-status provider, top bar,
+  and sidebar status.
+- APIs/data:
+  - Retained `GET /market-data/current?ticker={ticker}&category=market-current`.
+  - Retained `GET /market-data/history?ticker={ticker}&category=market-history`.
+  - Retained `GET /manual-input/sec-filings?ticker={ticker}` and
+    `GET /market-data/current?ticker={ticker}&category=company-profile-current`.
+  - Removed Dashboard-route calls to the broad no-category
+    `GET /market-data/current?ticker={ticker}` and
+    `GET /market-data/history?ticker={ticker}` responses.
+- Reported problem and root cause:
+  - Dashboard correctly loaded the two category-specific market datasets, but
+    the app-shell `TickerDataStatusProvider` independently requested the broad
+    combined current and history responses to populate top-bar/sidebar status.
+  - Because category and no-category URLs have different cache keys, request
+    deduplication could not merge them, so the same market files were downloaded
+    twice as part of differently shaped responses.
+- Intended behavior and invariants:
+  - On the Dashboard route, the shared status provider uses exactly the same
+    category-specific market-current and market-history paths as
+    `DashboardBrowserPage`.
+  - Both consumers use the authenticated in-flight/response cache, collapsing
+    simultaneous identical paths into one network request on initial load.
+  - Dashboard status continues to derive its market-close date and version
+    from market-current, market-history, and the SEC filing response.
+  - CompanySwitcher and status share the category-specific company-profile
+    request; the ticker/company-name validation remains intact.
+  - Scheduled status polling explicitly refreshes these category paths, while
+    non-Dashboard routes retain their existing status-loading behavior.
+- Files changed:
+  - `components/TickerDataStatusProvider.tsx`
+  - `lib/current-data-sources.ts`
+  - `docs/CODEX_CHANGE_LOG.md`
+- Verification:
+  - Static request-path inspection confirmed the Dashboard-only branch contains
+    category-specific current/history URLs and no broad current/history URL.
+  - `npm run typecheck` passed.
+  - `npm run build` passed, including all 29 generated static pages.
+  - `git diff --check` passed.
+- Remaining backend dependency / limitation:
+  - Browser-network inspection in a live authenticated account remains the
+    final end-to-end confirmation; the isolated test browser was unavailable
+    in this run.
+
 ## 2026-08-26 - Discover nested dated 7D sentiment windows by boundary
 
 - Area: User Portal -> Reports -> Daily Market Close Report and Development

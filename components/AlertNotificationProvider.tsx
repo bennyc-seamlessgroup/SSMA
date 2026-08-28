@@ -18,6 +18,9 @@ export type LiveAlertSeverity = 'critical' | 'high' | 'medium' | 'low';
 
 export type LiveAlertNotification = {
   id: string;
+  alertId?: string;
+  ruleId?: string;
+  catalogId?: string;
   ticker: string;
   formula: string;
   triggeredValue: string;
@@ -62,13 +65,22 @@ function alertId(alert: Omit<LiveAlertNotification, 'id'>) {
   ].join('|');
 }
 
-function alertFingerprint(alert: Pick<LiveAlertNotification, 'ticker' | 'formula' | 'triggeredValue' | 'createDatetime'>) {
+function normalizedRuleFormula(formula: string) {
+  return formula.trim().toLowerCase().replace(/\s+/g, ' ');
+}
+
+function alertRuleTokens(alert: Pick<LiveAlertNotification, 'ticker' | 'formula' | 'ruleId' | 'catalogId'>) {
+  const ticker = alert.ticker.trim().toUpperCase();
   return [
-    alert.ticker.trim().toUpperCase(),
-    alert.formula.trim(),
-    alert.triggeredValue.trim(),
-    new Date(alert.createDatetime).toISOString(),
-  ].join('|');
+    alert.catalogId ? `${ticker}|catalog:${alert.catalogId.trim().toLowerCase()}` : '',
+    alert.ruleId ? `${ticker}|rule:${alert.ruleId.trim().toLowerCase()}` : '',
+    `${ticker}|formula:${normalizedRuleFormula(alert.formula)}`,
+  ].filter(Boolean);
+}
+
+function alertsShareRule(left: LiveAlertNotification, right: LiveAlertNotification) {
+  const leftTokens = new Set(alertRuleTokens(left));
+  return alertRuleTokens(right).some(token => leftTokens.has(token));
 }
 
 function normalizeAlertPayload(value: unknown): LiveAlertNotification | null {
@@ -82,23 +94,27 @@ function normalizeAlertPayload(value: unknown): LiveAlertNotification | null {
   if (!ticker || !formula || !createDatetime || Number.isNaN(new Date(createDatetime).getTime())) return null;
 
   const alert = {
+    alertId: text(row.alertId) || undefined,
+    ruleId: text(row.ruleId) || undefined,
+    catalogId: text(row.catalogId) || undefined,
     ticker,
     formula,
     triggeredValue: text(row.triggeredValue),
     severity: normalizeSeverity(row.severity),
     createDatetime,
   };
-  return { ...alert, id: alertId(alert) };
+  return { ...alert, id: alert.alertId || alertId(alert) };
 }
 
 function readStoredAlerts(key: string): LiveAlertNotification[] {
   try {
     const parsed = JSON.parse(window.localStorage.getItem(key) ?? '[]');
     if (!Array.isArray(parsed)) return [];
-    return parsed
-      .map(normalizeStoredAlert)
-      .filter((alert): alert is LiveAlertNotification => Boolean(alert))
-      .slice(0, maxDailyAlerts);
+    return collapseAlertsByRule(
+      parsed
+        .map(normalizeStoredAlert)
+        .filter((alert): alert is LiveAlertNotification => Boolean(alert)),
+    );
   } catch {
     return [];
   }
@@ -112,6 +128,9 @@ function normalizeStoredAlert(value: unknown): LiveAlertNotification | null {
   const createDatetime = text(row.createDatetime);
   if (!ticker || !formula || !createDatetime || Number.isNaN(new Date(createDatetime).getTime())) return null;
   const alert = {
+    alertId: text(row.alertId) || undefined,
+    ruleId: text(row.ruleId) || undefined,
+    catalogId: text(row.catalogId) || undefined,
     ticker,
     formula,
     triggeredValue: text(row.triggeredValue),
@@ -123,6 +142,9 @@ function normalizeStoredAlert(value: unknown): LiveAlertNotification | null {
 
 function normalizeHistoryAlert(value: Awaited<ReturnType<typeof fetchAlertHistory>>[number]): LiveAlertNotification {
   const alert = {
+    alertId: value.alertId || undefined,
+    ruleId: value.ruleId || undefined,
+    catalogId: value.catalogId || undefined,
     ticker: value.ticker,
     formula: value.formula,
     triggeredValue: text(value.triggeredValue),
@@ -138,6 +160,13 @@ function sortAlerts(alerts: LiveAlertNotification[]) {
   );
 }
 
+function collapseAlertsByRule(alerts: LiveAlertNotification[]) {
+  return sortAlerts(alerts).reduce<LiveAlertNotification[]>((latest, alert) => {
+    if (!latest.some(existing => alertsShareRule(existing, alert))) latest.push(alert);
+    return latest;
+  }, []).slice(0, maxDailyAlerts);
+}
+
 export function readableAlertMetric(formula: string) {
   const metric = formula.split(/\s*(?:>=|<=|>|<|==|!=)\s*/)[0] ?? formula;
   return metric
@@ -145,6 +174,18 @@ export function readableAlertMetric(formula: string) {
     .replace(/([a-z])([A-Z])/g, '$1 $2')
     .replace(/\b\w/g, letter => letter.toUpperCase())
     .trim() || 'Rule alert';
+}
+
+export function alertMetricIdentity(value: string) {
+  const readable = readableAlertMetric(value)
+    .toLowerCase()
+    .replace(/\b(?:value|percentage|percent|rate)\b/g, '')
+    .replace(/[^a-z0-9]/g, '');
+  const aliases: Record<string, string> = {
+    availableshares: 'shortableshares',
+    shortinterestofthefloat: 'shortinterestfloat',
+  };
+  return aliases[readable] ?? readable;
 }
 
 export function AlertNotificationProvider({
@@ -188,13 +229,7 @@ export function AlertNotificationProvider({
         const todaysHistory = history
           .map(normalizeHistoryAlert)
           .filter(alert => ymdInPortalTimeZone(new Date(alert.createDatetime), timeZone) === dayKey);
-        const merged = sortAlerts(
-          [...todaysHistory, ...storedAlerts].filter(
-            (alert, index, source) => source.findIndex(
-              item => alertFingerprint(item) === alertFingerprint(alert),
-            ) === index,
-          ),
-        ).slice(0, maxDailyAlerts);
+        const merged = collapseAlertsByRule([...todaysHistory, ...alertsRef.current]);
         alertsRef.current = merged;
         setAlerts(merged);
         try {
@@ -286,8 +321,8 @@ export function AlertNotificationProvider({
         const currentDay = ymdInPortalTimeZone(new Date(), timeZoneRef.current);
         if (alertDay !== currentDay) return;
 
-        if (alertsRef.current.some(item => alertFingerprint(item) === alertFingerprint(alert))) return;
-        const next = sortAlerts([alert, ...alertsRef.current]).slice(0, maxDailyAlerts);
+        const alreadyNotified = alertsRef.current.some(item => alertsShareRule(item, alert));
+        const next = collapseAlertsByRule([alert, ...alertsRef.current]);
         alertsRef.current = next;
         setAlerts(next);
         try {
@@ -295,8 +330,10 @@ export function AlertNotificationProvider({
         } catch {
           // Alerts still remain available for the active browser session.
         }
-        setToast(alert);
-        setUnreadCount(count => count + 1);
+        if (!alreadyNotified) {
+          setToast(alert);
+          setUnreadCount(count => count + 1);
+        }
       };
 
       socket.onerror = () => {

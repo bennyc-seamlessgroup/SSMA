@@ -153,8 +153,8 @@ export function ReportArchiveDevTables({
   const encodedTicker = encodeURIComponent(ticker);
   const encodedDate = encodeURIComponent(selectedDate);
   const sentimentMappingRows = useMemo(
-    () => reportSentimentDiagnostics(reportSource.data, selectedDate),
-    [reportSource.data, selectedDate],
+    () => reportSentimentDiagnostics(reportSource.data),
+    [reportSource.data],
   );
   const tabs = [
     {
@@ -232,7 +232,7 @@ export function ReportArchiveDevTables({
             'selectedFor',
             'path',
             'explicit7D',
-            'matchesReportDate',
+            'usableForReport',
             'window',
             'windowStart',
             'windowEnd',

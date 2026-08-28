@@ -1,7 +1,11 @@
 'use client';
 
 import { ApiSourceTags } from '@/components/ApiSourceTags';
-import { readableAlertMetric, useAlertNotifications } from '@/components/AlertNotificationProvider';
+import {
+  alertMetricIdentity,
+  readableAlertMetric,
+  useAlertNotifications,
+} from '@/components/AlertNotificationProvider';
 import { usePortalTimeZone } from '@/components/usePortalTimeZone';
 import {
   evaluateAlertRule,
@@ -95,10 +99,16 @@ export function CustomAlertCenter({
   }, [currentMetrics, ticker]);
 
   const currentTriggered = useMemo(() => {
-    const liveMetricNames = new Set(
-      liveAlerts.map(alert => readableAlertMetric(alert.formula).toLowerCase().replace(/[^a-z0-9]/g, '')),
+    const liveRuleIds = new Set(
+      liveAlerts
+        .flatMap(alert => [alert.catalogId, alert.ruleId])
+        .filter((id): id is string => Boolean(id))
+        .map(id => id.toLowerCase()),
     );
-    return triggered.filter(alert => !liveMetricNames.has(alert.label.toLowerCase().replace(/[^a-z0-9]/g, '')));
+    const liveMetricNames = new Set(liveAlerts.map(alert => alertMetricIdentity(alert.formula)));
+    return triggered.filter(alert => (
+      !liveRuleIds.has(alert.id.toLowerCase()) && !liveMetricNames.has(alertMetricIdentity(alert.label))
+    ));
   }, [liveAlerts, triggered]);
   const displayedSeverity = useMemo(
     () => [...liveAlerts, ...currentTriggered],

@@ -31,6 +31,29 @@ function objectValue(value: unknown): Row {
   return value && typeof value === 'object' && !Array.isArray(value) ? value as Row : {};
 }
 
+function rowField(row: Row, ...keys: string[]) {
+  for (const key of keys) {
+    if (Object.prototype.hasOwnProperty.call(row, key)) return row[key];
+  }
+  const normalizedKeys = new Set(keys.map(key => key.toLowerCase().replace(/[^a-z0-9]/g, '')));
+  const matchedKey = Object.keys(row).find(key => (
+    normalizedKeys.has(key.toLowerCase().replace(/[^a-z0-9]/g, ''))
+  ));
+  return matchedKey === undefined ? undefined : row[matchedKey];
+}
+
+function sentimentWindowStart(row: Row) {
+  return rowField(row, 'windowStart', 'windowStartUtc', 'start');
+}
+
+function sentimentWindowEnd(row: Row) {
+  return rowField(row, 'windowEnd', 'windowEndUtc', 'end');
+}
+
+function sentimentWindowLabel(row: Row) {
+  return rowField(row, 'window', 'period', 'timeframe');
+}
+
 function finiteNumber(value: unknown) {
   if (value === null || value === undefined || value === '') return null;
   const numeric = Number(value);
@@ -135,8 +158,8 @@ function datePart(value: unknown) {
 }
 
 function hasSevenDayDateBoundary(row: Row) {
-  const windowStart = datePart(row.windowStart ?? row.windowStartUtc ?? row.start);
-  const windowEnd = datePart(row.windowEnd ?? row.windowEndUtc ?? row.end);
+  const windowStart = datePart(sentimentWindowStart(row));
+  const windowEnd = datePart(sentimentWindowEnd(row));
   if (!windowStart || !windowEnd) return false;
   const startTime = Date.parse(`${windowStart}T00:00:00Z`);
   const endTime = Date.parse(`${windowEnd}T00:00:00Z`);
@@ -178,20 +201,20 @@ function sentimentSourceRoots(payload: DailyReportPayload) {
     const hasSevenDayPeriod = Object.keys(objectValue(
       periods['7D'] ?? periods['7d'] ?? periods['1W'] ?? periods['1w'],
     )).length > 0;
-    const hasAggregate = finiteNumber(row.mentions ?? row.totalMentions ?? row.mentionCount) !== null
+    const hasAggregate = finiteNumber(rowField(row, 'mentions', 'totalMentions', 'mentionCount', 'mentionsDisplay')) !== null
       && (
-        Object.keys(objectValue(row.overall)).length > 0
-        || Object.keys(objectValue(row.distribution ?? row.sentimentDistribution)).length > 0
-        || Array.isArray(row.platforms)
-        || Array.isArray(row.platformBreakdown)
+        Object.keys(objectValue(rowField(row, 'overall'))).length > 0
+        || Object.keys(objectValue(rowField(row, 'distribution', 'sentimentDistribution'))).length > 0
+        || Array.isArray(rowField(row, 'platforms'))
+        || Array.isArray(rowField(row, 'platformBreakdown'))
       );
     const hasWindowBoundary = Boolean(
-      datePart(row.windowStart ?? row.windowStartUtc ?? row.start)
-      && datePart(row.windowEnd ?? row.windowEndUtc ?? row.end),
+      datePart(sentimentWindowStart(row))
+      && datePart(sentimentWindowEnd(row)),
     );
     if (
       (sentimentContext || hasAggregate)
-      && (row.window !== undefined || hasSevenDayPeriod || hasAggregate || hasWindowBoundary)
+      && (sentimentWindowLabel(row) !== undefined || hasSevenDayPeriod || hasAggregate || hasWindowBoundary)
     ) {
       roots.push({ value: row, path });
     }
@@ -222,7 +245,7 @@ function sevenDaySentimentCandidates(payload: DailyReportPayload) {
     const periods = objectValue(root.periods);
     const sevenDayKey = ['7D', '7d', '1W', '1w'].find(key => Object.keys(objectValue(periods[key])).length) ?? '';
     const sevenDay = objectValue(sevenDayKey ? periods[sevenDayKey] : undefined);
-    const rootIsSevenDay = ['7D', '7 DAYS', '7-DAY', '1W'].includes(String(root.window ?? '').trim().toUpperCase())
+    const rootIsSevenDay = ['7D', '7 DAYS', '7-DAY', '1W'].includes(String(sentimentWindowLabel(root) ?? '').trim().toUpperCase())
       || hasSevenDayDateBoundary(root);
 
     // Some dated report files contain a populated aggregate on the sentiment
@@ -246,16 +269,31 @@ function sentimentRows(period: Row) {
 }
 
 function rowMentions(row: Row) {
-  return finiteNumber(row.mentions ?? row.totalMentions ?? row.mentionCount ?? row.count) ?? 0;
+  return finiteNumber(rowField(
+    row,
+    'mentions',
+    'totalMentions',
+    'mentionCount',
+    'count',
+    'recordCount',
+    'mentionsDisplay',
+  )) ?? 0;
 }
 
 function candidateWeight(candidate: SentimentCandidate) {
-  const directMentions = finiteNumber(candidate.value.mentions ?? candidate.value.totalMentions ?? candidate.value.mentionCount);
+  const directMentions = finiteNumber(rowField(
+    candidate.value,
+    'mentions',
+    'totalMentions',
+    'mentionCount',
+    'mentionsDisplay',
+  ));
   const timelineMentions = sentimentRows(candidate.value).reduce((sum, row) => sum + rowMentions(row), 0);
   const mentions = directMentions ?? timelineMentions;
-  const overall = objectValue(candidate.value.overall);
+  const overall = objectValue(rowField(candidate.value, 'overall'));
   const hasScore = normalizedSentimentScore(
-    overall.score ?? candidate.value.overallSentimentScore ?? candidate.value.sentimentScore,
+    rowField(overall, 'score', 'scoreDisplay')
+    ?? rowField(candidate.value, 'overallSentimentScore', 'sentimentScore'),
   ) !== null;
   const hasPopulatedDirectAggregate = directMentions !== null && directMentions > 0 && hasScore;
   const hasTimelineOnlyData = directMentions === null && timelineMentions > 0;
@@ -267,79 +305,99 @@ function candidateWeight(candidate: SentimentCandidate) {
 }
 
 function distributionCounts(row: Row) {
-  const distribution = objectValue(row.distribution ?? row.sentimentDistribution ?? row.sentiment_distribution);
+  const distribution = objectValue(rowField(row, 'distribution', 'sentimentDistribution'));
   return {
-    bullish: finiteNumber(distribution.bullishCount ?? distribution.positiveCount ?? distribution.bullish ?? distribution.positive) ?? 0,
-    neutral: finiteNumber(distribution.neutralCount ?? distribution.neutral) ?? 0,
-    bearish: finiteNumber(distribution.bearishCount ?? distribution.negativeCount ?? distribution.bearish ?? distribution.negative) ?? 0,
+    bullish: finiteNumber(rowField(distribution, 'bullishCount', 'positiveCount', 'bullish', 'positive')) ?? 0,
+    neutral: finiteNumber(rowField(distribution, 'neutralCount', 'neutral')) ?? 0,
+    bearish: finiteNumber(rowField(distribution, 'bearishCount', 'negativeCount', 'bearish', 'negative')) ?? 0,
   };
 }
 
-function previousDate(value: string) {
-  const [year, month, day] = value.split('-').map(Number);
-  if (!year || !month || !day) return '';
-  const date = new Date(Date.UTC(year, month - 1, day));
-  date.setUTCDate(date.getUTCDate() - 1);
-  return date.toISOString().slice(0, 10);
-}
-
-function inclusiveSevenDayWindowStart(reportDate: string) {
-  const [year, month, day] = reportDate.split('-').map(Number);
-  if (!year || !month || !day) return '';
-  const date = new Date(Date.UTC(year, month - 1, day));
-  date.setUTCDate(date.getUTCDate() - 6);
-  return date.toISOString().slice(0, 10);
-}
-
 function hasSentimentDistribution(period: Row) {
-  const distribution = objectValue(period.distribution ?? period.sentimentDistribution ?? period.sentiment_distribution);
+  const distribution = objectValue(rowField(period, 'distribution', 'sentimentDistribution'));
   const hasBullish = finiteNumber(
-    distribution.bullishCount
-    ?? distribution.positiveCount
-    ?? distribution.bullishPercent
-    ?? distribution.positivePercent,
+    rowField(distribution, 'bullishCount', 'positiveCount', 'bullishPercent', 'positivePercent'),
   ) !== null;
-  const hasNeutral = finiteNumber(distribution.neutralCount ?? distribution.neutralPercent) !== null;
+  const hasNeutral = finiteNumber(rowField(distribution, 'neutralCount', 'neutralPercent')) !== null;
   const hasBearish = finiteNumber(
-    distribution.bearishCount
-    ?? distribution.negativeCount
-    ?? distribution.bearishPercent
-    ?? distribution.negativePercent,
+    rowField(distribution, 'bearishCount', 'negativeCount', 'bearishPercent', 'negativePercent'),
   ) !== null;
   return hasBullish && hasNeutral && hasBearish;
 }
 
-function hasMatchingSevenDayWindow(
-  candidate: SentimentCandidate | undefined,
-  reportDate: string,
-) {
+function hasUsableSevenDayWindow(candidate: SentimentCandidate | undefined) {
   if (!candidate?.explicitSevenDay) return false;
 
   const period = candidate.value;
-  const windowStart = datePart(period.windowStart ?? period.windowStartUtc ?? period.start);
-  const windowEnd = datePart(period.windowEnd ?? period.windowEndUtc ?? period.end);
-  const windowEndsOnReportDate = windowEnd === reportDate || previousDate(windowEnd) === reportDate;
+  const windowStart = datePart(sentimentWindowStart(period));
+  const windowEnd = datePart(sentimentWindowEnd(period));
+  const explicitlySevenDay = ['7D', '7 DAYS', '7-DAY', '1W'].includes(
+    String(sentimentWindowLabel(period) ?? '').trim().toUpperCase(),
+  );
 
   return Boolean(
     windowStart
     && windowEnd
     && windowStart <= windowEnd
-    && windowEndsOnReportDate
+    && (explicitlySevenDay || hasSevenDayDateBoundary(period))
   );
 }
 
-function distributionCandidateWeight(candidate: SentimentCandidate) {
-  const distribution = objectValue(
-    candidate.value.distribution
-    ?? candidate.value.sentimentDistribution
-    ?? candidate.value.sentiment_distribution,
+function hasOrderedSentimentWindow(candidate: SentimentCandidate | undefined) {
+  if (!candidate) return false;
+  const windowStart = datePart(sentimentWindowStart(candidate.value));
+  const windowEnd = datePart(sentimentWindowEnd(candidate.value));
+  return Boolean(windowStart && windowEnd && windowStart <= windowEnd);
+}
+
+function hasOverallSentimentData(candidate: SentimentCandidate) {
+  const period = candidate.value;
+  const directMentions = finiteNumber(rowField(
+    period,
+    'mentions',
+    'totalMentions',
+    'mentionCount',
+    'mentionsDisplay',
+  ));
+  const timelineMentions = sentimentRows(period).reduce((sum, row) => sum + rowMentions(row), 0);
+  const mentions = directMentions ?? timelineMentions;
+  const overall = objectValue(rowField(period, 'overall'));
+  const score = normalizedSentimentScore(
+    rowField(overall, 'score', 'scoreDisplay')
+    ?? rowField(period, 'overallSentimentScore', 'sentimentScore'),
   );
+
+  return mentions > 0 && score !== null;
+}
+
+function hasDistributionData(candidate: SentimentCandidate) {
+  return hasSentimentDistribution(candidate.value)
+    || sentimentRows(candidate.value).some(hasSentimentDistribution);
+}
+
+function hasPlatformData(candidate: SentimentCandidate) {
+  return platformRowsForPeriod(candidate.value).some(row => (
+    sentimentPlatformName(row.platform ?? row.name) !== null
+    && finiteNumber(rowField(
+      row,
+      'mentions',
+      'totalMentions',
+      'mentionCount',
+      'count',
+      'recordCount',
+      'mentionsDisplay',
+    )) !== null
+  ));
+}
+
+function distributionCandidateWeight(candidate: SentimentCandidate) {
+  const distribution = objectValue(rowField(candidate.value, 'distribution', 'sentimentDistribution'));
   const counts = distributionCounts(candidate.value);
   const classifiedCount = counts.bullish + counts.neutral + counts.bearish;
   const percentageTotal = [
-    distribution.bullishPercent ?? distribution.positivePercent,
-    distribution.neutralPercent,
-    distribution.bearishPercent ?? distribution.negativePercent,
+    rowField(distribution, 'bullishPercent', 'positivePercent'),
+    rowField(distribution, 'neutralPercent'),
+    rowField(distribution, 'bearishPercent', 'negativePercent'),
   ].reduce<number>((sum, value) => sum + (finiteNumber(value) ?? 0), 0);
   return (hasSentimentDistribution(candidate.value) ? 1_000_000_000 : 0)
     + classifiedCount * 10_000
@@ -348,10 +406,12 @@ function distributionCandidateWeight(candidate: SentimentCandidate) {
 }
 
 function platformRowsForPeriod(period: Row) {
-  const directRows = Array.isArray(period.platforms)
-    ? period.platforms.map(objectValue)
-    : Array.isArray(period.platformBreakdown)
-      ? period.platformBreakdown.map(objectValue)
+  const platforms = rowField(period, 'platforms');
+  const platformBreakdown = rowField(period, 'platformBreakdown');
+  const directRows = Array.isArray(platforms)
+    ? platforms.map(objectValue)
+    : Array.isArray(platformBreakdown)
+      ? platformBreakdown.map(objectValue)
       : [];
   if (directRows.length) return directRows;
   return sentimentRows(period).filter(row => sentimentPlatformName(row.platform ?? row.name));
@@ -366,48 +426,62 @@ function platformCandidateWeight(candidate: SentimentCandidate) {
     + candidateWeight(candidate);
 }
 
-function selectSevenDaySentimentCandidates(payload: DailyReportPayload, reportDate: string) {
+function selectSevenDaySentimentCandidates(payload: DailyReportPayload) {
   const candidates = sevenDaySentimentCandidates(payload);
-  candidates.sort((a, b) => {
-    const matchingWindowDifference = Number(hasMatchingSevenDayWindow(b, reportDate))
-      - Number(hasMatchingSevenDayWindow(a, reportDate));
-    return matchingWindowDifference || candidateWeight(b) - candidateWeight(a);
-  });
-  const matchingCandidates = candidates.filter(candidate => hasMatchingSevenDayWindow(candidate, reportDate));
-  // A dated report must never borrow sentiment from a different report date.
-  // If the archived file contains a stale or future window, leave sentiment
-  // unavailable so the mismatch is visible and can be corrected upstream.
-  const selectedCandidate = matchingCandidates[0];
-  const distributionCandidate = [...matchingCandidates]
+  const rankedCandidates = [...candidates].sort((a, b) => candidateWeight(b) - candidateWeight(a));
+
+  // A dated report may store its 7D boundary metadata separately from its
+  // aggregate values. Select each report-owned subsection independently
+  // instead of requiring one object to contain the entire sentiment page.
+  // For display, the exact dated API's ordered boundaries are authoritative;
+  // do not hide them merely because an additional frontend span check fails.
+  const windowCandidate = [...candidates]
+    .filter(hasOrderedSentimentWindow)
+    .sort((a, b) => (
+      Number(hasUsableSevenDayWindow(b)) - Number(hasUsableSevenDayWindow(a))
+      || candidateWeight(b) - candidateWeight(a)
+    ))[0];
+  const selectedCandidate = rankedCandidates.filter(hasOverallSentimentData)[0];
+  const distributionCandidate = [...candidates]
+    .filter(hasDistributionData)
     .sort((a, b) => distributionCandidateWeight(b) - distributionCandidateWeight(a))[0];
-  const platformCandidate = [...matchingCandidates]
+  const platformCandidate = [...candidates]
+    .filter(hasPlatformData)
     .sort((a, b) => platformCandidateWeight(b) - platformCandidateWeight(a))[0];
 
   return {
     candidates,
-    matchingCandidates,
+    windowCandidate,
     selectedCandidate,
     distributionCandidate,
     platformCandidate,
   };
 }
 
-export function reportSentimentDiagnostics(payload: unknown, reportDate: string) {
-  const selection = selectSevenDaySentimentCandidates(payload as DailyReportPayload, reportDate);
+export function reportSentimentDiagnostics(payload: unknown) {
+  const selection = selectSevenDaySentimentCandidates(payload as DailyReportPayload);
 
   return selection.candidates.map(candidate => {
     const period = candidate.value;
     const timeline = sentimentRows(period);
-    const directMentions = finiteNumber(period.mentions ?? period.totalMentions ?? period.mentionCount);
+    const directMentions = finiteNumber(rowField(
+      period,
+      'mentions',
+      'totalMentions',
+      'mentionCount',
+      'mentionsDisplay',
+    ));
     const timelineMentions = timeline.reduce((sum, row) => sum + rowMentions(row), 0);
-    const overall = objectValue(period.overall);
+    const overall = objectValue(rowField(period, 'overall'));
     const score = normalizedSentimentScore(
-      overall.score ?? period.overallSentimentScore ?? period.sentimentScore,
+      rowField(overall, 'score', 'scoreDisplay')
+      ?? rowField(period, 'overallSentimentScore', 'sentimentScore'),
     );
     const counts = distributionCounts(period);
     const platformRows = platformRowsForPeriod(period);
     const platformMentions = platformRows.reduce((sum, row) => sum + rowMentions(row), 0);
     const selectedFor = [
+      selection.windowCandidate === candidate ? 'Window' : '',
       selection.selectedCandidate === candidate ? 'Overall' : '',
       selection.distributionCandidate === candidate ? 'Distribution' : '',
       selection.platformCandidate === candidate ? 'Platforms' : '',
@@ -417,10 +491,10 @@ export function reportSentimentDiagnostics(payload: unknown, reportDate: string)
       selectedFor,
       path: candidate.path,
       explicit7D: candidate.explicitSevenDay ? 'Yes' : 'No',
-      matchesReportDate: hasMatchingSevenDayWindow(candidate, reportDate) ? 'Yes' : 'No',
-      window: String(period.window ?? 'N/A'),
-      windowStart: datePart(period.windowStart ?? period.windowStartUtc ?? period.start) || 'N/A',
-      windowEnd: datePart(period.windowEnd ?? period.windowEndUtc ?? period.end) || 'N/A',
+      usableForReport: selectedFor === 'Not selected' ? 'No' : 'Yes',
+      window: String(sentimentWindowLabel(period) ?? 'N/A'),
+      windowStart: datePart(sentimentWindowStart(period)) || 'N/A',
+      windowEnd: datePart(sentimentWindowEnd(period)) || 'N/A',
       directMentions: directMentions === null ? 'N/A' : String(directMentions),
       timelineMentions: String(timelineMentions),
       score: score === null ? 'N/A' : String(score),
@@ -431,23 +505,30 @@ export function reportSentimentDiagnostics(payload: unknown, reportDate: string)
   });
 }
 
-function normalizeSevenDaySentiment(payload: DailyReportPayload, reportDate: string) {
+function normalizeSevenDaySentiment(payload: DailyReportPayload) {
   const {
     candidates,
-    matchingCandidates,
+    windowCandidate,
     selectedCandidate,
     distributionCandidate,
     platformCandidate,
-  } = selectSevenDaySentimentCandidates(payload, reportDate);
+  } = selectSevenDaySentimentCandidates(payload);
   const period = selectedCandidate?.value ?? {};
-  const matchingWindow = hasMatchingSevenDayWindow(selectedCandidate, reportDate);
+  const windowPeriod = windowCandidate?.value ?? {};
   const timeline = sentimentRows(period);
-  const directMentions = finiteNumber(period.mentions ?? period.totalMentions ?? period.mentionCount);
+  const directMentions = finiteNumber(rowField(
+    period,
+    'mentions',
+    'totalMentions',
+    'mentionCount',
+    'mentionsDisplay',
+  ));
   const timelineMentions = timeline.reduce((sum, row) => sum + rowMentions(row), 0);
   const mentions = directMentions ?? timelineMentions;
-  const overall = objectValue(period.overall);
+  const overall = objectValue(rowField(period, 'overall'));
   const directScore = normalizedSentimentScore(
-    overall.score ?? period.overallSentimentScore ?? period.sentimentScore,
+    rowField(overall, 'score', 'scoreDisplay')
+    ?? rowField(period, 'overallSentimentScore', 'sentimentScore'),
   );
   const weightedTimelineScore = timeline.reduce((sum, row) => {
     const count = rowMentions(row);
@@ -460,21 +541,22 @@ function normalizeSevenDaySentiment(payload: DailyReportPayload, reportDate: str
   }, 0);
   const calculatedScore = directScore ?? (timelineScoreMentions ? weightedTimelineScore / timelineScoreMentions : null);
   const calculatedPreviousScore = normalizedSentimentScore(
-    overall.previousScore
-    ?? period.previousOverallSentimentScore
-    ?? period.previousSentimentScore
-    ?? objectValue(period.comparison).previousScore,
+    rowField(overall, 'previousScore')
+    ?? rowField(period, 'previousOverallSentimentScore', 'previousSentimentScore')
+    ?? rowField(objectValue(rowField(period, 'comparison')), 'previousScore'),
   );
   const score = mentions > 0 ? calculatedScore : null;
   const previousScore = mentions > 0 ? calculatedPreviousScore : null;
-  const numericChange = score !== null && previousScore !== null ? score - previousScore : null;
+  const suppliedNumericChange = finiteNumber(rowField(overall, 'numericChange', 'changeValue'));
+  const numericChange = suppliedNumericChange
+    ?? (score !== null && previousScore !== null ? score - previousScore : null);
   const distributionPeriod = distributionCandidate?.value ?? period;
   const distributionTimeline = sentimentRows(distributionPeriod);
-  const directDistribution = objectValue(
-    distributionPeriod.distribution
-    ?? distributionPeriod.sentimentDistribution
-    ?? distributionPeriod.sentiment_distribution,
-  );
+  const directDistribution = objectValue(rowField(
+    distributionPeriod,
+    'distribution',
+    'sentimentDistribution',
+  ));
   const directCounts = distributionCounts(distributionPeriod);
   const timelineCounts = distributionTimeline.reduce<{ bullish: number; neutral: number; bearish: number }>((totals, row) => {
     const counts = distributionCounts(row);
@@ -490,15 +572,9 @@ function normalizeSevenDaySentiment(payload: DailyReportPayload, reportDate: str
   const percent = (value: number) => classifiedMentions ? value / classifiedMentions * 100 : 0;
   const platformPeriod = platformCandidate?.value ?? period;
   const platformSource = platformRowsForPeriod(platformPeriod);
-  const overallAvailable = matchingWindow && calculatedScore !== null;
-  const distributionAvailable = Boolean(distributionCandidate) && (
-    hasSentimentDistribution(distributionPeriod)
-    || distributionTimeline.some(hasSentimentDistribution)
-  );
-  const platformsAvailable = Boolean(platformCandidate) && platformSource.some(row => (
-    sentimentPlatformName(row.platform ?? row.name) !== null
-    && finiteNumber(row.mentions ?? row.totalMentions ?? row.mentionCount ?? row.count) !== null
-  ));
+  const overallAvailable = Boolean(selectedCandidate) && mentions > 0 && calculatedScore !== null;
+  const distributionAvailable = Boolean(distributionCandidate) && hasDistributionData(distributionCandidate);
+  const platformsAvailable = Boolean(platformCandidate) && hasPlatformData(platformCandidate);
   const available = overallAvailable || distributionAvailable || platformsAvailable;
 
   const platforms = sentimentPlatformNames.map(name => {
@@ -518,7 +594,7 @@ function normalizeSevenDaySentiment(payload: DailyReportPayload, reportDate: str
     const suppliedLabel = rows.find(row => row.sentimentLabel ?? row.label)?.sentimentLabel
       ?? rows.find(row => row.sentimentLabel ?? row.label)?.label;
     const suppliedShare = rows.length === 1
-      ? finiteNumber(rows[0].sharePercent ?? rows[0].percentage)
+      ? finiteNumber(rows[0].sharePercent ?? rows[0].contributionPercent ?? rows[0].percentage)
       : null;
     return {
       name,
@@ -534,6 +610,13 @@ function normalizeSevenDaySentiment(payload: DailyReportPayload, reportDate: str
   const changeDisplay = typeof overall.changeDisplay === 'string' && overall.changeDisplay.trim()
     ? overall.changeDisplay
     : numericChange === null ? '--' : `${numericChange >= 0 ? '+' : ''}${numericChange.toFixed(2)}`;
+  const sourceWindowStart = String(
+    sentimentWindowStart(windowPeriod) ?? '',
+  ).trim();
+  const sourceWindowEnd = String(
+    sentimentWindowEnd(windowPeriod) ?? '',
+  ).trim();
+  const suppliedDeltaTone = String(overall.deltaTone ?? '').trim();
 
   return {
     available,
@@ -542,15 +625,12 @@ function normalizeSevenDaySentiment(payload: DailyReportPayload, reportDate: str
     platformsAvailable,
     unavailableMessage: available
       ? undefined
-      : candidates.length && !matchingCandidates.length
-        ? 'Sentiment data unavailable: the archived sentiment window does not match this report date.'
-        : 'Sentiment data unavailable for this report.',
+      : 'Sentiment data unavailable for this report.',
     window: '7D',
-    // The report labels an inclusive seven-calendar-day observation window.
-    // Anchor it to the immutable report date so an incorrect legacy boundary
-    // such as Aug 20–25 cannot be presented as seven days.
-    windowStart: inclusiveSevenDayWindowStart(reportDate),
-    windowEnd: reportDate,
+    // The dated report response is the frozen source of truth for both the
+    // displayed observation period and the sentiment values within it.
+    windowStart: sourceWindowStart,
+    windowEnd: sourceWindowEnd,
     mentions,
     mentionsDisplay: mentions.toLocaleString('en-US'),
     overall: {
@@ -560,7 +640,8 @@ function normalizeSevenDaySentiment(payload: DailyReportPayload, reportDate: str
       previousScore,
       numericChange,
       changeDisplay,
-      deltaTone: numericChange === null ? '' : numericChange > 0 ? 'positive' : numericChange < 0 ? 'negative' : '',
+      deltaTone: suppliedDeltaTone
+        || (numericChange === null ? '' : numericChange > 0 ? 'positive' : numericChange < 0 ? 'negative' : ''),
       label: sentimentLabel(score, mentions, overall.label ?? period.sentimentLabel ?? period.label),
     },
     distribution: {
@@ -606,7 +687,7 @@ function normalizeReportPayload(
   const shortInterestScore = normalizeShortInterestScore(payload.shortInterestScore);
   const shortLending = objectValue(payload.shortLending);
   const ftdChart = objectValue(shortLending.ftdChart);
-  const sentiment = normalizeSevenDaySentiment(payload, report.reportDate);
+  const sentiment = normalizeSevenDaySentiment(payload);
 
   return {
     ...payload,
@@ -623,6 +704,7 @@ function normalizeReportPayload(
     sentiment: {
       ...sentiment,
       window: '7D',
+      sourceEndpoint: `GET /market-data/reports?ticker=${report.ticker.toUpperCase()}&date=${report.reportDate}`,
     },
     shortLending: {
       ...shortLending,

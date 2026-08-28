@@ -164,11 +164,31 @@ Each chart uses aligned date and value arrays:
 
 All sentiment fields must represent the previous seven-day window ending on the report date. Percentages should total approximately 100 after rounding. Platform mentions should reconcile to total mentions. The platform array must always include Reddit, X, Facebook, LinkedIn, and Stocktwits; unavailable platforms use zero mentions, zero share, and `No data` sentiment. `previousScore` and `changeDisplay`, when supplied, compare this window with the immediately preceding seven-day window.
 
-The rendered observation-period label is an inclusive seven-calendar-day
-range anchored to the immutable report date. Its displayed end is the report
-date and its displayed start is six calendar days earlier. For report date
-`2026-08-25`, the label must be `Aug 19, 2026 – Aug 25, 2026`; an upstream
-legacy boundary such as Aug 20–25 must not be presented as a 7D range.
+The rendered observation-period label uses the selected dated sentiment
+window object's `windowStart` and `windowEnd` exactly. These boundaries, along
+with the mentions, overall score, distribution, and platform breakdown, must
+all come from the same frozen
+`GET /market-data/reports?ticker={ticker}&date={date}` response. The frontend
+does not replace a valid API boundary with a locally calculated date range.
+The candidate must still contain structurally valid seven-day boundaries. The
+dated endpoint itself establishes report ownership; the frontend does not
+require `windowEnd` to equal the report index date.
+
+The Market Perception page-header badge displays this same formatted
+`windowStart`–`windowEnd` range. It does not use the generic `Previous 7 Days`
+label when both API boundaries are available.
+
+The grey `Sentiment observation period` row follows the same rule. Ordered
+API boundaries from the exact dated report are displayed directly and are not
+suppressed by a second frontend calendar-span validation.
+
+Backend serialization may vary field casing or separators for the established
+sentiment keys. The normalizer treats equivalent forms such as `windowStart`,
+`WindowStart`, and `window_start` as the same field (and likewise for
+`windowEnd`, aggregate counts, `overall`, and distribution containers). When a
+dated object explicitly declares `window: "7D"` and supplies valid ordered
+start/end boundaries, those API boundaries are accepted without applying a
+second frontend calendar-span calculation.
 
 The archive PDF normalizer also accepts the same seven-day aggregate under
 `sentimentSnapshot`, or under `sentimentSnapshot.periods.7D` /
@@ -177,9 +197,9 @@ supply dated daily buckets. These input variants are normalized into the shape
 above before rendering; they must still belong to the dated
 `GET /market-data/reports?ticker={ticker}&date={date}` response. Report
 generation must not request or substitute `sentiment-current`. When more than
-one dated seven-day candidate exists, the normalizer first requires the window
-to match the report date, then prefers the candidate with populated mentions
-and a score. Candidate ranking uses an explicitly supplied aggregate mention
+one dated seven-day candidate exists, the normalizer retains structurally
+valid 7D windows and prefers the candidate with populated mentions and a
+score. Candidate ranking uses an explicitly supplied aggregate mention
 count when present; nested timeline mentions must not make an explicit
 zero-mention aggregate outrank a populated direct aggregate. A structurally
 complete zero-value legacy object must not outrank a populated candidate. When
@@ -189,12 +209,15 @@ be retained as candidates; the nested object must not cause the root aggregate
 to be discarded before ranking. Sentiment-keyed containers may appear under a
 dated report wrapper; candidate discovery must traverse those report-owned
 containers instead of assuming only top-level `sentiment` or `data.sentiment`.
-Overall sentiment, distribution, and platform breakdown have independent
-availability flags so valid dated data remains visible when a different
-subsection is absent. If no dated subsection is usable, the report renders
-`Sentiment data unavailable for this report.` instead of live sentiment.
+The window, overall sentiment, distribution, and platform breakdown are
+selected independently from sentiment-owned objects in that one dated
+response. Each data subsection has its own availability flag so valid dated
+data remains visible when another subsection is absent. The page itself is
+never replaced by one all-or-nothing unavailable block: a missing subsection
+shows its own unavailable state while the other sentiment cards and SEC
+filings remain rendered. Live sentiment is never substituted.
 
-The three subsections may be supplied by separate explicit, date-matched 7D
+The three subsections may be supplied by separate explicit, valid 7D
 objects inside the same dated report response. Overall uses the strongest
 populated aggregate (`mentions`, `overall`); Distribution uses the strongest
 populated `distribution`; and Platform Breakdown uses the strongest populated
