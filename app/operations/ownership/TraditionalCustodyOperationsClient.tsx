@@ -29,8 +29,8 @@ export function TraditionalCustodyOperationsClient() {
           <tbody>
             {sampleTraditionalCustodyRows.map(row => (
               <tr key={row.id}>
-                <td><input value={row.name} aria-label="Sample broker or custodian name" disabled readOnly /></td>
-                <td><input value={row.shares.toLocaleString('en-US')} aria-label={`Sample shares held by ${row.name}`} disabled readOnly /></td>
+                <td><span className="ops-custody-readonly-field">{row.name}</span></td>
+                <td><span className="ops-custody-readonly-field ops-custody-readonly-number">{row.shares.toLocaleString('en-US')}</span></td>
                 <td><button className="ops-danger-button" type="button" disabled>Remove</button></td>
               </tr>
             ))}

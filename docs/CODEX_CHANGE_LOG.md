@@ -4,6 +4,77 @@ This file is the persistent implementation memory for changes made by Codex.
 Read it before modifying existing portal behavior, and update it after every
 completed change.
 
+## 2026-09-02 - Complete user-portal Chinese interface translations
+
+- Area: User Portal -> all pages, including Dashboard, Ownership, Internal
+  Float, Short Interest, Lending Pressure, Social Sentiment, Exchange Volume,
+  SEC Filings, Reports, alerts, account, settings, and supporting modules.
+- API/data:
+  - No API contract or request change. Existing current, history, reports,
+    social, ownership, SEC filing, and user-input responses remain unchanged.
+  - API-returned company names, holder names, filing descriptions, social
+    posts, source values, and Development Data payload rows remain untranslated.
+- Reported problem and root cause:
+  - Newer interface sections had been added after the shared Chinese catalogue,
+    so their English headings, descriptions, buttons, empty/error states, table
+    helpers, and accessibility labels had no matching translation.
+  - Runtime-composed strings such as `As of 08/31/26` and
+    `0.00% vs 08/28/26` could not be handled by exact phrase matching.
+- Intended behavior and invariants:
+  - Translate all audited user-interface text consistently in Traditional and
+    Simplified Chinese, including the complete Lending Pressure risk card.
+  - Translate variable date, comparison, output-count, loading, and post-filter
+    phrases through bounded patterns without changing their values.
+  - Preserve English mode, API data, proper names, platform names, ticker
+    symbols, endpoint labels, example contact values, and existing language
+    persistence behavior.
+- Files changed:
+  - `lib/portal-page-translations.ts`
+  - `docs/CODEX_CHANGE_LOG.md`
+- Verification:
+  - Source audit across every `app/monitor/[ticker]` TSX page left only
+    intentional non-translated endpoint strings, example contact values,
+    abbreviations, and icon glyphs.
+  - Representative Traditional and Simplified Chinese checks passed for the
+    Lending Pressure card, runtime dates/comparisons, Dashboard, Social
+    Sentiment, Reports, and accessibility labels.
+  - `npm run typecheck` passed.
+  - `npm run build` passed, including all 29 generated static pages.
+  - `git diff --check` passed.
+- Remaining backend dependency / limitation:
+  - None. Future frontend copy must be added to the shared catalogue (or a
+    bounded runtime pattern) when it is introduced.
+
+## 2026-08-31 - Prevent Traditional Custody hydration mismatch from browser extensions
+
+- Area: Operations Portal -> Ownership Data -> Traditional Custody Breakdown.
+- API/data:
+  - No API change. The section remains a hardcoded, display-only sample pending
+    backend implementation.
+- Reported problem and root cause:
+  - React reported a hydration mismatch on every sample broker and share field.
+  - A browser extension inserted `data-sharkid` attributes into the disabled
+    HTML inputs before hydration, so the browser DOM no longer matched the
+    server-rendered markup.
+- Intended behavior and invariants:
+  - Render sample custody names and shares as static read-only values rather
+    than disabled form inputs, because users cannot edit or submit them.
+  - Preserve the existing table layout, sample values, pending-implementation
+    message, disabled actions, and absence of backend connectivity.
+  - Avoid hiding genuine application hydration issues globally with
+    `suppressHydrationWarning`.
+- Files changed:
+  - `app/operations/ownership/TraditionalCustodyOperationsClient.tsx`
+  - `app/globals.css`
+  - `docs/CODEX_CHANGE_LOG.md`
+- Verification:
+  - `npm run typecheck` passed.
+  - `npm run build` passed, including all 29 generated static pages.
+  - `git diff --check` passed.
+- Remaining backend dependency / limitation:
+  - Traditional Custody remains a UI preview until its backend storage and
+    publishing API is implemented.
+
 ## 2026-08-28 - Restore all supported KWatch export categories
 
 - Area: Operations Portal -> Data Export.

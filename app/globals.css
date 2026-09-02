@@ -4870,7 +4870,9 @@ html[data-design-b-theme="dark"] .ops-save-confirm-requests code {
   text-align: right;
 }
 
-.ops-custody-input-table input {
+.ops-custody-readonly-field {
+  display: flex;
+  align-items: center;
   width: 100%;
   min-height: 34px;
   border: 1px solid var(--ci-border, #cfd8e5);
@@ -4881,10 +4883,9 @@ html[data-design-b-theme="dark"] .ops-save-confirm-requests code {
   font: inherit;
 }
 
-.ops-custody-input-table input:focus {
-  border-color: var(--ci-accent, #315fbd);
-  outline: 2px solid color-mix(in srgb, var(--ci-accent, #315fbd) 20%, transparent);
-  outline-offset: 1px;
+.ops-custody-readonly-number {
+  justify-content: flex-end;
+  font-variant-numeric: tabular-nums;
 }
 
 .ops-custody-input-actions {
