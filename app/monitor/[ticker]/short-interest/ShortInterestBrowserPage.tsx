@@ -9,8 +9,8 @@ import { PageDisclaimerNotice } from '@/components/PageDisclaimerNotice';
 import { fetchAiReport } from '@/lib/ai-report-api';
 import { cachedAuthenticatedFetch } from '@/lib/auth-client';
 import {
-  latestCompleteMarketPublicationRecordFromHistory,
   marketCurrentMetricObservation,
+  marketCurrentSnapshotDate,
   marketPublicationRecordFromHistoryForDate,
   marketRecordDate,
   type MarketCurrentMetricObservation,
@@ -962,16 +962,9 @@ export function ShortInterestBrowserPage({ ticker }: { ticker: string }) {
         cachedAuthenticatedFetch<ApiFile>(`/market-data/history?ticker=${encodeURIComponent(normalizedTicker)}&category=short-volume-history`),
         cachedAuthenticatedFetch<ApiFile>(`/market-data/history?ticker=${encodeURIComponent(normalizedTicker)}&category=ftd-history`),
       ]);
-      const historyRows = apiRecords(history, 'market-history');
-      const publishedRecord = latestCompleteMarketPublicationRecordFromHistory(historyRows);
-      const latestHistoryRecord = [...historyRows]
-        .filter(row => marketRecordDate(row))
-        .sort((a, b) => marketRecordDate(b).localeCompare(marketRecordDate(a)))[0];
-      const reportDate = publishedRecord
-        ? marketRecordDate(publishedRecord)
-        : latestHistoryRecord
-          ? marketRecordDate(latestHistoryRecord)
-          : undefined;
+      const reportDate = marketCurrentSnapshotDate(
+        apiCategory(current, 'market-current') as MarketCurrentSnapshot,
+      ) || undefined;
       const aiReport = await (fetchAiReport(normalizedTicker, reportDate) as Promise<ApiFile>)
         .catch(cause => ({
           requestError: cause instanceof Error ? cause.message : 'Unable to load AI report.',
@@ -995,7 +988,7 @@ export function ShortInterestBrowserPage({ ticker }: { ticker: string }) {
   }
 
   const marketHistoryRows = apiRecords(apiData.history, 'market-history');
-  const publishedRecord = latestCompleteMarketPublicationRecordFromHistory(marketHistoryRows);
+  const currentSnapshot = apiCategory(apiData.current, 'market-current') as MarketCurrentSnapshot;
   const shortCurrent = marketCurrentToLegacy(apiData.current);
   const currentShortInterestShares = currentObservation(apiData.current, 'shortInterest.shares');
   const currentShortInterestPercent = currentObservation(apiData.current, 'shortInterest.percent');
@@ -1014,7 +1007,7 @@ export function ShortInterestBrowserPage({ ticker }: { ticker: string }) {
   const borrowFeeTrendRows = shortInterestTrendRows.filter(row => optionalNumeric(record(row.borrowFeeAll).costToBorrowAll) !== null);
   const availabilityTrendRows = shortInterestTrendRows.filter(row => optionalNumeric(record(row.availability).shortAvailabilityShares) !== null);
   const sortedDailyRows = [...dailyRows].sort((a, b) => String(b.date ?? '').localeCompare(String(a.date ?? '')));
-  const currentReportDate = publishedRecord ? marketRecordDate(publishedRecord) : String(sortedDailyRows[0]?.date ?? '');
+  const currentReportDate = marketCurrentSnapshotDate(currentSnapshot);
   const shortInterestSnapshotRows = sortedDailyRows.filter(row => {
     const snapshot = record(row.shortInterest);
     return optionalNumeric(snapshot.shortInterestShares) !== null

@@ -65,6 +65,13 @@ export function marketRecordDate(record: MarketPublicationRecord) {
   return String(record.tradeDate ?? record.date ?? '').slice(0, 10);
 }
 
+export function marketCurrentSnapshotDate(
+  current: MarketCurrentSnapshot | null | undefined,
+) {
+  const date = String(current?.snapshotDate ?? '').trim().slice(0, 10);
+  return /^\d{4}-\d{2}-\d{2}$/.test(date) ? date : '';
+}
+
 export function marketCurrentFieldDate(
   current: MarketCurrentSnapshot | null | undefined,
   field: string,
@@ -73,7 +80,7 @@ export function marketCurrentFieldDate(
   const datedField = Array.isArray(current.otherDateData)
     ? current.otherDateData.find(item => String(item?.field ?? '').trim() === field)
     : undefined;
-  return String(datedField?.date ?? current.snapshotDate ?? '').slice(0, 10);
+  return String(datedField?.date ?? marketCurrentSnapshotDate(current)).slice(0, 10);
 }
 
 export function marketCurrentMetricObservation(

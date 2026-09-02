@@ -8,8 +8,8 @@ import { PageDisclaimerNotice } from '@/components/PageDisclaimerNotice';
 import { fetchAiReport } from '@/lib/ai-report-api';
 import { cachedAuthenticatedFetch } from '@/lib/auth-client';
 import {
-  latestCompleteMarketPublicationRecordFromHistory,
   marketCurrentMetricObservation,
+  marketCurrentSnapshotDate,
   marketPublicationRecordFromHistoryForDate,
   marketRecordDate,
   type MarketCurrentMetricObservation,
@@ -489,16 +489,9 @@ export function LendingPressureBrowserPage({ ticker }: { ticker: string }) {
 
     Promise.all([loadEndpoint(currentEndpoint), loadEndpoint(historyEndpoint)])
       .then(async ([currentResult, historyResult]) => {
-        const apiHistoryRecords = historyRecords(historyResult.payload);
-        const publishedRecord = latestCompleteMarketPublicationRecordFromHistory(apiHistoryRecords);
-        const latestHistoryRecord = [...apiHistoryRecords]
-          .filter(row => marketRecordDate(row))
-          .sort((a, b) => marketRecordDate(b).localeCompare(marketRecordDate(a)))[0];
-        const reportDate = publishedRecord
-          ? marketRecordDate(publishedRecord)
-          : latestHistoryRecord
-            ? marketRecordDate(latestHistoryRecord)
-            : undefined;
+        const reportDate = marketCurrentSnapshotDate(
+          categoryRecord(currentResult.payload, 'market-current') as MarketCurrentSnapshot,
+        ) || undefined;
         const aiReportEndpoint = `/market-data/ai-report?ticker=${encodeURIComponent(normalizedTicker)}${reportDate ? `&date=${encodeURIComponent(reportDate)}` : ''}`;
         const aiReportResult = await loadEndpoint(
           aiReportEndpoint,

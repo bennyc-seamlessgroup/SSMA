@@ -4,6 +4,45 @@ This file is the persistent implementation memory for changes made by Codex.
 Read it before modifying existing portal behavior, and update it after every
 completed change.
 
+## 2026-09-02 - Align live AI analysis with Market Current date
+
+- Area: User Portal -> Short Interest and Lending Pressure.
+- API/data:
+  - Existing `GET /market-data/current?ticker={ticker}&category=market-current`.
+  - Existing `GET /market-data/ai-report?ticker={ticker}&date={date}`.
+- Reported problem and root cause:
+  - The live-page AI report date was selected from the latest complete
+    `market-history` publication, so the displayed Market Current snapshot and
+    AI analysis could refer to different dates.
+- Intended behavior and invariants:
+  - Use the `snapshotDate` returned by the same Market Current response as the
+    AI report's `date` query on both live pages.
+  - Do not fall back to a market-history date. If Market Current has no valid
+    `snapshotDate`, omit `date` and let the AI report API calculate its target
+    date according to the documented contract.
+  - Keep dated report/PDF generation unchanged; it continues to request AI
+    analysis for the explicitly selected archived report date.
+  - Keep per-field carried-forward source dates unchanged. The AI report aligns
+    to the overall Market Current snapshot date, not an individual metric's
+    `otherDateData` date.
+- Files changed:
+  - `lib/market-data-publication.ts`
+  - `app/monitor/[ticker]/short-interest/ShortInterestBrowserPage.tsx`
+  - `app/monitor/[ticker]/lending-pressure/LendingPressureBrowserPage.tsx`
+  - `docs/CODEX_CHANGE_LOG.md`
+- Verification:
+  - Focused helper checks confirmed ISO timestamps are normalized to their
+    `YYYY-MM-DD` snapshot date and a missing date is omitted.
+  - Source checks confirmed both live AI requests and their Development Data
+    endpoint labels use Market Current `snapshotDate`.
+  - `npm run typecheck` passed.
+  - `npm run build` passed, including all 29 generated static pages.
+  - `git diff --check` passed.
+- Remaining backend dependency / limitation:
+  - The backend must provide an AI report for the Market Current snapshot date;
+    otherwise that live AI section will correctly show unavailable rather than
+    silently substituting an older history date.
+
 ## 2026-09-02 - Complete user-portal Chinese interface translations
 
 - Area: User Portal -> all pages, including Dashboard, Ownership, Internal
