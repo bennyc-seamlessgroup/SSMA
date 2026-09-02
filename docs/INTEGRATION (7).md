@@ -1570,6 +1570,21 @@ Returns the raw JSON content of the primary S3 file at `ai-report/{ticker}/{date
 }
 ```
 
+The two analysis fields are backward compatible. Historical objects may keep
+the plain Markdown strings shown above. Multilingual objects may instead store
+a JSON object inside a fenced `json` string; `en`, `zh_tc`, and `zh_sc` contain
+the English, Traditional Chinese, and Simplified Chinese versions:
+
+````json
+{
+  "short_interest_current_interpretation": "```json\n{\n  \"en\": \"English analysis\",\n  \"zh_tc\": \"Traditional Chinese analysis\",\n  \"zh_sc\": \"Simplified Chinese analysis\"\n}\n```"
+}
+````
+
+Consumers must continue accepting the legacy plain string. They should parse
+the multilingual value only when it is valid JSON containing one or more of
+the supported language keys; malformed or ordinary prose remains legacy text.
+
 **Response** `400 Bad Request`: If `ticker` is missing or `date` parameter format is invalid (must match `YYYY-MM-DD`).
 **Response** `403 Forbidden`: If the user is unauthorized to view AI reports for the specified ticker.
 **Response** `404 Not Found`: If neither user-level nor ticker-level AI report exists in S3 for the specified/calculated date.

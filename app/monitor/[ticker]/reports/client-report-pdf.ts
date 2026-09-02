@@ -8,7 +8,7 @@ declare global {
 
 export const REPORT_TEMPLATE_URL = '/report-templates/daily-close/template.html';
 const TEMPLATE_STYLES_URL = '/report-templates/daily-close/styles.css';
-export const REPORT_TEMPLATE_VERSION = '2026-08-27-short-score-typography-v25';
+export const REPORT_TEMPLATE_VERSION = '2026-09-02-multilingual-v26';
 
 export function reportTemplateUrl(dataUrl: string, mode: 'pdf' | 'html' = 'pdf') {
   const params = new URLSearchParams({

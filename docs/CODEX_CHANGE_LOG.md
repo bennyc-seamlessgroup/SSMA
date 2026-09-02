@@ -4,6 +4,84 @@ This file is the persistent implementation memory for changes made by Codex.
 Read it before modifying existing portal behavior, and update it after every
 completed change.
 
+## 2026-09-02 - Support multilingual and legacy AI-report payloads
+
+- Area:
+  - User Portal -> Short Interest -> AI Analysis.
+  - User Portal -> Lending Pressure -> AI Analysis.
+  - User Portal -> Report Archive -> report viewer and generated daily PDF.
+- API/data:
+  - Existing `GET /market-data/ai-report?ticker={ticker}&date={date}`.
+  - Existing dated `GET /market-data/reports?ticker={ticker}&date={date}`.
+  - AI fields `short_interest_current_interpretation` and
+    `lending_pressure_analysis` now accept either the historical plain
+    Markdown string or a valid JSON language map carried in a fenced `json`
+    string. Supported keys are `en`, `zh_tc`, and `zh_sc`; direct language-map
+    objects and the equivalent `zh-Hant` / `zh-Hans` keys are also tolerated.
+- Reported problem and root cause:
+  - The portal treated every AI analysis value as final display text. The new
+    backend structure serializes all three languages inside the field, so the
+    raw JSON fence would otherwise be shown to users and written into PDFs.
+  - The archive PDF renderer was English-only and did not receive the current
+    portal language.
+- Intended behavior and invariants:
+  - Parse a value as multilingual only when it contains valid JSON with at
+    least one supported language key. Ordinary prose and malformed JSON remain
+    legacy text and are displayed unchanged.
+  - English selects `en`, Traditional Chinese selects `zh_tc`, and Simplified
+    Chinese selects `zh_sc`. A missing requested translation falls back to
+    English, then another available language, rather than showing raw JSON.
+  - Changing portal language updates the live Short Interest and Lending
+    Pressure AI analysis without changing the API date or market-data logic.
+  - Opening or downloading an archived report builds its data using the
+    current portal language. Chinese report PDFs localize report chrome,
+    headings, KPI labels, dates, comparisons, sentiment labels, score bands,
+    disclaimers, and the selected AI summary.
+  - API-returned proper names, ticker symbols, company names, form codes, and
+    arbitrary filing descriptions remain source data and are not machine
+    translated.
+  - Preserve the existing archived-report date validation, seven-day sentiment
+    rules, carried-forward market values, and authenticated API behavior.
+  - Preserve the unbounded Short Score behavior: the daily report continues to
+    show the raw score without `/100`, and its bands remain `65-80 High` and
+    `>80 Extreme`.
+- Files changed:
+  - `lib/ai-report-localization.ts`
+  - `lib/ai-report-api.ts`
+  - `app/monitor/[ticker]/short-interest/ShortInterestBrowserPage.tsx`
+  - `app/monitor/[ticker]/lending-pressure/LendingPressureBrowserPage.tsx`
+  - `app/monitor/[ticker]/reports/ReportArchiveCenter.tsx`
+  - `app/monitor/[ticker]/reports/daily-report-data.ts`
+  - `app/monitor/[ticker]/reports/client-report-pdf.ts`
+  - `public/report-templates/daily-close/template.html`
+  - `public/report-templates/daily-close/render.js`
+  - `public/report-templates/daily-close/report-i18n.js`
+  - `Report Templates/lean-daily-market-close-report/template.html`
+  - `Report Templates/lean-daily-market-close-report/render.js`
+  - `Report Templates/lean-daily-market-close-report/report-i18n.js`
+  - `docs/INTEGRATION (7).md`
+  - `docs/CODEX_CHANGE_LOG.md`
+- Verification:
+  - Both supplied `ai-report.json` and `new-ai-report.json` passed focused
+    selection checks. Legacy text was identical in all portal languages; the
+    new payload selected distinct English, Traditional Chinese, and Simplified
+    Chinese summaries, including when the fenced JSON was embedded in a wider
+    string.
+  - TypeScript type-check and JavaScript syntax checks passed.
+  - Production build passed, including all 29 generated static pages.
+  - Traditional and Simplified Chinese A4 QA PDFs each rendered as four pages.
+    Visual inspection confirmed localized labels and dates, the correct Chinese
+    AI summary, intact charts/layout, and no `/100` score label.
+  - PDF metadata and text checks confirmed four A4 pages and the expected
+    Traditional Chinese report title and AI content.
+  - Whitespace validation passed.
+- Remaining backend dependency / limitation:
+  - The backend must populate the requested `zh_tc` and `zh_sc` values for a
+    true translated AI summary. If one is absent, the documented language
+    fallback applies.
+  - Arbitrary API-returned filing descriptions remain in their source language
+    unless the backend supplies translated filing data in a future contract.
+
 ## 2026-09-02 - Align live AI analysis with Market Current date
 
 - Area: User Portal -> Short Interest and Lending Pressure.

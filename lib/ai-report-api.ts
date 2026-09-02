@@ -1,12 +1,13 @@
 'use client';
 
 import { cachedAuthenticatedFetch } from '@/lib/auth-client';
+import type { AiReportLocalizedText } from '@/lib/ai-report-localization';
 import { normalizeTicker } from '@/lib/ticker-data';
 
 export type AiReport = {
   created_at_utc?: string;
-  lending_pressure_analysis?: string;
-  short_interest_current_interpretation?: string;
+  lending_pressure_analysis?: AiReportLocalizedText;
+  short_interest_current_interpretation?: AiReportLocalizedText;
 };
 
 export async function fetchAiReport(ticker: string, date?: string): Promise<AiReport> {

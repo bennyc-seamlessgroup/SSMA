@@ -5,7 +5,9 @@ import { ApiSourceTags } from '@/components/ApiSourceTags';
 import { InfoTooltip } from '@/components/InfoTooltip';
 import { PortalPageLoading } from '@/components/PortalPageLoading';
 import { PageDisclaimerNotice } from '@/components/PageDisclaimerNotice';
+import { usePortalLanguage } from '@/components/usePortalLanguage';
 import { fetchAiReport } from '@/lib/ai-report-api';
+import { aiReportTextForLanguage } from '@/lib/ai-report-localization';
 import { cachedAuthenticatedFetch } from '@/lib/auth-client';
 import {
   marketCurrentMetricObservation,
@@ -446,6 +448,7 @@ function lendingScoreSummary(score: number, level: string) {
 }
 
 export function LendingPressureBrowserPage({ ticker }: { ticker: string }) {
+  const { language } = usePortalLanguage();
   const normalizedTicker = normalizeTicker(ticker);
   const [currentPayload, setCurrentPayload] = useState<unknown>(null);
   const [historyPayload, setHistoryPayload] = useState<unknown>(null);
@@ -580,8 +583,9 @@ export function LendingPressureBrowserPage({ ticker }: { ticker: string }) {
   const previousAverageDurationRow = rowBeforeObservation(sortedMarginRecords as unknown as Row[], currentObservations.averageDuration);
   const previousAverageDurationDays = optionalNumeric(previousAverageDurationRow.averageDurationDays);
   const averageDurationChangePercent = percentageChange(averageDurationDays, previousAverageDurationDays);
-  const aiSummary = text(
+  const aiSummary = aiReportTextForLanguage(
     record(aiReportPayload).lending_pressure_analysis,
+    language,
     'AI analysis is not available for the current consolidation date.',
   );
   const pressureLevels = ['Low', 'Moderate', 'High', 'Extreme'];

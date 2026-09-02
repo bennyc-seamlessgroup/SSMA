@@ -1,7 +1,9 @@
 'use client';
 
 import { fetchAiReport, type AiReport } from '@/lib/ai-report-api';
+import { aiReportTextForLanguage } from '@/lib/ai-report-localization';
 import { cachedAuthenticatedFetch, invalidateAuthenticatedFetchCache } from '@/lib/auth-client';
+import type { PortalLanguage } from '@/lib/portal-i18n';
 import type { ReportArchiveRecord } from '@/lib/report-archive';
 
 type Row = Record<string, unknown>;
@@ -664,6 +666,7 @@ function normalizeReportPayload(
   payload: DailyReportPayload,
   report: ReportArchiveRecord,
   aiAnalysis: string,
+  language: PortalLanguage,
 ) {
   const responseTicker = String(payload.ticker ?? '').trim().toUpperCase();
   const reportDateIso = String(payload.reportDateIso ?? '').trim();
@@ -691,6 +694,8 @@ function normalizeReportPayload(
 
   return {
     ...payload,
+    portalLanguage: language,
+    generatedAtIso: report.generatedAt,
     // Older archived report objects use asOfDate, while the current lean
     // report contract uses reportDateIso. Normalize the validated date so the
     // renderer receives one canonical field without weakening date matching.
@@ -716,7 +721,10 @@ function normalizeReportPayload(
   };
 }
 
-export async function buildDailyReportData(report: ReportArchiveRecord) {
+export async function buildDailyReportData(
+  report: ReportArchiveRecord,
+  language: PortalLanguage = 'en',
+) {
   const ticker = report.ticker.toUpperCase();
   const reportPath = `/market-data/reports?ticker=${encodeURIComponent(ticker)}&date=${encodeURIComponent(report.reportDate)}`;
 
@@ -729,10 +737,11 @@ export async function buildDailyReportData(report: ReportArchiveRecord) {
     cachedAuthenticatedFetch<DailyReportPayload>(reportPath),
     fetchAiReport(ticker, report.reportDate).catch((): AiReport => ({})),
   ]);
-  const aiAnalysis = typeof aiReport.short_interest_current_interpretation === 'string'
-    && aiReport.short_interest_current_interpretation.trim()
-    ? aiReport.short_interest_current_interpretation
-    : unavailableAiAnalysis;
+  const aiAnalysis = aiReportTextForLanguage(
+    aiReport.short_interest_current_interpretation,
+    language,
+    unavailableAiAnalysis,
+  );
 
-  return normalizeReportPayload(payload, report, aiAnalysis);
+  return normalizeReportPayload(payload, report, aiAnalysis, language);
 }

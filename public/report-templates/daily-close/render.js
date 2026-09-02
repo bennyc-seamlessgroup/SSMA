@@ -1,3 +1,10 @@
+let reportLanguage = 'en';
+let reportLocale = 'en-US';
+
+function tr(value) {
+  return window.ReportI18n?.translate(reportLanguage, value) ?? String(value ?? '');
+}
+
 (async function initReport() {
   const params = new URLSearchParams(window.location.search);
   const reportView = params.get('view') === 'html' ? 'html' : 'pdf';
@@ -10,6 +17,9 @@
   if (params.get('ticker')) data.ticker = params.get('ticker');
   if (params.get('reportDate')) data.reportDate = params.get('reportDate');
   if (params.get('generatedAt')) data.generatedAt = params.get('generatedAt');
+  reportLanguage = window.ReportI18n?.normalizeLanguage(data.portalLanguage) ?? 'en';
+  reportLocale = window.ReportI18n?.locale(reportLanguage) ?? 'en-US';
+  document.documentElement.lang = reportLanguage;
   document.getElementById('report-root').innerHTML = renderReport(data);
   drawSentimentGauge(document.querySelector('.report-sentiment-gauge'), data.sentiment?.overall);
   window.__REPORT_READY__ = true;
@@ -40,7 +50,7 @@ function formatWindowDate(value) {
   const datePart = isoDatePart(value);
   if (!datePart) return '';
   const [year, month, day] = datePart.split('-').map(Number);
-  return new Intl.DateTimeFormat('en-US', {
+  return new Intl.DateTimeFormat(reportLocale, {
     month: 'short',
     day: 'numeric',
     year: 'numeric',
@@ -48,12 +58,34 @@ function formatWindowDate(value) {
   }).format(new Date(Date.UTC(year, month - 1, day, 12)));
 }
 
+function formatReportDate(value) {
+  if (reportLanguage === 'en') return String(value ?? '');
+  const datePart = isoDatePart(value);
+  const parsed = datePart
+    ? new Date(`${datePart}T12:00:00Z`)
+    : new Date(String(value ?? ''));
+  if (!Number.isFinite(parsed.getTime())) return String(value ?? '');
+  return new Intl.DateTimeFormat(reportLocale, {
+    year: 'numeric', month: 'long', day: 'numeric', timeZone: 'UTC',
+  }).format(parsed);
+}
+
+function formatGeneratedAt(data) {
+  if (reportLanguage === 'en') return data.generatedAtDisplay || data.generatedAt || '';
+  const parsed = new Date(String(data.generatedAtIso || data.generatedAt || ''));
+  if (!Number.isFinite(parsed.getTime())) return data.generatedAtDisplay || data.generatedAt || '';
+  return new Intl.DateTimeFormat(reportLocale, {
+    year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit',
+    timeZone: 'America/New_York',
+  }).format(parsed);
+}
+
 function sentimentWindowMeta(sentiment, reportDateIso) {
   const rawWindow = String(sentiment?.window || '7D').trim().toUpperCase();
   const isSevenDay = ['7D', '7 DAYS', '7-DAY', 'PREVIOUS 7 DAYS'].includes(rawWindow);
   const shortLabel = isSevenDay ? '7D' : rawWindow || '7D';
-  const periodLabel = isSevenDay ? 'Previous 7 Days' : `${shortLabel} Window`;
-  const comparisonLabel = isSevenDay ? 'vs previous 7 days' : `vs previous ${shortLabel}`;
+  const periodLabel = isSevenDay ? tr('Previous 7 Days') : `${shortLabel} ${tr('Window')}`;
+  const comparisonLabel = isSevenDay ? tr('vs previous 7 days') : tr(`vs previous ${shortLabel}`);
   const startLabel = formatWindowDate(sentiment?.windowStart);
   const endLabel = formatWindowDate(sentiment?.windowEnd || reportDateIso);
   const dateRange = startLabel && endLabel ? `${startLabel} – ${endLabel}` : '';
@@ -100,11 +132,11 @@ function chartSvg(chart) {
   const labelIndexes = [0, Math.floor((rows.length - 1) / 2), rows.length - 1];
   const color = chart.color || '#1769e8';
 
-  return `<svg viewBox="0 0 ${width} ${height}" class="chart" role="img" aria-label="${esc(chart.title)}">
+  return `<svg viewBox="0 0 ${width} ${height}" class="chart" role="img" aria-label="${esc(tr(chart.title))}">
     <defs><linearGradient id="fill-${esc(chart.id)}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${esc(color)}" stop-opacity=".18"/><stop offset="1" stop-color="${esc(color)}" stop-opacity="0"/></linearGradient></defs>
-    <text x="18" y="21" class="chart-title">${esc(chart.title)}</text>
+    <text x="18" y="21" class="chart-title">${esc(tr(chart.title))}</text>
     <text x="${width - 18}" y="21" class="chart-latest" text-anchor="end">${esc(chart.latestDisplay || formatAxisValue(rows.at(-1).value, chart.unit))}</text>
-    ${chart.subtitle ? `<text x="18" y="35" class="chart-subtitle">${esc(chart.subtitle)}</text>` : ''}
+    ${chart.subtitle ? `<text x="18" y="35" class="chart-subtitle">${esc(tr(chart.subtitle))}</text>` : ''}
     ${ticks.map(tick => `<line x1="${left}" x2="${width - right}" y1="${y(tick).toFixed(1)}" y2="${y(tick).toFixed(1)}" class="gridline"/><text x="${left - 8}" y="${(y(tick) + 4).toFixed(1)}" text-anchor="end" class="axis-label">${esc(formatAxisValue(tick, chart.unit))}</text>`).join('')}
     <polygon points="${area}" fill="url(#fill-${esc(chart.id)})"/>
     <polyline points="${points}" stroke="${esc(color)}" class="chart-line"/>
@@ -115,17 +147,17 @@ function chartSvg(chart) {
 
 function kpiCards(items) {
   return (items || []).map(item => `<div class="metric-card">
-    <div class="metric-label">${esc(item.label)}</div>
+    <div class="metric-label">${esc(tr(item.label))}</div>
     <div class="metric-value">${esc(item.value)}</div>
     <div class="metric-delta ${esc(item.tone || '')}">
       <strong>${esc(item.changeValue || '--')}</strong>
-      <span>${esc(item.changePercent || '--')} ${esc(item.comparisonLabel || 'vs previous trading day')}</span>
+      <span>${esc(item.changePercent || '--')} ${esc(tr(item.comparisonLabel || 'vs previous trading day'))}</span>
     </div>
   </div>`).join('');
 }
 
 function richText(value) {
-  return esc(value || 'AI analysis is not available for this report date.')
+  return esc(value || tr('AI analysis is not available for this report date.'))
     .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
     .split(/\n{2,}/)
     .map(paragraph => `<p>${paragraph.replace(/\n/g, '<br/>')}</p>`)
@@ -136,19 +168,19 @@ function shortScorePanel(scoreData) {
   const score = Math.max(0, Math.min(100, Number(scoreData?.score || 0)));
   return `<div class="score-analysis-grid">
     <div class="card short-score-card">
-      <div class="card-head"><h3>Short Interest Score</h3><span class="risk-pill ${esc(scoreData?.tone || '')}">${esc(scoreData?.level || 'Unavailable')} Risk</span></div>
+      <div class="card-head"><h3>${esc(tr('Short Interest Score'))}</h3><span class="risk-pill ${esc(scoreData?.tone || '')}">${esc(tr(`${scoreData?.level || 'Unavailable'} Risk`))}</span></div>
       <div class="score-card-content">
-        <div class="short-score-ring" style="background:conic-gradient(${esc(scoreData?.color || '#cf3e4f')} ${score}%, #e7edf5 ${score}% 100%)"><div><b>${esc(scoreData?.scoreDisplay || 'N/A')}</b><small>/ 100</small></div></div>
-        <div class="score-copy"><div class="score-change ${esc(scoreData?.deltaTone || '')}">${esc(scoreData?.changeDisplay || '--')} <span>vs yesterday</span></div><p>${esc(scoreData?.summary || '')}</p></div>
+        <div class="short-score-ring" style="background:conic-gradient(${esc(scoreData?.color || '#cf3e4f')} ${score}%, #e7edf5 ${score}% 100%)"><div><b>${esc(scoreData?.scoreDisplay || 'N/A')}</b></div></div>
+        <div class="score-copy"><div class="score-change ${esc(scoreData?.deltaTone || '')}">${esc(scoreData?.changeDisplay || '--')} <span>${esc(tr('vs yesterday'))}</span></div><p>${esc(tr(scoreData?.summary || ''))}</p></div>
       </div>
-      <div class="score-ranges">${(scoreData?.ranges || []).map(row => `<div class="${row.active ? 'active' : ''}"><b>${esc(row.range)}</b><span><strong>${esc(row.level)}</strong>${esc(row.description)}</span></div>`).join('')}</div>
+      <div class="score-ranges">${(scoreData?.ranges || []).map(row => `<div class="${row.active ? 'active' : ''}"><b>${esc(row.range)}</b><span><strong>${esc(tr(row.level))}</strong>${esc(tr(row.description))}</span></div>`).join('')}</div>
     </div>
-    <div class="card ai-analysis-card"><div class="card-head"><h3>AI Analysis</h3><span class="count-badge">Daily</span></div><div class="ai-copy">${richText(scoreData?.aiAnalysis)}</div><small>AI-assisted interpretation. Review the underlying market data before making decisions.</small></div>
+    <div class="card ai-analysis-card"><div class="card-head"><h3>${esc(tr('AI Analysis'))}</h3><span class="count-badge">${esc(tr('Daily'))}</span></div><div class="ai-copy">${richText(scoreData?.aiAnalysis)}</div><small>${esc(tr('AI-assisted interpretation. Review the underlying market data before making decisions.'))}</small></div>
   </div>`;
 }
 
 function sentimentGauge(sentiment) {
-  const accessibleLabel = `Overall sentiment ${sentiment?.scoreDisplay || 'N/A'} ${sentiment?.label || ''}`;
+  const accessibleLabel = `${tr('Overall sentiment')} ${sentiment?.scoreDisplay || 'N/A'} ${tr(sentiment?.label || '')}`;
   return `<canvas class="report-sentiment-gauge" width="360" height="210" role="img" aria-label="${esc(accessibleLabel)}">${esc(accessibleLabel)}</canvas>`;
 }
 
@@ -196,7 +228,7 @@ function drawSentimentGauge(canvas, sentiment) {
   context.fillText(sentiment?.scoreDisplay || 'N/A', 90, 67);
   context.fillStyle = '#0c8a63';
   context.font = '800 8px Arial, sans-serif';
-  context.fillText(String(sentiment?.label || '').toUpperCase(), 90, 80);
+  context.fillText(tr(String(sentiment?.label || '')).toUpperCase(), 90, 80);
 }
 
 function sentimentDistribution(distribution) {
@@ -208,9 +240,9 @@ function sentimentDistribution(distribution) {
   return `<div class="sentiment-block">
     <svg class="sentiment-ring-svg" viewBox="0 0 132 132" role="img" aria-label="${esc(distribution?.label)} ${esc(distribution?.scoreDisplay)}"><circle class="sentiment-ring-track" cx="66" cy="66" r="48" pathLength="100"/><circle class="sentiment-ring-segment bullish" cx="66" cy="66" r="48" pathLength="100" stroke-dasharray="${Math.max(0, Math.min(100, bullish))} 100" stroke-dashoffset="0"/><circle class="sentiment-ring-segment neutral" cx="66" cy="66" r="48" pathLength="100" stroke-dasharray="${Math.max(0, Math.min(100 - stop1, neutral))} 100" stroke-dashoffset="${-stop1}"/><circle class="sentiment-ring-segment bearish" cx="66" cy="66" r="48" pathLength="100" stroke-dasharray="${Math.max(0, Math.min(100 - stop2, bearish))} 100" stroke-dashoffset="${-stop2}"/><text x="66" y="64" text-anchor="middle" class="sentiment-ring-score">${esc(distribution?.scoreDisplay)}</text><text x="66" y="79" text-anchor="middle" class="sentiment-ring-label">${esc(distribution?.label)}</text></svg>
     <div class="sentiment-legend">
-      <span><i class="bullish"></i>Bullish <b>${bullish.toFixed(0)}%</b></span>
-      <span><i class="neutral"></i>Neutral <b>${neutral.toFixed(0)}%</b></span>
-      <span><i class="bearish"></i>Bearish <b>${bearish.toFixed(0)}%</b></span>
+      <span><i class="bullish"></i>${esc(tr('Bullish'))} <b>${bullish.toFixed(0)}%</b></span>
+      <span><i class="neutral"></i>${esc(tr('Neutral'))} <b>${neutral.toFixed(0)}%</b></span>
+      <span><i class="bearish"></i>${esc(tr('Bearish'))} <b>${bearish.toFixed(0)}%</b></span>
     </div>
   </div>`;
 }
@@ -218,32 +250,32 @@ function sentimentDistribution(distribution) {
 function platformRows(platforms) {
   return `<div class="platform-list">${(platforms || []).map(platform => `<div class="platform-row">
     <span>${esc(platform.name)}</span><div><i style="width:${Math.max(0, Math.min(100, Number(platform.sharePercent || 0)))}%"></i></div>
-    <b>${esc(platform.mentionsDisplay || compactNumber(platform.mentions))}</b><small>${esc(platform.sentimentLabel)}</small>
+    <b>${esc(platform.mentionsDisplay || compactNumber(platform.mentions))}</b><small>${esc(tr(platform.sentimentLabel))}</small>
   </div>`).join('')}</div>`;
 }
 
 function sentimentSubsectionUnavailable(label) {
-  return `<div class="sentiment-subsection-unavailable"><strong>${esc(label)} unavailable</strong><span>This dated report does not contain this sentiment breakdown.</span></div>`;
+  return `<div class="sentiment-subsection-unavailable"><strong>${esc(tr(`${label} unavailable`))}</strong><span>${esc(tr('This dated report does not contain this sentiment breakdown.'))}</span></div>`;
 }
 
 function filingRows(items) {
-  if (!items?.length) return '<div class="empty-state">No filing records are available for this report.</div>';
-  return `<table class="table"><thead><tr><th>Date</th><th>Form</th><th>Filing</th></tr></thead><tbody>${items.slice(0, 5).map(row => `<tr><td>${esc(row.date)}</td><td><span class="form-pill">${esc(row.formType)}</span></td><td><b>${esc(row.title)}</b></td></tr>`).join('')}</tbody></table>`;
+  if (!items?.length) return `<div class="empty-state">${esc(tr('No filing records are available for this report.'))}</div>`;
+  return `<table class="table"><thead><tr><th>${esc(tr('Date'))}</th><th>${esc(tr('Form'))}</th><th>${esc(tr('Filing'))}</th></tr></thead><tbody>${items.slice(0, 5).map(row => `<tr><td>${esc(formatReportDate(row.date))}</td><td><span class="form-pill">${esc(row.formType)}</span></td><td><b>${esc(tr(row.title))}</b></td></tr>`).join('')}</tbody></table>`;
 }
 
 function reportFooter(pageNumber, legalText) {
-  return `<div class="footer"><span class="report-legal">${esc(legalText)}</span><span>${pageNumber}</span></div>`;
+  return `<div class="footer"><span class="report-legal">${esc(tr(legalText))}</span><span>${pageNumber}</span></div>`;
 }
 
 function pageHeader(kicker, title, badge) {
-  return `<div class="page-header"><div><span class="eyebrow">${esc(kicker)}</span><h2>${esc(title)}</h2></div><span class="page-badge">${esc(badge)}</span></div>`;
+  return `<div class="page-header"><div><span class="eyebrow">${esc(tr(kicker))}</span><h2>${esc(tr(title))}</h2></div><span class="page-badge">${esc(tr(badge))}</span></div>`;
 }
 
 function tradingSnapshot(snapshot) {
   const items = Array.isArray(snapshot?.items) ? snapshot.items : [];
-  return `<section class="trading-snapshot" aria-label="Daily trading snapshot">
-    <span class="trading-snapshot-date">As of ${esc(snapshot?.asOfDate || 'N/A')}</span>
-    ${items.map(item => `<div class="trading-snapshot-item"><span>${esc(item.label)}</span><strong>${esc(item.value)}</strong></div>`).join('')}
+  return `<section class="trading-snapshot" aria-label="${esc(tr('Daily trading snapshot'))}">
+    <span class="trading-snapshot-date">${esc(tr('As of'))} ${esc(formatReportDate(snapshot?.asOfDate || 'N/A'))}</span>
+    ${items.map(item => `<div class="trading-snapshot-item"><span>${esc(tr(item.label))}</span><strong>${esc(item.value)}</strong></div>`).join('')}
   </section>`;
 }
 
@@ -259,10 +291,10 @@ function renderReport(data) {
   return `
 <section class="page cover">
   <div class="cover-brand"><span class="brand-mark">CI</span><span>CURRENC<br/>INTELLIGENCE</span></div>
-  <div class="cover-main"><span class="cover-kicker">Post-Market Intelligence</span><h1>Daily Market<br/>Close Report</h1><p>A concise view of short positioning, lending conditions, social sentiment, and recent regulatory filings.</p></div>
-  <div class="cover-status single"><div><span>Current posture</span><strong>${esc(data.status)}</strong></div></div>
-  <div class="cover-meta"><div><span>Company</span><strong>${esc(data.company)}</strong><small>${esc(data.ticker)}</small></div><div><span>Report date</span><strong>${esc(data.reportDate)}</strong><small>${esc(data.generatedAtDisplay || data.generatedAt)}</small></div></div>
-  <div class="cover-scope"><span>Short positioning</span><span>Lending conditions</span><span>Social sentiment</span><span>SEC filings</span></div>
+  <div class="cover-main"><span class="cover-kicker">${esc(tr('Post-Market Intelligence'))}</span><h1>${esc(tr('Daily Market Close Report'))}</h1><p>${esc(tr('A concise view of short positioning, lending conditions, social sentiment, and recent regulatory filings.'))}</p></div>
+  <div class="cover-status single"><div><span>${esc(tr('Current posture'))}</span><strong>${esc(tr(data.status))}</strong></div></div>
+  <div class="cover-meta"><div><span>${esc(tr('Company'))}</span><strong>${esc(data.company)}</strong><small>${esc(data.ticker)}</small></div><div><span>${esc(tr('Report date'))}</span><strong>${esc(formatReportDate(data.reportDate))}</strong><small>${esc(formatGeneratedAt(data))}</small></div></div>
+  <div class="cover-scope"><span>${esc(tr('Short positioning'))}</span><span>${esc(tr('Lending conditions'))}</span><span>${esc(tr('Social sentiment'))}</span><span>${esc(tr('SEC filings'))}</span></div>
   ${reportFooter(1, legal.footer)}
 </section>
 
@@ -289,13 +321,13 @@ function renderReport(data) {
 
 <section class="page">
   ${pageHeader('Market Perception', sentimentWindow.isSevenDay ? 'Seven-Day Social Sentiment and Recent Filings' : 'Social Sentiment and Recent Filings', sentimentWindow.dateRange || sentimentWindow.periodLabel)}
-  <div class="sentiment-window-summary"><span>Sentiment observation period</span><strong>${esc(sentimentWindow.dateRange || sentimentWindow.periodLabel)}</strong></div>
+  <div class="sentiment-window-summary"><span>${esc(tr('Sentiment observation period'))}</span><strong>${esc(sentimentWindow.dateRange || sentimentWindow.periodLabel)}</strong></div>
   <div class="two-column sentiment-primary-grid">
-    <div class="card sentiment-overall-card"><div class="card-head"><h3>${sentimentWindow.isSevenDay ? '7-Day Overall Sentiment' : 'Overall Sentiment'}</h3><span class="count-badge">${esc(sentimentWindow.shortLabel)}</span></div>${overallAvailable ? `${sentimentGauge(sentiment.overall)}<div class="sentiment-delta ${esc(sentiment.overall?.deltaTone || '')}">${esc(sentiment.overall?.changeDisplay || '--')} <span>${esc(sentimentWindow.comparisonLabel)}</span></div><small>${esc(sentiment.mentionsDisplay)} mentions</small>` : sentimentSubsectionUnavailable('Overall sentiment')}</div>
-    <div class="card sentiment-distribution-card"><div class="card-head"><h3>Sentiment Distribution</h3><span class="count-badge">${esc(sentiment.mentionsDisplay)} mentions</span></div>${distributionAvailable ? sentimentDistribution(sentiment.distribution) : sentimentSubsectionUnavailable('Sentiment distribution')}</div>
+    <div class="card sentiment-overall-card"><div class="card-head"><h3>${esc(tr(sentimentWindow.isSevenDay ? '7-Day Overall Sentiment' : 'Overall Sentiment'))}</h3><span class="count-badge">${esc(sentimentWindow.shortLabel)}</span></div>${overallAvailable ? `${sentimentGauge(sentiment.overall)}<div class="sentiment-delta ${esc(sentiment.overall?.deltaTone || '')}">${esc(sentiment.overall?.changeDisplay || '--')} <span>${esc(sentimentWindow.comparisonLabel)}</span></div><small>${esc(sentiment.mentionsDisplay)} ${esc(tr('mentions'))}</small>` : sentimentSubsectionUnavailable('Overall sentiment')}</div>
+    <div class="card sentiment-distribution-card"><div class="card-head"><h3>${esc(tr('Sentiment Distribution'))}</h3><span class="count-badge">${esc(sentiment.mentionsDisplay)} ${esc(tr('mentions'))}</span></div>${distributionAvailable ? sentimentDistribution(sentiment.distribution) : sentimentSubsectionUnavailable('Sentiment distribution')}</div>
   </div>
-  <div class="card platform-breakdown-card"><div class="card-head"><h3>Platform Breakdown</h3><span class="count-badge">${esc(sentimentWindow.shortLabel)}</span></div>${platformsAvailable ? platformRows(sentiment.platforms) : sentimentSubsectionUnavailable('Platform breakdown')}</div>
-  <div class="card filings-card"><div class="card-head"><h3>Latest SEC Filings</h3><span class="count-badge">${data.secFilings?.length || 0}</span></div>${filingRows(data.secFilings)}</div>
+  <div class="card platform-breakdown-card"><div class="card-head"><h3>${esc(tr('Platform Breakdown'))}</h3><span class="count-badge">${esc(sentimentWindow.shortLabel)}</span></div>${platformsAvailable ? platformRows(sentiment.platforms) : sentimentSubsectionUnavailable('Platform breakdown')}</div>
+  <div class="card filings-card"><div class="card-head"><h3>${esc(tr('Latest SEC Filings'))}</h3><span class="count-badge">${data.secFilings?.length || 0}</span></div>${filingRows(data.secFilings)}</div>
   ${reportFooter(4, legal.footer)}
 </section>`;
 }

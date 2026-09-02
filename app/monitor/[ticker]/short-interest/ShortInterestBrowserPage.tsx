@@ -6,7 +6,9 @@ import { ApiSourceTags } from '@/components/ApiSourceTags';
 import { InfoTooltip } from '@/components/InfoTooltip';
 import { PortalPageLoading } from '@/components/PortalPageLoading';
 import { PageDisclaimerNotice } from '@/components/PageDisclaimerNotice';
+import { usePortalLanguage } from '@/components/usePortalLanguage';
 import { fetchAiReport } from '@/lib/ai-report-api';
+import { aiReportTextForLanguage } from '@/lib/ai-report-localization';
 import { cachedAuthenticatedFetch } from '@/lib/auth-client';
 import {
   marketCurrentMetricObservation,
@@ -945,6 +947,7 @@ function apiFtdRows(payload: ApiFile): FtdRow[] {
 }
 
 export function ShortInterestBrowserPage({ ticker }: { ticker: string }) {
+  const { language } = usePortalLanguage();
   const normalizedTicker = normalizeTicker(ticker);
   const [apiData, setApiData] = useState<{ current: ApiFile; history: ApiFile; shortVolume: ApiFile; ftd: ApiFile; aiReport: ApiFile } | null>(null);
   const [error, setError] = useState('');
@@ -1090,8 +1093,9 @@ export function ShortInterestBrowserPage({ ticker }: { ticker: string }) {
   const shortInterestChangePercent = numeric(shortInterestCard.changePercent) ?? shortInterestDelta?.percent;
   const borrowFeeChangePercent = numeric(borrowFeeCard.changePercent) ?? borrowFeeDelta?.percent;
   const sharesAvailableChangePercent = numeric(sharesAvailableCard.changePercent) ?? sharesAvailableDelta?.percent;
-  const aiSummary = text(
+  const aiSummary = aiReportTextForLanguage(
     apiData.aiReport.short_interest_current_interpretation,
+    language,
     'AI analysis is not available for the current consolidation date.',
   );
   const scoreRanges = [

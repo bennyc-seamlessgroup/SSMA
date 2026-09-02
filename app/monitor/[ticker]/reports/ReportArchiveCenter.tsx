@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { usePortalTimeZone } from '@/components/usePortalTimeZone';
+import { usePortalLanguage } from '@/components/usePortalLanguage';
 import { formatPortalDate } from '@/lib/timezone';
 import type { ReportArchiveRecord } from '@/lib/report-archive';
 import { generateClientReportPdf, reportFileName } from './client-report-pdf';
@@ -88,6 +89,7 @@ export function ReportArchiveCenter({
   todayDate: string;
 }) {
   const timeZone = usePortalTimeZone();
+  const { language } = usePortalLanguage();
   const sortedReports = useMemo(() => (
     [...reports].sort((a, b) => new Date(b.generatedAt).getTime() - new Date(a.generatedAt).getTime())
   ), [reports]);
@@ -125,7 +127,7 @@ export function ReportArchiveCenter({
   const historyEnd = Math.min(safeHistoryPage * HISTORY_PAGE_SIZE, filteredReports.length);
 
   async function loadReportData(report: ReportArchiveRecord) {
-    return buildDailyReportData(report);
+    return buildDailyReportData(report, language);
   }
 
   async function openReport(report: ReportArchiveRecord) {
@@ -147,7 +149,12 @@ export function ReportArchiveCenter({
     setDownloadingReportId(report.id);
     setGenerationError('');
     try {
-      const reportData = preloadedData ?? await loadReportData(report);
+      const preloadedLanguage = preloadedData && typeof preloadedData === 'object'
+        ? String((preloadedData as { portalLanguage?: unknown }).portalLanguage ?? '')
+        : '';
+      const reportData = preloadedData && preloadedLanguage === language
+        ? preloadedData
+        : await loadReportData(report);
       const blob = await generateClientReportPdf(report, reportData);
       const objectUrl = URL.createObjectURL(blob);
       const link = document.createElement('a');
