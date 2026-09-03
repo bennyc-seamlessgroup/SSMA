@@ -13,6 +13,26 @@ const kwatchCategories = [
   { value: 'stocktwits', label: 'Stocktwits' },
 ] as const;
 
+const chartExchangeCategories = [
+  { value: '', label: 'All Chart Exchange categories' },
+  { value: 'market-history', label: 'Market history' },
+  { value: 'short-volume-history', label: 'Short volume history' },
+  { value: 'ftd-history', label: 'Fails-to-deliver history' },
+  { value: 'exchange-volume-history', label: 'Exchange volume history' },
+] as const;
+
+const historyCategories = [
+  { value: '', label: 'All history categories' },
+  { value: 'market-history', label: 'Market history' },
+  { value: 'short-volume-history', label: 'Short volume history' },
+  { value: 'ftd-history', label: 'Fails-to-deliver history' },
+  { value: 'exchange-volume-history', label: 'Exchange volume history' },
+  { value: 'ownership-history', label: 'Ownership history' },
+  { value: 'ownership-summary-history', label: 'Ownership summary history' },
+  { value: 'sec-filings-history', label: 'SEC filings history' },
+  { value: 'sentiment-events', label: 'Sentiment events' },
+] as const;
+
 const categorySuggestions = [
   'profile',
   'issued-share',
@@ -29,6 +49,7 @@ const categorySuggestions = [
   'market-history',
   'ftd-history',
   'short-volume-history',
+  'exchange-volume-history',
   'reddit',
   'twitter',
   'stocktwits',
@@ -209,6 +230,14 @@ export function DataExportClient() {
             {dataset === 'kwatch' ? (
               <select value={category} required onChange={event => setCategory(event.target.value)}>
                 {kwatchCategories.map(item => <option value={item.value} key={item.value}>{item.label}</option>)}
+              </select>
+            ) : dataset === 'chartexchange' ? (
+              <select value={category} onChange={event => setCategory(event.target.value)}>
+                {chartExchangeCategories.map(item => <option value={item.value} key={item.value || 'all'}>{item.label}</option>)}
+              </select>
+            ) : dataset === 'history' ? (
+              <select value={category} onChange={event => setCategory(event.target.value)}>
+                {historyCategories.map(item => <option value={item.value} key={item.value || 'all'}>{item.label}</option>)}
               </select>
             ) : (
               <input

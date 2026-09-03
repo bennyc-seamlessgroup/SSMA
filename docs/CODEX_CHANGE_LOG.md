@@ -4,6 +4,57 @@ This file is the persistent implementation memory for changes made by Codex.
 Read it before modifying existing portal behavior, and update it after every
 completed change.
 
+## 2026-09-03 - Scope Chart Exchange and History export categories
+
+- Area:
+  - Operations Portal -> Data Export.
+- API/data:
+  - Existing `GET /export/csv?dataset=chartexchange&ticker={ticker}`.
+  - Existing `GET /export/csv?dataset=history&ticker={ticker}&category={category}`.
+  - Optional category requests, including
+    `category=exchange-volume-history`.
+- Reported problem and root cause:
+  - Chart Exchange reused the page-wide category autocomplete list, so its
+    suggestions included Manual Input and KWatch categories that do not belong
+    to the selected dataset.
+  - `exchange-volume-history` was also missing from that shared list.
+  - History defaulted to `market-history` in the same autocomplete control, so
+    the browser could filter away the rest of the valid history set even after
+    `exchange-volume-history` was added as a suggestion.
+- Intended behavior and invariants:
+  - When Chart Exchange is selected, show a dedicated dropdown containing only
+    all Chart Exchange data, market history, short-volume history,
+    fails-to-deliver history, and exchange-volume history.
+  - Selecting `Exchange volume history` sends the exact API category value
+    `exchange-volume-history`.
+  - History uses a dedicated dropdown containing all eight categories defined
+    by the Market History contract: market, short volume, FTD, exchange volume,
+    ownership, ownership summary, SEC filings, and sentiment events. It also
+    provides an all-history-categories option while retaining `market-history`
+    as the default selection.
+  - The all-categories option leaves `category` out of the request because the
+    CSV Export contract defines it as optional for Chart Exchange.
+  - Preserve the ticker, date filters, authenticated download, endpoint debug
+    row, and the existing KWatch-specific category dropdown.
+- Files changed:
+  - `app/operations/data-export/DataExportClient.tsx`
+  - `docs/CODEX_CHANGE_LOG.md`
+- Verification:
+  - Source checks confirmed the Chart Exchange dropdown contains no Manual
+    Input or social categories and includes `exchange-volume-history`.
+  - Source checks confirmed the History dropdown contains every valid history
+    category documented by `GET /market-data/history`, including
+    `exchange-volume-history`.
+  - `npm run typecheck` passed.
+  - Production build passed, including all 29 generated static pages.
+  - `git diff --check` passed.
+- Remaining backend dependency / limitation:
+  - The integration contract documents `exchange-volume-history` as an export
+    category but does not publish a complete per-dataset category matrix. The
+    frontend now exposes the Chart Exchange categories currently used by the
+    portal; additional categories should be added when the backend documents
+    them.
+
 ## 2026-09-03 - Translate the dynamic Short Score risk summary
 
 - Area:
