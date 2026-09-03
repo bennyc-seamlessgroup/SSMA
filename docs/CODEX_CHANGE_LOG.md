@@ -4,6 +4,38 @@ This file is the persistent implementation memory for changes made by Codex.
 Read it before modifying existing portal behavior, and update it after every
 completed change.
 
+## 2026-09-03 - Translate the dynamic Short Score risk summary
+
+- Area:
+  - User Portal -> Short Interest -> Short Interest Score.
+- API/data:
+  - No API or request change. The summary remains derived in the frontend from
+    the existing Short Score value.
+- Reported problem and root cause:
+  - In Chinese mode, the risk badge and interpretation bands were translated,
+    but the sentence beneath the score remained English.
+  - That sentence is assembled at runtime from the computed risk level and one
+    of four score-dependent message bodies. The earlier translation audit
+    covered the static band descriptions but omitted the completed dynamic
+    summary strings.
+- Intended behavior and invariants:
+  - Translate every summary the score helper can produce in both Traditional
+    and Simplified Chinese, including the distinct High summary used at the
+    exact score-80 boundary and the Extreme summary used above 80.
+  - Preserve the existing unbounded Short Score calculation, thresholds,
+    displayed value, comparison, range labels, and English wording.
+- Files changed:
+  - `lib/portal-page-translations.ts`
+  - `docs/CODEX_CHANGE_LOG.md`
+- Verification:
+  - Focused checks exercised all five possible completed summary strings in
+    English, Traditional Chinese, and Simplified Chinese.
+  - English remained unchanged; neither Chinese mode returned English text.
+  - `npm run typecheck` passed.
+  - `git diff --check` passed.
+- Remaining backend dependency / limitation:
+  - None. This summary is frontend-derived display text.
+
 ## 2026-09-02 - Support multilingual and legacy AI-report payloads
 
 - Area:
