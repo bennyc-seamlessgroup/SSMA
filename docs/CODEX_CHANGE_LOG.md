@@ -4,6 +4,57 @@ This file is the persistent implementation memory for changes made by Codex.
 Read it before modifying existing portal behavior, and update it after every
 completed change.
 
+## 2026-09-07 - Align Data Export with backend dataset/category matrix
+
+- Area:
+  - Operations Portal -> Data Export.
+- API/data:
+  - `GET /export/csv` dataset and category matrix supplied by the backend team
+    in `export-api-matrix.md`.
+  - Supported datasets remain `history`, `manual-input`, `kwatch`,
+    `chartexchange`, and `fintel`.
+- Reported problem and root cause:
+  - The portal previously relied on an incomplete category list. Chart Exchange
+    first contained History categories and was then reduced to a dataset-wide
+    option, while Fintel and Manual Input still accepted unrestricted text.
+  - KWatch was incorrectly treated as requiring a category even though the new
+    matrix makes it optional.
+- Intended behavior and invariants:
+  - Every dataset uses a dedicated dropdown containing only categories in the
+    backend matrix; arbitrary cross-dataset category entry is no longer allowed.
+  - Chart Exchange offers all raw records plus `borrow_fee`,
+    `failure_to_deliver`, `short_interest_daily`, `short_volume`, and
+    `exchange_volume`.
+  - Fintel offers all raw records plus `activist_filings` and
+    `security_ownership`.
+  - Manual Input requires exactly one of its ten documented categories,
+    including combined `internal-float-inputs`; obsolete unrestricted choices
+    such as user/ticker subcategories are not offered.
+  - KWatch offers an optional all-platform export plus Reddit, Twitter,
+    Facebook, LinkedIn, and Stocktwits.
+  - History retains its eight documented categories and defaults to
+    `market-history`; it does not claim that an omitted category returns every
+    History category.
+  - Canonical underscore values are sent for vendor categories, while the
+    backend may continue accepting their documented hyphen aliases.
+  - Preserve ticker/date filters, `order=desc|asc`, authenticated file bytes,
+    responsive layout, and Development Data endpoint visibility.
+  - This entry supersedes the Chart Exchange category conclusions recorded on
+    2026-09-03 and earlier on 2026-09-07.
+- Files changed:
+  - `app/operations/data-export/DataExportClient.tsx`
+  - `lib/portal-page-translations.ts`
+  - `docs/CODEX_CHANGE_LOG.md`
+- Verification:
+  - Source audit confirmed the five dataset dropdowns exactly match the supplied
+    matrix and only Manual Input is marked category-required.
+  - `npm run typecheck` passed.
+  - `npm run build` passed, including all 29 generated static pages.
+  - `git diff --check` passed.
+- Remaining backend dependency / limitation:
+  - Dataset-wide Chart Exchange, Fintel, and KWatch exports depend on the
+    backend's documented behavior when `category` is omitted.
+
 ## 2026-09-07 - Remove History categories from Chart Exchange export
 
 - Area:

@@ -7,8 +7,10 @@ import { useEffect, useMemo, useState } from 'react';
 
 type Dataset = 'chartexchange' | 'fintel' | 'history' | 'manual-input' | 'kwatch';
 type ExportOrder = 'desc' | 'asc';
+type CategoryOption = { value: string; label: string };
 
 const kwatchCategories = [
+  { value: '', label: 'All KWatch categories' },
   { value: 'reddit', label: 'Reddit' },
   { value: 'twitter', label: 'Twitter' },
   { value: 'facebook', label: 'Facebook' },
@@ -18,10 +20,14 @@ const kwatchCategories = [
 
 const chartExchangeCategories = [
   { value: '', label: 'All Chart Exchange categories' },
+  { value: 'borrow_fee', label: 'Borrow fee' },
+  { value: 'failure_to_deliver', label: 'Failure to deliver' },
+  { value: 'short_interest_daily', label: 'Daily short interest' },
+  { value: 'short_volume', label: 'Short volume' },
+  { value: 'exchange_volume', label: 'Exchange volume' },
 ] as const;
 
 const historyCategories = [
-  { value: '', label: 'All history categories' },
   { value: 'market-history', label: 'Market history' },
   { value: 'short-volume-history', label: 'Short volume history' },
   { value: 'ftd-history', label: 'Fails-to-deliver history' },
@@ -32,34 +38,36 @@ const historyCategories = [
   { value: 'sentiment-events', label: 'Sentiment events' },
 ] as const;
 
-const categorySuggestions = [
-  'profile',
-  'issued-share',
-  'short-score',
-  'institutional-owner',
-  'manual-security-ownership',
-  'management-holdings',
-  'internal-float-inputs-ticker',
-  'internal-float-inputs-user',
-  'manual-availability',
-  'utilization',
-  'sec-filings',
-  'margins',
-  'market-history',
-  'ftd-history',
-  'short-volume-history',
-  'exchange-volume-history',
-  'reddit',
-  'twitter',
-  'facebook',
-  'linkedin',
-  'stocktwits',
-];
+const manualInputCategories = [
+  { value: 'profile', label: 'Company profile' },
+  { value: 'issued-share', label: 'Issued shares' },
+  { value: 'short-score', label: 'Short score' },
+  { value: 'institutional-owner', label: 'Institutional owner security names' },
+  { value: 'management-holdings', label: 'Management holdings' },
+  { value: 'internal-float-inputs', label: 'Internal float inputs' },
+  { value: 'manual-availability', label: 'Manual availability' },
+  { value: 'utilization', label: 'Utilization' },
+  { value: 'sec-filings', label: 'SEC filings' },
+  { value: 'margins', label: 'Margins' },
+] as const;
+
+const fintelCategories = [
+  { value: '', label: 'All Fintel categories' },
+  { value: 'activist_filings', label: 'Activist filings' },
+  { value: 'security_ownership', label: 'Security ownership' },
+] as const;
+
+const categoriesByDataset: Record<Dataset, readonly CategoryOption[]> = {
+  chartexchange: chartExchangeCategories,
+  fintel: fintelCategories,
+  history: historyCategories,
+  'manual-input': manualInputCategories,
+  kwatch: kwatchCategories,
+};
 
 const defaultCategories: Partial<Record<Dataset, string>> = {
   history: 'market-history',
   'manual-input': 'utilization',
-  kwatch: 'reddit',
 };
 
 export function DataExportClient() {
@@ -72,7 +80,8 @@ export function DataExportClient() {
   const [status, setStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
   const [message, setMessage] = useState('');
   const [debugRows, setDebugRows] = useState<OperationsDevelopmentDatum[]>([]);
-  const categoryRequired = dataset === 'manual-input' || dataset === 'kwatch';
+  const categoryRequired = dataset === 'manual-input';
+  const categoryOptions = categoriesByDataset[dataset];
 
   useEffect(() => {
     setTicker(getOperationsTicker());
@@ -172,30 +181,11 @@ export function DataExportClient() {
           </label>
           <label>
             <span>Category {categoryRequired ? '' : '(optional)'}</span>
-            {dataset === 'kwatch' ? (
-              <select value={category} required onChange={event => setCategory(event.target.value)}>
-                {kwatchCategories.map(item => <option value={item.value} key={item.value}>{item.label}</option>)}
-              </select>
-            ) : dataset === 'chartexchange' ? (
-              <select value={category} onChange={event => setCategory(event.target.value)}>
-                {chartExchangeCategories.map(item => <option value={item.value} key={item.value || 'all'}>{item.label}</option>)}
-              </select>
-            ) : dataset === 'history' ? (
-              <select value={category} onChange={event => setCategory(event.target.value)}>
-                {historyCategories.map(item => <option value={item.value} key={item.value || 'all'}>{item.label}</option>)}
-              </select>
-            ) : (
-              <input
-                list="export-category-suggestions"
-                value={category}
-                required={categoryRequired}
-                placeholder={categoryRequired ? 'Choose or enter a category' : 'All available categories'}
-                onChange={event => setCategory(event.target.value)}
-              />
-            )}
-            <datalist id="export-category-suggestions">
-              {categorySuggestions.map(item => <option value={item} key={item} />)}
-            </datalist>
+            <select value={category} required={categoryRequired} onChange={event => setCategory(event.target.value)}>
+              {categoryOptions.map(item => (
+                <option value={item.value} key={`${dataset}-${item.value || 'all'}`}>{item.label}</option>
+              ))}
+            </select>
           </label>
           <label>
             <span>Start date</span>

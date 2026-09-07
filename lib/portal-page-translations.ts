@@ -481,6 +481,22 @@ const operationsZhHant: Record<string, string> = {
   'Unable to load notification hotkeys.': '無法載入通知快捷鍵。', 'Unable to save the hotkey mapping.': '無法儲存快捷鍵對應。',
   'Unable to delete the hotkey mapping.': '無法刪除快捷鍵對應。',
 
+  // Data export
+  'Authenticated CSV Export': '已驗證 CSV 匯出', 'Export portal data': '匯出入口資料',
+  'Dataset': '資料集', 'Category (optional)': '類別（選填）', 'Start date': '開始日期', 'End date': '結束日期',
+  'Preparing CSV...': '正在準備 CSV…', 'CSV Export API Response': 'CSV 匯出 API 回應',
+  'All Chart Exchange categories': '所有 Chart Exchange 類別', 'Borrow fee': '借貸費率',
+  'Failure to deliver': '未能交收', 'Daily short interest': '每日空頭持倉', 'Short volume': '空頭成交量',
+  'Exchange volume': '交易所成交量', 'Market history': '市場歷史', 'Short volume history': '空頭成交量歷史',
+  'Fails-to-deliver history': '未能交收歷史', 'Exchange volume history': '交易所成交量歷史',
+  'Ownership history': '持股歷史', 'Ownership summary history': '持股摘要歷史',
+  'SEC filings history': 'SEC 申報歷史', 'Sentiment events': '情緒事件',
+  'Company profile': '公司資料', 'Issued shares': '已發行股份',
+  'Institutional owner security names': '機構持有人證券名稱', 'Management holdings': '管理層持股',
+  'Internal float inputs': '內部流通股輸入', 'Manual availability': '手動可借量', 'Margins': '保證金',
+  'All Fintel categories': '所有 Fintel 類別', 'Activist filings': '積極投資者申報',
+  'Security ownership': '證券持有權', 'All KWatch categories': '所有 KWatch 類別',
+
   // Social uploads
   'Batch Upload': '批次上載', 'Drop CSV files here': '將 CSV 檔案拖放到此處',
   'Upload Reddit, X, Facebook, LinkedIn, or Stocktwits CSV files. Each upload replaces the existing dataset for the detected platform only.': '上載 Reddit、X、Facebook、LinkedIn 或 Stocktwits CSV 檔案。每次上載只會取代所識別平台的現有資料集。',
