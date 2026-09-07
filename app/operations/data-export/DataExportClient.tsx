@@ -6,10 +6,13 @@ import { getOperationsTicker } from '@/lib/operations/ticker-client';
 import { useEffect, useMemo, useState } from 'react';
 
 type Dataset = 'chartexchange' | 'fintel' | 'history' | 'manual-input' | 'kwatch';
+type ExportOrder = 'desc' | 'asc';
 
 const kwatchCategories = [
   { value: 'reddit', label: 'Reddit' },
   { value: 'twitter', label: 'Twitter' },
+  { value: 'facebook', label: 'Facebook' },
+  { value: 'linkedin', label: 'LinkedIn' },
   { value: 'stocktwits', label: 'Stocktwits' },
 ] as const;
 
@@ -52,6 +55,8 @@ const categorySuggestions = [
   'exchange-volume-history',
   'reddit',
   'twitter',
+  'facebook',
+  'linkedin',
   'stocktwits',
 ];
 
@@ -61,65 +66,13 @@ const defaultCategories: Partial<Record<Dataset, string>> = {
   kwatch: 'reddit',
 };
 
-function parseCsv(text: string) {
-  const rows: string[][] = [];
-  let row: string[] = [];
-  let cell = '';
-  let quoted = false;
-
-  for (let index = 0; index < text.length; index += 1) {
-    const character = text[index];
-    if (character === '"') {
-      if (quoted && text[index + 1] === '"') {
-        cell += '"';
-        index += 1;
-      } else {
-        quoted = !quoted;
-      }
-    } else if (character === ',' && !quoted) {
-      row.push(cell);
-      cell = '';
-    } else if ((character === '\n' || character === '\r') && !quoted) {
-      if (character === '\r' && text[index + 1] === '\n') index += 1;
-      row.push(cell);
-      if (row.some(value => value.length > 0)) rows.push(row);
-      row = [];
-      cell = '';
-    } else {
-      cell += character;
-    }
-  }
-  row.push(cell);
-  if (row.some(value => value.length > 0)) rows.push(row);
-  return rows;
-}
-
-function csvCell(value: string) {
-  return /[",\r\n]/.test(value) ? `"${value.replace(/"/g, '""')}"` : value;
-}
-
-function socialCsvNewestFirst(csv: string) {
-  const rows = parseCsv(csv);
-  const headers = rows[0]?.map(value => value.replace(/^\uFEFF/, '').trim().toLowerCase()) ?? [];
-  const timestampIndex = ['datetime', 'timestamp', 'date', 'created_at', 'messages__created_at']
-    .map(header => headers.indexOf(header))
-    .find(index => index >= 0);
-  if (rows.length < 3 || timestampIndex === undefined) return csv;
-
-  const timestamp = (row: string[]) => {
-    const parsed = Date.parse(row[timestampIndex] ?? '');
-    return Number.isFinite(parsed) ? parsed : 0;
-  };
-  const sortedRows = [...rows.slice(1)].sort((left, right) => timestamp(right) - timestamp(left));
-  return [rows[0], ...sortedRows].map(row => row.map(csvCell).join(',')).join('\r\n').concat('\r\n');
-}
-
 export function DataExportClient() {
   const [ticker, setTicker] = useState('CURR');
   const [dataset, setDataset] = useState<Dataset>('manual-input');
   const [category, setCategory] = useState('utilization');
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
+  const [order, setOrder] = useState<ExportOrder>('desc');
   const [status, setStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
   const [message, setMessage] = useState('');
   const [debugRows, setDebugRows] = useState<OperationsDevelopmentDatum[]>([]);
@@ -130,12 +83,12 @@ export function DataExportClient() {
   }, []);
 
   const endpoint = useMemo(() => {
-    const params = new URLSearchParams({ dataset, ticker });
+    const params = new URLSearchParams({ dataset, ticker, order });
     if (category.trim()) params.set('category', category.trim());
     if (startDate) params.set('startDate', startDate);
     if (endDate) params.set('endDate', endDate);
     return `/export/csv?${params.toString()}`;
-  }, [category, dataset, endDate, startDate, ticker]);
+  }, [category, dataset, endDate, order, startDate, ticker]);
 
   function selectDataset(next: Dataset) {
     setDataset(next);
@@ -162,11 +115,7 @@ export function DataExportClient() {
     try {
       const result = await authenticatedFileDownload(endpoint);
       const rawCsv = await result.blob.text();
-      const preview = dataset === 'kwatch' ? socialCsvNewestFirst(rawCsv) : rawCsv;
-      const downloadBlob = dataset === 'kwatch'
-        ? new Blob([preview], { type: result.contentType })
-        : result.blob;
-      const url = URL.createObjectURL(downloadBlob);
+      const url = URL.createObjectURL(result.blob);
       const anchor = document.createElement('a');
       anchor.href = url;
       anchor.download = result.filename;
@@ -175,7 +124,7 @@ export function DataExportClient() {
       anchor.remove();
       URL.revokeObjectURL(url);
 
-      const recordCount = Math.max(0, preview.trim().split(/\r?\n/).filter(Boolean).length - 1);
+      const recordCount = Math.max(0, rawCsv.trim().split(/\r?\n/).filter(Boolean).length - 1);
       setDebugRows([{
         endpoint: `GET ${endpoint}`,
         source: 'CSV Export API',
@@ -184,7 +133,7 @@ export function DataExportClient() {
         payload: {
           filename: result.filename,
           contentType: result.contentType,
-          preview: preview.slice(0, 4000),
+          preview: rawCsv.slice(0, 4000),
         },
       }]);
       setStatus('success');
@@ -271,6 +220,13 @@ export function DataExportClient() {
               suppressHydrationWarning
               onChange={event => setEndDate(event.target.value)}
             />
+          </label>
+          <label>
+            <span>Order</span>
+            <select value={order} onChange={event => setOrder(event.target.value as ExportOrder)}>
+              <option value="desc">Newest first</option>
+              <option value="asc">Oldest first</option>
+            </select>
           </label>
           <div className="ops-export-form__action">
             <button className="ops-primary-button" type="submit" disabled={status === 'loading'}>

@@ -1570,21 +1570,6 @@ Returns the raw JSON content of the primary S3 file at `ai-report/{ticker}/{date
 }
 ```
 
-The two analysis fields are backward compatible. Historical objects may keep
-the plain Markdown strings shown above. Multilingual objects may instead store
-a JSON object inside a fenced `json` string; `en`, `zh_tc`, and `zh_sc` contain
-the English, Traditional Chinese, and Simplified Chinese versions:
-
-````json
-{
-  "short_interest_current_interpretation": "```json\n{\n  \"en\": \"English analysis\",\n  \"zh_tc\": \"Traditional Chinese analysis\",\n  \"zh_sc\": \"Simplified Chinese analysis\"\n}\n```"
-}
-````
-
-Consumers must continue accepting the legacy plain string. They should parse
-the multilingual value only when it is valid JSON containing one or more of
-the supported language keys; malformed or ordinary prose remains legacy text.
-
 **Response** `400 Bad Request`: If `ticker` is missing or `date` parameter format is invalid (must match `YYYY-MM-DD`).
 **Response** `403 Forbidden`: If the user is unauthorized to view AI reports for the specified ticker.
 **Response** `404 Not Found`: If neither user-level nor ticker-level AI report exists in S3 for the specified/calculated date.
@@ -1667,7 +1652,7 @@ Returns a paginated list of social posts sorted in chronological order according
 
 ### POST /social-data
 
-Upload a CSV file containing social sentiment posts (Stocktwits, Reddit, or Twitter). The API parses the CSV, validates its structure, and immediately queues a background job for processing. The background worker deletes all existing JSON records under the corresponding S3 prefix `kwatch/{ticker}/{platform}/`, converts each CSV row to an individual JSON record, and uploads them to S3 in parallel.
+Upload a CSV file containing social sentiment posts (Stocktwits, Reddit, Twitter, Facebook, or LinkedIn). The API parses the CSV, validates its structure, and immediately queues a background job for processing. The background worker deletes all existing JSON records under the corresponding S3 prefix `kwatch/{ticker}/{platform}/`, converts each CSV row to an individual JSON record, and uploads them to S3 in parallel.
 
 ```
 POST /social-data?ticker=CURR
@@ -1692,11 +1677,11 @@ Content-Type: text/csv
 
 **CSV Format Requirements**:
 - **Stocktwits**: Must contain `messages__id` and `datetime`.
-- **Reddit / Twitter**: Must contain `platform` (with value `Reddit` or `Twitter`) and `datetime`.
+- **Reddit / Twitter / Facebook / LinkedIn**: Must contain `platform` (with value `Reddit`, `Twitter`, `Facebook`, or `Linkedin`) and `datetime`.
 
 **Target S3 Location**:
 - Stocktwits: Saved as `kwatch/{ticker}/Stocktwits/{date}/{messages__id}.json`.
-- Reddit / Twitter: Saved as `kwatch/{ticker}/{platform}/{date}/{platform}_{ticker}_{sanitized_datetime}.json` (where colons in datetime are replaced with underscores).
+- Reddit / Twitter / Facebook / LinkedIn: Saved as `kwatch/{ticker}/{platform}/{date}/{platform}_{ticker}_{sanitized_datetime}.json` (where colons in datetime are replaced with underscores).
 - The `{date}` folder is calculated dynamically directly from the row's `datetime` value (`YYYY-MM-DD`).
 
 **Background Data Handling**:
@@ -2916,9 +2901,13 @@ Authorization: <id_token>
 |---|---|---|---|
 | `dataset` | String | Yes | Target dataset name: `chartexchange` \| `fintel` \| `history` \| `manual-input` \| `kwatch`. |
 | `ticker` | String | Yes | Stock ticker symbol (e.g. `CURR`). Case-insensitive. |
-| `category` | String | Conditional | Category name or template name (required for `manual-input` and `kwatch`). Examples: `profile`, `issued-share`, `short-score`, `institutional-owner`, `management-holdings`, `internal-float-inputs`, `internal-float-inputs-ticker`, `internal-float-inputs-user`, `manual-availability`, `utilization`, `sec-filings`, `margins`, `market-history`, `ftd-history`, `exchange-volume-history`, `reddit`, `twitter`, `stocktwits`, etc. |
+| `category` | String | Conditional | Category name or template name (required for `manual-input` and `kwatch`). Examples: `profile`, `issued-share`, `short-score`, `institutional-owner`, `management-holdings`, `internal-float-inputs`, `internal-float-inputs-ticker`, `internal-float-inputs-user`, `manual-availability`, `utilization`, `sec-filings`, `margins`, `market-history`, `ftd-history`, `exchange-volume-history`, `reddit`, `twitter`, `facebook`, `linkedin`, `stocktwits`, etc. |
 | `startDate` | String | No | Date filter lower bound in `YYYY-MM-DD` format. |
 | `endDate` | String | No | Date filter upper bound in `YYYY-MM-DD` format. |
+| `order` | String | No | Sort direction for exported records based on timestamp/date: `desc` (default) or `asc`. |
+
+**Record Sorting**:
+Records are sorted in descending (`DESC`) order by default based on record date/datetime timestamps across all datasets. Clients can optionally provide `order=asc` to retrieve records in ascending order.
 
 **Access Control & Security**:
 - **Cognito JWT Validation**: Secured via API Gateway Cognito User Pools Authorizer (`Authorization` header containing valid ID Token).
@@ -2944,6 +2933,8 @@ For `manual-input` and `kwatch` exports, CSV column headers strictly align with 
 | `manual-input` | `manual-security-ownership` | `fileDate,effectiveDate,source,investor,optionType,type,avgPriceEst,shares,sharesPct,reportedValue,valueChangePct,portAlloc,positionStatus` |
 | `kwatch` | `reddit` | `platform,query,datetime,link,author,content,sentiment` |
 | `kwatch` | `twitter` | `platform,query,datetime,link,author,content,sentiment` |
+| `kwatch` | `facebook` | `platform,query,datetime,link,author,content,sentiment` |
+| `kwatch` | `linkedin` | `platform,query,datetime,link,author,content,sentiment` |
 | `kwatch` | `stocktwits` | `messages__id,author,datetime,user__followers,content,Reshares,likes,link,sentiment_label,sentiment_score,analysis_catalyst_tag,platform` |
 
 > **Note**: Auto-generated system metadata fields (`schemaVersion`, `createdAt`, `updatedAt`, `createdBy`, `updatedBy`, `deletedAt`, `_field_provenance`, `generatedAt`) are automatically stripped from CSV exports to ensure exported CSVs can be directly edited and re-imported via conversion scripts or `/manual-input/import`.

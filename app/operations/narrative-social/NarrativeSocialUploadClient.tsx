@@ -41,8 +41,8 @@ function platformCards(ticker: string): Array<{
   return [
     { key: 'x', label: 'X', hint: 'CSV requires platform=Twitter and datetime columns', jsonPath: `GET /social-data?ticker=${ticker}&platform=X`, uploadable: true },
     { key: 'reddit', label: 'Reddit', hint: 'CSV requires platform=Reddit and datetime columns', jsonPath: `GET /social-data?ticker=${ticker}&platform=Reddit`, uploadable: true },
-    { key: 'facebook', label: 'Facebook', hint: 'Automated social feed', jsonPath: `GET /social-data?ticker=${ticker}&platform=Facebook`, uploadable: false },
-    { key: 'linkedin', label: 'LinkedIn', hint: 'Automated social feed', jsonPath: `GET /social-data?ticker=${ticker}&platform=LinkedIn`, uploadable: false },
+    { key: 'facebook', label: 'Facebook', hint: 'CSV requires platform=Facebook and datetime columns', jsonPath: `GET /social-data?ticker=${ticker}&platform=Facebook`, uploadable: true },
+    { key: 'linkedin', label: 'LinkedIn', hint: 'CSV requires platform=Linkedin and datetime columns', jsonPath: `GET /social-data?ticker=${ticker}&platform=LinkedIn`, uploadable: true },
     { key: 'stocktwits', label: 'Stocktwits', hint: 'CSV requires messages__id and datetime columns', jsonPath: `GET /social-data?ticker=${ticker}&platform=Stocktwits`, uploadable: true },
   ];
 }
@@ -51,6 +51,8 @@ function classifyFile(file: File): PlatformKey | null {
   const name = file.name.toLowerCase();
   if (name.includes('reddit')) return 'reddit';
   if (name.includes('stocktwits')) return 'stocktwits';
+  if (name.includes('facebook')) return 'facebook';
+  if (name.includes('linkedin') || name.includes('linked_in') || name.includes('linked-in')) return 'linkedin';
   if (name.includes('x_') || name.includes('- x') || name.includes('twitter') || name.includes('mentions')) return 'x';
   return null;
 }
@@ -276,7 +278,7 @@ export function NarrativeSocialUploadClient() {
     setFiles(current => ({ ...current, ...next }));
     if (!Object.keys(next).length) {
       setStatus('error');
-      setMessage('No supported Reddit, X, or Stocktwits CSV was detected.');
+      setMessage('No supported Reddit, X, Facebook, LinkedIn, or Stocktwits CSV was detected.');
     } else {
       setConsolidationReady(false);
       setConsolidationFeedback('Upload the selected CSV and wait for processing to finish.');
@@ -456,7 +458,7 @@ export function NarrativeSocialUploadClient() {
         <div>
           <span className="ops-eyebrow">Batch Upload</span>
           <h2>Drop CSV files here</h2>
-          <p>Upload Reddit, X, or Stocktwits CSV files. Each upload replaces the existing dataset for the detected platform only.</p>
+          <p>Upload Reddit, X, Facebook, LinkedIn, or Stocktwits CSV files. Each upload replaces the existing dataset for the detected platform only.</p>
         </div>
         <div className="ops-import-actions">
           <button className="ops-primary-button" type="button" disabled={status === 'uploading' || status === 'processing' || status === 'consolidating'} aria-busy={status === 'uploading' || status === 'processing'} onClick={uploadFiles}>

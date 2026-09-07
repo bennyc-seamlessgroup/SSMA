@@ -4,6 +4,58 @@ This file is the persistent implementation memory for changes made by Codex.
 Read it before modifying existing portal behavior, and update it after every
 completed change.
 
+## 2026-09-07 - Enable Facebook/LinkedIn social CSVs and export ordering
+
+- Areas:
+  - Operations Portal -> Social Data Upload.
+  - Operations Portal -> Data Export.
+- API/data:
+  - Updated `POST /social-data?ticker={ticker}` contract now accepts Reddit,
+    Twitter, Facebook, LinkedIn, and Stocktwits CSV files.
+  - Updated `GET /export/csv` contract now supports `order=desc|asc` for every
+    export dataset and defines KWatch export templates for `facebook` and
+    `linkedin`.
+- Reported problem and root cause:
+  - Facebook and LinkedIn upload cards remained disabled because the frontend
+    still treated them as automated/API-managed platforms from the previous
+    backend contract.
+  - KWatch export omitted Facebook and LinkedIn because their templates had not
+    previously been defined.
+  - Data Export had no order control and locally forced KWatch CSV rows into
+    newest-first order, which would override the backend's new ascending option.
+- Intended behavior and invariants:
+  - All five documented social platforms provide CSV file controls and use the
+    existing asynchronous upload/progress workflow.
+  - Page-level batch drops recognize Facebook and LinkedIn filenames; direct
+    drops onto a platform card continue to bind the file to that card.
+  - Facebook CSV rows use `platform=Facebook`; LinkedIn rows use the backend's
+    documented `platform=Linkedin` value. Both require `datetime`.
+  - KWatch export offers the exact lowercase categories `facebook` and
+    `linkedin` in addition to Reddit, Twitter, and Stocktwits.
+  - Data Export defaults to newest first and always sends the selected
+    `order=desc|asc` value. The downloaded bytes remain exactly as returned by
+    the API; the browser no longer re-sorts KWatch CSV data.
+  - Preserve ticker authorization, optional date filters, per-platform replace
+    semantics, background progress polling, consolidation controls, responsive
+    layout, and Development Data endpoint visibility.
+- Files changed:
+  - `app/operations/narrative-social/NarrativeSocialUploadClient.tsx`
+  - `app/operations/data-export/DataExportClient.tsx`
+  - `app/globals.css`
+  - `lib/portal-page-translations.ts`
+  - `docs/CODEX_CHANGE_LOG.md`
+- Verification:
+  - `npm run typecheck` passed.
+  - Source checks confirmed all five upload cards are enabled, Facebook and
+    LinkedIn batch filenames are classified, both KWatch export categories are
+    present, and the export endpoint includes the selected `order` value.
+  - `npm run build` passed, including all 29 generated static pages.
+  - `git diff --check` passed.
+- Remaining backend dependency / limitation:
+  - Social uploads replace the complete existing dataset for the detected
+    platform, as documented by the backend. Operations users must treat
+    Facebook and LinkedIn uploads as replacements rather than additive merges.
+
 ## 2026-09-03 - Scope Chart Exchange and History export categories
 
 - Area:

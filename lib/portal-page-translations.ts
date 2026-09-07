@@ -9,7 +9,7 @@ const zhHant: Record<string, string> = {
   'Loading page data': '正在載入頁面資料', 'Checking secure session': '正在檢查安全工作階段', 'No data': '暫無資料',
   'No chart data available': '暫無圖表資料', 'No prior update': '沒有先前更新', 'No messages': '沒有訊息', 'Pending': '待處理',
   'vs previous day': '與前一日比較',
-  'Source:': '來源：', 'Author:': '作者：', 'Date': '日期', 'Ticker': '股票代碼', 'Category': '類別', 'Notes': '備註',
+  'Source:': '來源：', 'Author:': '作者：', 'Date': '日期', 'Ticker': '股票代碼', 'Category': '類別', 'Order': '排序', 'Notes': '備註',
   'Status': '狀態', 'Role': '角色', 'Account': '帳戶', 'Governance': '管治', 'Policy': '政策', 'Professional': '專業版',
   'Reset Defaults': '重設預設值', 'Rows per page': '每頁列數', 'Page number': '頁碼', 'Open source': '開啟來源',
   'Reporting Quarter': '申報季度', 'Reporting period unavailable': '申報季度不可用',
@@ -483,15 +483,20 @@ const operationsZhHant: Record<string, string> = {
 
   // Social uploads
   'Batch Upload': '批次上載', 'Drop CSV files here': '將 CSV 檔案拖放到此處',
-  'Use this workspace for the Stocktwits CSV. Reddit, X, Facebook, and LinkedIn are loaded through the automated social-data API.': '此工作區用於 Stocktwits CSV。Reddit、X、Facebook 及 LinkedIn 由自動社交資料 API 載入。',
+  'Upload Reddit, X, Facebook, LinkedIn, or Stocktwits CSV files. Each upload replaces the existing dataset for the detected platform only.': '上載 Reddit、X、Facebook、LinkedIn 或 Stocktwits CSV 檔案。每次上載只會取代所識別平台的現有資料集。',
   'Uploading...': '上載中…', 'Choose CSV': '選擇 CSV', 'Unknown author': '未知作者', 'No text provided.': '沒有提供文字。',
   'Unclassified': '未分類', 'Social Data API Responses': '社交資料 API 回應',
   'Current per-platform GET /social-data payloads and the Stocktwits POST /social-data upload state.': '各平台目前的 GET /social-data 資料及 Stocktwits POST /social-data 上載狀態。',
   'Centralized Social Data API': '集中式社交資料 API',
-  'Automated social feed': '自動社交動態',
+  'CSV requires platform=Twitter and datetime columns': 'CSV 必須包含 platform=Twitter 及 datetime 欄位',
+  'CSV requires platform=Reddit and datetime columns': 'CSV 必須包含 platform=Reddit 及 datetime 欄位',
+  'CSV requires platform=Facebook and datetime columns': 'CSV 必須包含 platform=Facebook 及 datetime 欄位',
+  'CSV requires platform=Linkedin and datetime columns': 'CSV 必須包含 platform=Linkedin 及 datetime 欄位',
+  'CSV requires messages__id and datetime columns': 'CSV 必須包含 messages__id 及 datetime 欄位',
   'CSV with message ID, timestamp, author, content, and sentiment fields': '包含訊息 ID、時間、作者、內容及情緒欄位的 CSV',
   'Not uploaded': '尚未上載',
   'Unable to load current social data.': '無法載入目前社交資料。', 'Attach at least one CSV before uploading.': '上載前請附加至少一個 CSV。',
+  'No supported Reddit, X, Facebook, LinkedIn, or Stocktwits CSV was detected.': '未偵測到受支援的 Reddit、X、Facebook、LinkedIn 或 Stocktwits CSV。',
   'Upload failed.': '上載失敗。',
 
   // User access
