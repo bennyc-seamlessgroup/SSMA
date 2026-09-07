@@ -4,6 +4,40 @@ This file is the persistent implementation memory for changes made by Codex.
 Read it before modifying existing portal behavior, and update it after every
 completed change.
 
+## 2026-09-07 - Remove History categories from Chart Exchange export
+
+- Area:
+  - Operations Portal -> Data Export -> Chart Exchange.
+- API/data:
+  - Existing `GET /export/csv?dataset=chartexchange&ticker={ticker}` with no
+    `category` parameter.
+- Reported problem and root cause:
+  - The Chart Exchange category dropdown offered `market-history`,
+    `short-volume-history`, `ftd-history`, and `exchange-volume-history` even
+    though these belong to the History dataset rather than Chart Exchange.
+  - This replaces the Chart Exchange category behavior recorded on 2026-09-03;
+    that earlier mapping incorrectly grouped History categories beneath Chart
+    Exchange.
+- Intended behavior and invariants:
+  - Chart Exchange offers only `All Chart Exchange categories` and therefore
+    omits `category` from its export request.
+  - The separate History dataset retains all of its history category choices,
+    including exchange-volume history.
+  - Preserve ticker and date filters, `order=desc|asc`, authenticated download,
+    and Development Data endpoint visibility.
+- Files changed:
+  - `app/operations/data-export/DataExportClient.tsx`
+  - `docs/CODEX_CHANGE_LOG.md`
+- Verification:
+  - Source checks confirmed none of the four History categories remain in the
+    Chart Exchange option list and all remain in the History option list.
+  - `npm run typecheck` passed.
+  - `npm run build` passed, including all 29 generated static pages.
+  - `git diff --check` passed.
+- Remaining backend dependency / limitation:
+  - The CSV Export contract does not currently publish individual Chart
+    Exchange categories, so the frontend exports the complete dataset.
+
 ## 2026-09-07 - Enable Facebook/LinkedIn social CSVs and export ordering
 
 - Areas:

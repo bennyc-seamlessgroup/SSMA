@@ -18,10 +18,6 @@ const kwatchCategories = [
 
 const chartExchangeCategories = [
   { value: '', label: 'All Chart Exchange categories' },
-  { value: 'market-history', label: 'Market history' },
-  { value: 'short-volume-history', label: 'Short volume history' },
-  { value: 'ftd-history', label: 'Fails-to-deliver history' },
-  { value: 'exchange-volume-history', label: 'Exchange volume history' },
 ] as const;
 
 const historyCategories = [
