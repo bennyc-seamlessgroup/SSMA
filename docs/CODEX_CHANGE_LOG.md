@@ -4,6 +4,43 @@ This file is the persistent implementation memory for changes made by Codex.
 Read it before modifying existing portal behavior, and update it after every
 completed change.
 
+## 2026-09-07 - Require a specific category for every portal export
+
+- Area:
+  - Operations Portal -> Data Export.
+- API/data:
+  - Existing `GET /export/csv` dataset/category matrix. The backend continues
+    to support omitted categories for selected datasets, but the portal now
+    intentionally exposes only specific-category exports.
+- Reported problem and root cause:
+  - Chart Exchange, Fintel, and KWatch offered an `All ... categories` choice
+    after the matrix alignment, allowing broad dataset-wide exports that the
+    operations workflow does not need.
+- Intended behavior and invariants:
+  - Remove every `All` option from every dataset category dropdown.
+  - Selecting a dataset automatically selects its first valid default category:
+    Chart Exchange `borrow_fee`, Fintel `activist_filings`, History
+    `market-history`, Manual Input `utilization`, and KWatch `reddit`.
+  - Every portal export includes a non-empty `category` query parameter even
+    where the backend contract technically permits omission.
+  - Preserve the exact backend category matrix, ticker/date filters,
+    `order=desc|asc`, authenticated file bytes, and Development Data endpoint.
+  - This frontend restriction supersedes the dataset-wide export options
+    recorded earlier on 2026-09-07.
+- Files changed:
+  - `app/operations/data-export/DataExportClient.tsx`
+  - `lib/portal-page-translations.ts`
+  - `docs/CODEX_CHANGE_LOG.md`
+- Verification:
+  - Source checks confirmed no category option label or value is empty and all
+    five dataset defaults are valid matrix categories.
+  - `npm run typecheck` passed.
+  - `npm run build` passed, including all 29 generated static pages.
+  - `git diff --check` passed.
+- Remaining backend dependency / limitation:
+  - None. This is a frontend-only restriction; the backend's optional-category
+    behavior remains unchanged.
+
 ## 2026-09-07 - Align Data Export with backend dataset/category matrix
 
 - Area:

@@ -10,7 +10,6 @@ type ExportOrder = 'desc' | 'asc';
 type CategoryOption = { value: string; label: string };
 
 const kwatchCategories = [
-  { value: '', label: 'All KWatch categories' },
   { value: 'reddit', label: 'Reddit' },
   { value: 'twitter', label: 'Twitter' },
   { value: 'facebook', label: 'Facebook' },
@@ -19,7 +18,6 @@ const kwatchCategories = [
 ] as const;
 
 const chartExchangeCategories = [
-  { value: '', label: 'All Chart Exchange categories' },
   { value: 'borrow_fee', label: 'Borrow fee' },
   { value: 'failure_to_deliver', label: 'Failure to deliver' },
   { value: 'short_interest_daily', label: 'Daily short interest' },
@@ -52,7 +50,6 @@ const manualInputCategories = [
 ] as const;
 
 const fintelCategories = [
-  { value: '', label: 'All Fintel categories' },
   { value: 'activist_filings', label: 'Activist filings' },
   { value: 'security_ownership', label: 'Security ownership' },
 ] as const;
@@ -65,9 +62,12 @@ const categoriesByDataset: Record<Dataset, readonly CategoryOption[]> = {
   kwatch: kwatchCategories,
 };
 
-const defaultCategories: Partial<Record<Dataset, string>> = {
+const defaultCategories: Record<Dataset, string> = {
+  chartexchange: 'borrow_fee',
+  fintel: 'activist_filings',
   history: 'market-history',
   'manual-input': 'utilization',
+  kwatch: 'reddit',
 };
 
 export function DataExportClient() {
@@ -80,7 +80,6 @@ export function DataExportClient() {
   const [status, setStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
   const [message, setMessage] = useState('');
   const [debugRows, setDebugRows] = useState<OperationsDevelopmentDatum[]>([]);
-  const categoryRequired = dataset === 'manual-input';
   const categoryOptions = categoriesByDataset[dataset];
 
   useEffect(() => {
@@ -97,14 +96,14 @@ export function DataExportClient() {
 
   function selectDataset(next: Dataset) {
     setDataset(next);
-    setCategory(defaultCategories[next] ?? '');
+    setCategory(defaultCategories[next]);
     setMessage('');
     setStatus('idle');
   }
 
   async function downloadCsv(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (categoryRequired && !category.trim()) {
+    if (!category.trim()) {
       setStatus('error');
       setMessage('Choose a category for this dataset.');
       return;
@@ -180,8 +179,8 @@ export function DataExportClient() {
             </select>
           </label>
           <label>
-            <span>Category {categoryRequired ? '' : '(optional)'}</span>
-            <select value={category} required={categoryRequired} onChange={event => setCategory(event.target.value)}>
+            <span>Category</span>
+            <select value={category} required onChange={event => setCategory(event.target.value)}>
               {categoryOptions.map(item => (
                 <option value={item.value} key={`${dataset}-${item.value || 'all'}`}>{item.label}</option>
               ))}
