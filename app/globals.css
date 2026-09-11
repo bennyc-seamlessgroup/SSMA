@@ -31193,24 +31193,21 @@ button[aria-busy="true"]::before {
 }
 
 .exchange-volume-actions,
-.exchange-volume-periods,
-.exchange-volume-view-toggle {
+.exchange-volume-periods {
   display: flex;
   align-items: center;
   gap: 6px;
   flex-wrap: wrap;
 }
 
-.exchange-volume-periods,
-.exchange-volume-view-toggle {
+.exchange-volume-periods {
   padding: 3px;
   border: 1px solid #dbe6f3;
   border-radius: 8px;
   background: #f7faff;
 }
 
-.exchange-volume-periods button,
-.exchange-volume-view-toggle button {
+.exchange-volume-periods button {
   min-height: 30px;
   border: 1px solid transparent;
   border-radius: 6px;
@@ -31224,34 +31221,11 @@ button[aria-busy="true"]::before {
 }
 
 .exchange-volume-periods button:hover,
-.exchange-volume-periods button.active,
-.exchange-volume-view-toggle button:hover,
-.exchange-volume-view-toggle button.active {
+.exchange-volume-periods button.active {
   border-color: #bdd3f4;
   color: #174ea6;
   background: #fff;
   box-shadow: 0 5px 14px rgba(37, 99, 235, .09);
-}
-
-.exchange-volume-view-toggle {
-  flex-wrap: nowrap;
-}
-
-.exchange-volume-view-toggle button {
-  width: 32px;
-  display: grid;
-  place-items: center;
-  padding: 5px;
-}
-
-.exchange-volume-view-toggle svg {
-  width: 15px;
-  height: 15px;
-  fill: none;
-  stroke: currentColor;
-  stroke-width: 1.7;
-  stroke-linecap: round;
-  stroke-linejoin: round;
 }
 
 .exchange-volume-chart-card {
@@ -31629,57 +31603,6 @@ button[aria-busy="true"]::before {
   font-size: 10px;
 }
 
-.exchange-volume-history-table {
-  min-width: 0;
-}
-
-.exchange-volume-table-section .import-table-shell {
-  min-width: 0;
-}
-
-.exchange-volume-table-section .import-record-table-wrap {
-  max-height: 620px;
-  overflow-x: auto;
-}
-
-.exchange-volume-table-section .import-record-table {
-  width: max-content;
-  min-width: 100%;
-  table-layout: auto;
-}
-
-.exchange-volume-table-section .import-record-table th,
-.exchange-volume-table-section .import-record-table td {
-  min-width: 118px;
-  white-space: nowrap;
-}
-
-.exchange-volume-table-section .import-record-table th {
-  padding: 10px 12px;
-}
-
-.exchange-volume-table-section .import-record-table td {
-  padding: 9px 12px;
-}
-
-.exchange-volume-table-section .table-sort-button {
-  white-space: nowrap;
-}
-
-.exchange-volume-table-section .import-record-table th:first-child,
-.exchange-volume-table-section .import-record-table td:first-child {
-  min-width: 104px;
-  position: sticky;
-  left: 0;
-  z-index: 2;
-  background: #fff;
-}
-
-.exchange-volume-table-section .import-record-table th:first-child {
-  z-index: 3;
-  background: #f5f8fc;
-}
-
 .exchange-volume-empty {
   min-height: 180px;
   display: grid;
@@ -31760,21 +31683,17 @@ html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal :where(
   color: #aebdd0;
 }
 
-html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .exchange-volume-periods,
-html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .exchange-volume-view-toggle {
+html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .exchange-volume-periods {
   border-color: #3b4b61;
   background: #162235;
 }
 
-html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .exchange-volume-periods button,
-html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .exchange-volume-view-toggle button {
+html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .exchange-volume-periods button {
   color: #aebdd0;
 }
 
 html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .exchange-volume-periods button:hover,
-html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .exchange-volume-periods button.active,
-html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .exchange-volume-view-toggle button:hover,
-html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .exchange-volume-view-toggle button.active {
+html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .exchange-volume-periods button.active {
   border-color: #4b6486;
   color: #91c1ff;
   background: #243750;
@@ -31831,14 +31750,6 @@ html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .exchan
   background: #162235;
 }
 
-html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .exchange-volume-table-section .import-record-table td:first-child {
-  background: #1e293b;
-}
-
-html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .exchange-volume-table-section .import-record-table th:first-child {
-  background: #162235;
-}
-
 html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .exchange-volume-api-errors {
   border-color: #7f1d1d;
   color: #fecaca;
@@ -31868,10 +31779,6 @@ html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .exchan
 
   .exchange-volume-periods {
     justify-content: space-between;
-  }
-
-  .exchange-volume-view-toggle {
-    align-self: flex-end;
   }
 
   .exchange-volume-tooltip {

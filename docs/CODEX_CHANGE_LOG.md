@@ -4,6 +4,38 @@ This file is the persistent implementation memory for changes made by Codex.
 Read it before modifying existing portal behavior, and update it after every
 completed change.
 
+## 2026-09-11 - Keep Volume by Exchange chart-only
+
+- Area:
+  - User Portal -> Exchange Volume -> Volume by Exchange.
+- API/data:
+  - Existing authenticated
+    `GET /market-data/history?ticker={ticker}&category=exchange-volume-history`.
+- Reported problem and root cause:
+  - The historical section offered chart and table display modes, while the
+    product no longer wants to expose the table view.
+  - The toggle, table renderer, and table-only transformation and styling were
+    still present in the frontend.
+- Intended behavior and invariants:
+  - Render Volume by Exchange exclusively as the existing multi-series line
+    chart and remove the chart/table toggle entirely.
+  - Preserve the 1M/3M/6M/1Y/All period controls, exchange-series visibility
+    controls, history API request, unavailable-data handling, Development Data,
+    localization, light/dark themes, and responsive chart behavior.
+  - Do not change the Latest Exchange Volume pie chart or its Off Exchange
+    explanation.
+- Files changed:
+  - `app/monitor/[ticker]/exchange-volume/ExchangeVolumeBrowserPage.tsx`
+  - `app/globals.css`
+  - `docs/CODEX_CHANGE_LOG.md`
+- Verification:
+  - Source inspection confirmed the view state, toggle, historical table
+    renderer, table transformation, table import, and table-only CSS are gone.
+  - TypeScript type-check, production build, and whitespace validation passed.
+- Remaining backend dependency / limitation:
+  - None. The history response remains unchanged and is visualized by the
+    existing chart.
+
 ## 2026-09-11 - Return Cognito logout to the active portal domain
 
 - Area:
