@@ -47,7 +47,6 @@ const cognitoDomain = process.env.NEXT_PUBLIC_COGNITO_DOMAIN ?? '';
 const clientId = process.env.NEXT_PUBLIC_COGNITO_CLIENT_ID ?? '';
 const apiGatewayUrl = process.env.NEXT_PUBLIC_API_GATEWAY_URL ?? '';
 const configuredRedirectUri = process.env.NEXT_PUBLIC_REDIRECT_URI ?? '';
-const configuredLogoutUri = process.env.NEXT_PUBLIC_LOGOUT_URI ?? '';
 const authenticatedGetCacheTtlMs = Math.max(5, Number(process.env.NEXT_PUBLIC_API_CACHE_SECONDS ?? 900)) * 1000;
 const proactiveTokenRefreshSeconds = 120;
 let profileRequest: Promise<AuthenticatedProfile> | null = null;
@@ -92,7 +91,7 @@ export function getRedirectUri() {
 }
 
 export function getLogoutUri() {
-  return configuredLogoutUri || `${browserOrigin()}/logout`;
+  return `${browserOrigin()}/logout`;
 }
 
 export function authConfigReady() {

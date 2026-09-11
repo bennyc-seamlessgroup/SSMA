@@ -4,6 +4,96 @@ This file is the persistent implementation memory for changes made by Codex.
 Read it before modifying existing portal behavior, and update it after every
 completed change.
 
+## 2026-09-11 - Return Cognito logout to the active portal domain
+
+- Area:
+  - Shared User Portal and Operations Portal sign-out flow.
+- API/data:
+  - Cognito `GET https://auth.currenc.capital/logout` with the `logout_uri`
+    query parameter.
+- Reported problem and root cause:
+  - After moving the portal to `portal.currenc.capital`, sign-out returned users
+    to the previous deployment hostname.
+  - The frontend gave `NEXT_PUBLIC_LOGOUT_URI` priority over the browser's
+    current origin, so any stale Vercel value permanently controlled the
+    return location.
+- Intended behavior and invariants:
+  - Always build the Cognito `logout_uri` as
+    `${window.location.origin}/logout`, matching the integration contract.
+  - A user signing out from `portal.currenc.capital` returns to
+    `https://portal.currenc.capital/logout`; localhost continues returning to
+    `http://localhost:3000/logout` without separate configuration.
+  - Stale `NEXT_PUBLIC_LOGOUT_URI` deployment variables are ignored and the
+    obsolete variable is removed from local/example configuration.
+  - Preserve local token clearing, Cognito session invalidation, PKCE login,
+    callback handling, demo login, and role restrictions.
+- Files changed:
+  - `lib/auth-client.ts`
+  - `.env.example`
+  - `.env.local` (ignored local configuration)
+  - `docs/CODEX_CHANGE_LOG.md`
+- Verification:
+  - Source inspection confirmed `logout_uri` now derives only from the current
+    browser origin.
+  - TypeScript type-check, production build, and whitespace validation passed.
+- Remaining backend dependency / limitation:
+  - Cognito must retain every legitimate host's `/logout` URL in the app
+    client's allowed sign-out URLs, including
+    `https://portal.currenc.capital/logout` and the localhost development URL.
+  - The updated frontend must be redeployed before the production sign-out flow
+    changes.
+
+## 2026-09-11 - Point portal authentication at the Cognito custom domain
+
+- Area:
+  - Shared User Portal and Operations Portal authentication configuration.
+  - Local development OAuth callback and logout flow.
+- API/data:
+  - Cognito Authorization Code + PKCE endpoints at
+    `https://auth.currenc.capital/oauth2/authorize`, `/oauth2/token`, and
+    `/logout`.
+  - Cognito app client `69l2ucuajiebaj4cau1hvq231f`.
+- Reported problem and root cause:
+  - The supplied `portal.currenc.capital` integration guide replaces the
+    AWS-generated Cognito Hosted UI hostname with the custom authentication
+    hostname `auth.currenc.capital`.
+  - The repository's local and example configuration still referenced the
+    generated `amazoncognito.com` hostname.
+- Intended behavior and invariants:
+  - Local sign-in, token exchange, refresh, and sign-out requests use
+    `auth.currenc.capital` without an `https://` prefix in the environment
+    value; the shared auth client continues adding the scheme itself.
+  - Local OAuth callbacks remain `http://localhost:3000/callback`, and local
+    logout remains `http://localhost:3000/logout`.
+  - Production and Preview deployments must use the guide's exact callback
+    `https://portal.currenc.capital/callback`; logout resolves to
+    `https://portal.currenc.capital/logout` from the browser origin. The
+    same-day logout fix below removed the obsolete environment override.
+  - Preserve the existing PKCE anti-CSRF state validation, token storage and
+    refresh behavior, demo authentication, role restrictions, and post-login
+    ticker authorization.
+- Files changed:
+  - `.env.example`
+  - `.env.local` (ignored local configuration)
+  - `docs/CODEX_CHANGE_LOG.md`
+- Verification:
+  - Confirmed the shared auth client already builds the authorize, token, and
+    logout URLs required by the supplied guide and uses the same redirect URI
+    for authorization and code exchange.
+  - A live request to the custom Cognito login endpoint returned HTTP 200.
+  - TypeScript type-check, production build, and whitespace validation passed.
+- Remaining backend dependency / limitation:
+  - The repository is not linked to an authenticated Vercel CLI session, so
+    Vercel must still be configured with `NEXT_PUBLIC_COGNITO_DOMAIN` for
+    Production, Preview, and Development and `NEXT_PUBLIC_REDIRECT_URI` for
+    Production and Preview, followed by a redeployment.
+  - `portal.currenc.capital` did not resolve in the live DNS check on
+    2026-09-11. The subdomain must be added to the Vercel project and its DNS
+    record completed before the production callback and logout URLs can work.
+  - Cognito must have `https://portal.currenc.capital/callback` registered as a
+    callback URL and `https://portal.currenc.capital/logout` registered as a
+    sign-out URL for this app client.
+
 ## 2026-09-07 - Require a specific category for every portal export
 
 - Area:
