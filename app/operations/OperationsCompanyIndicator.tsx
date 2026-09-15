@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { cachedAuthenticatedFetch } from '@/lib/auth-client';
+import { authenticatedFetch } from '@/lib/auth-client';
 
 type IndicatorLayout = {
   x: number;
@@ -31,21 +31,12 @@ function companyNameFromPayload(payload: unknown, ticker: string) {
   const root = objectValue(payload);
   const data = objectValue(root.data);
   const requestedTicker = ticker.trim().toUpperCase();
-  const candidates = [
-    root,
-    data,
-    objectValue(root['company-profile-current']),
-    objectValue(data['company-profile-current']),
-    ...([root.records, data.records]
-      .filter(Array.isArray)
-      .flatMap(records => records as Array<Record<string, unknown>>)),
-  ];
+  const candidates = [root, data];
 
   for (const candidate of candidates) {
-    const record = objectValue(candidate);
-    const recordTicker = String(record.ticker ?? record.stockCode ?? '').trim().toUpperCase();
-    const companyName = String(record.companyName ?? '').trim();
-    if (companyName && (!recordTicker || recordTicker === requestedTicker)) return companyName;
+    const recordTicker = String(candidate.ticker ?? '').trim().toUpperCase();
+    const companyName = String(candidate.companyName ?? '').trim();
+    if (recordTicker === requestedTicker && companyName) return companyName;
   }
   return '';
 }
@@ -96,8 +87,9 @@ export function OperationsCompanyIndicator({ ticker }: { ticker: string }) {
   useEffect(() => {
     let cancelled = false;
     setCompanyName('');
-    cachedAuthenticatedFetch(
-      `/market-data/current?ticker=${encodeURIComponent(ticker)}&category=company-profile-current`,
+    authenticatedFetch(
+      `/tickers/${encodeURIComponent(ticker)}`,
+      { cache: 'no-store' },
     )
       .then(payload => {
         if (!cancelled) setCompanyName(companyNameFromPayload(payload, ticker));

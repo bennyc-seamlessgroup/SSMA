@@ -4,6 +4,43 @@ This file is the persistent implementation memory for changes made by Codex.
 Read it before modifying existing portal behavior, and update it after every
 completed change.
 
+## 2026-09-15 - Use the ticker registry for the Operations active-company name
+
+- Area:
+  - Operations Portal -> floating Active Company indicator.
+- API/data:
+  - Replaced
+    `GET /market-data/current?ticker={ticker}&category=company-profile-current`
+    with authoritative `GET /tickers/{ticker}`.
+- Reported problem and root cause:
+  - Selecting BMHL correctly showed Bluemount Holdings Limited in Company
+    Management, but the floating card showed CURRENC Group Inc.
+  - Company Management read `companyName` from the managed ticker registry,
+    while the card read a separate consolidated company-profile payload. The
+    card also accepted a company name when that payload omitted its ticker, so
+    an unrelated or fallback CURR profile could be paired with BMHL.
+- Intended behavior and invariants:
+  - Read the card's company name from the same per-ticker registry record used
+    by Company Management.
+  - Accept `companyName` only when the response ticker exactly matches the
+    active ticker. A missing, mismatched, or unnamed record displays Company
+    name unavailable rather than another issuer's name.
+  - Read the small registry record without browser/API response caching so an
+    operator sees the current managed company name after loading a workspace.
+  - Preserve active-ticker selection, card dragging/resizing, saved card
+    geometry, typography, theme behavior, and accessibility labeling.
+- Files changed:
+  - `app/operations/OperationsCompanyIndicator.tsx`
+  - `docs/CODEX_CHANGE_LOG.md`
+- Verification:
+  - Source inspection confirmed the card requests only `GET /tickers/{ticker}`
+    and requires an exact normalized ticker match before displaying a name.
+  - TypeScript type-check, production build, and whitespace validation passed.
+- Remaining backend dependency / limitation:
+  - The authenticated account must retain access to the operator-only ticker
+    detail endpoint. If that endpoint fails or returns no matching name, the
+    card intentionally shows Company name unavailable.
+
 ## 2026-09-11 - Keep Volume by Exchange chart-only
 
 - Area:
