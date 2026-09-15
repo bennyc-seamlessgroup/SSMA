@@ -13,11 +13,10 @@ import { useEffect, useMemo, useState, type MouseEvent as ReactMouseEvent } from
 type Row = Record<string, unknown>;
 type PeriodKey = '1M' | '3M' | '6M' | '1Y' | 'All';
 
-type VenueValue = {
+type VenuePercentage = {
   key: string;
   label: string;
-  volume: number;
-  percent: number | null;
+  percent: number;
 };
 
 type HistoryPoint = {
@@ -68,6 +67,8 @@ const venueLabels: Record<string, string> = {
   nasdaqgsm: 'Nasdaq GSM',
   nysearca: 'NYSE Arca',
   offexchange: 'Off Exchange',
+  offexchangeshare: 'Off Exchange',
+  exoffexchangeshare: 'Off Exchange',
   cboeedgx: 'Cboe EDGX',
   cboebyx: 'Cboe BYX',
   cboebzx: 'Cboe BZX',
@@ -92,9 +93,10 @@ const venueLabels: Record<string, string> = {
 const nonVenueKeys = new Set([
   'date', 'tradedate', 'snapshotdate', 'generatedat', 'updatedat', 'createdat', 'ticker', 'symbol',
   'schemaversion', 'source', 'asof', 'open', 'high', 'low', 'close', 'price', 'tradevolume',
-  'totalvolume', 'offexchangesharepercent',
+  'totalvolume', 'totalpercent', 'totalpercentage',
   'openchangevalue', 'openchangeperc', 'highchangevalue', 'highchangeperc', 'lowchangevalue',
-  'lowchangeperc', 'closechangevalue', 'closechangeperc', 'valueformat', 'displayformat',
+  'lowchangeperc', 'closechangevalue', 'closechangeperc', 'openchangepercent', 'highchangepercent',
+  'lowchangepercent', 'closechangepercent', 'valueformat', 'displayformat',
 ]);
 
 function normalizedVenueKey(value: string) {
@@ -131,6 +133,11 @@ function firstNumeric(...values: unknown[]) {
   return null;
 }
 
+function percentage(value: unknown) {
+  const parsed = numeric(value);
+  return parsed !== null && parsed >= 0 && parsed <= 100 ? parsed : null;
+}
+
 function normalizedKey(value: string) {
   return normalizedVenueKey(value);
 }
@@ -144,67 +151,61 @@ function displayLabel(key: string) {
     .replace(/\b\w/g, character => character.toUpperCase());
 }
 
-function venueValueFromItem(value: unknown) {
-  if (typeof value === 'number' || typeof value === 'string') {
-    return { volume: numeric(value), percent: null };
+function percentageFieldBaseKey(value: string) {
+  return value.replace(/(?:[_-]?(?:percentage|percent))$/i, '');
+}
+
+function exchangePercentageEntries(value: unknown): VenuePercentage[] {
+  const entries = new Map<string, VenuePercentage>();
+  const genericPercentFields = new Set([
+    'percent', 'percentage', 'volumepercent', 'volumepercentage', 'sharepercent', 'sharepercentage',
+    'marketsharepercent', 'marketsharepercentage', 'exchangepercent', 'exchangepercentage',
+  ]);
+
+  function visit(current: unknown, contextKey = '', contextLabel = '', depth = 0) {
+    if (depth > 6 || !current || typeof current !== 'object') return;
+    if (Array.isArray(current)) {
+      current.forEach(item => visit(item, '', '', depth + 1));
+      return;
+    }
+
+    const row = record(current);
+    const identityKey = String(
+      row.key ?? row.code ?? row.exchangeCode ?? row.venueCode ?? row.exchange ?? row.venue ?? row.name ?? contextKey,
+    ).trim();
+    const identityLabel = String(
+      row.label ?? row.exchangeName ?? row.venueName ?? row.name ?? contextLabel,
+    ).trim();
+
+    Object.entries(row).forEach(([fieldName, raw]) => {
+      if (raw && typeof raw === 'object') {
+        visit(raw, fieldName, displayLabel(fieldName), depth + 1);
+        return;
+      }
+      if (!fieldName.toLowerCase().includes('percent')) return;
+      if (fieldName.startsWith('_') || nonVenueKeys.has(normalizedKey(fieldName))) return;
+
+      const percent = percentage(raw);
+      if (percent === null) return;
+      const fieldIsGeneric = genericPercentFields.has(normalizedKey(fieldName));
+      const key = (fieldIsGeneric ? identityKey : percentageFieldBaseKey(fieldName)).trim();
+      if (!key) return;
+      entries.set(normalizedKey(key), {
+        key,
+        label: fieldIsGeneric && identityLabel ? identityLabel : displayLabel(key),
+        percent,
+      });
+    });
   }
-  const item = record(value);
-  return {
-    volume: firstNumeric(item.volume, item.exchangeVolume, item.totalVolume, item.value, item.shares),
-    percent: firstNumeric(item.percent, item.percentage, item.volumePercent, item.volumePercentage, item.share),
-  };
+
+  visit(value);
+  return [...entries.values()];
 }
 
-function venueArray(value: unknown): VenueValue[] {
-  if (!Array.isArray(value)) return [];
-  return value.flatMap((item, index) => {
-    const row = record(item);
-    const key = String(
-      row.key ?? row.code ?? row.exchangeCode ?? row.venueCode ?? row.exchange ?? row.venue ?? row.name ?? row.label ?? `venue-${index + 1}`,
-    );
-    const parsed = venueValueFromItem(row);
-    if (parsed.volume === null) return [];
-    return [{
-      key,
-      label: String(row.label ?? row.exchangeName ?? row.venueName ?? row.name ?? displayLabel(key)),
-      volume: parsed.volume,
-      percent: parsed.percent,
-    }];
-  });
-}
-
-function exchangeVolumeEntries(value: unknown): VenueValue[] {
-  if (Array.isArray(value)) return venueArray(value);
-  const container = record(value);
-  for (const nestedKey of ['venues', 'exchanges', 'exchangeVolumes', 'volumes', 'volumeByExchange', 'byExchange', 'breakdown', 'items', 'records']) {
-    const nestedValue = container[nestedKey];
-    if (!nestedValue || (typeof nestedValue !== 'object' && !Array.isArray(nestedValue))) continue;
-    const nested = Array.isArray(nestedValue)
-      ? venueArray(nestedValue)
-      : exchangeVolumeEntries(record(nestedValue));
-    if (nested.length) return nested;
-  }
-  return Object.entries(container).flatMap(([key, raw]) => {
-    if (nonVenueKeys.has(normalizedKey(key)) || key.startsWith('_')) return [];
-    const parsed = venueValueFromItem(raw);
-    if (parsed.volume === null) return [];
-    return [{ key, label: displayLabel(key), volume: parsed.volume, percent: parsed.percent }];
-  });
-}
-
-function exchangeVolumeContainer(row: Row) {
-  const nested = row.exchangeVolume ?? row.exchangeVolumes ?? row.venues ?? row.exchanges;
-  return nested ?? row;
-}
-
-function historyVenueEntries(row: Row) {
-  const prefixedEntries = Object.entries(row).flatMap(([key, raw]) => {
-    if (!normalizedKey(key).startsWith('ex')) return [];
-    const volume = numeric(raw);
-    if (volume === null) return [];
-    return [{ key, label: venueLabels[normalizedKey(key)] ?? displayLabel(key.replace(/^ex(?=[A-Z0-9_-])/, '')), volume, percent: null }];
-  });
-  return prefixedEntries.length ? prefixedEntries : exchangeVolumeEntries(exchangeVolumeContainer(row));
+function historyVenuePercentages(row: Row) {
+  return exchangePercentageEntries(row).filter(item => (
+    Boolean(venueLabels[normalizedKey(item.key)]) || /^ex(?=[A-Z0-9_-])/.test(item.key)
+  ));
 }
 
 function findHistoryRows(value: unknown, depth = 0): Row[] {
@@ -235,7 +236,7 @@ function buildHistoryPoints(rows: Row[]): HistoryPoint[] {
   return rows
     .map(row => ({
       date: historyDate(row),
-      values: Object.fromEntries(historyVenueEntries(row).map(item => [item.key, item.volume])),
+      values: Object.fromEntries(historyVenuePercentages(row).map(item => [item.key, item.percent])),
     }))
     .filter(point => point.date && Object.keys(point.values).length)
     .sort((a, b) => a.date.localeCompare(b.date));
@@ -267,8 +268,8 @@ function filterPoints(points: HistoryPoint[], period: PeriodKey) {
   }) : points;
 }
 
-function formatVolume(value: number | null) {
-  return value === null ? 'N/A' : value.toLocaleString('en-US', { maximumFractionDigits: 2 });
+function formatPercentage(value: number | null) {
+  return value === null ? 'N/A' : `${value.toLocaleString('en-US', { maximumFractionDigits: 2 })}%`;
 }
 
 function formatPrice(value: number | null) {
@@ -347,27 +348,14 @@ function venueKeys(points: HistoryPoint[]) {
       keys.push(key);
     }
   }));
-  return keys;
+  const latestValues = points.at(-1)?.values ?? {};
+  return keys.sort((a, b) => (
+    (latestValues[b] ?? -1) - (latestValues[a] ?? -1)
+    || displayLabel(a).localeCompare(displayLabel(b))
+  ));
 }
 
-function lineSegments(points: HistoryPoint[], key: string, x: (index: number) => number, y: (value: number) => number) {
-  const segments: string[] = [];
-  let active = '';
-  points.forEach((point, index) => {
-    const value = point.values[key];
-    if (!Number.isFinite(value)) {
-      if (active) segments.push(active);
-      active = '';
-      return;
-    }
-    const coordinate = `${x(index).toFixed(2)},${y(value).toFixed(2)}`;
-    active = active ? `${active} ${coordinate}` : coordinate;
-  });
-  if (active) segments.push(active);
-  return segments;
-}
-
-function ExchangeVolumeChart({
+function ExchangeShareStackedChart({
   points,
   availableKeys,
   enabledKeys,
@@ -385,14 +373,15 @@ function ExchangeVolumeChart({
   const [hoverIndex, setHoverIndex] = useState<number | null>(null);
   const activeKeys = availableKeys.filter(key => enabledKeys.includes(key));
   const values = points.flatMap(point => activeKeys.map(key => point.values[key])).filter(Number.isFinite);
-  const max = Math.max(...values, 0);
-  const width = 1100;
+  const width = Math.max(1100, 106 + points.length * 8);
   const height = 390;
   const pad = { top: 22, right: 24, bottom: 48, left: 82 };
   const plotWidth = width - pad.left - pad.right;
   const plotHeight = height - pad.top - pad.bottom;
-  const x = (index: number) => pad.left + (points.length <= 1 ? plotWidth / 2 : index * plotWidth / (points.length - 1));
-  const y = (value: number) => pad.top + plotHeight - (max > 0 ? value / max * plotHeight : 0);
+  const bandWidth = plotWidth / Math.max(points.length, 1);
+  const barWidth = Math.max(1.5, Math.min(20, bandWidth * .72));
+  const x = (index: number) => pad.left + (index + .5) * bandWidth;
+  const y = (value: number) => pad.top + plotHeight - value / 100 * plotHeight;
   const xLabelIndexes = Array.from(new Set(Array.from({ length: Math.min(6, points.length) }, (_, index) => (
     points.length <= 1 ? 0 : Math.round(index * (points.length - 1) / (Math.min(6, points.length) - 1))
   ))));
@@ -401,8 +390,8 @@ function ExchangeVolumeChart({
   function setHoverPosition(event: ReactMouseEvent<SVGSVGElement>) {
     const rect = event.currentTarget.getBoundingClientRect();
     const pointerX = (event.clientX - rect.left) / Math.max(rect.width, 1) * width;
-    const ratio = Math.min(1, Math.max(0, (pointerX - pad.left) / plotWidth));
-    const nextIndex = points.length <= 1 ? 0 : Math.round(ratio * (points.length - 1));
+    const ratio = Math.min(.999999, Math.max(0, (pointerX - pad.left) / plotWidth));
+    const nextIndex = Math.floor(ratio * points.length);
     setHoverIndex(nextIndex);
   }
 
@@ -437,14 +426,14 @@ function ExchangeVolumeChart({
       </div>
       {!activeKeys.length || !values.length ? (
         <div className="exchange-volume-empty exchange-volume-chart-empty">
-          Select at least one exchange with data for this range.
+          Select at least one exchange with percentage data for this range.
         </div>
       ) : <div className="exchange-volume-chart-scroll">
         <svg
           className="exchange-volume-chart"
           viewBox={`0 0 ${width} ${height}`}
           role="img"
-          aria-label="Daily exchange volume history"
+          aria-label="Daily stacked exchange share percentage history"
           onMouseMove={setHoverPosition}
           onMouseLeave={() => setHoverIndex(null)}
         >
@@ -454,25 +443,30 @@ function ExchangeVolumeChart({
               <g key={ratio}>
                 <line x1={pad.left} x2={width - pad.right} y1={chartY} y2={chartY} className="exchange-volume-grid-line" vectorEffect="non-scaling-stroke" />
                 <text x={pad.left - 12} y={chartY + 4} textAnchor="end" className="exchange-volume-axis-label">
-                  {formatVolume(max * ratio)}
+                  {formatPercentage(100 * ratio)}
                 </text>
               </g>
             );
           })}
-          {activeKeys.map(key => {
-            const colorIndex = availableKeys.indexOf(key);
-            return lineSegments(points, key, x, y).map((segment, segmentIndex) => (
-            <polyline
-              key={`${key}-${segmentIndex}`}
-              points={segment}
-              fill="none"
-              stroke={chartColors[colorIndex % chartColors.length]}
-              strokeWidth="1.25"
-              strokeLinejoin="round"
-              strokeLinecap="round"
-              vectorEffect="non-scaling-stroke"
-            />
-            ));
+          {points.map((point, pointIndex) => {
+            let cumulativePercent = 0;
+            return activeKeys.map(key => {
+              const value = point.values[key];
+              if (!Number.isFinite(value) || value <= 0) return null;
+              cumulativePercent += value;
+              const colorIndex = availableKeys.indexOf(key);
+              return (
+                <rect
+                  className={`exchange-volume-stacked-segment${hoverIndex !== null && hoverIndex !== pointIndex ? ' is-muted' : ''}`}
+                  key={`${point.date}-${key}`}
+                  x={x(pointIndex) - barWidth / 2}
+                  y={y(cumulativePercent)}
+                  width={barWidth}
+                  height={value / 100 * plotHeight}
+                  fill={chartColors[colorIndex % chartColors.length]}
+                />
+              );
+            });
           })}
           {xLabelIndexes.map(index => (
             <text key={`${points[index].date}-${index}`} x={x(index)} y={height - 16} textAnchor="middle" className="exchange-volume-axis-label">
@@ -481,30 +475,13 @@ function ExchangeVolumeChart({
           ))}
           {hoveredPoint && hoverIndex !== null ? (
             <g className="exchange-volume-hover-layer">
-              <line
-                className="exchange-volume-hover-line"
-                x1={x(hoverIndex)}
-                x2={x(hoverIndex)}
-                y1={pad.top}
-                y2={height - pad.bottom}
-                vectorEffect="non-scaling-stroke"
+              <rect
+                className="exchange-volume-hover-bar"
+                x={x(hoverIndex) - Math.max(barWidth, 6) / 2}
+                y={pad.top}
+                width={Math.max(barWidth, 6)}
+                height={plotHeight}
               />
-              {activeKeys.map(key => {
-                const value = hoveredPoint.values[key];
-                if (!Number.isFinite(value)) return null;
-                const colorIndex = availableKeys.indexOf(key);
-                return (
-                  <circle
-                    className="exchange-volume-hover-dot"
-                    key={`hover-${key}`}
-                    cx={x(hoverIndex)}
-                    cy={y(value)}
-                    r="3"
-                    fill={chartColors[colorIndex % chartColors.length]}
-                    vectorEffect="non-scaling-stroke"
-                  />
-                );
-              })}
             </g>
           ) : null}
         </svg>
@@ -514,7 +491,7 @@ function ExchangeVolumeChart({
             style={{ left: `${x(hoverIndex) / width * 100}%` }}
           >
             <strong>{formatFullDate(hoveredPoint.date)}</strong>
-            {activeKeys.map(key => {
+            {[...activeKeys].sort((a, b) => (hoveredPoint.values[b] ?? -1) - (hoveredPoint.values[a] ?? -1)).map(key => {
               const value = hoveredPoint.values[key];
               if (!Number.isFinite(value)) return null;
               const colorIndex = availableKeys.indexOf(key);
@@ -522,7 +499,7 @@ function ExchangeVolumeChart({
                 <span key={`tooltip-${key}`}>
                   <i style={{ background: chartColors[colorIndex % chartColors.length] }} />
                   <em>{displayLabel(key)}</em>
-                  <b>{formatVolume(value)}</b>
+                  <b>{formatPercentage(value)}</b>
                 </span>
               );
             })}
@@ -533,15 +510,15 @@ function ExchangeVolumeChart({
   );
 }
 
-function CurrentExchangeVolume({ entries }: { entries: VenueValue[] }) {
+function CurrentExchangeShare({ entries }: { entries: VenuePercentage[] }) {
   const [hoveredKey, setHoveredKey] = useState<string | null>(null);
-  const sortedEntries = [...entries].sort((a, b) => b.volume - a.volume);
-  const chartEntries = sortedEntries.filter(entry => entry.volume > 0);
-  const total = chartEntries.reduce((sum, entry) => sum + entry.volume, 0);
+  const sortedEntries = [...entries].sort((a, b) => b.percent - a.percent || a.label.localeCompare(b.label));
+  const chartEntries = sortedEntries.filter(entry => entry.percent > 0);
+  const total = chartEntries.reduce((sum, entry) => sum + entry.percent, 0);
   let cursorAngle = -90;
   const slices = chartEntries.map((entry, index) => {
     const startAngle = cursorAngle;
-    const endAngle = startAngle + entry.volume / total * 360;
+    const endAngle = startAngle + entry.percent / 100 * 360;
     cursorAngle = endAngle;
     return {
       ...entry,
@@ -557,13 +534,13 @@ function CurrentExchangeVolume({ entries }: { entries: VenueValue[] }) {
   const hoveredEntry = hoveredKey ? slices.find(entry => entry.key === hoveredKey) ?? null : null;
 
   if (!entries.length || !total) {
-    return <div className="exchange-volume-empty">No current exchange-volume fields were returned by the API.</div>;
+    return <div className="exchange-volume-empty">No current exchange-percentage fields were returned by the API.</div>;
   }
   return (
     <div className="exchange-volume-pie-layout">
       <div className="exchange-volume-pie-wrap">
         <div className="exchange-volume-pie-frame" onMouseLeave={() => setHoveredKey(null)}>
-          <svg className="exchange-volume-pie" viewBox="0 0 200 200" role="img" aria-label="Latest exchange volume by venue">
+          <svg className="exchange-volume-pie" viewBox="0 0 200 200" role="img" aria-label="Latest exchange share percentage by venue">
             {slices.map(entry => (
               <path
                 className={hoveredKey && hoveredKey !== entry.key ? 'is-muted' : ''}
@@ -571,7 +548,7 @@ function CurrentExchangeVolume({ entries }: { entries: VenueValue[] }) {
                 fill={entry.color}
                 key={entry.key}
                 tabIndex={0}
-                aria-label={`${entry.label}: ${formatVolume(entry.volume)} volume${entry.percent !== null ? `, ${entry.percent.toLocaleString('en-US', { maximumFractionDigits: 4 })}% supplied by API` : ''}`}
+                aria-label={`${entry.label}: ${formatPercentage(entry.percent)}`}
                 onMouseEnter={() => setHoveredKey(entry.key)}
                 onFocus={() => setHoveredKey(entry.key)}
                 onBlur={() => setHoveredKey(null)}
@@ -581,12 +558,11 @@ function CurrentExchangeVolume({ entries }: { entries: VenueValue[] }) {
           {hoveredEntry ? (
             <div className="exchange-volume-pie-tooltip" role="status">
               <strong><i style={{ background: hoveredEntry.color }} />{hoveredEntry.label}</strong>
-              <span>Volume <b>{formatVolume(hoveredEntry.volume)}</b></span>
-              {hoveredEntry.percent !== null ? <small>{hoveredEntry.percent.toLocaleString('en-US', { maximumFractionDigits: 4 })}% supplied by API</small> : null}
+              <span>Share <b>{formatPercentage(hoveredEntry.percent)}</b></span>
             </div>
           ) : null}
         </div>
-        <small>Slice size reflects each volume value returned by the API.</small>
+        <small>Slice size uses each API percentage directly, without frontend normalization.</small>
       </div>
       <div className="exchange-volume-pie-legend">
         {legendColumns.map((column, columnIndex) => (
@@ -600,8 +576,7 @@ function CurrentExchangeVolume({ entries }: { entries: VenueValue[] }) {
                     <span className="exchange-volume-pie-legend-text">{entry.label}</span>
                     {entry.label === 'Off Exchange' ? <InfoTooltip text={offExchangeExplanation} /> : null}
                   </div>
-                  <strong>{formatVolume(entry.volume)}</strong>
-                  {entry.percent !== null ? <small>{entry.percent.toLocaleString('en-US', { maximumFractionDigits: 4 })}% supplied by API</small> : null}
+                  <strong>{formatPercentage(entry.percent)}</strong>
                 </div>
               );
             })}
@@ -651,7 +626,12 @@ export function ExchangeVolumeBrowserPage({ ticker }: { ticker: string }) {
   const allVenueKeys = useMemo(() => venueKeys(allPoints), [allPoints]);
   const visiblePoints = useMemo(() => filterPoints(allPoints, period), [allPoints, period]);
   const enabledVenueKeys = allVenueKeys.filter(key => !disabledVenueKeys.includes(key));
-  const currentEntries = exchangeVolumeEntries(current.exchangeVolume);
+  const currentEntries = exchangePercentageEntries({
+    exchangePercentages: current.exchangePercentages,
+    exchangeVolumePercentages: current.exchangeVolumePercentages,
+    exchangeVolumePercentage: current.exchangeVolumePercentage,
+    exchangeVolume: current.exchangeVolume,
+  });
   const currentExchangeVolumeDate = marketCurrentFieldDate(current as MarketCurrentSnapshot, 'exchangeVolume');
   const priceMetrics = (['open', 'high', 'low', 'close'] as const).map(key => priceMetric(current, key));
 
@@ -687,10 +667,10 @@ export function ExchangeVolumeBrowserPage({ ticker }: { ticker: string }) {
             <h2 className="terminal-title">
               <span className="with-info">
                 Exchange Volume Overview
-                <InfoTooltip text="Exchange and off-exchange trading volumes exactly as supplied by the Market Data APIs. This page does not calculate market share, rankings, totals, or replacement values." />
+                <InfoTooltip text="Exchange and off-exchange trading share percentages exactly as supplied by percentage-named Market Data API fields. This page does not calculate percentages, totals, or replacement values." />
               </span>
             </h2>
-            <p className="section-subtitle">Current market snapshot and venue-level trading volume from the centralized Market Data APIs.</p>
+            <p className="section-subtitle">Current market snapshot and venue-level trading share percentages from the centralized Market Data APIs.</p>
           </div>
           <ApiSourceTags sources={[
             { endpoint: 'GET /market-data/current?category=market-current', label: 'Current snapshot' },
@@ -713,24 +693,24 @@ export function ExchangeVolumeBrowserPage({ ticker }: { ticker: string }) {
         <div className="terminal-section__head">
           <div>
             <span>Current Snapshot</span>
-            <h2>Latest Exchange Volume</h2>
-            <p className="section-subtitle">Latest venue volumes from market-current.exchangeVolume{currentExchangeVolumeDate ? ` as of ${formatShortDate(currentExchangeVolumeDate)}` : ''}. Slice sizes visualize the returned volume values; labels retain the raw API values.</p>
+            <h2>Latest Exchange Share</h2>
+            <p className="section-subtitle">Latest exchange share percentages from market-current.exchangeVolume{currentExchangeVolumeDate ? ` as of ${formatShortDate(currentExchangeVolumeDate)}` : ''}. Slice sizes and labels use the percentages returned by the API.</p>
           </div>
           <ApiSourceTags sources={[
             { endpoint: 'GET /market-data/current?category=market-current', label: 'Exchange volume object' },
           ]} />
         </div>
         <article className="terminal-card exchange-volume-current-card">
-          <CurrentExchangeVolume entries={currentEntries} />
+          <CurrentExchangeShare entries={currentEntries} />
         </article>
       </section>
 
       <section className="terminal-section exchange-volume-history-section">
         <div className="terminal-section__head">
           <div>
-            <span>Historical Volume</span>
-            <h2>Volume by Exchange</h2>
-            <p className="section-subtitle">Daily venue volumes returned by exchange-volume-history. Missing API dates and values remain unavailable rather than being synthesized.</p>
+            <span>Historical Share</span>
+            <h2>Exchange Share by Venue</h2>
+            <p className="section-subtitle">Daily stacked venue shares using only percentage-named fields returned by exchange-volume-history. Missing API dates and percentages remain unavailable rather than being synthesized.</p>
           </div>
           <div className="terminal-section-actions exchange-volume-actions">
             <div className="exchange-volume-periods" aria-label="Exchange volume period">
@@ -741,7 +721,7 @@ export function ExchangeVolumeBrowserPage({ ticker }: { ticker: string }) {
           </div>
         </div>
         <article className="terminal-card exchange-volume-chart-card">
-          <ExchangeVolumeChart
+          <ExchangeShareStackedChart
             points={visiblePoints}
             availableKeys={allVenueKeys}
             enabledKeys={enabledVenueKeys}

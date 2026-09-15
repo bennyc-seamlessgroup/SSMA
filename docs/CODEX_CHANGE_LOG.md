@@ -4,6 +4,149 @@ This file is the persistent implementation memory for changes made by Codex.
 Read it before modifying existing portal behavior, and update it after every
 completed change.
 
+## 2026-09-15 - Restrict exchange shares to percent fields and use stacked history bars
+
+- Area:
+  - User Portal -> Exchange Volume -> Latest Exchange Share.
+  - User Portal -> Exchange Volume -> Exchange Share by Venue.
+- API/data:
+  - `GET /market-data/current?ticker={ticker}&category=market-current`.
+  - `GET /market-data/history?ticker={ticker}&category=exchange-volume-history`.
+- Reported problem and root cause:
+  - The exchange parser still accepted generic numeric venue maps and aliases
+    such as `share` and `pct`, so fields without `percent` in their names could
+    be shown as percentages.
+  - The latest legend did not make its intended column-reading rank explicit.
+  - Plotting every venue as a separate historical line created an overlapping,
+    difficult-to-read chart.
+- Intended behavior and invariants:
+  - Display only numeric API leaf fields whose own field names contain
+    `percent` or `percentage`, case-insensitively. A generic `percent` property
+    inside a named venue object is valid; raw volume, `share`, and `pct` fields
+    are not.
+  - Keep only values from 0 through 100 and never derive percentages from
+    volume or totals.
+  - Sort Latest Exchange Share from highest to lowest, filling the entire left
+    legend column first and then the right column. Ties use the venue label.
+  - Use the API percentage directly for each pie slice rather than
+    re-normalizing the selected fields to a new total.
+  - Replace the multi-line history chart with daily stacked bars on a fixed
+    0–100% axis. Each segment height is the exact corresponding API percentage;
+    no missing values are synthesized.
+  - Retain period filters, per-venue toggles, Show all / Hide all, date hover
+    details, API source tags, Development Data, themes, responsiveness, and
+    localization. Hover details are ordered highest-to-lowest for the day.
+- Files changed:
+  - `app/monitor/[ticker]/exchange-volume/ExchangeVolumeBrowserPage.tsx`
+  - `app/globals.css`
+  - `lib/portal-page-translations.ts`
+  - `docs/CODEX_CHANGE_LOG.md`
+- Verification:
+  - Parser regression retained `exNasdaqGsmPercent`,
+    `exNyseArcaPercentage`, `exOffExchangeSharePercent`, and a venue object's
+    `sharePercent`; it rejected `exCboeEdgxPct`, a raw `exCboeByx` value, and a
+    venue object's plain `share`.
+  - Source inspection confirmed the history renderer now emits stacked SVG
+    rectangles and contains no exchange-history polyline renderer.
+  - TypeScript type-check passed.
+  - Production build passed.
+  - `git diff --check` passed.
+- Remaining backend dependency / limitation:
+  - `docs/INTEGRATION (7).md` still describes this category as volume and does
+    not list the canonical percentage field names. Fields that do not include
+    `percent` in their own names are intentionally ignored even if a parent
+    container implies percentages.
+
+## 2026-09-15 - Restore local login when development is opened by LAN IP
+
+- Area:
+  - Shared User Portal and Operations Portal OAuth login startup.
+- API/data:
+  - Cognito Authorization Code + PKCE at
+    `https://auth.currenc.capital/oauth2/authorize`.
+  - Registered local callback `http://localhost:3000/callback`.
+- Reported problem and root cause:
+  - The local portal was opened at `http://192.168.105.143:3000/login`, while
+    the configured and Cognito-registered callback remained
+    `http://localhost:3000/callback`.
+  - OAuth state and PKCE verifier values are stored in `sessionStorage`, which
+    is origin-specific. Starting on the LAN-IP origin and returning to the
+    localhost origin therefore loses those values even if authentication
+    succeeds.
+  - A live Cognito authorization check accepted the localhost callback and
+    returned `redirect_mismatch` for the LAN-IP callback.
+- Intended behavior and invariants:
+  - Before generating OAuth state, automatically replace a private-LAN local
+    login URL with the origin of the configured loopback callback while
+    preserving the current path and query string.
+  - `http://192.168.105.143:3000/login` therefore becomes
+    `http://localhost:3000/login`, and Cognito returns to the same origin that
+    created the PKCE state.
+  - Apply this only when both origins are local-development hosts and the
+    configured callback uses loopback. Never redirect a production hostname
+    to localhost.
+  - Preserve the custom Cognito domain, client ID, callback URL, post-login
+    destination, PKCE validation, token exchange, logout, and role checks.
+- Files changed:
+  - `lib/auth-client.ts`
+  - `.env.example`
+  - `docs/CODEX_CHANGE_LOG.md`
+- Verification:
+  - Live Cognito request: localhost callback redirected to the hosted login;
+    LAN-IP callback redirected to Cognito's `redirect_mismatch` error.
+  - TypeScript type-check passed.
+  - Production build passed.
+  - `git diff --check` passed.
+- Remaining backend dependency / limitation:
+  - This supports local login on the development machine running the server.
+    Logging in from a different device over LAN still requires its reachable
+    callback URL to be explicitly registered in Cognito, or an approved HTTPS
+    development hostname/tunnel.
+
+## 2026-09-15 - Display exchange share percentages instead of volume amounts
+
+- Area:
+  - User Portal -> Exchange Volume -> Latest Exchange Share.
+  - User Portal -> Exchange Volume -> Exchange Share by Venue.
+- API/data:
+  - `GET /market-data/current?ticker={ticker}&category=market-current`.
+  - `GET /market-data/history?ticker={ticker}&category=exchange-volume-history`.
+- Reported problem and root cause:
+  - The backend changed the exchange breakdown to percentage values, but the
+    page still parsed, labelled, charted, and announced the values as raw
+    volume amounts.
+  - The existing parser preferred volume fields and allowed unrestricted
+    numeric values, so the new percentage meaning was not enforced.
+- Intended behavior and invariants:
+  - Show only backend-supplied exchange percentages in the current pie,
+    current legend, historical chart axis, and historical hover details.
+  - Accept percentage values in direct venue maps, percentage-suffixed venue
+    fields, and venue objects using common percentage properties. Values must
+    be between 0 and 100 inclusive.
+  - Do not derive percentages from volume, totals, or other frontend
+    calculations. A legacy volume-only payload is shown as unavailable rather
+    than being mislabeled as a percentage.
+  - Preserve the chart-only historical design, period filters, exchange-series
+    toggles, Off Exchange explanation, API source tags, Development Data raw
+    responses, responsive layout, themes, and portal localization.
+- Files changed:
+  - `app/monitor/[ticker]/exchange-volume/ExchangeVolumeBrowserPage.tsx`
+  - `lib/portal-page-translations.ts`
+  - `docs/CODEX_CHANGE_LOG.md`
+- Verification:
+  - TypeScript type-check passed.
+  - Production build passed.
+  - Source inspection confirmed there is no remaining volume formatter or raw
+    volume amount in either exchange breakdown visualization.
+- Remaining backend dependency / limitation:
+  - `docs/INTEGRATION (7).md` still describes exchange-volume history as
+    volume and does not document the new percentage field names.
+  - The configured demo Cognito account was unavailable, so a live protected
+    payload could not be inspected locally. The parser supports the new
+    percentage containers and common percentage property names without
+    falling back to calculated values; the backend contract should be updated
+    with the canonical schema.
+
 ## 2026-09-15 - Correct company identity in the User Portal top bar
 
 - Area:

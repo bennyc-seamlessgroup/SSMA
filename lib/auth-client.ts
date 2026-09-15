@@ -86,6 +86,42 @@ function browserOrigin() {
   return typeof window === 'undefined' ? '' : window.location.origin;
 }
 
+function isLocalDevelopmentHostname(hostname: string) {
+  return hostname === 'localhost'
+    || hostname === '127.0.0.1'
+    || hostname === '0.0.0.0'
+    || hostname === '[::1]'
+    || hostname.startsWith('10.')
+    || hostname.startsWith('192.168.')
+    || /^172\.(1[6-9]|2\d|3[01])\./.test(hostname);
+}
+
+function redirectToConfiguredLocalAuthOrigin(redirectUri: string) {
+  if (typeof window === 'undefined') return false;
+
+  try {
+    const callbackUrl = new URL(redirectUri);
+    const currentUrl = new URL(window.location.href);
+    const callbackUsesLoopback = ['localhost', '127.0.0.1', '[::1]'].includes(callbackUrl.hostname);
+    const currentIsLocalDevelopment = isLocalDevelopmentHostname(currentUrl.hostname);
+
+    if (!callbackUsesLoopback || !currentIsLocalDevelopment || currentUrl.origin === callbackUrl.origin) {
+      return false;
+    }
+
+    // Cognito callback URLs and sessionStorage are both origin-specific. When
+    // development is opened through a LAN address, move the login page to the
+    // registered loopback origin before generating PKCE state so the callback
+    // can read the same verifier and state values.
+    currentUrl.protocol = callbackUrl.protocol;
+    currentUrl.host = callbackUrl.host;
+    window.location.replace(currentUrl.toString());
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 export function getRedirectUri() {
   return configuredRedirectUri || `${browserOrigin()}/callback`;
 }
@@ -195,6 +231,9 @@ export async function startLogin(options: {
   loginHint?: string;
 } = {}) {
   assertAuthConfig();
+  const redirectUri = getRedirectUri();
+  if (redirectToConfiguredLocalAuthOrigin(redirectUri)) return;
+
   const state = Math.random().toString(36).slice(2, 15);
   const codeVerifier = generateCodeVerifier();
   const codeChallenge = await generateCodeChallenge(codeVerifier);
@@ -208,7 +247,7 @@ export async function startLogin(options: {
     client_id: clientId,
     response_type: 'code',
     scope: 'openid email profile aws.cognito.signin.user.admin',
-    redirect_uri: getRedirectUri(),
+    redirect_uri: redirectUri,
     code_challenge: codeChallenge,
     code_challenge_method: 'S256',
     state,
