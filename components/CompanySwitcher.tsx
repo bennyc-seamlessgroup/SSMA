@@ -5,7 +5,6 @@ import { usePathname } from 'next/navigation';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { cachedAuthenticatedFetch, getAuthenticatedProfile } from '@/lib/auth-client';
 import { companyAccessFromProfile } from '@/lib/ticker-access';
-import { useTickerDataStatus } from './TickerDataStatusProvider';
 import { usePortalLanguage } from './usePortalLanguage';
 
 type CompanyOption = {
@@ -13,8 +12,6 @@ type CompanyOption = {
   name: string;
   role: string;
 };
-
-const companyNameCache = new Map<string, string>();
 
 function companyNameFromPayload(payload: unknown, requestedTicker: string) {
   const root = payload && typeof payload === 'object' ? payload as Record<string, unknown> : null;
@@ -28,8 +25,11 @@ function companyNameFromPayload(payload: unknown, requestedTicker: string) {
   for (const candidate of candidates) {
     if (!candidate || typeof candidate !== 'object') continue;
     const record = candidate as Record<string, unknown>;
-    const responseTicker = String(record.ticker ?? record.stockCode ?? '').trim().toUpperCase();
-    if (responseTicker !== requestedTicker.trim().toUpperCase()) continue;
+    const expectedTicker = requestedTicker.trim().toUpperCase();
+    const responseTickers = [record.ticker, record.stockCode]
+      .map(value => String(value ?? '').trim().toUpperCase())
+      .filter(Boolean);
+    if (!responseTickers.length || responseTickers.some(value => value !== expectedTicker)) continue;
     const name = String(record.companyName ?? '').trim();
     if (name) return name;
   }
@@ -37,15 +37,18 @@ function companyNameFromPayload(payload: unknown, requestedTicker: string) {
 }
 
 async function resolveCompanyName(ticker: string) {
-  const cached = companyNameCache.get(ticker);
-  if (cached) return cached;
+  try {
+    const tickerPayload = await cachedAuthenticatedFetch(`/tickers/${encodeURIComponent(ticker)}`);
+    const tickerName = companyNameFromPayload(tickerPayload, ticker);
+    if (tickerName) return tickerName;
+  } catch {
+    // Standard users may not have access to the operator ticker registry.
+  }
   try {
     const payload = await cachedAuthenticatedFetch(
       `/market-data/current?ticker=${encodeURIComponent(ticker)}&category=company-profile-current`,
     );
-    const name = companyNameFromPayload(payload, ticker);
-    if (name) companyNameCache.set(ticker, name);
-    return name;
+    return companyNameFromPayload(payload, ticker);
   } catch {
     return '';
   }
@@ -54,7 +57,6 @@ async function resolveCompanyName(ticker: string) {
 export function CompanySwitcher({ ticker, companyName }: { ticker: string; companyName: string }) {
   const pathname = usePathname();
   const { t } = usePortalLanguage();
-  const tickerStatus = useTickerDataStatus();
   const menuRef = useRef<HTMLDivElement | null>(null);
   const [isOpen, setIsOpen] = useState(false);
   const [companies, setCompanies] = useState<CompanyOption[]>([{
@@ -72,7 +74,7 @@ export function CompanySwitcher({ ticker, companyName }: { ticker: string; compa
         const resolved = await Promise.all(access.map(async entry => ({
           ticker: entry.ticker,
           role: entry.role,
-          name: await resolveCompanyName(entry.ticker),
+          name: entry.name.trim() || await resolveCompanyName(entry.ticker),
         })));
         if (!cancelled) setCompanies(resolved);
       })
@@ -107,8 +109,7 @@ export function CompanySwitcher({ ticker, companyName }: { ticker: string; compa
     name: companyName,
     role: 'Viewer',
   };
-  const currentDisplayName = tickerStatus?.companyName?.trim()
-    || t('companyNameUnavailable');
+  const currentDisplayName = current.name.trim() || t('companyNameUnavailable');
   const roleLabel = (role: string) => role.trim().toLowerCase() === 'viewer' ? t('viewer') : role;
   const routeSuffix = useMemo(() => {
     const match = pathname.match(/^\/monitor\/[^/]+(\/.*)?$/i);

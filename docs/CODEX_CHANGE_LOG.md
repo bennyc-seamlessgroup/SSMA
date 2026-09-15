@@ -4,6 +4,48 @@ This file is the persistent implementation memory for changes made by Codex.
 Read it before modifying existing portal behavior, and update it after every
 completed change.
 
+## 2026-09-15 - Correct company identity in the User Portal top bar
+
+- Area:
+  - User Portal -> shared top-bar company switcher.
+- API/data:
+  - Authenticated `GET /profile` company-access metadata when available.
+  - Preferred `GET /tickers/{ticker}` for roles allowed to read the managed
+    ticker registry.
+  - Existing fallback
+    `GET /market-data/current?ticker={ticker}&category=company-profile-current`.
+- Reported problem and root cause:
+  - The User Portal top bar showed the same incorrect CURRENC Group Inc. name
+    for BMHL that had appeared in the Operations active-company card.
+  - Although the switcher independently resolved company names, its visible
+    current-company label ignored that result and instead used the shared
+    data-status provider's consolidated company profile. That allowed the bad
+    consolidated identity to remain visible.
+- Intended behavior and invariants:
+  - Prefer company metadata returned with the authenticated user's access,
+    then the exact managed ticker record, and use the consolidated company
+    profile only as a compatibility fallback.
+  - Render the switcher's resolved current-company name directly; do not
+    override it with the shared status provider's company name.
+  - Validate every candidate identity strictly: every supplied `ticker` or
+    `stockCode` must match the requested ticker. Missing or conflicting
+    identities display Company name unavailable instead of another issuer.
+  - Preserve authorized ticker navigation, roles, menu behavior, localization,
+    route suffixes, top-bar layout, and normal market-data status polling.
+- Files changed:
+  - `components/CompanySwitcher.tsx`
+  - `docs/CODEX_CHANGE_LOG.md`
+- Verification:
+  - Source inspection confirmed the visible top-bar name comes from the
+    resolved company option and no longer reads `TickerDataStatus.companyName`.
+  - TypeScript type-check, production build, and whitespace validation passed.
+- Remaining backend dependency / limitation:
+  - `GET /tickers/{ticker}` is operator-restricted by the documented contract.
+    Standard users therefore require either company-name metadata in
+    `GET /profile` or a correctly ticker-scoped `company-profile-current`
+    response. If neither is available, the frontend intentionally shows
+    Company name unavailable rather than a wrong company.
+
 ## 2026-09-15 - Use the ticker registry for the Operations active-company name
 
 - Area:
