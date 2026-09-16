@@ -30715,9 +30715,30 @@ html[data-portal-design="b"][data-design-b-theme="dark"] .portal-design-b-compan
   html[data-portal-design="b"] .monitor-portal .portal-brand__text,
   html[data-portal-design="b"] .monitor-portal .portal-menu__label,
   html[data-portal-design="b"] .monitor-portal .portal-menu__arrow,
-  html[data-portal-design="b"] .monitor-portal .portal-settings-back span,
-  html[data-portal-design="b"] .monitor-portal .portal-sidebar__utilities {
+  html[data-portal-design="b"] .monitor-portal .portal-settings-back span {
     display: none;
+  }
+
+  html[data-portal-design="b"] .monitor-portal .portal-sidebar__utilities {
+    display: grid;
+    justify-items: center;
+    padding: 10px 8px 12px;
+  }
+
+  html[data-portal-design="b"] .monitor-portal .portal-sidebar__utilities .dev-mode-toggle-row {
+    justify-content: center;
+    padding: 0;
+  }
+
+  html[data-portal-design="b"] .monitor-portal .portal-sidebar__utilities .dev-mode-toggle-row > span,
+  html[data-portal-design="b"] .monitor-portal .portal-sidebar__utilities .portal-backend-link > span {
+    display: none;
+  }
+
+  html[data-portal-design="b"] .monitor-portal .portal-sidebar__utilities .portal-backend-link {
+    grid-template-columns: 34px;
+    justify-content: center;
+    padding: 0;
   }
 
   html[data-portal-design="b"] .monitor-portal .portal-menu {

@@ -4,6 +4,42 @@ This file is the persistent implementation memory for changes made by Codex.
 Read it before modifying existing portal behavior, and update it after every
 completed change.
 
+## 2026-09-16 - Restore Dev Mode controls in the mobile User Portal sidebar
+
+- Area:
+  - User Portal -> shared responsive sidebar utilities.
+- API/data:
+  - Authenticated `GET /profile` role check used by `DevModeToggle`.
+- Reported problem and root cause:
+  - The Dev Mode toggle disappeared when the User Portal was viewed on a
+    mobile-width screen.
+  - The responsive rule for viewports up to 980px hid the entire
+    `portal-sidebar__utilities` container, even for authorized `OPERATOR` and
+    `ADMIN` accounts. The toggle itself had no viewport-based hiding logic.
+- Intended behavior and invariants:
+  - Keep the sidebar utilities visible in the 68px mobile rail and render the
+    Dev Mode switch as a compact control without its text label.
+  - When Dev Mode is enabled, retain the backend-portal shortcut as a compact
+    icon beneath the switch.
+  - Preserve the existing authorization invariant: the Dev Mode control is
+    still rendered only for authenticated `OPERATOR` and `ADMIN` accounts and
+    remains unavailable to `USER` and `DEMO` accounts.
+  - Preserve the full labelled utility layout above the mobile breakpoint.
+- Files changed:
+  - `app/globals.css`
+  - `docs/CODEX_CHANGE_LOG.md`
+- Verification:
+  - At a 390x844 viewport, the authorized toggle rendered visibly in the
+    68px sidebar rail with a 38x22px hit target and its text label hidden.
+  - Clicking the mobile toggle changed `aria-pressed` from `false` to `true`
+    and updated the root `data-dev-mode` state to `true`.
+  - The enabled Dev Mode state displayed the compact backend-portal icon.
+  - TypeScript type-check and whitespace validation passed.
+  - Production build passed.
+- Remaining backend dependency / limitation:
+  - None. The change is responsive presentation only; authorization continues
+    to use the existing profile role returned by the backend.
+
 ## 2026-09-15 - Restrict exchange shares to percent fields and use stacked history bars
 
 - Area:
