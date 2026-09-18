@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import type { MouseEvent } from 'react';
 import { dashboardPeriods, type PeriodKey } from './DashboardKpis';
 import { ApiSourceTags, type ApiSourceDescriptor } from '@/components/ApiSourceTags';
@@ -269,6 +269,25 @@ export function DashboardChart({
   const [hoverIndex, setHoverIndex] = useState<number | null>(null);
   const [hoveredEventGroup, setHoveredEventGroup] = useState<EventGroup | null>(null);
   const [pinnedEventGroup, setPinnedEventGroup] = useState<EventGroup | null>(null);
+  const eventHoverCloseTimer = useRef<number | null>(null);
+
+  const cancelEventHoverClose = () => {
+    if (eventHoverCloseTimer.current === null) return;
+    window.clearTimeout(eventHoverCloseTimer.current);
+    eventHoverCloseTimer.current = null;
+  };
+
+  const scheduleEventHoverClose = () => {
+    if (pinnedEventGroup || eventHoverCloseTimer.current !== null) return;
+    eventHoverCloseTimer.current = window.setTimeout(() => {
+      setHoveredEventGroup(null);
+      eventHoverCloseTimer.current = null;
+    }, 220);
+  };
+
+  useEffect(() => () => {
+    if (eventHoverCloseTimer.current !== null) window.clearTimeout(eventHoverCloseTimer.current);
+  }, []);
 
   useEffect(() => {
     if (!pinnedEventGroup) return undefined;
@@ -476,11 +495,13 @@ export function DashboardChart({
     const eventMarker = chart.eventMarkers.find(marker => (
       Math.abs(marker.x - x) <= 18 && Math.abs(marker.y - y) <= 18
     ));
-    setHoveredEventGroup(eventMarker?.eventGroup ?? null);
     if (eventMarker) {
+      cancelEventHoverClose();
+      setHoveredEventGroup(eventMarker.eventGroup);
       setHoverIndex(null);
       return;
     }
+    scheduleEventHoverClose();
     const closestIndex = data.reduce((closest, point, index) => {
       const pointTime = dateMs(point.date);
       const firstTime = dateMs(data[0]?.date ?? '');
@@ -496,7 +517,7 @@ export function DashboardChart({
   const clearHover = () => {
     setHoveredMetric(null);
     setHoverIndex(null);
-    setHoveredEventGroup(null);
+    scheduleEventHoverClose();
   };
 
   const toggle = (key: SeriesKey) => {
@@ -639,10 +660,15 @@ export function DashboardChart({
               aria-label={`${marker.eventGroup.important ? 'Important ' : ''}${marker.eventGroup.type}: ${marker.eventGroup.events.length} event${marker.eventGroup.events.length === 1 ? '' : 's'} on ${formatFullDate(marker.eventGroup.date)}`}
               onClick={event => {
                 event.stopPropagation();
+                cancelEventHoverClose();
                 setPinnedEventGroup(current => current?.id === marker.eventGroup.id ? null : marker.eventGroup);
               }}
-              onFocus={() => setHoveredEventGroup(marker.eventGroup)}
-              onBlur={() => setHoveredEventGroup(null)}
+              onMouseEnter={cancelEventHoverClose}
+              onFocus={() => {
+                cancelEventHoverClose();
+                setHoveredEventGroup(marker.eventGroup);
+              }}
+              onBlur={scheduleEventHoverClose}
             >
               <rect
                 className="dashboard-event-hitbox"
@@ -757,6 +783,10 @@ export function DashboardChart({
               top: `${Math.min((((pinnedEventGroup ?? hoveredEventGroup)?.y ?? chart.topPanelBottom) - 20) / chart.height * 100, 78)}%`,
             }}
             onClick={event => event.stopPropagation()}
+            onMouseEnter={cancelEventHoverClose}
+            onMouseLeave={scheduleEventHoverClose}
+            onFocusCapture={cancelEventHoverClose}
+            onBlurCapture={scheduleEventHoverClose}
           >
             <span>
               {(pinnedEventGroup ?? hoveredEventGroup)!.important ? 'Important · ' : ''}

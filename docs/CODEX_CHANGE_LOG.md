@@ -4,6 +4,39 @@ This file is the persistent implementation memory for changes made by Codex.
 Read it before modifying existing portal behavior, and update it after every
 completed change.
 
+## 2026-09-18 - Keep Short History event popups interactive on hover
+
+- Area:
+  - User Portal -> Dashboard -> Short History SEC-analysis event popup.
+- API/data:
+  - No API contract change. Existing
+    `GET /manual-input/sec-analysis?ticker={ticker}` data is preserved.
+- Reported problem and root cause:
+  - The event popup disappeared while the pointer moved from the chart icon to
+    the popup, preventing users from selecting or opening its filing links.
+  - Chart mouse movement cleared the hovered event immediately as soon as the
+    pointer left the icon's SVG hit area. The popup is a separate HTML overlay,
+    so it could not receive the pointer before being unmounted.
+- Intended behavior and invariants:
+  - Add a short close grace period when leaving an event icon or the chart.
+  - Cancel the pending close when the pointer or keyboard focus enters the
+    popup, keeping all details and links interactive.
+  - Close the unpinned popup after the pointer leaves both the icon and popup.
+  - Preserve click-to-pin, outside-click dismissal, keyboard focus, grouped
+    records, important-event colors, and normal chart-series hover behavior.
+- Files changed:
+  - `app/monitor/[ticker]/dashboard/DashboardChart.tsx`
+  - `docs/CODEX_CHANGE_LOG.md`
+- Verification:
+  - Browser regression hovered the event icon, moved onto the popup, waited
+    beyond the close grace period, and confirmed the popup and filing link
+    remained visible and interactive.
+  - Moving outside both the chart icon and popup then dismissed the unpinned
+    popup as expected.
+  - TypeScript type-check, production build, and whitespace validation passed.
+- Remaining backend dependency / limitation:
+  - None. This is a frontend interaction correction.
+
 ## 2026-09-18 - Accept the SEC-analysis API's top-level record array
 
 - Area:
