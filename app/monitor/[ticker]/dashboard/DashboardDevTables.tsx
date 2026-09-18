@@ -14,7 +14,7 @@ type DashboardDevTablesProps = {
   ticker: string;
   marketCurrent: Record<string, unknown> | null;
   marketHistory: Record<string, unknown> | null;
-  secFilingsHistory: Record<string, unknown> | null;
+  secAnalysis: Record<string, unknown> | null;
 };
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -90,7 +90,7 @@ export function DashboardDevTables({
   ticker,
   marketCurrent,
   marketHistory,
-  secFilingsHistory,
+  secAnalysis,
 }: DashboardDevTablesProps) {
   const apiTables: ApiTable[] = [
     {
@@ -106,10 +106,10 @@ export function DashboardDevTables({
       payload: marketHistory,
     },
     {
-      id: 'sec-filings',
-      title: 'SEC Filings',
-      endpoint: `GET /manual-input/sec-filings?ticker=${encodeURIComponent(ticker)}`,
-      payload: secFilingsHistory,
+      id: 'sec-analysis',
+      title: 'SEC Analysis',
+      endpoint: `GET /manual-input/sec-analysis?ticker=${encodeURIComponent(ticker)}`,
+      payload: secAnalysis,
     },
   ];
   const tabs = apiTables.map(table => ({

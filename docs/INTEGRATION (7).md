@@ -897,7 +897,7 @@ Content-Type: application/json
 
 Query the historical data initialization status for a target stock ticker. Restricted to users with `OPERATOR` or `ADMIN` roles.
 
-The API inspects the presence and age of the S3 lock guard (`.in_progress_historical_init/{ticker}`) in S3 bucket `data-sync-platform-centralized-v2`. If an active lock exists (age <= 15 minutes / 900 seconds), returns status `"IN_PROGRESS"` along with `lock_age_seconds`. If no lock file exists or the lock age exceeds 15 minutes (stale lock), returns status `"AVAILABLE"`.
+The API inspects the presence and age of the S3 lock guard (`.in_progress_historical_init/{ticker}`) in S3 bucket `data-sync-platform-centralized-v2`. If an active lock exists (age <= 15 minutes / 900 seconds), returns status `"IN_PROGRESS"` along with `lock_age_seconds`. If no lock file exists or the lock age exceeds 15 minutes (stale lock), the expired lock file is automatically deleted from S3 and the API returns status `"AVAILABLE"`.
 
 ```
 GET /tickers/historical-init/status?ticker=AAPL
@@ -1792,6 +1792,7 @@ The API manages **11 categories**, grouped into two types:
 | `institutional-owner` | Record-Array | No | Items inside `records`: `id` (string), `institutionalOwnerSecurityName` (string) |
 | `management-holdings` | Record-Array | No | Items inside `records`: `id` (string), `holderName` (string), `shares` (int), `percentOfShares` (float), etc. |
 | `sec-filings` | Record-Array | No | Items inside `records`: `id` (string), `companyName` (string), `formType` (string), `filingDate` (string), etc. |
+| `sec-analysis` | Record-Array | No | Items inside `records`: `id` (string), `datetime` (string), `event_title` (string), `event_category` (string), `form_type` (string), `sec_filing_url` (string), `is_key_summary_event` (boolean) |
 
 ### Data Structures & Payload Examples
 
@@ -2093,6 +2094,23 @@ The API manages **11 categories**, grouped into two types:
 * **Input Payload (PUT - Update):** Same as POST + `id`.
 * **Output Payload (GET Item / POST / PUT):** Same as input + audit fields (`id`, `createdBy`, `createdAt`, `updatedBy`, `updatedAt`).
 
+#### 12. `sec-analysis`
+* **S3 Storage Key**: `manual-input/sec-analysis/{ticker}/sec-analysis.json`
+* **HTTP Methods:** `GET`, `POST`, `PUT`, `DELETE`
+* **Input Payload (POST - Create):**
+  ```json
+  {
+    "datetime": "2026-06-12 14:30:00",
+    "event_title": "Annual Report",
+    "event_category": "Filing",
+    "form_type": "10-K",
+    "sec_filing_url": "https://www.sec.gov/Archives/edgar/data/1234567/000121390025001234/form10k.htm",
+    "is_key_summary_event": true
+  }
+  ```
+* **Input Payload (PUT - Update):** Same as POST + `id`.
+* **Output Payload (GET Item / POST / PUT):** Same as input + audit fields (`id`, `createdBy`, `createdAt`, `updatedBy`, `updatedAt`). If `id` is omitted during creation or import, it is auto-generated with sequential prefix `seca-001`.
+
 ### Access Control & Rules
 * **Cognito Authorization:** All requests (except OPTIONS preflights) must carry the `Authorization` header with a valid Cognito ID Token.
 * **Ticker Permissions:** For standard `USER`s, they can only access tickers associated with their profile. Any request for an unauthorized ticker returns `403 Access Denied`. Users with the `OPERATOR` or `ADMIN` roles can access any ticker.
@@ -2380,7 +2398,7 @@ Content-Type: text/csv
 
 **Parameters**:
 * `ticker` (**Required** / Query Parameter or Form Field): The stock ticker symbol (e.g. `CURR`).
-* `category` (Optional / Query Parameter or Form Field): Target category. Must be one of: `utilization`, `issued-share`, `manual-availability`, `margins`, `sec-filings`, `institutional-owner`, `short-score`, `internal-float-inputs`, `internal-float-inputs-ticker`, `internal-float-inputs-user`, `management-holdings`, `profile`, `manual-security-ownership`. If omitted, the category is inferred automatically from the uploaded filename (e.g. `utilization.csv` -> `utilization`, `internal-float-inputs-ticker.csv` -> `internal-float-inputs-ticker`, `internal-float-inputs-user.csv` -> `internal-float-inputs-user`, `profile.csv` -> `profile`, `manual-security-ownership.csv` -> `manual-security-ownership`).
+* `category` (Optional / Query Parameter or Form Field): Target category. Must be one of: `utilization`, `issued-share`, `manual-availability`, `margins`, `sec-filings`, `sec-analysis`, `institutional-owner`, `short-score`, `internal-float-inputs`, `internal-float-inputs-ticker`, `internal-float-inputs-user`, `management-holdings`, `profile`, `manual-security-ownership`. If omitted, the category is inferred automatically from the uploaded filename (e.g. `utilization.csv` -> `utilization`, `internal-float-inputs-ticker.csv` -> `internal-float-inputs-ticker`, `internal-float-inputs-user.csv` -> `internal-float-inputs-user`, `profile.csv` -> `profile`, `manual-security-ownership.csv` -> `manual-security-ownership`, `sec-analysis.csv` -> `sec-analysis`).
 * `file` (**Required** / Form Field): The multipart CSV file containing the data.
 
 **Existing Data Handling**:
@@ -2400,8 +2418,8 @@ Content-Type: text/csv
   - `internal-float-inputs-ticker`: Stores ticker-level float attributes (`tokenizedShares`, `collateralizedShares`) at `manual-input/internal-float-inputs-ticker/{ticker}/internal-float-inputs-ticker.json`.
   - `internal-float-inputs-user`: Stores user-level float attributes (`managementStrategicHoldings`, `privateFriendlyHolders`) at `manual-input/internal-float-inputs-user/{ticker}/{user_sub}/internal-float-inputs-user.json`.
   - `internal-float-inputs`: Combined import interface. Rows are routed based on CSV section names (`managementStrategicHoldings` / `privateFriendlyHolders` -> user file; `tokenizedShares` / `collateralizedShares` -> ticker file). Existing records in target files are updated and a fresh `auditLog` is written.
-- **Record-Array Categories** (`sec-filings`, `institutional-owner`, `management-holdings`, `hotkeys`):
-  - These categories store multiple records under a `"records"` array in a single JSON file (e.g. `manual-input/sec-filings/{ticker}/sec-filings.json`).
+- **Record-Array Categories** (`sec-filings`, `sec-analysis`, `institutional-owner`, `management-holdings`, `hotkeys`):
+  - These categories store multiple records under a `"records"` array in a single JSON file (e.g. `manual-input/sec-filings/{ticker}/sec-filings.json`, `manual-input/sec-analysis/{ticker}/sec-analysis.json`).
   - The API completely replaces this JSON file. All existing items under the `"records"` array are discarded and replaced by the rows parsed from the CSV.
 
 **Downstream Triggers**:
@@ -2929,6 +2947,7 @@ For `manual-input` and `kwatch` exports, CSV column headers strictly align with 
 | `manual-input` | `manual-availability` | `tradeDate,availableSharesIbkr,availableSharesFutu` |
 | `manual-input` | `utilization` | `tradeDate,utilizationPercent` |
 | `manual-input` | `sec-filings` | `tradeDate,id,recordTicker,companyName,formType,formDescription,filingDate,reportingDate,act,filmNumber,fileNumber,accessionNumber,filingsUrl,notes` |
+| `manual-input` | `sec-analysis` | `datetime,id,event_title,event_category,form_type,sec_filing_url,is_key_summary_event` |
 | `manual-input` | `margins` | `tradeDate,initialMarginIbkr,initialMarginFutu,maintenanceMarginIbkr,maintenanceMarginFutu,averageDurationDays,valueFormat,displayFormat` |
 | `manual-input` | `manual-security-ownership` | `fileDate,effectiveDate,source,investor,optionType,type,avgPriceEst,shares,sharesPct,reportedValue,valueChangePct,portAlloc,positionStatus` |
 | `kwatch` | `reddit` | `platform,query,datetime,link,author,content,sentiment` |
@@ -3022,6 +3041,8 @@ The backend is configured to allow cross-origin requests from specific domains.
 - `https://ssma-portal.vercel.app`
 - `https://ssma-livid.vercel.app`
 - `http://localhost:3000`
+- `https://ssma.currenc.capital`
+- `https://portal.currenc.capital`
 
 **Allowed headers:**
 ```

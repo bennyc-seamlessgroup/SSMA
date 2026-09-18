@@ -37,6 +37,9 @@ type CompanyEvent = {
   type: string;
   title: string;
   summary: string;
+  category: string;
+  formType: string;
+  important: boolean;
   source?: string;
   url?: string;
 };
@@ -46,6 +49,7 @@ type EventGroup = {
   date: string;
   type: string;
   events: CompanyEvent[];
+  important: boolean;
   x?: number;
   y?: number;
 };
@@ -328,20 +332,22 @@ export function DashboardChart({
   const visibleEventGroups = useMemo(() => {
     const groups = new Map<string, EventGroup>();
     visibleEvents.forEach(event => {
-      const key = `${event.date}:${event.type}`;
+      const key = event.date;
       const group = groups.get(key);
       if (group) {
         group.events.push(event);
+        group.important ||= event.important;
       } else {
         groups.set(key, {
           id: key,
           date: event.date,
           type: event.type,
           events: [event],
+          important: event.important,
         });
       }
     });
-    return Array.from(groups.values()).sort((a, b) => a.date.localeCompare(b.date) || a.type.localeCompare(b.type));
+    return Array.from(groups.values()).sort((a, b) => a.date.localeCompare(b.date));
   }, [visibleEvents]);
 
   const availableMetrics = useMemo(() => seriesOrder.filter(key => series.includes(key)), [series]);
@@ -466,6 +472,15 @@ export function DashboardChart({
   const setHoverPosition = (event: MouseEvent<SVGSVGElement>) => {
     const rect = event.currentTarget.getBoundingClientRect();
     const x = ((event.clientX - rect.left) / rect.width) * chart.width;
+    const y = ((event.clientY - rect.top) / rect.height) * chart.height;
+    const eventMarker = chart.eventMarkers.find(marker => (
+      Math.abs(marker.x - x) <= 18 && Math.abs(marker.y - y) <= 18
+    ));
+    setHoveredEventGroup(eventMarker?.eventGroup ?? null);
+    if (eventMarker) {
+      setHoverIndex(null);
+      return;
+    }
     const closestIndex = data.reduce((closest, point, index) => {
       const pointTime = dateMs(point.date);
       const firstTime = dateMs(data[0]?.date ?? '');
@@ -617,14 +632,11 @@ export function DashboardChart({
 
           {chart.eventMarkers.map(marker => (
             <g
-              className="dashboard-event-marker"
+              className={`dashboard-event-marker${marker.eventGroup.important ? ' is-important' : ''}`}
               key={marker.eventGroup.id}
               role="button"
               tabIndex={0}
-              aria-label={`${marker.eventGroup.type}: ${marker.eventGroup.events.length} event${marker.eventGroup.events.length === 1 ? '' : 's'}`}
-              onMouseEnter={() => setHoveredEventGroup(marker.eventGroup)}
-              onMouseLeave={() => setHoveredEventGroup(null)}
-              onMouseMove={event => event.stopPropagation()}
+              aria-label={`${marker.eventGroup.important ? 'Important ' : ''}${marker.eventGroup.type}: ${marker.eventGroup.events.length} event${marker.eventGroup.events.length === 1 ? '' : 's'} on ${formatFullDate(marker.eventGroup.date)}`}
               onClick={event => {
                 event.stopPropagation();
                 setPinnedEventGroup(current => current?.id === marker.eventGroup.id ? null : marker.eventGroup);
@@ -632,7 +644,14 @@ export function DashboardChart({
               onFocus={() => setHoveredEventGroup(marker.eventGroup)}
               onBlur={() => setHoveredEventGroup(null)}
             >
-              <rect className="dashboard-event-hitbox" x={marker.x - 16} y={marker.y - 16} width="32" height="32" rx="8" />
+              <rect
+                className="dashboard-event-hitbox"
+                x={marker.x - 16}
+                y={marker.y - 16}
+                width="32"
+                height="32"
+                rx="8"
+              />
               <line x1={marker.x} x2={marker.x} y1={chart.topPanelTop} y2={chart.bottomPanelBottom} />
               {marker.eventGroup.type === 'SEC' ? (
                 <>
@@ -735,18 +754,26 @@ export function DashboardChart({
             className={`dashboard-event-tooltip${pinnedEventGroup ? ' is-pinned' : ''}`}
             style={{
               left: `${Math.min(Math.max(((pinnedEventGroup ?? hoveredEventGroup)?.x ?? chart.left) / chart.width * 100, 12), 82)}%`,
-              top: `${Math.min((((pinnedEventGroup ?? hoveredEventGroup)?.y ?? chart.topPanelBottom) + 18) / chart.height * 100, 78)}%`,
+              top: `${Math.min((((pinnedEventGroup ?? hoveredEventGroup)?.y ?? chart.topPanelBottom) - 20) / chart.height * 100, 78)}%`,
             }}
             onClick={event => event.stopPropagation()}
           >
-            <span>{(pinnedEventGroup ?? hoveredEventGroup)!.type} · {formatFullDate((pinnedEventGroup ?? hoveredEventGroup)!.date)} · {(pinnedEventGroup ?? hoveredEventGroup)!.events.length} event{(pinnedEventGroup ?? hoveredEventGroup)!.events.length === 1 ? '' : 's'}</span>
+            <span>
+              {(pinnedEventGroup ?? hoveredEventGroup)!.important ? 'Important · ' : ''}
+              {(pinnedEventGroup ?? hoveredEventGroup)!.type} · {formatFullDate((pinnedEventGroup ?? hoveredEventGroup)!.date)} · {(pinnedEventGroup ?? hoveredEventGroup)!.events.length} event{(pinnedEventGroup ?? hoveredEventGroup)!.events.length === 1 ? '' : 's'}
+            </span>
             <div className="dashboard-event-list">
               {(pinnedEventGroup ?? hoveredEventGroup)!.events.map(event => (
-                <article key={event.id}>
+                <article className={event.important ? 'is-important' : ''} key={event.id}>
+                  {event.important ? <b className="dashboard-event-important">Important</b> : null}
                   <strong>{event.title}</strong>
+                  <dl>
+                    <div><dt>Category</dt><dd>{event.category}</dd></div>
+                    <div><dt>Form</dt><dd>{event.formType}</dd></div>
+                  </dl>
                   {event.url && (
                     <a href={event.url} target="_blank" rel="noreferrer">
-                      Open filing
+                      {event.url}
                     </a>
                   )}
                 </article>

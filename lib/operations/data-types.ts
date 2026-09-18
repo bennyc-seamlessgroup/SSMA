@@ -13,6 +13,25 @@ export type OperationsSecFilingRecord = {
   accessionNumber: string; filingsUrl: string; notes: string; createdAt: string; createdBy: string;
 };
 
+export type OperationsSecAnalysisRecord = {
+  id?: string;
+  datetime?: string;
+  event_title?: string;
+  event_category?: string;
+  form_type?: string;
+  sec_filing_url?: string;
+  is_key_summary_event?: boolean | string | number;
+  eventTitle?: string;
+  eventCategory?: string;
+  formType?: string;
+  secFilingUrl?: string;
+  isKeySummaryEvent?: boolean | string | number;
+  createdAt?: string;
+  createdBy?: string;
+  updatedAt?: string;
+  updatedBy?: string;
+};
+
 export type ManagementHoldingAction = 'add' | 'deduct';
 export type OwnershipChangeType = 'increase' | 'decrease' | 'no-change';
 export type ManagementHoldingInputRecord = {

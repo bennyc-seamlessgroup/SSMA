@@ -27,7 +27,11 @@ type CompanyEvent = {
   type: string;
   title: string;
   summary: string;
+  category: string;
+  formType: string;
+  important: boolean;
   source?: string;
+  url?: string;
 };
 
 export function DashboardClient({
@@ -88,9 +92,10 @@ export function DashboardClient({
           { metric: 'tradeVolume', side: 'right' },
         ]}
         data={data}
-        events={[]}
+        events={events}
         sourceEndpoints={[
           { endpoint: 'GET /market-data/history?category=market-history', label: 'Borrow & shortable-share history' },
+          { endpoint: 'GET /manual-input/sec-analysis', label: 'SEC event analysis' },
         ]}
         period={marketPeriod}
         onPeriodChange={setMarketPeriod}
@@ -99,10 +104,9 @@ export function DashboardClient({
         title="Cross-Metric Trend Overview"
         series={['price', 'feeRate', 'tradeVolume', 'shortableShares', 'utilization', 'averageDuration', 'daysToCover']}
         data={data}
-        events={events}
+        events={[]}
         sourceEndpoints={[
           { endpoint: 'GET /market-data/history?category=market-history', label: 'Consolidated market history' },
-          { endpoint: 'GET /manual-input/sec-filings', label: 'Chart events' },
         ]}
         period={overviewPeriod}
         onPeriodChange={setOverviewPeriod}

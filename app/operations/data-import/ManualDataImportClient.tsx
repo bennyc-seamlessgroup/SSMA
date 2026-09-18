@@ -20,6 +20,7 @@ type ImportCategory =
   | 'manual-security-ownership'
   | 'management-holdings'
   | 'sec-filings'
+  | 'sec-analysis'
   | 'internal-float-inputs-ticker'
   | 'internal-float-inputs-user';
 
@@ -110,6 +111,12 @@ const categories: CategoryDefinition[] = [
     sample: ['2026-07-17', 'filing-001', 'CURR', 'CURRENC Group Inc.', '10-Q', 'Quarterly Report', '2026-07-17', '2026-06-30', '', '', '', '0001213900-26-001234', 'https://www.sec.gov/', ''],
   },
   {
+    key: 'sec-analysis', label: 'SEC analysis', description: 'Dated SEC filing events displayed on the dashboard Short History chart.',
+    replacement: 'The complete SEC analysis record list is replaced.',
+    columns: ['datetime', 'id', 'event_title', 'event_category', 'form_type', 'sec_filing_url', 'is_key_summary_event'],
+    sample: ['2026-06-12 14:30:00', 'seca-001', 'Annual Report', 'Filing', '10-K', 'https://www.sec.gov/Archives/edgar/data/1234567/000121390025001234/form10k.htm', true],
+  },
+  {
     key: 'internal-float-inputs-ticker', label: 'Internal float ticker inputs', description: 'Ticker-wide tokenized and collateralized share records.',
     replacement: 'Ticker-level tokenized and collateralized inputs are replaced.',
     columns: ['section', 'id', 'chain', 'provider', 'protocol', 'shares', 'ratio', 'includeInDeduction', 'notes'],
@@ -151,6 +158,7 @@ function consolidatedOutputEndpoints(category: ImportCategory, ticker: string) {
   if (category === 'internal-float-inputs-user') {
     return [`/market-data/current?ticker=${tickerParam}&category=internal-float-current-user`];
   }
+  if (category === 'sec-analysis') return [];
   return [`/market-data/history?ticker=${tickerParam}&category=sec-filings-history`];
 }
 
@@ -499,6 +507,17 @@ export function ManualDataImportClient() {
         baseline: baseline.checks,
         state: 'triggered; awaiting consolidated output',
       });
+      if (!verificationEndpoints.length) {
+        setConsolidationResult({
+          request: requestBody,
+          response: result,
+          baseline: [],
+          state: 'accepted; SEC analysis is read directly from Manual Input V2',
+        });
+        setStatus('idle');
+        setMessage(`Consolidation was accepted for ${ticker}. SEC analysis events are read directly from the saved manual-input dataset, so no separate consolidated output is available to poll.`);
+        return;
+      }
       const rebuildFromDate = result.detail?.rebuild_from_date;
       const backendUsedLaterCutoff = Boolean(
         requestedRebuildFromDate

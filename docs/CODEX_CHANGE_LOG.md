@@ -4,6 +4,80 @@ This file is the persistent implementation memory for changes made by Codex.
 Read it before modifying existing portal behavior, and update it after every
 completed change.
 
+## 2026-09-18 - Import SEC analysis and show grouped events on Short History
+
+- Area:
+  - Operations Portal -> Data Import -> SEC analysis.
+  - User Portal -> Dashboard -> Short History chart.
+  - User Portal -> Dashboard -> Development Data.
+- API/data:
+  - `POST /manual-input/import?ticker={ticker}&category=sec-analysis`.
+  - `GET /manual-input/sec-analysis?ticker={ticker}`.
+  - Existing `POST /manual-input/consolidate?ticker={ticker}` remains
+    available after a verified import.
+- Reported problem and root cause:
+  - The updated backend contract added the `sec-analysis` Manual Input V2
+    category, but Data Import did not offer it and the dashboard still sourced
+    chart events from the older `sec-filings` dataset.
+  - SEC filing markers were attached to the cross-metric chart rather than the
+    requested Short History chart and could not represent event category,
+    form type, importance, or multiple analyses on one date.
+- Intended behavior and invariants:
+  - Import the exact SEC-analysis CSV schema:
+    `datetime,id,event_title,event_category,form_type,sec_filing_url,is_key_summary_event`.
+    The active Operations company supplies the target ticker, so the CSV does
+    not need its own ticker column.
+  - Treat SEC analysis as a record-array replacement: importing a CSV replaces
+    the complete SEC-analysis record list for that ticker, matching the API
+    contract and the warning shown before import.
+  - Read SEC analysis directly from Manual Input V2 on dashboard load. A
+    missing/unavailable SEC-analysis response produces no event markers but
+    does not make the rest of the dashboard unavailable.
+  - Place one SEC document icon on Short History for each event date. Group
+    every record with the same calendar date into that marker, preserving the
+    date embedded in a timestamp without a browser-time-zone shift.
+  - The marker hover/focus panel lists every event title, event category, form
+    type, and filing URL for that date. Long filing URLs wrap inside the panel;
+    large groups scroll within the chart instead of being clipped.
+  - If any record on a date has `is_key_summary_event=true`, render that date's
+    marker and important record treatment in red. Keep normal event dates blue.
+  - Move chart-event ownership from the former SEC-filings/cross-metric path
+    to the dedicated SEC-analysis/Short History path. Preserve market series,
+    period filters, chart toggles, click-to-pin and keyboard focus behavior.
+  - Keep SEC-analysis import consolidation available. Because the integration
+    contract documents no separate consolidated SEC-analysis output to poll,
+    report an accepted consolidation without waiting five minutes on an
+    unrelated output.
+- Files changed:
+  - `app/operations/data-import/ManualDataImportClient.tsx`
+  - `app/monitor/[ticker]/dashboard/DashboardBrowserPage.tsx`
+  - `app/monitor/[ticker]/dashboard/DashboardClient.tsx`
+  - `app/monitor/[ticker]/dashboard/DashboardChart.tsx`
+  - `app/monitor/[ticker]/dashboard/DashboardDevTables.tsx`
+  - `app/globals.css`
+  - `lib/operations/data-types.ts`
+  - `lib/portal-page-translations.ts`
+  - `docs/CODEX_CHANGE_LOG.md`
+- Verification:
+  - Inspected the supplied `sec-analysis.csv`: 38 data rows and all seven
+    contract headers were present.
+  - A browser test with two same-date records produced one grouped marker. One
+    important record made the marker red, and hover displayed both titles,
+    categories, form types, and URLs.
+  - The hover panel remained fully within the chart and mouse hover, keyboard
+    focus, click-to-pin, and grouped count affordances remain supported.
+  - TypeScript type-check passed after the production build regenerated Next.js
+    route types.
+  - Production build and `git diff --check` passed.
+- Remaining backend dependency / limitation:
+  - CSV import completely replaces the ticker's existing SEC-analysis records,
+    as documented by the backend. Operations users must upload the full desired
+    record set rather than a partial append file.
+  - The contract does not expose a dedicated consolidated SEC-analysis output
+    or per-run completion endpoint. The dashboard therefore reads the raw
+    Manual Input V2 dataset and consolidation acceptance cannot be polled
+    beyond the POST response.
+
 ## 2026-09-16 - Restore Dev Mode controls in the mobile User Portal sidebar
 
 - Area:
