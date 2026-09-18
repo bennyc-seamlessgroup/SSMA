@@ -121,19 +121,10 @@ type MarketHistoryFile = {
   _field_provenance?: Record<string, unknown>;
 };
 
-type SecAnalysisFile = {
-  schemaVersion?: number;
-  ticker?: string;
-  generatedAt?: string;
-  records?: OperationsSecAnalysisRecord[];
-  sourceWatermarks?: Record<string, unknown>;
-  _field_provenance?: Record<string, unknown>;
-};
-
 type DashboardApiData = {
   currentFile: MarketCurrentFile | null;
   historyFile: MarketHistoryFile | null;
-  secAnalysisFile: SecAnalysisFile | null;
+  secAnalysisPayload: unknown;
   trendData: TrendPoint[];
   utilizationInputs: DashboardUtilizationRecord[];
   marginInputs: DashboardMarginRecord[];
@@ -348,7 +339,7 @@ function dashboardCurrentMetrics(currentFile: MarketCurrentFile | null): Dashboa
 function marketHistoryToDashboardData(
   currentFile: MarketCurrentFile | null,
   historyFile: MarketHistoryFile | null,
-  secAnalysisFile: SecAnalysisFile | null,
+  secAnalysisPayload: unknown,
 ): DashboardApiData {
   const historyRecords = Array.isArray(historyFile?.records) ? historyFile.records : [];
   const publishedRecord = latestCompleteMarketPublicationRecordFromHistory(historyRecords);
@@ -356,7 +347,7 @@ function marketHistoryToDashboardData(
   const currentMetrics = dashboardCurrentMetrics(currentFile);
   const currentUtilization = currentMetrics.utilization;
   const currentAverageDuration = currentMetrics.averageDurationDays;
-  const secAnalysisRows = asApiArray<OperationsSecAnalysisRecord>(secAnalysisFile);
+  const secAnalysisRows = asApiArray<OperationsSecAnalysisRecord>(secAnalysisPayload);
   const marketTrendData = historyRecords
     .map((row): TrendPoint | null => {
       const date = plainText(row.tradeDate ?? row.date);
@@ -502,7 +493,7 @@ function marketHistoryToDashboardData(
   return {
     currentFile,
     historyFile,
-    secAnalysisFile,
+    secAnalysisPayload,
     trendData,
     utilizationInputs,
     marginInputs,
@@ -535,11 +526,10 @@ export function DashboardBrowserPage({ ticker }: { ticker: string }) {
         ]);
         const currentFile = categoryPayload<MarketCurrentFile>(currentResponse, 'market-current');
         const historyFile = categoryPayload<MarketHistoryFile>(historyResponse, 'market-history');
-        const secAnalysisFile = categoryPayload<SecAnalysisFile>(secAnalysisResponse, 'sec-analysis');
         if (!cancelled) setApiData(marketHistoryToDashboardData(
           currentFile,
           historyFile,
-          secAnalysisFile,
+          secAnalysisResponse,
         ));
       } catch (err) {
         if (!cancelled) {
@@ -589,7 +579,7 @@ export function DashboardBrowserPage({ ticker }: { ticker: string }) {
         ticker={normalizedTicker}
         marketCurrent={apiData.currentFile as Record<string, unknown> | null}
         marketHistory={apiData.historyFile as Record<string, unknown> | null}
-        secAnalysis={apiData.secAnalysisFile as Record<string, unknown> | null}
+        secAnalysis={apiData.secAnalysisPayload}
       />
     </div>
   );

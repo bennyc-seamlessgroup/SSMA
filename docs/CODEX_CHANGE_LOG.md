@@ -4,6 +4,54 @@ This file is the persistent implementation memory for changes made by Codex.
 Read it before modifying existing portal behavior, and update it after every
 completed change.
 
+## 2026-09-18 - Accept the SEC-analysis API's top-level record array
+
+- Area:
+  - User Portal -> Dashboard -> Short History chart.
+  - User Portal -> Dashboard -> Development Data -> SEC Analysis.
+  - Operations Portal -> Data Import -> Development Data.
+- API/data:
+  - `GET /manual-input/sec-analysis?ticker={ticker}`.
+  - `POST /manual-input/import?ticker={ticker}&category=sec-analysis`.
+- Reported problem and root cause:
+  - The imported SEC-analysis rows were visible in the Operations raw API
+    preview, but the Dashboard showed neither event markers nor SEC Analysis
+    Development Data.
+  - The live Manual Input V2 response is a top-level JSON record array. The
+    Dashboard passed it through an object-only category normalizer, which
+    rejected arrays and returned `null` before event parsing or Development
+    Data rendering.
+  - The Operations Development Data screenshot was displaying the separate
+    POST-import tab. That response is session-local and is intentionally empty
+    after a reload; the persisted records are available in the GET
+    `manual-input/sec-analysis` tab.
+- Intended behavior and invariants:
+  - Preserve the raw SEC-analysis response and pass it directly to the
+    Dashboard event parser and Development Data table.
+  - Continue accepting all documented/common response wrappers supported by
+    `asApiArray`: a top-level array, `{ records: [...] }`, `{ data: [...] }`,
+    or `{ data: { records: [...] } }`.
+  - Keep SEC-analysis failures non-blocking so an unavailable optional event
+    feed does not make market Dashboard data unavailable.
+  - Preserve the existing one-marker-per-date grouping, important-event
+    treatment, hover details, period filtering, and raw Operations preview.
+  - Keep the POST import result session-local; do not misrepresent saved GET
+    records as a previous POST response.
+- Files changed:
+  - `app/monitor/[ticker]/dashboard/DashboardBrowserPage.tsx`
+  - `app/monitor/[ticker]/dashboard/DashboardDevTables.tsx`
+  - `docs/CODEX_CHANGE_LOG.md`
+- Verification:
+  - A browser regression supplied `GET /manual-input/sec-analysis` as a
+    top-level two-record array. The Dashboard rendered one grouped marker for
+    the shared date, retained the red important-event treatment, and the SEC
+    Analysis Development Data tab showed both records and a `2 records` count.
+  - TypeScript type-check and whitespace validation passed.
+  - Production build passed.
+- Remaining backend dependency / limitation:
+  - Dashboard markers are displayed only when their dates fall inside the
+    selected Short History period and the market-history date range.
+
 ## 2026-09-18 - Import SEC analysis and show grouped events on Short History
 
 - Area:

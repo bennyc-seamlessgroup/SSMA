@@ -14,7 +14,7 @@ type DashboardDevTablesProps = {
   ticker: string;
   marketCurrent: Record<string, unknown> | null;
   marketHistory: Record<string, unknown> | null;
-  secAnalysis: Record<string, unknown> | null;
+  secAnalysis: unknown;
 };
 
 function isRecord(value: unknown): value is Record<string, unknown> {
