@@ -5,6 +5,11 @@ import { OperationsDevelopmentData } from '@/components/OperationsDevelopmentDat
 import { authenticatedFetch, invalidateAuthenticatedFetchCache } from '@/lib/auth-client';
 import { getOperationsTicker, setOperationsTicker } from '@/lib/operations/ticker-client';
 import {
+  socialCsvDateTimeFormat,
+  validateSocialCsvFile,
+  type SocialCsvValidationIssue,
+} from '@/lib/social-csv-validation';
+import {
   getSocialDataPage,
   getSocialImportProgress,
   uploadSocialCsv,
@@ -70,6 +75,23 @@ function formatDateTime(value: string) {
   }).format(date);
 }
 
+function formatValidationIssues(issues: SocialCsvValidationIssue[]) {
+  const visibleIssues = issues.slice(0, 8).map(issue => {
+    const value = issue.value ? ` “${issue.value.slice(0, 80)}”` : '';
+    return `${issue.fileName}, row ${issue.row}${value}: ${issue.reason}`;
+  });
+  const remaining = issues.length - visibleIssues.length;
+  return `CSV validation failed. ${visibleIssues.join(' ')}${remaining > 0 ? ` Plus ${remaining} more invalid row${remaining === 1 ? '' : 's'}.` : ''} Nothing was uploaded.`;
+}
+
+async function validateFiles(files: File[]) {
+  const results = await Promise.all(files.map(validateSocialCsvFile));
+  return {
+    rowCount: results.reduce((sum, result) => sum + result.rowCount, 0),
+    issues: results.flatMap(result => result.issues),
+  };
+}
+
 function objectValue(value: unknown): Record<string, unknown> {
   return value && typeof value === 'object' && !Array.isArray(value)
     ? value as Record<string, unknown>
@@ -129,7 +151,7 @@ export function NarrativeSocialUploadClient() {
   const [, setConsolidationFeedback] = useState('');
   const [jobs, setJobs] = useState<Record<string, SocialImportJob>>({});
   const [progressPayload, setProgressPayload] = useState<unknown>();
-  const [status, setStatus] = useState<'idle' | 'loading' | 'uploading' | 'processing' | 'consolidating' | 'done' | 'error'>('loading');
+  const [status, setStatus] = useState<'idle' | 'loading' | 'validating' | 'uploading' | 'processing' | 'consolidating' | 'done' | 'error'>('loading');
   const [message, setMessage] = useState('');
   const [developmentTicker, setDevelopmentTicker] = useState('CURR');
   const finishingJobs = useRef(false);
@@ -267,7 +289,7 @@ export function NarrativeSocialUploadClient() {
   const readyCount = useMemo(() => Object.values(files).filter(Boolean).length, [files]);
   const cards = useMemo(() => platformCards(selectedTicker), [selectedTicker]);
 
-  function assignFiles(fileList: FileList | File[], forcedPlatform?: PlatformKey) {
+  async function assignFiles(fileList: FileList | File[], forcedPlatform?: PlatformKey) {
     const next: Partial<Record<PlatformKey, File>> = {};
     Array.from(fileList).forEach(file => {
       if (!file.name.toLowerCase().endsWith('.csv')) return;
@@ -275,23 +297,49 @@ export function NarrativeSocialUploadClient() {
       if (platform && !cards.find(card => card.key === platform)?.uploadable) return;
       if (platform) next[platform] = file;
     });
-    setFiles(current => ({ ...current, ...next }));
     if (!Object.keys(next).length) {
       setStatus('error');
       setMessage('No supported Reddit, X, Facebook, LinkedIn, or Stocktwits CSV was detected.');
-    } else {
-      setConsolidationReady(false);
-      setConsolidationFeedback('Upload the selected CSV and wait for processing to finish.');
-      setConsolidationResult(undefined);
-      setStatus('idle');
-      setMessage('');
+      return;
     }
+
+    setStatus('validating');
+    setMessage('Checking CSV date formats...');
+    const validation = await validateFiles(Object.values(next));
+    if (validation.issues.length) {
+      const rejectedPlatforms = new Set(Object.keys(next) as PlatformKey[]);
+      setFiles(current => Object.fromEntries(
+        (Object.entries(current) as Array<[PlatformKey, File | undefined]>)
+          .filter(([platform]) => !rejectedPlatforms.has(platform)),
+      ));
+      setStatus('error');
+      setMessage(formatValidationIssues(validation.issues));
+      return;
+    }
+
+    setFiles(current => ({ ...current, ...next }));
+    setConsolidationReady(false);
+    setConsolidationFeedback('Upload the selected CSV and wait for processing to finish.');
+    setConsolidationResult(undefined);
+    setStatus('idle');
+    setMessage(`Validated ${validation.rowCount.toLocaleString('en-US')} row${validation.rowCount === 1 ? '' : 's'}. Datetimes use ${socialCsvDateTimeFormat()}. Ready to upload.`);
   }
 
   async function uploadFiles() {
     if (!readyCount) {
       setStatus('error');
       setMessage('Attach at least one CSV before uploading.');
+      return;
+    }
+
+    const uploads = (Object.entries(files) as Array<[PlatformKey, File | undefined]>)
+      .filter((entry): entry is [PlatformKey, File] => Boolean(entry[1]));
+    setStatus('validating');
+    setMessage('Checking CSV date formats before upload...');
+    const validation = await validateFiles(uploads.map(([, file]) => file));
+    if (validation.issues.length) {
+      setStatus('error');
+      setMessage(formatValidationIssues(validation.issues));
       return;
     }
 
@@ -303,8 +351,6 @@ export function NarrativeSocialUploadClient() {
     setConsolidationResult(undefined);
 
     try {
-      const uploads = (Object.entries(files) as Array<[PlatformKey, File | undefined]>)
-        .filter((entry): entry is [PlatformKey, File] => Boolean(entry[1]));
       const responses = await Promise.all(uploads.map(async ([platform, file]) => ({
         platform,
         response: await uploadSocialCsv(selectedTicker, file),
@@ -452,7 +498,7 @@ export function NarrativeSocialUploadClient() {
         onDragOver={event => event.preventDefault()}
         onDrop={event => {
           event.preventDefault();
-          assignFiles(event.dataTransfer.files);
+          void assignFiles(event.dataTransfer.files);
         }}
       >
         <div>
@@ -461,8 +507,8 @@ export function NarrativeSocialUploadClient() {
           <p>Upload Reddit, X, Facebook, LinkedIn, or Stocktwits CSV files. Each upload replaces the existing dataset for the detected platform only.</p>
         </div>
         <div className="ops-import-actions">
-          <button className="ops-primary-button" type="button" disabled={status === 'uploading' || status === 'processing' || status === 'consolidating'} aria-busy={status === 'uploading' || status === 'processing'} onClick={uploadFiles}>
-            {status === 'uploading' ? 'Uploading...' : status === 'processing' ? 'Processing...' : `Upload ${readyCount || ''}`.trim()}
+          <button className="ops-primary-button" type="button" disabled={status === 'validating' || status === 'uploading' || status === 'processing' || status === 'consolidating'} aria-busy={status === 'validating' || status === 'uploading' || status === 'processing'} onClick={uploadFiles}>
+            {status === 'validating' ? 'Validating...' : status === 'uploading' ? 'Uploading...' : status === 'processing' ? 'Processing...' : `Upload ${readyCount || ''}`.trim()}
           </button>
           <div className="ops-social-consolidation-control">
             <button
@@ -523,7 +569,7 @@ export function NarrativeSocialUploadClient() {
                 accept=".csv,text/csv"
                 hidden
                 onChange={event => {
-                  if (!disabled && event.target.files) assignFiles(event.target.files, platform.key);
+                  if (!disabled && event.target.files) void assignFiles(event.target.files, platform.key);
                   event.currentTarget.value = '';
                 }}
               />
@@ -537,7 +583,7 @@ export function NarrativeSocialUploadClient() {
                 onDragOver={event => event.preventDefault()}
                 onDrop={event => {
                   event.preventDefault();
-                  if (!disabled) assignFiles(event.dataTransfer.files, platform.key);
+                  if (!disabled) void assignFiles(event.dataTransfer.files, platform.key);
                 }}
               >
                 <span>{platform.label}</span>

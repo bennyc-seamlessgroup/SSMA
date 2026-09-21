@@ -4,6 +4,52 @@ This file is the persistent implementation memory for changes made by Codex.
 Read it before modifying existing portal behavior, and update it after every
 completed change.
 
+## 2026-09-21 - Block social CSV uploads with invalid datetime formats
+
+- Area:
+  - Operations Portal -> Social Data Upload.
+- API/data:
+  - `POST /social-data?ticker={ticker}`.
+  - The backend derives `kwatch/{ticker}/{platform}/{date}/...` from each CSV
+    row's required `datetime` value.
+- Reported problem and root cause:
+  - A social record with a malformed date could be accepted into storage but
+    not returned by the portal's post-date feed queries.
+  - The frontend previously checked only the filename/platform before sending
+    the replacement CSV and left all datetime validation to the asynchronous
+    backend job.
+- Intended behavior and invariants:
+  - Parse every selected social CSV before it is attached and again immediately
+    before upload.
+  - Require a `datetime` header and a value on every non-empty data row.
+  - Accept a valid ISO-style calendar date (`YYYY-MM-DD`), a space-separated
+    date/time (`YYYY-MM-DD HH:mm:ss`), or ISO 8601 date/time such as
+    `YYYY-MM-DDTHH:mm:ssZ`, including valid offsets.
+  - Reject impossible calendar dates, invalid time/offset components, empty
+    CSVs, missing data rows, and malformed quoted CSV content.
+  - Block the complete newly selected batch when any row is invalid. Report
+    the filename, CSV row number, received value, required format, and count of
+    any additional invalid rows; never call the upload API for that selection.
+  - Preserve per-platform replacement semantics, platform filename detection,
+    background progress polling, manual consolidation, and current-data cards.
+- Files changed:
+  - `lib/social-csv-validation.ts`
+  - `app/operations/narrative-social/NarrativeSocialUploadClient.tsx`
+  - `docs/CODEX_CHANGE_LOG.md`
+- Verification:
+  - Browser regression rejected LinkedIn rows containing `09/18/2026` and the
+    impossible date `2026-02-30 10:00:00`, reported CSV rows 2 and 3 with both
+    received values, and made no upload request.
+  - Valid `2026-09-18T03:05:00Z` and `2026-09-19 11:30:00` rows were accepted,
+    displayed a successful two-row validation message, and enabled upload.
+  - A valid CSV was revalidated on button click and submitted exactly once as
+    multipart form data to the mocked social upload endpoint.
+  - TypeScript type-check, production build, and whitespace validation passed.
+- Remaining backend dependency / limitation:
+  - Backend validation remains authoritative. Frontend validation prevents
+    known malformed date formats from being submitted but cannot repair
+    already stored records.
+
 ## 2026-09-18 - Keep Short History event popups interactive on hover
 
 - Area:
