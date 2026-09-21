@@ -1361,6 +1361,7 @@ Authorization: <id_token>
 | `ownership-current` | `current/{ticker}/ownership-current.json` | Institutional ownership current snapshot |
 | `ownership-summary-current` | `current/{ticker}/ownership-summary-current.json` | Institutional ownership summary current snapshot |
 | `sentiment-current` | `current/{ticker}/sentiment-current.json` | Social sentiment analysis snapshot |
+| `rule-engine-short-score` | `current/{ticker}/rule-engine-short-score.json` | Rule engine short score current snapshot |
 
 **Response** `200 OK` — Single category (e.g. `?category=market-current`):
 Returns the raw JSON content of the S3 file for that category.
@@ -1384,7 +1385,8 @@ Returns a combined object with all category names as keys. Missing files are ret
   "market-current": null,
   "ownership-current": { "schemaVersion": 1, "ticker": "CURR", ... },
   "ownership-summary-current": { "schemaVersion": 1, "ticker": "CURR", ... },
-  "sentiment-current": { "schemaVersion": 1, "ticker": "CURR", ... }
+  "sentiment-current": { "schemaVersion": 1, "ticker": "CURR", ... },
+  "rule-engine-short-score": { "schemaVersion": 1, "ticker": "CURR", ... }
 }
 ```
 
@@ -1423,6 +1425,7 @@ Authorization: <id_token>
 | `short-volume-history` | `history/{ticker}/short-volume-history.json` | Historical short volume by exchange |
 | `exchange-volume-history` | `history/{ticker}/exchange_volume_history.json` | Historical total volume by exchange |
 | `sentiment-events` | `history/{ticker}/sentiment-events.json` | Historical social sentiment event logs |
+| `rule-engine-short-score` | `history/{ticker}/rule-engine-short-score.json` | Historical rule engine short score records |
 
 **Response** `200 OK` — Single category (e.g. `?category=market-history`):
 Returns the raw JSON content of the S3 file for that history category.
@@ -1453,7 +1456,8 @@ Returns a combined object with all history category names as keys. Missing files
   "sec-filings-history": { "schemaVersion": 1, "ticker": "CURR", "records": [...] },
   "short-volume-history": { "schemaVersion": 1, "ticker": "CURR", "records": [...] },
   "exchange-volume-history": { "schemaVersion": 1, "ticker": "CURR", "records": [...] },
-  "sentiment-events": { "schemaVersion": 1, "ticker": "CURR", "records": [...] }
+  "sentiment-events": { "schemaVersion": 1, "ticker": "CURR", "records": [...] },
+  "rule-engine-short-score": { "schemaVersion": 1, "ticker": "CURR", "records": [...] }
 }
 ```
 

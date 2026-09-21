@@ -20,6 +20,7 @@ import {
 } from '@/lib/market-data-publication';
 import { normalizeTicker } from '@/lib/ticker-data';
 import { formatCompactQuantity } from '@/lib/number-format';
+import { normalizeRuleEngineShortScore } from '@/lib/rule-engine-short-score';
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
 
 type Row = Record<string, unknown>;
@@ -949,7 +950,7 @@ function apiFtdRows(payload: ApiFile): FtdRow[] {
 export function ShortInterestBrowserPage({ ticker }: { ticker: string }) {
   const { language } = usePortalLanguage();
   const normalizedTicker = normalizeTicker(ticker);
-  const [apiData, setApiData] = useState<{ current: ApiFile; history: ApiFile; shortVolume: ApiFile; ftd: ApiFile; aiReport: ApiFile } | null>(null);
+  const [apiData, setApiData] = useState<{ current: ApiFile; history: ApiFile; shortVolume: ApiFile; ftd: ApiFile; ruleEngineShortScore: ApiFile; aiReport: ApiFile } | null>(null);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(true);
 
@@ -959,11 +960,15 @@ export function ShortInterestBrowserPage({ ticker }: { ticker: string }) {
     setError('');
 
     async function loadPageData() {
-      const [current, history, shortVolume, ftd] = await Promise.all([
+      const [current, history, shortVolume, ftd, ruleEngineShortScore] = await Promise.all([
         cachedAuthenticatedFetch<ApiFile>(`/market-data/current?ticker=${encodeURIComponent(normalizedTicker)}&category=market-current`),
         cachedAuthenticatedFetch<ApiFile>(`/market-data/history?ticker=${encodeURIComponent(normalizedTicker)}&category=market-history`),
         cachedAuthenticatedFetch<ApiFile>(`/market-data/history?ticker=${encodeURIComponent(normalizedTicker)}&category=short-volume-history`),
         cachedAuthenticatedFetch<ApiFile>(`/market-data/history?ticker=${encodeURIComponent(normalizedTicker)}&category=ftd-history`),
+        cachedAuthenticatedFetch<ApiFile>(`/market-data/current?ticker=${encodeURIComponent(normalizedTicker)}&category=rule-engine-short-score`)
+          .catch(cause => ({
+            requestError: cause instanceof Error ? cause.message : 'Unable to load the calculated short score.',
+          })),
       ]);
       const reportDate = marketCurrentSnapshotDate(
         apiCategory(current, 'market-current') as MarketCurrentSnapshot,
@@ -972,7 +977,7 @@ export function ShortInterestBrowserPage({ ticker }: { ticker: string }) {
         .catch(cause => ({
           requestError: cause instanceof Error ? cause.message : 'Unable to load AI report.',
         }));
-      if (!cancelled) setApiData({ current, history, shortVolume, ftd, aiReport });
+      if (!cancelled) setApiData({ current, history, shortVolume, ftd, ruleEngineShortScore, aiReport });
     }
 
     loadPageData()
@@ -999,7 +1004,7 @@ export function ShortInterestBrowserPage({ ticker }: { ticker: string }) {
   const currentAvailableShares = currentObservation(apiData.current, 'availableShares.value');
   const currentUtilization = currentObservation(apiData.current, 'utilization.percent');
   const currentDaysToCover = currentObservation(apiData.current, 'daysToCover.value');
-  const currentShortScore = currentObservation(apiData.current, 'scores.shortScore.value');
+  const calculatedShortScore = normalizeRuleEngineShortScore(apiData.ruleEngineShortScore);
   const dailyRows = marketHistoryRows
     .filter(row => Boolean(marketRecordDate(row)))
     .map(row => marketPublicationRecordFromHistoryForDate(marketHistoryRows, marketRecordDate(row)))
@@ -1020,7 +1025,6 @@ export function ShortInterestBrowserPage({ ticker }: { ticker: string }) {
   const borrowFeeSnapshotRows = sortedDailyRows.filter(row => optionalNumeric(record(row.borrowFeeAll).costToBorrowAll) !== null);
   const availabilitySnapshotRows = sortedDailyRows.filter(row => optionalNumeric(record(row.availability).shortAvailabilityShares) !== null);
   const utilizationSnapshotRows = sortedDailyRows.filter(row => optionalNumeric(record(row.availability).shortAvailabilityPct) !== null);
-  const shortScoreSnapshotRows = sortedDailyRows.filter(row => optionalNumeric(record(row.shortScore).score) !== null);
   const latestShortInterestRow = shortInterestSnapshotRows[0] ?? {};
   const latestDaysToCoverRow = daysToCoverSnapshotRows[0] ?? {};
   const biweeklyShortInterestTrendRows = biweeklyRows(
@@ -1047,16 +1051,12 @@ export function ShortInterestBrowserPage({ ticker }: { ticker: string }) {
   const previousAvailabilityRow = rowBeforeObservation(availabilitySnapshotRows, currentAvailableShares);
   const latestUtilizationRow = utilizationSnapshotRows[0] ?? {};
   const previousUtilizationRow = rowBeforeObservation(utilizationSnapshotRows, currentUtilization);
-  const latestShortScoreRow = shortScoreSnapshotRows[0] ?? {};
-  const previousShortScoreRow = rowBeforeObservation(shortScoreSnapshotRows, currentShortScore);
   const latestBorrowFee = record(latestBorrowFeeRow.borrowFeeAll);
   const previousBorrowFee = record(previousBorrowFeeRow.borrowFeeAll);
   const latestAvailability = record(latestAvailabilityRow.availability);
   const previousAvailability = record(previousAvailabilityRow.availability);
   const latestUtilization = record(latestUtilizationRow.availability);
   const previousUtilization = record(previousUtilizationRow.availability);
-  const latestShortScore = record(latestShortScoreRow.shortScore);
-  const previousShortScore = record(previousShortScoreRow.shortScore);
   const shortInterestShares = currentShortInterestShares?.value
     ?? numeric(latestShortInterest.shortInterestShares)
     ?? numeric(shortCurrent.shortInterestShares);
@@ -1066,19 +1066,23 @@ export function ShortInterestBrowserPage({ ticker }: { ticker: string }) {
   const borrowFee = currentBorrowFee?.value ?? numeric(latestBorrowFee.costToBorrowAll) ?? numeric(shortCurrent.costToBorrowAll);
   const sharesAvailable = currentAvailableShares?.value ?? numeric(latestAvailability.shortAvailabilityShares) ?? numeric(shortCurrent.shortAvailabilityShares);
   const utilization = currentUtilization?.value ?? numeric(latestUtilization.shortAvailabilityPct) ?? numeric(shortCurrent.shortAvailabilityPct);
-  const shortScoreValue = currentShortScore?.value ?? numeric(latestShortScore.score) ?? numeric(shortCurrent.shortScore);
+  const shortScoreValue = calculatedShortScore.finalScore;
   const shortScore = shortScoreValue ?? 0;
-  const shortScoreLevel = shortScore > 80 ? 'Extreme' : shortScore >= 65 ? 'High' : shortScore >= 40 ? 'Moderate' : 'Low';
-  const shortScoreTone = shortScore > 80 ? 'extreme' : shortScore >= 65 ? 'high' : shortScore >= 40 ? 'moderate' : 'low';
+  const calculatedShortScoreLevel = shortScoreValue === null
+    ? 'Unavailable'
+    : shortScore > 80 ? 'Extreme' : shortScore >= 65 ? 'High' : shortScore >= 40 ? 'Moderate' : 'Low';
+  const shortScoreLevel = shortScoreValue !== null && calculatedShortScore.riskFactor
+    ? calculatedShortScore.riskFactor
+    : calculatedShortScoreLevel;
+  const suppliedShortScoreTone = shortScoreLevel.toLowerCase();
+  const shortScoreTone = ['low', 'moderate', 'high', 'extreme'].includes(suppliedShortScoreTone)
+    ? suppliedShortScoreTone
+    : shortScoreValue === null ? 'unavailable' : calculatedShortScoreLevel.toLowerCase();
   const daysToCover = currentDaysToCover?.value ?? numeric(latestDaysToCover.daysToCover) ?? numeric(shortCurrent.daysToCoverQuantity);
   const shortInterestDelta = observationDelta(currentShortInterestShares, shortInterestShares, numeric(previousShortInterestShares.shortInterestShares), { maximumFractionDigits: 0 });
   const shortInterestPctDelta = observationDelta(currentShortInterestPercent, shortInterestPercent, numeric(previousShortInterestPercent.shortInterestPcFreeFloat), { maximumFractionDigits: 2 });
   const daysToCoverDelta = observationDelta(currentDaysToCover, daysToCover, numeric(previousDaysToCover.daysToCover), { maximumFractionDigits: 2 });
   const borrowFeeDelta = observationDelta(currentBorrowFee, borrowFee, numeric(previousBorrowFee.costToBorrowAll), { maximumFractionDigits: 2 });
-  const shortScoreDelta = observationDelta(currentShortScore, shortScoreValue, numeric(previousShortScore.score), {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  });
   const sharesAvailableDelta = observationDelta(currentAvailableShares, sharesAvailable, numeric(previousAvailability.shortAvailabilityShares), { maximumFractionDigits: 0 });
   const utilizationDelta = observationDelta(currentUtilization, utilization, numeric(previousUtilization.shortAvailabilityPct), { maximumFractionDigits: 2 });
   const shortCards = {} as Record<string, Row>;
@@ -1088,8 +1092,6 @@ export function ShortInterestBrowserPage({ ticker }: { ticker: string }) {
   const borrowFeeCard = record(shortCards?.borrowFee);
   const sharesAvailableCard = record(shortCards?.sharesAvailable);
   const utilizationCard = record(shortCards?.utilization);
-  const shortScoreCard = record(shortCards?.shortScore);
-  const shortScoreLevelCard = record(shortCards?.shortScoreLevel);
   const shortInterestChangePercent = numeric(shortInterestCard.changePercent) ?? shortInterestDelta?.percent;
   const borrowFeeChangePercent = numeric(borrowFeeCard.changePercent) ?? borrowFeeDelta?.percent;
   const sharesAvailableChangePercent = numeric(sharesAvailableCard.changePercent) ?? sharesAvailableDelta?.percent;
@@ -1099,10 +1101,10 @@ export function ShortInterestBrowserPage({ ticker }: { ticker: string }) {
     'AI analysis is not available for the current consolidation date.',
   );
   const scoreRanges = [
-    { range: '0-39', level: 'Low', description: 'Short-side pressure is relatively contained.', active: shortScore < 40 },
-    { range: '40-64', level: 'Moderate', description: 'Pressure is developing and should be monitored.', active: shortScore >= 40 && shortScore < 65 },
-    { range: '65-80', level: 'High', description: 'Elevated conditions may increase squeeze risk.', active: shortScore >= 65 && shortScore <= 80 },
-    { range: '>80', level: 'Extreme', description: 'Severe short-side pressure warrants close review.', active: shortScore > 80 },
+    { range: '0-39', level: 'Low', description: 'Short-side pressure is relatively contained.', active: shortScoreValue !== null && shortScore < 40 },
+    { range: '40-64', level: 'Moderate', description: 'Pressure is developing and should be monitored.', active: shortScoreValue !== null && shortScore >= 40 && shortScore < 65 },
+    { range: '65-80', level: 'High', description: 'Elevated conditions may increase squeeze risk.', active: shortScoreValue !== null && shortScore >= 65 && shortScore <= 80 },
+    { range: '>80', level: 'Extreme', description: 'Severe short-side pressure warrants close review.', active: shortScoreValue !== null && shortScore > 80 },
   ];
   const scoreProgress = Math.min(100, Math.max(0, shortScore));
 
@@ -1118,6 +1120,7 @@ export function ShortInterestBrowserPage({ ticker }: { ticker: string }) {
           <div className="terminal-section-actions">
             <ApiSourceTags sources={[
               { endpoint: 'GET /market-data/current?category=market-current', label: 'Snapshot' },
+              { endpoint: 'GET /market-data/current?category=rule-engine-short-score', label: 'Calculated short score' },
               { endpoint: 'GET /market-data/history?category=market-history', label: 'Consolidated market inputs' },
               { endpoint: 'GET /market-data/ai-report', label: 'AI analysis' },
             ]} />
@@ -1138,9 +1141,10 @@ export function ShortInterestBrowserPage({ ticker }: { ticker: string }) {
                   </div>
                 </div>
                 <div className="short-score-compact__copy">
-                  <em>{String(shortScoreLevelCard.valueDisplay ?? shortScoreLevel)} Risk</em>
-                  <DeltaBadge info={shortScoreDelta} display={String(shortScoreCard.deltaDisplay ?? '')} />
-                  <p>{shortScoreSummary(shortScore, shortScoreLevel)}</p>
+                  <em>{shortScoreLevel} Risk</em>
+                  <p>{shortScoreValue === null
+                    ? 'Calculated short score is unavailable for the current snapshot.'
+                    : shortScoreSummary(shortScore, shortScoreLevel)}</p>
                 </div>
               </div>
               <div className="short-score-card-ranges" aria-label="Short Interest Score interpretation ranges">
@@ -1261,6 +1265,7 @@ export function ShortInterestBrowserPage({ ticker }: { ticker: string }) {
         <div className="terminal-section__head"><div><span>Development Data</span><h2>Short Interest API Data</h2><p className="section-subtitle">Live API payloads only. No local or S3 JSON fallback is used.</p></div></div>
         <ApiDevelopmentTabs sources={[
           { id: 'market-current', title: 'Market Current', endpoint: `GET /market-data/current?ticker=${encodeURIComponent(normalizedTicker)}&category=market-current`, source: 'API Gateway', payload: apiData.current },
+          { id: 'rule-engine-short-score', title: 'Calculated Short Score', endpoint: `GET /market-data/current?ticker=${encodeURIComponent(normalizedTicker)}&category=rule-engine-short-score`, source: 'API Gateway', payload: apiData.ruleEngineShortScore, status: apiData.ruleEngineShortScore.requestError ? 'error' : 'Connected' },
           { id: 'market-history', title: 'Market History', endpoint: `GET /market-data/history?ticker=${encodeURIComponent(normalizedTicker)}&category=market-history`, source: 'API Gateway', payload: apiData.history },
           { id: 'short-volume', title: 'Short Volume', endpoint: `GET /market-data/history?ticker=${encodeURIComponent(normalizedTicker)}&category=short-volume-history`, source: 'API Gateway', payload: apiData.shortVolume },
           {

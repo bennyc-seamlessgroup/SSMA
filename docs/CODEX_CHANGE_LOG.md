@@ -4,6 +4,64 @@ This file is the persistent implementation memory for changes made by Codex.
 Read it before modifying existing portal behavior, and update it after every
 completed change.
 
+## 2026-09-21 - Display the backend-calculated current short score
+
+- Area:
+  - User Portal -> Short Interest -> Short Interest Score.
+  - User Portal -> Dashboard -> current short-score alert evaluation and
+    Development Data.
+- API/data:
+  - Added the current snapshot read:
+    `GET /market-data/current?ticker={ticker}&category=rule-engine-short-score`.
+  - Displayed fields are `finalScore`, `riskFactor`, and `snapshotDate` from
+    the backend rule-engine snapshot.
+  - Existing `GET /manual-input/short-score` storage and Operations Portal
+    workflows remain unchanged.
+- Reported problem and root cause:
+  - User-facing short-score surfaces still read `scores.shortScore.value` from
+    `market-current` or the `shortScore` field in `market-history`. Those values
+    originate from the retained manual short-score input rather than the newly
+    published calculated score.
+  - The new calculated-score category was documented by the backend but had
+    not yet been requested or normalized by the portal.
+- Intended behavior and invariants:
+  - The Short Interest score card displays only the latest calculated
+    `finalScore` and uses the backend `riskFactor` when present.
+  - Do not fall back to the manual current or historical short score. If the
+    calculated snapshot is missing, display `N/A / Unavailable` instead of a
+    manual value.
+  - Do not compare the current calculated score with manual short-score
+    history. Do not show a calculated-history status line in the score card.
+  - Dashboard short-score alert evaluation uses the same calculated current
+    score, preventing a different manual value from being evaluated there.
+  - Keep the manual short-score entry, editing, CSV import/export, and backend
+    data intact in the Operations Portal for possible future use.
+  - Do not request or use historical `rule-engine-short-score` records yet.
+  - Development Data shows the complete current calculated-score response and
+    endpoint on both relevant pages.
+- Files changed:
+  - `lib/rule-engine-short-score.ts`
+  - `app/monitor/[ticker]/short-interest/ShortInterestBrowserPage.tsx`
+  - `app/monitor/[ticker]/dashboard/DashboardBrowserPage.tsx`
+  - `app/monitor/[ticker]/dashboard/DashboardDevTables.tsx`
+  - `app/monitor/[ticker]/dashboard/CustomAlertCenter.tsx`
+  - `lib/portal-page-translations.ts`
+  - `docs/CODEX_CHANGE_LOG.md`
+- Verification:
+  - The supplied sample snapshot normalized to score `88.25`, risk factor
+    `Extreme`, and snapshot date `2026-09-18`.
+  - An authenticated browser regression with the manual score set to `78`
+    confirmed that the Short Interest card displayed calculated score `88.25`,
+    `Extreme Risk` and a Development Data tab for the new endpoint.
+  - The browser made one request to the current
+    `rule-engine-short-score` category.
+  - TypeScript type-check, production build, and whitespace validation passed.
+- Remaining backend dependency / limitation:
+  - The current response does not provide prior-score change fields. A
+    calculated-score delta can be added only after the historical calculated
+    dataset is intentionally adopted; manual history must not be mixed into
+    that comparison.
+
 ## 2026-09-21 - Render complete zero-data sentiment in archived reports
 
 - Area:

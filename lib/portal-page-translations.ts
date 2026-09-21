@@ -191,6 +191,8 @@ const zhHant: Record<string, string> = {
   'From': '由', 'To': '至', 'Clear': '清除', 'Filter records by date range': '按日期範圍篩選記錄',
   'vs 2 weeks ago': '與兩週前比較', 'Short interest data unavailable': '空頭倉位資料暫時無法使用',
   'No short-volume API records available.': '暫無沽空成交量 API 記錄。', 'No FTD API records available.': '暫無未能交收 API 記錄。',
+  'Calculated short score': '計算空頭評分', 'Calculated Short Score': '計算空頭評分',
+  'Calculated short score is unavailable for the current snapshot.': '目前快照沒有可用的計算空頭評分。',
 
   // Lending pressure
   'Lending Pressure Overview': '借貸壓力總覽', 'Lending Pressure Score': '借貸壓力評分', 'Lending Market Snapshot': '借貸市場快照',

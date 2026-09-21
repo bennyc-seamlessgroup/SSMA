@@ -14,6 +14,7 @@ type DashboardDevTablesProps = {
   ticker: string;
   marketCurrent: Record<string, unknown> | null;
   marketHistory: Record<string, unknown> | null;
+  ruleEngineShortScore: unknown;
   secAnalysis: unknown;
 };
 
@@ -90,6 +91,7 @@ export function DashboardDevTables({
   ticker,
   marketCurrent,
   marketHistory,
+  ruleEngineShortScore,
   secAnalysis,
 }: DashboardDevTablesProps) {
   const apiTables: ApiTable[] = [
@@ -104,6 +106,12 @@ export function DashboardDevTables({
       title: 'Market History',
       endpoint: `GET /market-data/history?ticker=${encodeURIComponent(ticker)}&category=market-history`,
       payload: marketHistory,
+    },
+    {
+      id: 'rule-engine-short-score',
+      title: 'Calculated Short Score',
+      endpoint: `GET /market-data/current?ticker=${encodeURIComponent(ticker)}&category=rule-engine-short-score`,
+      payload: ruleEngineShortScore,
     },
     {
       id: 'sec-analysis',

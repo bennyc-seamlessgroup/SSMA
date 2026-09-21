@@ -16,6 +16,7 @@ import { DashboardDevTables } from './DashboardDevTables';
 import type { DashboardCurrentMetric, DashboardCurrentMetrics, DashboardKpiMetricKey } from './DashboardKpis';
 import type { DailyMarketSnapshotData } from './DailyMarketSnapshot';
 import type { CurrentAlertMetricValues } from '@/lib/alerts/ruleCatalogApi';
+import { normalizeRuleEngineShortScore } from '@/lib/rule-engine-short-score';
 
 type TrendPoint = {
   date: string;
@@ -124,6 +125,7 @@ type MarketHistoryFile = {
 type DashboardApiData = {
   currentFile: MarketCurrentFile | null;
   historyFile: MarketHistoryFile | null;
+  ruleEngineShortScorePayload: unknown;
   secAnalysisPayload: unknown;
   trendData: TrendPoint[];
   utilizationInputs: DashboardUtilizationRecord[];
@@ -339,6 +341,7 @@ function dashboardCurrentMetrics(currentFile: MarketCurrentFile | null): Dashboa
 function marketHistoryToDashboardData(
   currentFile: MarketCurrentFile | null,
   historyFile: MarketHistoryFile | null,
+  ruleEngineShortScorePayload: unknown,
   secAnalysisPayload: unknown,
 ): DashboardApiData {
   const historyRecords = Array.isArray(historyFile?.records) ? historyFile.records : [];
@@ -465,13 +468,13 @@ function marketHistoryToDashboardData(
 
   const currentShortInterestPercent = marketCurrentMetricObservation(currentFile, 'shortInterest.percent');
   const currentShortInterestShares = marketCurrentMetricObservation(currentFile, 'shortInterest.shares');
-  const currentShortScore = marketCurrentMetricObservation(currentFile, 'scores.shortScore.value');
+  const currentShortScore = normalizeRuleEngineShortScore(ruleEngineShortScorePayload);
 
   const current = publishedRecord ? {
     publishedTradeDate: publishedDate,
     shortInterestPcFreeFloat: currentShortInterestPercent?.value ?? marketNumber(publishedRecord.shortInterestPercent),
     shortInterestShares: currentShortInterestShares?.value ?? marketNumber(publishedRecord.shortInterestShares),
-    shortScore: currentShortScore?.value ?? marketNumber(publishedRecord.shortScore),
+    shortScore: currentShortScore.finalScore,
     borrowFee: currentMetrics.feeRate?.value ?? marketNumber(publishedRecord.borrowFeePercent),
     feeRate: currentMetrics.feeRate?.value ?? marketNumber(publishedRecord.borrowFeePercent),
     utilization: currentUtilization?.value ?? marketNumber(publishedRecord.utilizationPercent),
@@ -485,7 +488,7 @@ function marketHistoryToDashboardData(
 
   const currentAlertMetrics: CurrentAlertMetricValues = {
     shortInterestFloatPercent: currentShortInterestPercent?.value ?? (publishedRecord ? marketNumber(publishedRecord.shortInterestPercent) : null),
-    shortScore: currentShortScore?.value ?? (publishedRecord ? marketNumber(publishedRecord.shortScore) : null),
+    shortScore: currentShortScore.finalScore,
     borrowFeeRate: currentMetrics.feeRate?.value ?? (publishedRecord ? marketNumber(publishedRecord.borrowFeePercent) : null),
     utilization: currentUtilization?.value ?? (publishedRecord ? marketNumber(publishedRecord.utilizationPercent) : null),
     availableShares: currentMetrics.shortableShares?.value ?? (publishedRecord ? marketNumber(publishedRecord.availableShares) : null),
@@ -493,6 +496,7 @@ function marketHistoryToDashboardData(
   return {
     currentFile,
     historyFile,
+    ruleEngineShortScorePayload,
     secAnalysisPayload,
     trendData,
     utilizationInputs,
@@ -518,9 +522,11 @@ export function DashboardBrowserPage({ ticker }: { ticker: string }) {
       setApiLoading(true);
       setApiError(null);
       try {
-        const [currentResponse, historyResponse, secAnalysisResponse] = await Promise.all([
+        const [currentResponse, historyResponse, ruleEngineShortScoreResponse, secAnalysisResponse] = await Promise.all([
           cachedAuthenticatedFetch<Record<string, unknown>>(`/market-data/current?ticker=${encodeURIComponent(normalizedTicker)}&category=market-current`),
           cachedAuthenticatedFetch<Record<string, unknown>>(`/market-data/history?ticker=${encodeURIComponent(normalizedTicker)}&category=market-history`),
+          cachedAuthenticatedFetch<Record<string, unknown>>(`/market-data/current?ticker=${encodeURIComponent(normalizedTicker)}&category=rule-engine-short-score`)
+            .catch(() => null),
           cachedAuthenticatedFetch<Record<string, unknown>>(`/manual-input/sec-analysis?ticker=${encodeURIComponent(normalizedTicker)}`)
             .catch(() => null),
         ]);
@@ -529,6 +535,7 @@ export function DashboardBrowserPage({ ticker }: { ticker: string }) {
         if (!cancelled) setApiData(marketHistoryToDashboardData(
           currentFile,
           historyFile,
+          ruleEngineShortScoreResponse,
           secAnalysisResponse,
         ));
       } catch (err) {
@@ -579,6 +586,7 @@ export function DashboardBrowserPage({ ticker }: { ticker: string }) {
         ticker={normalizedTicker}
         marketCurrent={apiData.currentFile as Record<string, unknown> | null}
         marketHistory={apiData.historyFile as Record<string, unknown> | null}
+        ruleEngineShortScore={apiData.ruleEngineShortScorePayload}
         secAnalysis={apiData.secAnalysisPayload}
       />
     </div>

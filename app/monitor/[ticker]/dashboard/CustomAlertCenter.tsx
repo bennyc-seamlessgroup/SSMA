@@ -148,6 +148,7 @@ export function CustomAlertCenter({
           { endpoint: 'GET /rule-catalog', label: 'Alert definitions' },
           { endpoint: 'GET /rule-catalog/user-settings', label: 'Configured alert rules' },
           { endpoint: 'GET /market-data/history?category=market-history', label: 'Published current metric evaluation' },
+          { endpoint: 'GET /market-data/current?category=rule-engine-short-score', label: 'Calculated short score' },
           { endpoint: 'POST /rule-engine/check', label: 'Backend rule evaluation' },
           { endpoint: 'GET /alerts', label: 'Persisted user alert history' },
           { endpoint: 'WebSocket /dev', label: `Live alerts · ${connectionStatus}` },
