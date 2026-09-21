@@ -369,16 +369,18 @@ function hasOverallSentimentData(candidate: SentimentCandidate) {
     ?? rowField(period, 'overallSentimentScore', 'sentimentScore'),
   );
 
-  return mentions > 0 && score !== null;
+  return hasConfirmedZeroMentions(candidate) || (mentions > 0 && score !== null);
 }
 
 function hasDistributionData(candidate: SentimentCandidate) {
-  return hasSentimentDistribution(candidate.value)
+  return hasConfirmedZeroMentions(candidate)
+    || hasSentimentDistribution(candidate.value)
     || sentimentRows(candidate.value).some(hasSentimentDistribution);
 }
 
 function hasPlatformData(candidate: SentimentCandidate) {
-  return platformRowsForPeriod(candidate.value).some(row => (
+  return hasConfirmedZeroMentions(candidate)
+    || platformRowsForPeriod(candidate.value).some(row => (
     sentimentPlatformName(row.platform ?? row.name) !== null
     && finiteNumber(rowField(
       row,
@@ -390,6 +392,21 @@ function hasPlatformData(candidate: SentimentCandidate) {
       'mentionsDisplay',
     )) !== null
   ));
+}
+
+function hasConfirmedZeroMentions(candidate: SentimentCandidate) {
+  const directMentions = finiteNumber(rowField(
+    candidate.value,
+    'mentions',
+    'totalMentions',
+    'mentionCount',
+    'mentionsDisplay',
+  ));
+
+  // Only an explicit report-owned 7D aggregate may establish the complete
+  // zero-record state. Missing mention totals remain unavailable so an
+  // incomplete archived payload is not silently presented as real zero data.
+  return candidate.explicitSevenDay && directMentions === 0;
 }
 
 function distributionCandidateWeight(candidate: SentimentCandidate) {
@@ -550,8 +567,9 @@ function normalizeSevenDaySentiment(payload: DailyReportPayload) {
   const score = mentions > 0 ? calculatedScore : null;
   const previousScore = mentions > 0 ? calculatedPreviousScore : null;
   const suppliedNumericChange = finiteNumber(rowField(overall, 'numericChange', 'changeValue'));
-  const numericChange = suppliedNumericChange
-    ?? (score !== null && previousScore !== null ? score - previousScore : null);
+  const numericChange = mentions > 0
+    ? suppliedNumericChange ?? (score !== null && previousScore !== null ? score - previousScore : null)
+    : null;
   const distributionPeriod = distributionCandidate?.value ?? period;
   const distributionTimeline = sentimentRows(distributionPeriod);
   const directDistribution = objectValue(rowField(
@@ -559,7 +577,12 @@ function normalizeSevenDaySentiment(payload: DailyReportPayload) {
     'distribution',
     'sentimentDistribution',
   ));
-  const directCounts = distributionCounts(distributionPeriod);
+  const zeroDistribution = Boolean(
+    distributionCandidate && hasConfirmedZeroMentions(distributionCandidate),
+  );
+  const directCounts = zeroDistribution
+    ? { bullish: 0, neutral: 0, bearish: 0 }
+    : distributionCounts(distributionPeriod);
   const timelineCounts = distributionTimeline.reduce<{ bullish: number; neutral: number; bearish: number }>((totals, row) => {
     const counts = distributionCounts(row);
     return {
@@ -569,12 +592,15 @@ function normalizeSevenDaySentiment(payload: DailyReportPayload) {
     };
   }, { bullish: 0, neutral: 0, bearish: 0 });
   const useTimelineCounts = directCounts.bullish + directCounts.neutral + directCounts.bearish === 0;
-  const counts = useTimelineCounts ? timelineCounts : directCounts;
+  const counts = zeroDistribution
+    ? { bullish: 0, neutral: 0, bearish: 0 }
+    : useTimelineCounts ? timelineCounts : directCounts;
   const classifiedMentions = counts.bullish + counts.neutral + counts.bearish;
   const percent = (value: number) => classifiedMentions ? value / classifiedMentions * 100 : 0;
   const platformPeriod = platformCandidate?.value ?? period;
-  const platformSource = platformRowsForPeriod(platformPeriod);
-  const overallAvailable = Boolean(selectedCandidate) && mentions > 0 && calculatedScore !== null;
+  const zeroPlatforms = Boolean(platformCandidate && hasConfirmedZeroMentions(platformCandidate));
+  const platformSource = zeroPlatforms ? [] : platformRowsForPeriod(platformPeriod);
+  const overallAvailable = selectedCandidate ? hasOverallSentimentData(selectedCandidate) : false;
   const distributionAvailable = Boolean(distributionCandidate) && hasDistributionData(distributionCandidate);
   const platformsAvailable = Boolean(platformCandidate) && hasPlatformData(platformCandidate);
   const available = overallAvailable || distributionAvailable || platformsAvailable;
@@ -609,7 +635,7 @@ function normalizeSevenDaySentiment(payload: DailyReportPayload) {
   });
 
   const scoreDisplay = score === null ? 'N/A' : score.toFixed(2);
-  const changeDisplay = typeof overall.changeDisplay === 'string' && overall.changeDisplay.trim()
+  const changeDisplay = mentions > 0 && typeof overall.changeDisplay === 'string' && overall.changeDisplay.trim()
     ? overall.changeDisplay
     : numericChange === null ? '--' : `${numericChange >= 0 ? '+' : ''}${numericChange.toFixed(2)}`;
   const sourceWindowStart = String(
@@ -654,9 +680,15 @@ function normalizeSevenDaySentiment(payload: DailyReportPayload) {
       bullishCount: counts.bullish,
       neutralCount: counts.neutral,
       bearishCount: counts.bearish,
-      bullishPercent: finiteNumber(directDistribution.bullishPercent ?? directDistribution.positivePercent) ?? percent(counts.bullish),
-      neutralPercent: finiteNumber(directDistribution.neutralPercent) ?? percent(counts.neutral),
-      bearishPercent: finiteNumber(directDistribution.bearishPercent ?? directDistribution.negativePercent) ?? percent(counts.bearish),
+      bullishPercent: zeroDistribution
+        ? 0
+        : finiteNumber(directDistribution.bullishPercent ?? directDistribution.positivePercent) ?? percent(counts.bullish),
+      neutralPercent: zeroDistribution
+        ? 0
+        : finiteNumber(directDistribution.neutralPercent) ?? percent(counts.neutral),
+      bearishPercent: zeroDistribution
+        ? 0
+        : finiteNumber(directDistribution.bearishPercent ?? directDistribution.negativePercent) ?? percent(counts.bearish),
     },
     platforms,
   };

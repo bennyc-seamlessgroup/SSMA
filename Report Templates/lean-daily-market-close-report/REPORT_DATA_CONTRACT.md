@@ -164,6 +164,13 @@ Each chart uses aligned date and value arrays:
 
 All sentiment fields must represent the previous seven-day window ending on the report date. Percentages should total approximately 100 after rounding. Platform mentions should reconcile to total mentions. The platform array must always include Reddit, X, Facebook, LinkedIn, and Stocktwits; unavailable platforms use zero mentions, zero share, and `No data` sentiment. `previousScore` and `changeDisplay`, when supplied, compare this window with the immediately preceding seven-day window.
 
+An explicit report-owned seven-day aggregate with `mentions: 0` is a complete
+zero-record snapshot, not an unavailable subsection. The report keeps the
+overall gauge visible with `N/A` / `No data` and no score marker, shows zero
+distribution values, and renders all five required platforms with zero
+mentions and zero share. A missing mention total is still treated as an
+incomplete payload and must not be converted to zero.
+
 The rendered observation-period label uses the selected dated sentiment
 window object's `windowStart` and `windowEnd` exactly. These boundaries, along
 with the mentions, overall score, distribution, and platform breakdown, must

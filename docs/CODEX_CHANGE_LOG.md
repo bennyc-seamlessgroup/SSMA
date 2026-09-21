@@ -4,6 +4,56 @@ This file is the persistent implementation memory for changes made by Codex.
 Read it before modifying existing portal behavior, and update it after every
 completed change.
 
+## 2026-09-21 - Render complete zero-data sentiment in archived reports
+
+- Area:
+  - User Portal -> Report Archive -> Daily Market Close Report -> Market
+    Perception.
+- API/data:
+  - Frozen dated report payload from
+    `GET /market-data/reports?ticker={ticker}&date={date}`.
+- Reported problem and root cause:
+  - When an explicit previous-seven-day aggregate contained zero social
+    mentions, Overall Sentiment and Platform Breakdown displayed subsection
+    unavailable messages.
+  - The candidate checks required a positive mention count plus a score for
+    Overall Sentiment and required explicit numeric platform rows for Platform
+    Breakdown. A valid zero aggregate commonly has neither.
+- Intended behavior and invariants:
+  - Treat an explicit report-owned 7D aggregate with a direct zero mention
+    total as a complete zero-record snapshot.
+  - Keep the overall sentiment meter visible with `N/A` / `No data`, no score
+    marker, no synthetic bearish or neutral score, and `0 mentions`.
+  - Render the distribution as zero and always list Reddit, X, Facebook,
+    LinkedIn, and Stocktwits with zero mentions, zero contribution, and
+    `No data`.
+  - Ignore stale nested timeline, distribution, or platform values when the
+    selected direct aggregate explicitly declares zero mentions.
+  - Preserve the unavailable state for an incomplete payload whose mention
+    total is missing; missing data must not be silently converted to zero.
+  - Preserve the frozen-report rule: do not request or substitute live social
+    data for an archived report.
+  - This explicitly replaces the earlier subsection-unavailable presentation
+    for confirmed zero-mention snapshots while retaining it for missing or
+    malformed snapshots.
+- Files changed:
+  - `app/monitor/[ticker]/reports/daily-report-data.ts`
+  - `Report Templates/lean-daily-market-close-report/REPORT_DATA_CONTRACT.md`
+  - `docs/CODEX_CHANGE_LOG.md`
+- Verification:
+  - Focused normalization checks confirmed that an explicit 7D aggregate with
+    `mentions: 0` marks Overall, Distribution, and Platforms available, keeps
+    the score null, and produces all five zero platform rows.
+  - A missing mention total still marks every sentiment subsection
+    unavailable, while a populated four-mention snapshot remains unchanged.
+  - Browser rendering confirmed one sentiment gauge, all five platform rows
+    with `0 / No data`, a zero distribution, and no unavailable messages.
+  - TypeScript type-check passed.
+- Remaining backend dependency / limitation:
+  - The dated report must explicitly provide a seven-day aggregate with a
+    direct zero mention total. A missing or ambiguous aggregate remains
+    unavailable because the frontend cannot safely infer that it means zero.
+
 ## 2026-09-21 - Block social CSV uploads with invalid datetime formats
 
 - Area:
