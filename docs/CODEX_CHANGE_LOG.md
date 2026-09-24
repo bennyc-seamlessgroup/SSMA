@@ -4,6 +4,45 @@ This file is the persistent implementation memory for changes made by Codex.
 Read it before modifying existing portal behavior, and update it after every
 completed change.
 
+## 2026-09-24 - Prevent historical-init date limits from freezing at build time
+
+- Area:
+  - Operations Portal -> Company Management -> Initialize History.
+  - Operations Portal -> Company Management -> Create Ticker effective-date
+    default.
+- API/data:
+  - Existing `POST /tickers/historical-init` contract remains unchanged:
+    `to_date` must be on or before the current date and the inclusive range is
+    limited to 180 calendar days.
+- Reported problem and root cause:
+  - The browser rejected a September 23 end date with “Value must be
+    21/09/2026 or earlier” on September 24.
+  - The statically rendered page evaluated `localDate()` while the deployment
+    was built. That build date was embedded as the date-input maximum and
+    initial state, allowing the maximum to become stale on subsequent days.
+- Intended behavior and invariants:
+  - Resolve all current-date-sensitive defaults after hydration in the
+    operator's browser, not during static rendering.
+  - The historical From and To inputs both use the browser's current local
+    date as their maximum; the To input defaults to today and From defaults to
+    29 days earlier.
+  - The Create Ticker effective date also defaults from the browser date so it
+    cannot inherit a stale deployment date.
+  - Preserve the documented non-future, ordered-range, 180-day, vendor,
+    confirmation, live-write, status, and consolidation behavior.
+- Files changed:
+  - `app/operations/tickers/TickerManagementOperationsClient.tsx`
+  - `docs/CODEX_CHANGE_LOG.md`
+- Verification:
+  - A browser regression in the Asia/Hong_Kong timezone on September 24, 2026
+    confirmed both historical date inputs had `max="2026-09-24"`, To defaulted
+    to `2026-09-24`, From defaulted to `2026-08-26`, and the new-ticker
+    effective date defaulted to `2026-09-24`.
+  - TypeScript type-check, production build, and whitespace validation passed.
+- Remaining backend dependency / limitation:
+  - The backend remains authoritative and may still reject a date if its own
+    definition of “today” differs near a timezone boundary.
+
 ## 2026-09-21 - Display the backend-calculated current short score
 
 - Area:

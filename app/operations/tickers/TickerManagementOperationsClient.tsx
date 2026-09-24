@@ -268,7 +268,7 @@ export function TickerManagementOperationsClient() {
   const [createTicker, setCreateTicker] = useState('');
   const [createCompanyName, setCreateCompanyName] = useState('');
   const [createStatus, setCreateStatus] = useState<'ACTIVE' | 'INACTIVE'>('ACTIVE');
-  const [createEffectiveDate, setCreateEffectiveDate] = useState(localDate());
+  const [createEffectiveDate, setCreateEffectiveDate] = useState('');
 
   const [selectedTicker, setSelectedTicker] = useState<TickerRecord | null>(null);
   const [editCompanyName, setEditCompanyName] = useState('');
@@ -277,11 +277,11 @@ export function TickerManagementOperationsClient() {
   const [detailState, setDetailState] = useState<RequestState>('idle');
 
   const [historicalTicker, setHistoricalTicker] = useState('');
-  const [fromDate, setFromDate] = useState(daysAgo(29));
-  const [toDate, setToDate] = useState(localDate());
+  const [fromDate, setFromDate] = useState('');
+  const [toDate, setToDate] = useState('');
+  const [today, setToday] = useState('');
   const [vendors, setVendors] = useState<Vendor[]>(allVendors);
 
-  const today = localDate();
   const historicalDays = dateRangeDays(fromDate, toDate);
   const allCompanyHistoryReady = companyHistoryState === 'idle'
     && companyHistoryStatuses.length > 0
@@ -442,6 +442,17 @@ export function TickerManagementOperationsClient() {
       return false;
     }
   }
+
+  useEffect(() => {
+    // This route is statically rendered. Resolve date-sensitive defaults only
+    // after hydration so a deployment's build date cannot become a stale
+    // browser validation limit on later days.
+    const browserToday = localDate();
+    setToday(browserToday);
+    setCreateEffectiveDate(current => current || browserToday);
+    setFromDate(current => current || daysAgo(29));
+    setToDate(current => current || browserToday);
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
