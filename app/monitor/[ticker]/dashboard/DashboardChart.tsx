@@ -47,6 +47,8 @@ type CompanyEvent = {
 type EventGroup = {
   id: string;
   date: string;
+  endDate: string;
+  dates: string[];
   type: string;
   events: CompanyEvent[];
   important: boolean;
@@ -67,6 +69,7 @@ export type DashboardFixedAxis = {
 };
 
 const defaultMetric: SeriesKey = 'price';
+const eventMarkerCollisionDistance = 36;
 
 const seriesOrder: SeriesKey[] = ['price', 'feeRate', 'tradeVolume', 'shortableShares', 'daysToCover', 'utilization', 'averageDuration'];
 const bottomMetrics = new Set<SeriesKey>(['tradeVolume', 'shortableShares']);
@@ -133,6 +136,12 @@ function formatMonth(value: string) {
 function formatFullDate(value: string) {
   const date = new Date(`${value}T00:00:00Z`);
   return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', timeZone: 'UTC' });
+}
+
+function formatEventGroupDate(group: EventGroup) {
+  return group.date === group.endDate
+    ? formatFullDate(group.date)
+    : `${formatFullDate(group.date)} – ${formatFullDate(group.endDate)}`;
 }
 
 function domainFor(values: number[]) {
@@ -360,6 +369,8 @@ export function DashboardChart({
         groups.set(key, {
           id: key,
           date: event.date,
+          endDate: event.date,
+          dates: [event.date],
           type: event.type,
           events: [event],
           important: event.important,
@@ -463,16 +474,46 @@ export function DashboardChart({
       domains,
       paths,
       xTicks,
-      eventMarkers: visibleEventGroups.map((eventGroup, eventIndex) => {
-        const sameDateIndex = visibleEventGroups.slice(0, eventIndex).filter(item => item.date === eventGroup.date).length;
-        const x = xForTime(dateMs(eventGroup.date));
-        const y = topPanelBottom + 18 + (sameDateIndex % 3) * 16;
-        return {
-          eventGroup: { ...eventGroup, x, y },
-          x,
+      eventMarkers: visibleEventGroups.reduce<Array<{
+        eventGroup: EventGroup;
+        x: number;
+        y: number;
+        dateXs: number[];
+      }>>((markers, eventGroup) => {
+        const dateX = xForTime(dateMs(eventGroup.date));
+        const previous = markers.at(-1);
+        if (previous && Math.abs(dateX - previous.x) < eventMarkerCollisionDistance) {
+          const dateXs = [...previous.dateXs, dateX];
+          const dates = Array.from(new Set([...previous.eventGroup.dates, ...eventGroup.dates])).sort();
+          const x = dateXs.reduce((total, value) => total + value, 0) / dateXs.length;
+          const y = topPanelBottom + 18;
+          previous.x = x;
+          previous.y = y;
+          previous.dateXs = dateXs;
+          previous.eventGroup = {
+            ...previous.eventGroup,
+            id: `cluster-${dates[0]}-${dates.at(-1)}`,
+            date: dates[0],
+            endDate: dates.at(-1) ?? dates[0],
+            dates,
+            events: [...previous.eventGroup.events, ...eventGroup.events]
+              .sort((a, b) => a.date.localeCompare(b.date)),
+            important: previous.eventGroup.important || eventGroup.important,
+            x,
+            y,
+          };
+          return markers;
+        }
+
+        const y = topPanelBottom + 18;
+        markers.push({
+          eventGroup: { ...eventGroup, x: dateX, y },
+          x: dateX,
           y,
-        };
-      }),
+          dateXs: [dateX],
+        });
+        return markers;
+      }, []),
     };
   }, [availableMetrics, data, period, visibleEventGroups]);
 
@@ -657,7 +698,7 @@ export function DashboardChart({
               key={marker.eventGroup.id}
               role="button"
               tabIndex={0}
-              aria-label={`${marker.eventGroup.important ? 'Important ' : ''}${marker.eventGroup.type}: ${marker.eventGroup.events.length} event${marker.eventGroup.events.length === 1 ? '' : 's'} on ${formatFullDate(marker.eventGroup.date)}`}
+              aria-label={`${marker.eventGroup.important ? 'Important ' : ''}${marker.eventGroup.type}: ${marker.eventGroup.events.length} event${marker.eventGroup.events.length === 1 ? '' : 's'} ${marker.eventGroup.dates.length === 1 ? 'on' : 'from'} ${formatEventGroupDate(marker.eventGroup)}`}
               onClick={event => {
                 event.stopPropagation();
                 cancelEventHoverClose();
@@ -678,7 +719,18 @@ export function DashboardChart({
                 height="32"
                 rx="8"
               />
-              <line x1={marker.x} x2={marker.x} y1={chart.topPanelTop} y2={chart.bottomPanelBottom} />
+              {marker.dateXs.map((dateX, index) => (
+                <line key={`${marker.eventGroup.id}-date-${index}`} x1={dateX} x2={dateX} y1={chart.topPanelTop} y2={chart.bottomPanelBottom} />
+              ))}
+              {marker.dateXs.length > 1 && (
+                <line
+                  className="dashboard-event-cluster-range"
+                  x1={Math.min(...marker.dateXs)}
+                  x2={Math.max(...marker.dateXs)}
+                  y1={marker.y}
+                  y2={marker.y}
+                />
+              )}
               {marker.eventGroup.type === 'SEC' ? (
                 <>
                   <rect x={marker.x - 7} y={marker.y - 8} width="14" height="16" rx="3" />
@@ -790,23 +842,30 @@ export function DashboardChart({
           >
             <span>
               {(pinnedEventGroup ?? hoveredEventGroup)!.important ? 'Important · ' : ''}
-              {(pinnedEventGroup ?? hoveredEventGroup)!.type} · {formatFullDate((pinnedEventGroup ?? hoveredEventGroup)!.date)} · {(pinnedEventGroup ?? hoveredEventGroup)!.events.length} event{(pinnedEventGroup ?? hoveredEventGroup)!.events.length === 1 ? '' : 's'}
+              {(pinnedEventGroup ?? hoveredEventGroup)!.type} · {formatEventGroupDate((pinnedEventGroup ?? hoveredEventGroup)!)} · {(pinnedEventGroup ?? hoveredEventGroup)!.events.length} event{(pinnedEventGroup ?? hoveredEventGroup)!.events.length === 1 ? '' : 's'}
             </span>
             <div className="dashboard-event-list">
-              {(pinnedEventGroup ?? hoveredEventGroup)!.events.map(event => (
-                <article className={event.important ? 'is-important' : ''} key={event.id}>
-                  {event.important ? <b className="dashboard-event-important">Important</b> : null}
-                  <strong>{event.title}</strong>
-                  <dl>
-                    <div><dt>Category</dt><dd>{event.category}</dd></div>
-                    <div><dt>Form</dt><dd>{event.formType}</dd></div>
-                  </dl>
-                  {event.url && (
-                    <a href={event.url} target="_blank" rel="noreferrer">
-                      {event.url}
-                    </a>
-                  )}
-                </article>
+              {(pinnedEventGroup ?? hoveredEventGroup)!.dates.map(date => (
+                <section className="dashboard-event-date-group" key={date}>
+                  <time dateTime={date}>{formatFullDate(date)}</time>
+                  {(pinnedEventGroup ?? hoveredEventGroup)!.events
+                    .filter(event => event.date === date)
+                    .map(event => (
+                      <article className={event.important ? 'is-important' : ''} key={event.id}>
+                        {event.important ? <b className="dashboard-event-important">Important</b> : null}
+                        <strong>{event.title}</strong>
+                        <dl>
+                          <div><dt>Category</dt><dd>{event.category}</dd></div>
+                          <div><dt>Form</dt><dd>{event.formType}</dd></div>
+                        </dl>
+                        {event.url && (
+                          <a href={event.url} target="_blank" rel="noreferrer">
+                            {event.url}
+                          </a>
+                        )}
+                      </article>
+                    ))}
+                </section>
               ))}
             </div>
           </div>

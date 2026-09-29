@@ -4,6 +4,51 @@ This file is the persistent implementation memory for changes made by Codex.
 Read it before modifying existing portal behavior, and update it after every
 completed change.
 
+## 2026-09-29 - Cluster nearby SEC-analysis markers on Short History
+
+- Area:
+  - User Portal -> Dashboard -> Short History SEC-analysis markers and event
+    popup.
+- API/data:
+  - No API contract change. Existing
+    `GET /manual-input/sec-analysis?ticker={ticker}` records are preserved.
+- Reported problem and root cause:
+  - In dense periods such as the 1Y chart, separate event dates could resolve
+    to nearly the same horizontal chart position. Their 32px interaction
+    targets and document icons then overlapped, making individual markers
+    difficult to identify or hover.
+  - The chart grouped records only when they shared the exact same calendar
+    date; it did not account for the rendered distance between nearby dates.
+- Intended behavior and invariants:
+  - Cluster consecutive event-date groups whenever their rendered marker
+    centers would be less than 36 chart units apart. Recalculate this from the
+    selected period so shorter, less dense views automatically separate dates
+    when enough space is available.
+  - Use one accessible document marker and a total-event count for a cluster,
+    with a subtle horizontal connector spanning the represented date
+    positions. Keep the original date positions available as hover guide
+    lines.
+  - A cluster is red when any contained event is important. Its popup shows
+    the complete date range and groups every record under its actual date.
+  - Preserve same-date grouping, exact record details and links, period
+    filtering, hover grace period, click-to-pin, keyboard focus, dark mode,
+    and normal chart-series interactions.
+- Files changed:
+  - `app/monitor/[ticker]/dashboard/DashboardChart.tsx`
+  - `app/globals.css`
+  - `docs/CODEX_CHANGE_LOG.md`
+- Verification:
+  - A focused browser regression supplied three SEC events on March 20, 22,
+    and 28 plus a separate June event in a one-year history. The chart rendered
+    one important three-event cluster and one separate marker.
+  - Focusing the cluster displayed all three records in three dated popup
+    sections, retained the important treatment, and rendered one range
+    connector.
+  - TypeScript type-check, production build, and whitespace validation passed.
+- Remaining backend dependency / limitation:
+  - None. Clustering is a display-only calculation; stored SEC-analysis
+    records and replacement semantics are unchanged.
+
 ## 2026-09-24 - Prevent historical-init date limits from freezing at build time
 
 - Area:
