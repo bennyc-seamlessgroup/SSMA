@@ -91,6 +91,16 @@ const apiMapRows = [
     purpose: 'Short-interest AI Analysis',
     reportData: 'short_interest_current_interpretation. A missing response produces the report unavailable message.',
   },
+  {
+    api: 'GET /market-data/history?ticker={ticker}&category=rule-engine-short-score',
+    purpose: 'Calculated Short Score history',
+    reportData: 'Latest calculated finalScore on or before the selected report date, plus the previous available score for comparison.',
+  },
+  {
+    api: 'GET /market-data/current?ticker={ticker}&category=rule-engine-short-score',
+    purpose: 'Latest calculated Short Score candidate',
+    reportData: 'Used only when its snapshotDate is on or before the selected report date. It is never copied into an older report.',
+  },
 ];
 
 export function ReportArchiveDevTables({
@@ -109,6 +119,8 @@ export function ReportArchiveDevTables({
   const [indexSource, setIndexSource] = useState<SourceResult>(emptySource);
   const [reportSource, setReportSource] = useState<SourceResult>(emptySource);
   const [aiSource, setAiSource] = useState<SourceResult>(emptySource);
+  const [scoreHistorySource, setScoreHistorySource] = useState<SourceResult>(emptySource);
+  const [scoreCurrentSource, setScoreCurrentSource] = useState<SourceResult>(emptySource);
 
   useEffect(() => {
     if (!sortedReports.some(report => report.reportDate === selectedDate)) {
@@ -124,6 +136,8 @@ export function ReportArchiveDevTables({
     const indexPath = `/market-data/reports?ticker=${encodedTicker}&limit=100&page=1`;
     const reportPath = `/market-data/reports?ticker=${encodedTicker}&date=${encodedDate}`;
     const aiPath = `/market-data/ai-report?ticker=${encodedTicker}&date=${encodedDate}`;
+    const scoreHistoryPath = `/market-data/history?ticker=${encodedTicker}&category=rule-engine-short-score`;
+    const scoreCurrentPath = `/market-data/current?ticker=${encodedTicker}&category=rule-engine-short-score`;
 
     // A dated report may be regenerated without changing its URL. The
     // diagnostics must inspect the latest archived payload when the operator
@@ -133,16 +147,22 @@ export function ReportArchiveDevTables({
     setIndexSource({ data: null, error: '', loading: true });
     setReportSource({ data: null, error: '', loading: true });
     setAiSource({ data: null, error: '', loading: true });
+    setScoreHistorySource({ data: null, error: '', loading: true });
+    setScoreCurrentSource({ data: null, error: '', loading: true });
 
     void Promise.all([
       readSource(indexPath),
       readSource(reportPath),
       readSource(aiPath),
-    ]).then(([index, report, ai]) => {
+      readSource(scoreHistoryPath),
+      readSource(scoreCurrentPath),
+    ]).then(([index, report, ai, scoreHistory, scoreCurrent]) => {
       if (!active) return;
       setIndexSource(index);
       setReportSource(report);
       setAiSource(ai);
+      setScoreHistorySource(scoreHistory);
+      setScoreCurrentSource(scoreCurrent);
     });
 
     return () => {
@@ -203,6 +223,22 @@ export function ReportArchiveDevTables({
       recordCount: sourceCount(aiSource),
       status: sourceStatus(aiSource),
     },
+    {
+      id: 'calculated-score-history',
+      title: 'Calculated Score History',
+      file: `GET /market-data/history?ticker=${encodedTicker}&category=rule-engine-short-score`,
+      sourcePlatform: 'API Gateway · Report-date score source',
+      recordCount: sourceCount(scoreHistorySource),
+      status: sourceStatus(scoreHistorySource),
+    },
+    {
+      id: 'calculated-score-current',
+      title: 'Calculated Score Current',
+      file: `GET /market-data/current?ticker=${encodedTicker}&category=rule-engine-short-score`,
+      sourcePlatform: 'API Gateway · Date-guarded latest candidate',
+      recordCount: sourceCount(scoreCurrentSource),
+      status: sourceStatus(scoreCurrentSource),
+    },
   ];
 
   return (
@@ -248,6 +284,8 @@ export function ReportArchiveDevTables({
           expandableColumns={['path']}
         />
         <ImportDataTable columns={['field', 'value']} rows={flattenedRows(aiSource.data)} pageSize={25} expandableColumns={['value']} />
+        <ImportDataTable columns={['field', 'value']} rows={flattenedRows(scoreHistorySource.data)} pageSize={25} expandableColumns={['value']} />
+        <ImportDataTable columns={['field', 'value']} rows={flattenedRows(scoreCurrentSource.data)} pageSize={25} expandableColumns={['value']} />
       </ImportDataTabs>
     </section>
   );

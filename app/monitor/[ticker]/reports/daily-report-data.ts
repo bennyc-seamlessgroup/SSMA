@@ -5,6 +5,11 @@ import { aiReportTextForLanguage } from '@/lib/ai-report-localization';
 import { cachedAuthenticatedFetch, invalidateAuthenticatedFetchCache } from '@/lib/auth-client';
 import type { PortalLanguage } from '@/lib/portal-i18n';
 import type { ReportArchiveRecord } from '@/lib/report-archive';
+import {
+  normalizeRuleEngineShortScore,
+  selectRuleEngineShortScoreAsOf,
+  type RuleEngineShortScoreSelection,
+} from '@/lib/rule-engine-short-score';
 
 type Row = Record<string, unknown>;
 
@@ -102,11 +107,24 @@ function normalizeMarginKpi(value: unknown) {
   };
 }
 
-function normalizeShortInterestScore(value: unknown) {
-  const source = objectValue(value);
-  const score = finiteNumber(source.score);
+function scoreDisplay(value: number | null) {
+  return value === null
+    ? 'N/A'
+    : value.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 2 });
+}
+
+function shortScoreSummary(level: string) {
+  if (level === 'Extreme') return 'Severe pressure warrants review.';
+  if (level === 'High') return 'Elevated short-side pressure may increase squeeze sensitivity. Management should monitor borrow conditions, available inventory, and covering activity closely.';
+  if (level === 'Moderate') return 'Pressure is developing.';
+  if (level === 'Low') return 'Pressure is relatively contained.';
+  return '';
+}
+
+function normalizeShortInterestScore(selection: RuleEngineShortScoreSelection) {
+  const score = selection.current?.finalScore ?? null;
   const level = score === null
-    ? String(source.level ?? 'Unavailable')
+    ? 'Unavailable'
     : score > 80
       ? 'Extreme'
       : score >= 65
@@ -115,11 +133,31 @@ function normalizeShortInterestScore(value: unknown) {
           ? 'Moderate'
           : 'Low';
   const tone = level.toLowerCase();
+  const previousScore = selection.previous?.finalScore ?? null;
+  const numericChange = score !== null && previousScore !== null ? score - previousScore : null;
+  const percentChange = numericChange !== null && previousScore !== 0
+    ? numericChange / Math.abs(previousScore as number) * 100
+    : null;
 
   return {
-    ...source,
+    score,
+    scoreDisplay: scoreDisplay(score),
     level,
     tone,
+    color: level === 'Low' ? '#0f9f77' : level === 'Moderate' ? '#d99208' : '#cf3e4f',
+    previousScore,
+    numericChange,
+    percentChange,
+    changeDisplay: numericChange === null
+      ? '--'
+      : `${signed(numericChange, '')}${percentChange === null ? '' : ` (${signed(percentChange, '%')})`}`,
+    deltaTone: numericChange === null || numericChange === 0
+      ? ''
+      : numericChange > 0 ? 'negative' : 'positive',
+    summary: shortScoreSummary(level),
+    scoreSourceDate: selection.current?.snapshotDate ?? '',
+    previousScoreSourceDate: selection.previous?.snapshotDate ?? '',
+    scoreSourceScope: selection.current ? 'rule-engine-short-score' : 'none',
     ranges: [
       { range: '0-39', level: 'Low', description: 'Pressure is relatively contained.', active: score !== null && score < 40 },
       { range: '40-64', level: 'Moderate', description: 'Pressure is developing.', active: score !== null && score >= 40 && score < 65 },
@@ -699,6 +737,7 @@ function normalizeReportPayload(
   report: ReportArchiveRecord,
   aiAnalysis: string,
   language: PortalLanguage,
+  calculatedScoreSelection: RuleEngineShortScoreSelection,
 ) {
   const responseTicker = String(payload.ticker ?? '').trim().toUpperCase();
   const reportDateIso = String(payload.reportDateIso ?? '').trim();
@@ -719,7 +758,15 @@ function normalizeReportPayload(
   const snapshotKpis = Array.isArray(payload.snapshotKpis)
     ? payload.snapshotKpis.map(normalizeMarginKpi)
     : [];
-  const shortInterestScore = normalizeShortInterestScore(payload.shortInterestScore);
+  const embeddedCalculatedScore = normalizeRuleEngineShortScore(payload.shortInterestScore);
+  const embeddedSelection = embeddedCalculatedScore.finalScore !== null
+    && embeddedCalculatedScore.snapshotDate
+    && embeddedCalculatedScore.snapshotDate <= responseDate
+    ? { current: embeddedCalculatedScore, previous: calculatedScoreSelection.previous }
+    : calculatedScoreSelection;
+  const shortInterestScore = normalizeShortInterestScore(
+    calculatedScoreSelection.current ? calculatedScoreSelection : embeddedSelection,
+  );
   const shortLending = objectValue(payload.shortLending);
   const ftdChart = objectValue(shortLending.ftdChart);
   const sentiment = normalizeSevenDaySentiment(payload);
@@ -759,15 +806,21 @@ export async function buildDailyReportData(
 ) {
   const ticker = report.ticker.toUpperCase();
   const reportPath = `/market-data/reports?ticker=${encodeURIComponent(ticker)}&date=${encodeURIComponent(report.reportDate)}`;
+  const scoreHistoryPath = `/market-data/history?ticker=${encodeURIComponent(ticker)}&category=rule-engine-short-score`;
+  const scoreCurrentPath = `/market-data/current?ticker=${encodeURIComponent(ticker)}&category=rule-engine-short-score`;
 
   // A dated report can be regenerated by the backend without changing its URL.
   // Always refresh both dated payloads before generating a new PDF.
   invalidateAuthenticatedFetchCache(reportPath);
   invalidateAuthenticatedFetchCache('/market-data/ai-report');
+  invalidateAuthenticatedFetchCache(scoreHistoryPath);
+  invalidateAuthenticatedFetchCache(scoreCurrentPath);
 
-  const [payload, aiReport] = await Promise.all([
+  const [payload, aiReport, scoreHistory, scoreCurrent] = await Promise.all([
     cachedAuthenticatedFetch<DailyReportPayload>(reportPath),
     fetchAiReport(ticker, report.reportDate).catch((): AiReport => ({})),
+    cachedAuthenticatedFetch(scoreHistoryPath).catch(() => null),
+    cachedAuthenticatedFetch(scoreCurrentPath).catch(() => null),
   ]);
   const aiAnalysis = aiReportTextForLanguage(
     aiReport.short_interest_current_interpretation,
@@ -775,5 +828,11 @@ export async function buildDailyReportData(
     unavailableAiAnalysis,
   );
 
-  return normalizeReportPayload(payload, report, aiAnalysis, language);
+  const calculatedScoreSelection = selectRuleEngineShortScoreAsOf(
+    scoreHistory,
+    scoreCurrent,
+    report.reportDate,
+  );
+
+  return normalizeReportPayload(payload, report, aiAnalysis, language, calculatedScoreSelection);
 }

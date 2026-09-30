@@ -4,6 +4,63 @@ This file is the persistent implementation memory for changes made by Codex.
 Read it before modifying existing portal behavior, and update it after every
 completed change.
 
+## 2026-09-30 - Use calculated Short Score in generated reports
+
+- Area:
+  - User Portal -> Report Archive -> report viewer and generated daily PDF.
+  - User Portal -> Report Archive -> Development Data.
+- API/data:
+  - Added report-generation reads from
+    `GET /market-data/history?ticker={ticker}&category=rule-engine-short-score`
+    and
+    `GET /market-data/current?ticker={ticker}&category=rule-engine-short-score`.
+  - Existing dated report and AI endpoints remain unchanged.
+- Reported problem and root cause:
+  - Generated reports displayed `N/A` for Short Interest Score even though the
+    live Short Interest page showed a calculated score.
+  - The live page had moved to the rule engine's `finalScore`, while report
+    generation still expected the legacy `shortInterestScore.score` embedded
+    in the dated report payload. It never requested the calculated-score
+    category.
+- Intended behavior and invariants:
+  - Select the latest valid calculated `finalScore` whose `snapshotDate` is on
+    or before the selected report date. This supports both an exact-date score
+    and the previous available calculated date.
+  - Consider the current calculated snapshot only when its own date is not
+    later than the report date. Never insert a newer live score into an older
+    archived report.
+  - Do not fall back to the retained manual Short Score or the dated report's
+    legacy `shortInterestScore.score`. If no eligible calculated snapshot
+    exists, keep the explicit `N/A / Unavailable` state.
+  - Derive the score display, risk band, color, deterministic summary, and
+    comparison from calculated snapshots only. Preserve unbounded scores and
+    the `0-39`, `40-64`, `65-80`, and `>80` bands.
+  - Keep AI analysis, language selection, report-date validation, sentiment,
+    other dated report sections, and PDF generation unchanged.
+  - This intentionally supersedes the September 21 rule that historical
+    calculated scores were unused only for Report Archive generation. The live
+    Short Interest page continues to use the current calculated snapshot and
+    does not display calculated history.
+  - Expose both calculated-score API responses in Report Archive Development
+    Data with their full authenticated endpoints.
+- Files changed:
+  - `lib/rule-engine-short-score.ts`
+  - `app/monitor/[ticker]/reports/daily-report-data.ts`
+  - `app/monitor/[ticker]/reports/ReportArchiveDevTables.tsx`
+  - `Report Templates/lean-daily-market-close-report/REPORT_DATA_CONTRACT.md`
+  - `docs/CODEX_CHANGE_LOG.md`
+- Verification:
+  - Browser regression supplied legacy manual report score `12`, calculated
+    report-date score `88.25`, and a newer current score `99`. The report
+    rendered `88.25` with `Extreme Risk`, excluded `99`, and calculated the
+    comparison from the preceding calculated score `70`.
+  - A second browser regression used a report date without an exact calculated
+    record and confirmed it carried forward the preceding `88.25` snapshot.
+  - TypeScript type-check, production build, and whitespace validation passed.
+- Remaining backend dependency / limitation:
+  - At least one eligible calculated rule-engine snapshot must exist on or
+    before the report date. Otherwise the report correctly remains `N/A`.
+
 ## 2026-09-29 - Cluster nearby SEC-analysis markers on Short History
 
 - Area:

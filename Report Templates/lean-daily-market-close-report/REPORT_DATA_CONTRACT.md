@@ -54,7 +54,15 @@ Both changes compare with the immediately preceding trading-day record. Supporte
 
 ## Short Interest Score and AI Analysis
 
-The score is the same consolidated `shortScore` displayed on the Short Interest page. The AI text must come from `GET /market-data/ai-report?ticker={ticker}` field `short_interest_current_interpretation`:
+The score is the backend-calculated `finalScore` from
+`GET /market-data/history?ticker={ticker}&category=rule-engine-short-score`.
+Select the latest valid snapshot whose `snapshotDate` is on or before the
+report date. The current rule-engine snapshot may be considered only when its
+own `snapshotDate` is also on or before the report date; a newer current score
+must never be inserted into an older report. The retained manual `shortScore`
+is not a report display fallback. The AI text must come from
+`GET /market-data/ai-report?ticker={ticker}` field
+`short_interest_current_interpretation`:
 
 ```json
 {

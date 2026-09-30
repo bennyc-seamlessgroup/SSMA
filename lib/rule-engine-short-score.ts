@@ -31,6 +31,15 @@ function categoryPayload(payload: unknown) {
   return root;
 }
 
+function categoryRecords(payload: unknown) {
+  if (Array.isArray(payload)) return payload;
+  const source = categoryPayload(payload);
+  if (Array.isArray(source.records)) return source.records;
+  if (Array.isArray(source.data)) return source.data;
+  const data = record(source.data);
+  return Array.isArray(data.records) ? data.records : [];
+}
+
 export function normalizeRuleEngineShortScore(payload: unknown): RuleEngineShortScoreSnapshot {
   const source = categoryPayload(payload);
   const context = record(source.context);
@@ -39,8 +48,47 @@ export function normalizeRuleEngineShortScore(payload: unknown): RuleEngineShort
   return {
     finalScore,
     riskFactor: String(source.riskFactor ?? context.riskFactor ?? '').trim(),
-    snapshotDate: String(source.snapshotDate ?? '').trim().slice(0, 10),
+    snapshotDate: String(source.snapshotDate ?? source.date ?? source.tradeDate ?? '').trim().slice(0, 10),
     generatedAt: String(source.generatedAt ?? '').trim(),
     status: String(source.status ?? '').trim(),
+  };
+}
+
+export type RuleEngineShortScoreSelection = {
+  current: RuleEngineShortScoreSnapshot | null;
+  previous: RuleEngineShortScoreSnapshot | null;
+};
+
+export function ruleEngineShortScoreHistory(payload: unknown) {
+  return categoryRecords(payload)
+    .map(normalizeRuleEngineShortScore)
+    .filter(snapshot => snapshot.finalScore !== null && /^\d{4}-\d{2}-\d{2}$/.test(snapshot.snapshotDate))
+    .sort((a, b) => (
+      a.snapshotDate.localeCompare(b.snapshotDate)
+      || a.generatedAt.localeCompare(b.generatedAt)
+    ));
+}
+
+export function selectRuleEngineShortScoreAsOf(
+  historyPayload: unknown,
+  currentPayload: unknown,
+  reportDate: string,
+): RuleEngineShortScoreSelection {
+  const candidates = ruleEngineShortScoreHistory(historyPayload);
+  const currentSnapshot = normalizeRuleEngineShortScore(currentPayload);
+  if (currentSnapshot.finalScore !== null && /^\d{4}-\d{2}-\d{2}$/.test(currentSnapshot.snapshotDate)) {
+    candidates.push(currentSnapshot);
+  }
+
+  const byDate = new Map<string, RuleEngineShortScoreSnapshot>();
+  candidates
+    .filter(snapshot => snapshot.snapshotDate <= reportDate)
+    .forEach(snapshot => byDate.set(snapshot.snapshotDate, snapshot));
+  const available = Array.from(byDate.values())
+    .sort((a, b) => a.snapshotDate.localeCompare(b.snapshotDate));
+
+  return {
+    current: available.at(-1) ?? null,
+    previous: available.at(-2) ?? null,
   };
 }
