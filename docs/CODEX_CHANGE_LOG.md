@@ -4,6 +4,98 @@ This file is the persistent implementation memory for changes made by Codex.
 Read it before modifying existing portal behavior, and update it after every
 completed change.
 
+## 2026-10-05 - Restore the generated-report Short Score ring
+
+- Area:
+  - User Portal -> Report Archive -> report viewer and downloaded daily PDF ->
+    Key Closing Signals -> Short Interest Score.
+- API/data:
+  - No API contract change. Continue using the calculated Short Score selected
+    from `GET /market-data/history?ticker={ticker}&category=rule-engine-short-score`
+    and `GET /market-data/current?ticker={ticker}&category=rule-engine-short-score`.
+- Reported problem and root cause:
+  - After the calculated-score API fix, the report displayed the numeric score
+    without the circular progress ring used by the accepted report design.
+  - The ring was implemented as a CSS `conic-gradient`. The client-side PDF
+    path captures report pages with `html2canvas`, which does not reliably
+    render that gradient and therefore retained only the centered score text.
+- Intended behavior and invariants:
+  - Render the Short Interest Score ring as inline SVG with a neutral track and
+    the score's existing risk color so it remains visible in both the HTML
+    report viewer and the canvas-backed downloaded PDF.
+  - Preserve the actual score text, including calculated scores above 100;
+    only cap the visual ring fill at 100%.
+  - Preserve the calculated-score API selection, as-of report-date safeguards,
+    risk bands, colors, comparison, AI analysis, translations, and report
+    layout unchanged.
+  - Bump the report-template asset version so deployed browsers do not reuse
+    the cached gradient renderer or stylesheet.
+- Files changed:
+  - `Report Templates/lean-daily-market-close-report/render.js`
+  - `Report Templates/lean-daily-market-close-report/styles.css`
+  - `Report Templates/lean-daily-market-close-report/template.html`
+  - `public/report-templates/daily-close/render.js`
+  - `public/report-templates/daily-close/styles.css`
+  - `public/report-templates/daily-close/template.html`
+  - `app/monitor/[ticker]/reports/client-report-pdf.ts`
+  - `docs/CODEX_CHANGE_LOG.md`
+- Verification:
+  - The report runtime rendered score `78` as an SVG with the expected neutral
+    track, risk-color stroke, `78 22` progress split, and centered score text.
+  - An `html2canvas` regression of the report card retained the complete
+    circular ring, confirming the downloaded-PDF rendering path.
+  - JavaScript syntax checks, TypeScript type-check, production build, and
+    whitespace validation passed.
+- Remaining backend dependency / limitation:
+  - None. This is a report-rendering correction; calculated-score availability
+    remains governed by the existing rule-engine APIs.
+
+## 2026-10-05 - Add pre-save shortable-share self-check
+
+- Area:
+  - Operations Portal -> Market Data -> Daily Market Inputs.
+- API/data:
+  - Existing `GET /market-data/history?ticker={ticker}&category=market-history`
+    field `availableSharesChartExchange` for the selected trade date.
+  - Existing `GET /manual-input/manual-availability?ticker={ticker}` fields
+    `tradeDate`, `availableSharesIbkr`, and `availableSharesFutu`.
+- Reported problem and root cause:
+  - Operations users had made several human input mistakes and had no quick
+    pre-save reference check within the entry form.
+  - The page already loaded the vendor and manual histories, but it did not
+    compare the current entries with those references.
+- Intended behavior and invariants:
+  - Add a read-only `Check Data` action beside the existing consolidation and
+    save actions. It opens a dialog and never writes, saves, or consolidates.
+  - Compare the currently entered IBKR Shortable Shares with the exact selected
+    date's ChartExchange `availableSharesChartExchange` value.
+  - Compare the currently entered Futu Shortable Shares with the latest
+    available earlier Futu manual record. Use the preceding available record,
+    not the preceding calendar date, so weekends, holidays, and missing dates
+    do not produce a false missing comparison.
+  - Show both values, their reference dates, and the signed calculation
+    `(entered - reference) / reference * 100` to two decimal places.
+  - Treat a missing entered/reference value or a zero reference as unavailable
+    and explain why rather than displaying an invalid percentage.
+  - Preserve the existing Save Data API-destination confirmation, ticker
+    mismatch protection, manual consolidation, field ownership, and all API
+    write behavior unchanged.
+- Files changed:
+  - `app/operations/market-data/MarketDataOperationsClient.tsx`
+  - `app/globals.css`
+  - `app/portal-theme.css`
+  - `docs/CODEX_CHANGE_LOG.md`
+- Verification:
+  - An authenticated mocked browser regression at 1024x768 confirmed the
+    responsive dialog, selected/reference dates, and expected calculations:
+    1,100,000 vs 1,000,000 = `+10.00%`; 1,000,000 vs 800,000 = `+25.00%`.
+  - TypeScript type-check, production build, and whitespace validation passed.
+- Remaining backend dependency / limitation:
+  - The IBKR comparison requires the selected Market History record to contain
+    `availableSharesChartExchange`. The Futu comparison requires at least one
+    earlier dated `availableSharesFutu` record. The dialog reports an explicit
+    unavailable state when either reference is absent.
+
 ## 2026-09-30 - Use calculated Short Score in generated reports
 
 - Area:

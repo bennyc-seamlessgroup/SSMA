@@ -166,11 +166,17 @@ function richText(value) {
 
 function shortScorePanel(scoreData) {
   const score = Math.max(0, Math.min(100, Number(scoreData?.score || 0)));
+  const scoreDisplay = scoreData?.scoreDisplay || 'N/A';
+  const scoreColor = scoreData?.color || '#cf3e4f';
   return `<div class="score-analysis-grid">
     <div class="card short-score-card">
       <div class="card-head"><h3>${esc(tr('Short Interest Score'))}</h3><span class="risk-pill ${esc(scoreData?.tone || '')}">${esc(tr(`${scoreData?.level || 'Unavailable'} Risk`))}</span></div>
       <div class="score-card-content">
-        <div class="short-score-ring" style="background:conic-gradient(${esc(scoreData?.color || '#cf3e4f')} ${score}%, #e7edf5 ${score}% 100%)"><div><b>${esc(scoreData?.scoreDisplay || 'N/A')}</b></div></div>
+        <svg class="short-score-ring" viewBox="0 0 108 108" role="img" aria-label="${esc(`${tr('Short Interest Score')} ${scoreDisplay}`)}">
+          <circle class="short-score-ring-track" cx="54" cy="54" r="43" pathLength="100" />
+          <circle class="short-score-ring-value" cx="54" cy="54" r="43" pathLength="100" stroke="${esc(scoreColor)}" stroke-dasharray="${score} ${Math.max(0, 100 - score)}" />
+          <text x="54" y="61" text-anchor="middle">${esc(scoreDisplay)}</text>
+        </svg>
         <div class="score-copy"><div class="score-change ${esc(scoreData?.deltaTone || '')}">${esc(scoreData?.changeDisplay || '--')} <span>${esc(tr('vs yesterday'))}</span></div><p>${esc(tr(scoreData?.summary || ''))}</p></div>
       </div>
       <div class="score-ranges">${(scoreData?.ranges || []).map(row => `<div class="${row.active ? 'active' : ''}"><b>${esc(row.range)}</b><span><strong>${esc(tr(row.level))}</strong>${esc(tr(row.description))}</span></div>`).join('')}</div>

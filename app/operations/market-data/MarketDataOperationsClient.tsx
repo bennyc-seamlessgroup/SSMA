@@ -102,6 +102,18 @@ type PendingMarketSave = {
   requests: MarketSavePlanItem[];
 };
 
+type AvailabilityComparison = {
+  id: 'ibkr-chart-exchange' | 'futu-previous';
+  title: string;
+  enteredLabel: string;
+  enteredValue: number | null;
+  referenceLabel: string;
+  referenceValue: number | null;
+  referenceDate: string;
+  differencePercent: number | null;
+  unavailableReason: string;
+};
+
 const dateSpecificCategories = ['issued-share', 'utilization', 'manual-availability', 'margins', 'short-score'] as const;
 const historyPageSize = 10;
 
@@ -137,6 +149,21 @@ function numberOrUndefined(value: string) {
   if (!value.trim()) return undefined;
   const parsed = Number(value.replace(/[%,$,]/g, ''));
   return Number.isFinite(parsed) ? parsed : undefined;
+}
+
+function percentageDifference(value: number | undefined, reference: number | null) {
+  if (value === undefined || reference === null || reference === 0) return null;
+  return ((value - reference) / reference) * 100;
+}
+
+function formatComparisonShares(value: number | null) {
+  return value === null ? 'Unavailable' : Math.round(value).toLocaleString('en-US');
+}
+
+function formatComparisonPercent(value: number | null) {
+  if (value === null) return 'Unavailable';
+  if (Math.abs(value) < 0.005) return '0.00%';
+  return `${value > 0 ? '+' : ''}${value.toFixed(2)}%`;
 }
 
 function latestMetricAtOrBefore(
@@ -547,6 +574,7 @@ export function MarketDataOperationsClient() {
   const [savedInputsLoadError, setSavedInputsLoadError] = useState('');
   const [manualRowsByDate, setManualRowsByDate] = useState<Record<string, MarketInputRow>>({});
   const [pendingSave, setPendingSave] = useState<PendingMarketSave | null>(null);
+  const [dataCheckOpen, setDataCheckOpen] = useState(false);
   const activeTickerRef = useRef('CURR');
   const loadGenerationRef = useRef(0);
   const [nowMs, setNowMs] = useState(() => Date.now());
@@ -773,15 +801,16 @@ export function MarketDataOperationsClient() {
   }, []);
 
   useEffect(() => {
-    if (!pendingSave) return;
+    if (!pendingSave && !dataCheckOpen) return;
     function cancelOnEscape(event: KeyboardEvent) {
       if (event.key !== 'Escape') return;
       setPendingSave(null);
+      setDataCheckOpen(false);
       setStatus('idle');
     }
     document.addEventListener('keydown', cancelOnEscape);
     return () => document.removeEventListener('keydown', cancelOnEscape);
-  }, [pendingSave]);
+  }, [dataCheckOpen, pendingSave]);
 
   const formHasAnyData = useMemo(
     () => Object.entries(form).some(([key, value]) => key !== 'tradeDate' && Boolean(value.trim())),
@@ -874,6 +903,57 @@ export function MarketDataOperationsClient() {
     () => selectedReadinessSummary.length > 0 && selectedReadinessSummary.every(field => field.value !== null),
     [selectedReadinessSummary],
   );
+  const availabilityComparisons = useMemo<AvailabilityComparison[]>(() => {
+    const selectedMarketRecord = marketHistory.find(record => marketRecordDate(record) === form.tradeDate);
+    const chartExchangeValue = marketNumber(selectedMarketRecord?.availableSharesChartExchange);
+    const enteredIbkr = numberOrUndefined(form.availableSharesIbkr);
+    const enteredFutu = numberOrUndefined(form.availableSharesFutu);
+    const previousFutuRecord = [...rows]
+      .filter(record => (
+        record.tradeDate < form.tradeDate
+        && record.availableSharesFutu !== undefined
+        && record.availableSharesFutu !== null
+      ))
+      .sort((a, b) => b.tradeDate.localeCompare(a.tradeDate))[0];
+    const previousFutuValue = previousFutuRecord?.availableSharesFutu ?? null;
+
+    return [
+      {
+        id: 'ibkr-chart-exchange',
+        title: 'IBKR vs ChartExchange',
+        enteredLabel: 'Entered IBKR shortable shares',
+        enteredValue: enteredIbkr ?? null,
+        referenceLabel: 'ChartExchange shortable shares',
+        referenceValue: chartExchangeValue,
+        referenceDate: chartExchangeValue === null ? '' : form.tradeDate,
+        differencePercent: percentageDifference(enteredIbkr, chartExchangeValue),
+        unavailableReason: enteredIbkr === undefined
+          ? 'Enter an IBKR Shortable Shares value to run this comparison.'
+          : chartExchangeValue === null
+            ? `ChartExchange shortable shares are not available in Market History for ${form.tradeDate || 'the selected date'}.`
+            : chartExchangeValue === 0
+              ? 'The ChartExchange reference is zero, so a percentage difference cannot be calculated.'
+              : '',
+      },
+      {
+        id: 'futu-previous',
+        title: 'Futu vs Previous Available Value',
+        enteredLabel: 'Entered Futu shortable shares',
+        enteredValue: enteredFutu ?? null,
+        referenceLabel: 'Previous available Futu shares',
+        referenceValue: previousFutuValue,
+        referenceDate: previousFutuRecord?.tradeDate ?? '',
+        differencePercent: percentageDifference(enteredFutu, previousFutuValue),
+        unavailableReason: enteredFutu === undefined
+          ? 'Enter a Futu Shortable Shares value to run this comparison.'
+          : previousFutuValue === null
+            ? 'No earlier Futu Shortable Shares record is available for this ticker.'
+            : previousFutuValue === 0
+              ? 'The previous Futu reference is zero, so a percentage difference cannot be calculated.'
+              : '',
+      },
+    ];
+  }, [form.availableSharesFutu, form.availableSharesIbkr, form.tradeDate, marketHistory, rows]);
   const busy = ['checking', 'loading', 'confirming', 'saving', 'consolidating'].includes(status);
   const selectedSavedRecord = useMemo(() => {
     const exactManualRecord = manualRowsByDate[manualRowKey(selectedTicker, form.tradeDate)];
@@ -910,6 +990,7 @@ export function MarketDataOperationsClient() {
       savedRecord?.issuedShare,
     ));
     setEditingDate('');
+    setDataCheckOpen(false);
     setMessage('');
     setStatus('idle');
   }
@@ -1207,6 +1288,65 @@ export function MarketDataOperationsClient() {
 
   return (
     <>
+      {dataCheckOpen ? (
+        <div className="ops-confirm-backdrop" role="presentation">
+          <section className="ops-confirm-modal ops-data-check-modal" role="dialog" aria-modal="true" aria-labelledby="market-data-check-title">
+            <div className="ops-confirm-modal__icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24"><path d="M4 19V5" /><path d="M4 19h16" /><path d="m7 15 4-4 3 2 5-6" /></svg>
+            </div>
+            <div className="ops-data-check-modal__body">
+              <span>Pre-save self-check</span>
+              <h2 id="market-data-check-title">Check shortable shares</h2>
+              <p>Review the entered values against independent or earlier reference data. This check does not save or change any data.</p>
+              <dl className="ops-data-check-context">
+                <div><dt>Ticker</dt><dd>{selectedTicker}</dd></div>
+                <div><dt>Selected trade date</dt><dd>{form.tradeDate || 'Not selected'}</dd></div>
+              </dl>
+              <div className="ops-data-check-list">
+                {availabilityComparisons.map(comparison => {
+                  const comparisonState = comparison.differencePercent === null
+                    ? 'unavailable'
+                    : Math.abs(comparison.differencePercent) < 0.005
+                      ? 'match'
+                      : 'different';
+                  return (
+                    <article key={comparison.id} className={`ops-data-check-card is-${comparisonState}`}>
+                      <div className="ops-data-check-card__head">
+                        <h3>{comparison.title}</h3>
+                        <span>{comparisonState === 'match' ? 'Match' : comparisonState === 'different' ? 'Review difference' : 'Incomplete'}</span>
+                      </div>
+                      <div className="ops-data-check-values">
+                        <div>
+                          <small>{comparison.enteredLabel}</small>
+                          <strong>{formatComparisonShares(comparison.enteredValue)}</strong>
+                          <em>{form.tradeDate || 'No selected date'}</em>
+                        </div>
+                        <div>
+                          <small>{comparison.referenceLabel}</small>
+                          <strong>{formatComparisonShares(comparison.referenceValue)}</strong>
+                          <em>{comparison.referenceDate ? `Reference date ${comparison.referenceDate}` : 'No reference date'}</em>
+                        </div>
+                        <div className="ops-data-check-difference">
+                          <small>Difference</small>
+                          <strong>{formatComparisonPercent(comparison.differencePercent)}</strong>
+                          <em>(Entered − reference) ÷ reference</em>
+                        </div>
+                      </div>
+                      {comparison.unavailableReason ? <p>{comparison.unavailableReason}</p> : null}
+                    </article>
+                  );
+                })}
+              </div>
+              <p className="ops-data-check-source-note">
+                Sources: <code>GET /market-data/history?category=market-history</code> and <code>GET /manual-input/manual-availability</code>.
+              </p>
+            </div>
+            <footer>
+              <button className="ops-primary-button" type="button" onClick={() => setDataCheckOpen(false)}>Done</button>
+            </footer>
+          </section>
+        </div>
+      ) : null}
       {pendingSave ? (
         <div className="ops-confirm-backdrop" role="presentation">
           <section className="ops-confirm-modal ops-save-confirm-modal" role="dialog" aria-modal="true" aria-labelledby="market-save-confirm-title">
@@ -1315,6 +1455,14 @@ export function MarketDataOperationsClient() {
               ? 'Enter the required values to prepare this trade date.'
               : 'Save the Manual Input record first. Run consolidation separately after all additions and deletions are complete.'}</span>
             <div className="ops-form-actions">
+              <button
+                className="ops-secondary-button"
+                type="button"
+                disabled={!form.tradeDate || busy}
+                onClick={() => setDataCheckOpen(true)}
+              >
+                Check Data
+              </button>
               <button
                 className="ops-secondary-button"
                 type="button"
