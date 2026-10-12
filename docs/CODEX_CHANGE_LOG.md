@@ -4,6 +4,140 @@ This file is the persistent implementation memory for changes made by Codex.
 Read it before modifying existing portal behavior, and update it after every
 completed change.
 
+## 2026-10-12 - Keep Exchange Share period controls on one row
+
+- Area:
+  - User Portal -> Exchange Volume -> Exchange Share by Venue.
+- API/data:
+  - No API or data-mapping change.
+- Reported problem and root cause:
+  - The five period buttons wrapped into two rows because the header action
+    area was allowed to wrap while a long technical subtitle consumed most of
+    the available width.
+- Intended behavior and invariants:
+  - Keep 1M, 3M, 6M, 1Y, and All in one horizontal row at supported desktop and
+    tablet widths, while retaining the existing mobile stacked header layout.
+  - Replace the implementation-heavy subtitle with the concise description
+    `Daily venue share percentages with Trade Volume for context.`
+  - Preserve all period filtering, selected state, chart data, series toggles,
+    APIs, themes, responsiveness, and localization.
+- Files changed:
+  - `app/monitor/[ticker]/exchange-volume/ExchangeVolumeBrowserPage.tsx`
+  - `app/globals.css`
+  - `lib/portal-page-translations.ts`
+  - `docs/CODEX_CHANGE_LOG.md`
+- Verification:
+  - Mocked authenticated browser verification at 1440px confirmed that all
+    five period buttons share one vertical position and the shorter subtitle
+    renders correctly.
+  - TypeScript type-check and whitespace validation passed.
+- Remaining backend dependency / limitation:
+  - None. This is a presentation-only change.
+
+## 2026-10-12 - Merge the dated exchange snapshot and restore calendar-only selection
+
+- Area:
+  - User Portal -> Exchange Volume -> Exchange Volume Overview and Exchange
+    Share snapshot.
+- API/data:
+  - No API contract change. Continue using Market Current for Latest and the
+    exact-date Market History plus Exchange Volume History records for past
+    dates.
+- Reported problem and root cause:
+  - The date input referenced a datalist containing every available history
+    date. Browsers could therefore present an oldest-first suggestion dropdown
+    beginning in 2024 instead of the expected calendar selection experience.
+  - Although one date controlled both snapshot sections, the market cards and
+    venue-share pie remained in separate outer bordered sections, making the
+    control's shared scope less obvious.
+- Intended behavior and invariants:
+  - Keep the native `type=date` calendar and its min/max safeguards, but remove
+    the history datalist so opening the field uses the browser or device's
+    normal calendar picker.
+  - Place OHLC / Trade Volume and the exchange-share snapshot inside one outer
+    Exchange Volume Overview section, separated by an internal divider and
+    subheading. The single date control visibly governs both subsections.
+  - Preserve Latest reset, exact-date lookup, missing-date behavior, current
+    and history APIs, percentage parsing, Trade Volume chart line, responsive
+    layout, themes, translations, and Development Data.
+- Files changed:
+  - `app/monitor/[ticker]/exchange-volume/ExchangeVolumeBrowserPage.tsx`
+  - `app/globals.css`
+  - `docs/CODEX_CHANGE_LOG.md`
+- Verification:
+  - TypeScript type-check and whitespace validation passed.
+  - Mocked authenticated browser verification confirmed one outer snapshot
+    section, no separate Exchange Share section, a native date input, and no
+    attached datalist.
+- Remaining backend dependency / limitation:
+  - None beyond the historical-field availability documented in the preceding
+    Exchange Volume change. Calendar appearance is supplied by the user's
+    browser and operating system.
+
+## 2026-10-12 - Add dated exchange snapshots and Trade Volume context
+
+- Area:
+  - User Portal -> Exchange Volume -> Exchange Volume Overview.
+  - User Portal -> Exchange Volume -> Latest Exchange Share.
+  - User Portal -> Exchange Volume -> Exchange Share by Venue.
+- API/data:
+  - `GET /market-data/current?ticker={ticker}&category=market-current` for the
+    default current OHLC, `tradeVolume`, and current exchange percentages.
+  - `GET /market-data/history?ticker={ticker}&category=market-history` for an
+    exact selected date's historical OHLC and `tradeVolume`.
+  - `GET /market-data/history?ticker={ticker}&category=exchange-volume-history`
+    for an exact selected date's exchange percentages and historical
+    `totalVolume`.
+- Reported problem and root cause:
+  - The Overview omitted Trade Volume and both snapshot sections were fixed to
+    the current payload, so users could not inspect a prior day's price,
+    volume, or venue-share snapshot.
+  - The historical venue chart deliberately ignored non-percentage fields,
+    including `totalVolume`, and enabled every venue by default. This preserved
+    percentage accuracy but made it impossible to compare venue share with
+    overall trading activity and made the chart visually dense.
+- Intended behavior and invariants:
+  - Add Trade Volume immediately after Closing Price. Current mode uses
+    `market-current.tradeVolume`; historical mode uses only the exact selected
+    `market-history` record.
+  - Add one shared Data Date control for Overview and Exchange Share. It starts
+    in Latest mode using Market Current. A past date switches both snapshot
+    sections to their respective exact-date history records; no earlier date
+    is silently substituted when either source is missing.
+  - End the existing historical chart at the selected data date while retaining
+    the 1M / 3M / 6M / 1Y / All lookback controls.
+  - Overlay Trade Volume on the stacked percentage bars using a separate
+    right-side volume axis. Prefer same-date
+    `exchange-volume-history.totalVolume`; use exact-date
+    `market-history.tradeVolume` only when the exchange record omits the total.
+    Missing dates and values remain missing and are not synthesized.
+  - Enable Trade Volume and Off Exchange by default and leave all other venue
+    series disabled. Preserve independent Trade Volume and venue toggles plus
+    Show all / Hide all for venue series.
+  - Preserve the accepted percentage-only venue parser, raw API percentage
+    values without normalization, Off Exchange explanation, development data,
+    localization, responsive layout, themes, and independent API errors.
+- Files changed:
+  - `app/monitor/[ticker]/exchange-volume/ExchangeVolumeBrowserPage.tsx`
+  - `app/globals.css`
+  - `lib/portal-page-translations.ts`
+  - `docs/CODEX_CHANGE_LOG.md`
+- Verification:
+  - TypeScript type-check passed.
+  - Production build passed; the only initial CSS compatibility warning was
+    removed by using `flex-end` for the date control alignment.
+  - Mocked authenticated browser verification at desktop and tablet widths
+    confirmed the five overview cards, current date default, historical
+    exact-date OHLC/volume/share switch, dual percentage/volume axes, and the
+    default enabled series of Trade Volume plus Off Exchange only.
+- Remaining backend dependency / limitation:
+  - The integration contract identifies both history categories but does not
+    document their complete record schemas. The volume line requires
+    `totalVolume` in exchange-volume history or an exact-date `tradeVolume` in
+    market history; it remains unavailable when neither is supplied.
+  - The history API has no documented date query parameter, so the page loads
+    the full history payloads once and selects the requested date locally.
+
 ## 2026-10-05 - Restore the generated-report Short Score ring
 
 - Area:

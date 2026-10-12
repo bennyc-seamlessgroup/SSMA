@@ -31464,8 +31464,110 @@ button[aria-busy="true"]::before {
 
 .exchange-volume-price-grid {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(5, minmax(0, 1fr));
   gap: 10px;
+}
+
+.exchange-volume-current-subsection {
+  margin-top: 18px;
+  padding-top: 16px;
+  border-top: 1px solid #dbe6f3;
+}
+
+.exchange-volume-current-subsection > .terminal-section__head {
+  margin-bottom: 10px;
+}
+
+.exchange-volume-overview-actions {
+  min-width: min(100%, 440px);
+  display: grid;
+  justify-items: end;
+  gap: 8px;
+}
+
+.exchange-volume-date-control {
+  display: flex;
+  align-items: flex-end;
+  justify-content: flex-end;
+  gap: 7px;
+}
+
+.exchange-volume-date-control label {
+  display: grid;
+  gap: 4px;
+}
+
+.exchange-volume-date-control label > span {
+  color: #64748d;
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+
+.exchange-volume-date-control input,
+.exchange-volume-date-control button {
+  min-height: 34px;
+  border: 1px solid #d7e1ed;
+  border-radius: 7px;
+  color: #24364c;
+  background: #fff;
+  font: inherit;
+  font-size: 11px;
+  font-weight: 650;
+}
+
+.exchange-volume-date-control input {
+  min-width: 150px;
+  padding: 6px 10px;
+}
+
+.exchange-volume-date-control button {
+  padding: 6px 12px;
+  cursor: pointer;
+}
+
+.exchange-volume-date-control button:hover:not(:disabled),
+.exchange-volume-date-control button.active {
+  border-color: #94b9ee;
+  color: #174ea6;
+  background: #edf5ff;
+}
+
+.exchange-volume-date-control button:disabled {
+  opacity: .45;
+  cursor: not-allowed;
+}
+
+.exchange-volume-date-notice {
+  margin-bottom: 10px;
+  padding: 9px 11px;
+  border: 1px solid #f6d58a;
+  border-radius: 7px;
+  color: #86580b;
+  background: #fff9e8;
+  font-size: 11px;
+  font-weight: 650;
+}
+
+.exchange-volume-selected-date {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin: 7px 0 0;
+  color: #64748d;
+  font-size: 10.5px;
+}
+
+.exchange-volume-selected-date span {
+  font-weight: 700;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+}
+
+.exchange-volume-selected-date strong {
+  color: #24364c;
+  font-weight: 700;
 }
 
 .exchange-volume-price-card {
@@ -31514,11 +31616,23 @@ button[aria-busy="true"]::before {
   flex-wrap: wrap;
 }
 
+.exchange-volume-history-section .terminal-section__head > div:first-child {
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+.exchange-volume-history-section .exchange-volume-actions {
+  flex: 0 0 auto;
+  flex-wrap: nowrap;
+}
+
 .exchange-volume-periods {
+  flex-wrap: nowrap;
   padding: 3px;
   border: 1px solid #dbe6f3;
   border-radius: 8px;
   background: #f7faff;
+  white-space: nowrap;
 }
 
 .exchange-volume-periods button {
@@ -31631,11 +31745,22 @@ button[aria-busy="true"]::before {
   opacity: .34;
 }
 
+.exchange-volume-legend-items button:disabled {
+  opacity: .28;
+  cursor: not-allowed;
+}
+
 .exchange-volume-legend-items i {
   width: 9px;
   height: 9px;
   border-radius: 2px;
   flex: 0 0 auto;
+}
+
+.exchange-volume-legend-items .exchange-volume-trade-toggle i,
+.exchange-volume-tooltip-trade-volume i {
+  height: 3px;
+  border-radius: 999px;
 }
 
 .exchange-volume-chart-scroll {
@@ -31674,6 +31799,29 @@ button[aria-busy="true"]::before {
 
 .exchange-volume-stacked-segment.is-muted {
   opacity: .32;
+}
+
+.exchange-volume-trade-line {
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  pointer-events: none;
+}
+
+.exchange-volume-trade-point {
+  stroke: #fff;
+  stroke-width: .75;
+  transition: opacity 100ms ease, r 100ms ease;
+  pointer-events: none;
+}
+
+.exchange-volume-trade-point.is-muted {
+  opacity: .35;
+}
+
+.exchange-volume-volume-axis-label {
+  fill: #be123c;
+  font-weight: 700;
 }
 
 .exchange-volume-hover-bar {
@@ -31978,14 +32126,21 @@ button[aria-busy="true"]::before {
 }
 
 html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .exchange-volume-overview,
-html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .exchange-volume-history-section,
-html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .exchange-volume-current-section {
+html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .exchange-volume-history-section {
   border-color: #334155;
   background: #1e293b;
 }
 
+html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .exchange-volume-current-subsection {
+  border-top-color: #334155;
+}
+
 html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .exchange-volume-price-card > strong,
 html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .exchange-volume-pie-legend-row strong {
+  color: #edf4ff;
+}
+
+html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .exchange-volume-selected-date strong {
   color: #edf4ff;
 }
 
@@ -32018,6 +32173,32 @@ html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .exchan
   box-shadow: none;
 }
 
+html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .exchange-volume-date-control label > span,
+html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .exchange-volume-selected-date {
+  color: #aebdd0;
+}
+
+html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .exchange-volume-date-control input,
+html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .exchange-volume-date-control button {
+  border-color: #3b4b61;
+  color: #dbe7f5;
+  background: #162235;
+  color-scheme: dark;
+}
+
+html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .exchange-volume-date-control button:hover:not(:disabled),
+html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .exchange-volume-date-control button.active {
+  border-color: #4b6486;
+  color: #91c1ff;
+  background: #243750;
+}
+
+html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .exchange-volume-date-notice {
+  border-color: #7c5a18;
+  color: #f9d88a;
+  background: #392f1c;
+}
+
 html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .exchange-volume-grid-line {
   stroke: #334155;
 }
@@ -32044,6 +32225,14 @@ html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .exchan
 
 html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .exchange-volume-axis-label {
   fill: #93a4ba;
+}
+
+html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .exchange-volume-volume-axis-label {
+  fill: #fda4af;
+}
+
+html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .exchange-volume-trade-point {
+  stroke: #1e293b;
 }
 
 html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .exchange-volume-pie {
@@ -32074,6 +32263,10 @@ html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .exchan
   .exchange-volume-price-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
+
+  .exchange-volume-overview-actions {
+    min-width: 0;
+  }
 }
 
 @media (max-width: 760px) {
@@ -32091,6 +32284,15 @@ html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .exchan
     flex-direction: column;
   }
 
+  .exchange-volume-overview-actions {
+    width: 100%;
+    justify-items: stretch;
+  }
+
+  .exchange-volume-date-control {
+    justify-content: flex-start;
+  }
+
   .exchange-volume-periods {
     justify-content: space-between;
   }
@@ -32105,5 +32307,15 @@ html[data-portal-design="b"][data-design-b-theme="dark"] .monitor-portal .exchan
 @media (max-width: 520px) {
   .exchange-volume-price-grid {
     grid-template-columns: 1fr;
+  }
+
+  .exchange-volume-date-control {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .exchange-volume-date-control input,
+  .exchange-volume-date-control button {
+    width: 100%;
   }
 }
