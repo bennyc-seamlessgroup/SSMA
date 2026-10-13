@@ -4,6 +4,33 @@ This file is the persistent implementation memory for changes made by Codex.
 Read it before modifying existing portal behavior, and update it after every
 completed change.
 
+## 2026-10-13 - Correct the public portal contact email
+
+- Area:
+  - Public landing page -> Pricing and Request Access.
+- API/data:
+  - No API or data-mapping change. The contact action is a static `mailto:`
+    link.
+- Reported problem and root cause:
+  - The Request Access action still used the retired
+    `info@currencintelligence.com` address.
+- Intended behavior and invariants:
+  - Public company-contact links use `info@currenc.capital`.
+  - Preserve the existing email subject, Request Access wording, styling, and
+    pricing/request section behavior.
+  - Demo-account addresses, user-email fields, and sample form placeholders
+    are not company-contact addresses and remain unchanged.
+- Files changed:
+  - `app/page.tsx`
+  - `docs/CODEX_CHANGE_LOG.md`
+- Verification:
+  - Repository-wide contact search found no remaining
+    `@currencintelligence.com` address in the application.
+  - TypeScript type-check and whitespace validation passed.
+- Remaining backend dependency / limitation:
+  - None in the portal. Delivery still depends on the
+    `info@currenc.capital` mailbox being configured externally.
+
 ## 2026-10-12 - Keep Exchange Share period controls on one row
 
 - Area:

@@ -439,7 +439,7 @@ export default function LandingPage() {
         <p>Request access to review how Currenc Intelligence can support short monitoring, ownership intelligence, and daily executive reporting.</p>
         <div>
           <Link href="/demo" target="_blank" rel="noreferrer" className="ci-secondary-button ci-large-button">Open Live Demo</Link>
-          <a href="mailto:info@currencintelligence.com?subject=Currenc%20Intelligence%20Access%20Request" className="ci-primary-button ci-large-button">Request Access <Icon name="send" /></a>
+          <a href="mailto:info@currenc.capital?subject=Currenc%20Intelligence%20Access%20Request" className="ci-primary-button ci-large-button">Request Access <Icon name="send" /></a>
         </div>
         <small><Icon name="lock" /> Secure platform · Institutional deployment · Daily report archive</small>
       </section>
