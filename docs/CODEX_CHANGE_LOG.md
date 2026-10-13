@@ -4,6 +4,46 @@ This file is the persistent implementation memory for changes made by Codex.
 Read it before modifying existing portal behavior, and update it after every
 completed change.
 
+## 2026-10-13 - Align report Current Posture with the calculated Short Score
+
+- Area:
+  - User Portal -> Report Archive -> report viewer and downloaded daily PDF ->
+    cover Current Posture and Key Closing Signals header.
+- API/data:
+  - Existing calculated-score reads remain unchanged:
+    `GET /market-data/history?ticker={ticker}&category=rule-engine-short-score`
+    and
+    `GET /market-data/current?ticker={ticker}&category=rule-engine-short-score`.
+- Reported problem and root cause:
+  - The report score card correctly used the calculated rule-engine score, but
+    the cover posture still copied the dated report payload's legacy `status`.
+    That status could retain the unavailable manual-score value and display
+    `Short Interest Pressure N/A` even when the report contained a valid
+    calculated score.
+- Intended behavior and invariants:
+  - Derive the report's top-level posture from the same as-of-date calculated
+    score used by the Short Interest Score card: Low, Moderate, High, or
+    Extreme Short Interest Pressure.
+  - Keep `Short Interest Pressure N/A` only when no eligible calculated score
+    exists on or before the report date.
+  - Preserve historical as-of-date selection, the prohibition against using a
+    newer current score in an older report, the no-manual-score-fallback rule,
+    score ranges, AI analysis, translations, report layout, and PDF rendering.
+- Files changed:
+  - `lib/rule-engine-short-score.ts`
+  - `app/monitor/[ticker]/reports/daily-report-data.ts`
+  - `Report Templates/lean-daily-market-close-report/REPORT_DATA_CONTRACT.md`
+  - `docs/CODEX_CHANGE_LOG.md`
+- Verification:
+  - TypeScript type-check, production build, and whitespace validation passed.
+  - Posture-mapping regression checks covered Low, Moderate, High, Extreme,
+    and unavailable scores; unavailable calculated data retains the explicit
+    N/A posture.
+- Remaining backend dependency / limitation:
+  - At least one eligible rule-engine score snapshot must exist on or before
+    the report date. The frontend intentionally does not use the legacy manual
+    score when calculated history is unavailable.
+
 ## 2026-10-13 - Correct the public portal contact email
 
 - Area:

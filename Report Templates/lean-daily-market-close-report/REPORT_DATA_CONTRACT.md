@@ -14,7 +14,7 @@ Lean V1 renders only fields supported by currently implemented APIs. Missing sec
   "ticker": "CURR",
   "reportDate": "Jul 21, 2026",
   "generatedAt": "Jul 21, 2026, 7:05 PM ET",
-  "status": "Moderate Lending Pressure",
+  "status": "Moderate Short Interest Pressure",
   "legalDisclaimers": {},
   "tradingSnapshot": {},
   "snapshotKpis": [],
@@ -86,6 +86,12 @@ file. When the separate AI response is unavailable, the report displays the
 standard unavailable message and continues rendering the remaining sections.
 
 Use the same score ranges as the portal: `0-39 Low`, `40-64 Moderate`, `65-80 High`, and `>80 Extreme`. Short Score has no upper limit. Do not generate or split the AI text in the frontend.
+
+The top-level `status` shown as the report's Current Posture is derived from
+this same selected calculated score as `{level} Short Interest Pressure`. It
+must not reuse a legacy status whose manual score is unavailable. When no
+eligible calculated snapshot exists on or before the report date, use the
+explicit `Short Interest Pressure N/A` posture.
 
 ## Short and Lending
 

@@ -8,6 +8,23 @@ export type RuleEngineShortScoreSnapshot = {
   status: string;
 };
 
+export type RuleEngineShortScoreLevel = 'Unavailable' | 'Low' | 'Moderate' | 'High' | 'Extreme';
+
+export function ruleEngineShortScoreLevel(score: number | null): RuleEngineShortScoreLevel {
+  if (score === null) return 'Unavailable';
+  if (score > 80) return 'Extreme';
+  if (score >= 65) return 'High';
+  if (score >= 40) return 'Moderate';
+  return 'Low';
+}
+
+export function ruleEngineShortScorePosture(score: number | null) {
+  const level = ruleEngineShortScoreLevel(score);
+  return level === 'Unavailable'
+    ? 'Short Interest Pressure N/A'
+    : `${level} Short Interest Pressure`;
+}
+
 function record(value: unknown): Row {
   return value && typeof value === 'object' && !Array.isArray(value) ? value as Row : {};
 }

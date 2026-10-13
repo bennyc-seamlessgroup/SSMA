@@ -7,6 +7,8 @@ import type { PortalLanguage } from '@/lib/portal-i18n';
 import type { ReportArchiveRecord } from '@/lib/report-archive';
 import {
   normalizeRuleEngineShortScore,
+  ruleEngineShortScoreLevel,
+  ruleEngineShortScorePosture,
   selectRuleEngineShortScoreAsOf,
   type RuleEngineShortScoreSelection,
 } from '@/lib/rule-engine-short-score';
@@ -123,15 +125,7 @@ function shortScoreSummary(level: string) {
 
 function normalizeShortInterestScore(selection: RuleEngineShortScoreSelection) {
   const score = selection.current?.finalScore ?? null;
-  const level = score === null
-    ? 'Unavailable'
-    : score > 80
-      ? 'Extreme'
-      : score >= 65
-        ? 'High'
-        : score >= 40
-          ? 'Moderate'
-          : 'Low';
+  const level = ruleEngineShortScoreLevel(score);
   const tone = level.toLowerCase();
   const previousScore = selection.previous?.finalScore ?? null;
   const numericChange = score !== null && previousScore !== null ? score - previousScore : null;
@@ -775,6 +769,10 @@ function normalizeReportPayload(
     ...payload,
     portalLanguage: language,
     generatedAtIso: report.generatedAt,
+    // Keep the report cover and page-two posture aligned with the calculated
+    // rule-engine score selected for this report date. The dated report's
+    // legacy status can still contain an obsolete manual-score N/A value.
+    status: ruleEngineShortScorePosture(shortInterestScore.score),
     // Older archived report objects use asOfDate, while the current lean
     // report contract uses reportDateIso. Normalize the validated date so the
     // renderer receives one canonical field without weakening date matching.
