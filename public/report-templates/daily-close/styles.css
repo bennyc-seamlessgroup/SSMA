@@ -294,6 +294,15 @@ body { font-size: 12px; }
 .metric-delta strong { font-size: 9.5px; }
 .metric-delta span { color: #718199; font-size: 8px; }
 
+.metric-as-of {
+  min-height: 25px;
+  margin-top: 7px;
+  color: #526b8c;
+  font-size: 8.5px;
+  font-weight: 800;
+  line-height: 1.3;
+}
+
 .metric-delta.positive { color: var(--green); }
 .metric-delta.negative { color: var(--red); }
 .metric-delta.warning { color: var(--amber); }

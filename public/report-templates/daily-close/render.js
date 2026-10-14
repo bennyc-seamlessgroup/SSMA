@@ -146,14 +146,20 @@ function chartSvg(chart) {
 }
 
 function kpiCards(items) {
-  return (items || []).map(item => `<div class="metric-card">
-    <div class="metric-label">${esc(tr(item.label))}</div>
-    <div class="metric-value">${esc(item.value)}</div>
-    <div class="metric-delta ${esc(item.tone || '')}">
-      <strong>${esc(item.changeValue || '--')}</strong>
-      <span>${esc(item.changePercent || '--')} ${esc(tr(item.comparisonLabel || 'vs previous trading day'))}</span>
-    </div>
-  </div>`).join('');
+  return (items || []).map(item => {
+    const fallbackDate = formatWindowDate(item.fallbackAsOfDate);
+    const footer = fallbackDate
+      ? `<div class="metric-as-of">${esc(tr('As of'))} ${esc(fallbackDate)}</div>`
+      : `<div class="metric-delta ${esc(item.tone || '')}">
+          <strong>${esc(item.changeValue || '--')}</strong>
+          <span>${esc(item.changePercent || '--')} ${esc(tr(item.comparisonLabel || 'vs previous trading day'))}</span>
+        </div>`;
+    return `<div class="metric-card">
+      <div class="metric-label">${esc(tr(item.label))}</div>
+      <div class="metric-value">${esc(item.value)}</div>
+      ${footer}
+    </div>`;
+  }).join('');
 }
 
 function richText(value) {

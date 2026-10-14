@@ -5,6 +5,7 @@ import { aiReportTextForLanguage } from '@/lib/ai-report-localization';
 import { cachedAuthenticatedFetch, invalidateAuthenticatedFetchCache } from '@/lib/auth-client';
 import type { PortalLanguage } from '@/lib/portal-i18n';
 import type { ReportArchiveRecord } from '@/lib/report-archive';
+import { applyDaysToCoverFallback } from '@/lib/report-days-to-cover';
 import {
   normalizeRuleEngineShortScore,
   ruleEngineShortScoreLevel,
@@ -749,9 +750,15 @@ function normalizeReportPayload(
     throw new Error(`The report API returned ${responseDate || 'an unknown date'} instead of ${report.reportDate}.`);
   }
 
-  const snapshotKpis = Array.isArray(payload.snapshotKpis)
+  const normalizedSnapshotKpis = Array.isArray(payload.snapshotKpis)
     ? payload.snapshotKpis.map(normalizeMarginKpi)
     : [];
+  const shortLending = objectValue(payload.shortLending);
+  const snapshotKpis = applyDaysToCoverFallback(
+    normalizedSnapshotKpis,
+    shortLending.daysToCoverChart,
+    responseDate,
+  );
   const embeddedCalculatedScore = normalizeRuleEngineShortScore(payload.shortInterestScore);
   const embeddedSelection = embeddedCalculatedScore.finalScore !== null
     && embeddedCalculatedScore.snapshotDate
@@ -761,7 +768,6 @@ function normalizeReportPayload(
   const shortInterestScore = normalizeShortInterestScore(
     calculatedScoreSelection.current ? calculatedScoreSelection : embeddedSelection,
   );
-  const shortLending = objectValue(payload.shortLending);
   const ftdChart = objectValue(shortLending.ftdChart);
   const sentiment = normalizeSevenDaySentiment(payload);
 

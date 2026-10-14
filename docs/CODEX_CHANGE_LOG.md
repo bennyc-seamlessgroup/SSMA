@@ -4,6 +4,59 @@ This file is the persistent implementation memory for changes made by Codex.
 Read it before modifying existing portal behavior, and update it after every
 completed change.
 
+## 2026-10-14 - Label the Days to Cover report fallback by source date
+
+- Area:
+  - User Portal -> Report Archive -> report viewer and downloaded daily PDF ->
+    Key Closing Signals -> Days to Cover.
+- API/data:
+  - Existing dated
+    `GET /market-data/reports?ticker={ticker}&date={YYYY-MM-DD}` response only.
+  - The fallback uses `shortLending.daysToCoverChart.dates` and `.values` from
+    that same frozen dated report payload.
+- Reported problem and root cause:
+  - INTJ's October 12 report had an unavailable exact-date Days to Cover KPI,
+    while its report-owned trend contained the latest valid value of 1.44 from
+    October 9. The renderer displayed only `N/A`, even though the preceding
+    dated observation was available.
+- Intended behavior and invariants:
+  - Preserve an available exact-date Days to Cover KPI unchanged.
+  - When only that KPI is unavailable, select the latest valid trend
+    observation on or before the report date and show its value in the card.
+  - Label the fallback visibly as `As of {source date}`; for INTJ this is
+    `As of Oct 9, 2026`.
+  - Do not display a day-over-day change for a fallback value because it is not
+    the report-date observation.
+  - Never use future observations, never synthesize zero, and do not apply the
+    fallback to the other seven snapshot KPIs.
+  - Preserve report-date validation, calculated Short Score selection, AI
+    analysis, localization, report layout, and PDF generation.
+- Files changed:
+  - `lib/report-days-to-cover.ts`
+  - `app/monitor/[ticker]/reports/daily-report-data.ts`
+  - `Report Templates/lean-daily-market-close-report/render.js`
+  - `Report Templates/lean-daily-market-close-report/styles.css`
+  - `Report Templates/lean-daily-market-close-report/template.html`
+  - `Report Templates/lean-daily-market-close-report/REPORT_DATA_CONTRACT.md`
+  - `public/report-templates/daily-close/render.js`
+  - `public/report-templates/daily-close/styles.css`
+  - `public/report-templates/daily-close/template.html`
+  - `app/monitor/[ticker]/reports/client-report-pdf.ts`
+  - `docs/CODEX_CHANGE_LOG.md`
+- Verification:
+  - Regression checks confirmed that the fallback selects INTJ's October 9
+    value of 1.44, excludes a future October 13 observation, preserves a valid
+    exact-date KPI, and leaves other unavailable KPIs unchanged.
+  - The HTML report rendered `1.44 days` with `As of Oct 9, 2026`.
+  - A four-page A4 PDF render was visually inspected; the dated label is clear,
+    aligned, and unclipped in the Days to Cover card.
+  - JavaScript syntax checks, TypeScript type-check, and whitespace validation
+    passed.
+- Remaining backend dependency / limitation:
+  - A fallback is possible only when the dated report already contains a valid
+    Days to Cover trend observation on or before the report date. Otherwise the
+    KPI remains `N/A`.
+
 ## 2026-10-13 - Align report Current Posture with the calculated Short Score
 
 - Area:
