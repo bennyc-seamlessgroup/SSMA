@@ -50,13 +50,19 @@ Each item is already formatted by the backend:
 }
 ```
 
-Days to Cover has one frontend fallback for incomplete exact-date reports. If
-the dated `snapshotKpis` value is unavailable, use the latest valid observation
-on or before the report date from that same payload's
-`shortLending.daysToCoverChart`. The card must display the observation date as
-`As of {date}` and must not present that historical observation as report-date
-data. Do not apply this fallback to any other KPI, and do not show a derived
-day-over-day comparison for the fallback value.
+Two KPIs have frontend fallbacks for incomplete exact-date reports:
+
+- If Days to Cover is unavailable, use the latest valid observation on or
+  before the report date from that same payload's
+  `shortLending.daysToCoverChart`.
+- If Short Interest % is unavailable, use the latest valid
+  `shortInterestPercent` observation on or before the report date from
+  `GET /market-data/history?ticker={ticker}&category=market-history`.
+
+Both fallback cards must display the observation date as `As of {date}` and
+must not present the historical observation as report-date data. Do not apply
+these fallbacks to any other KPI, never use a future observation, and do not
+show a derived day-over-day comparison for a fallback value.
 
 Both changes compare with the immediately preceding trading-day record. Supported tones are `positive`, `negative`, `warning`, or an empty string.
 

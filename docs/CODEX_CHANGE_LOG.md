@@ -4,6 +4,50 @@ This file is the persistent implementation memory for changes made by Codex.
 Read it before modifying existing portal behavior, and update it after every
 completed change.
 
+## 2026-10-14 - Fall back report Short Interest to the previous available date
+
+- Area:
+  - User Portal -> Report Archive -> report viewer and downloaded daily PDF ->
+    Key Closing Signals -> Short Interest %.
+- API/data:
+  - Primary dated report remains
+    `GET /market-data/reports?ticker={ticker}&date={YYYY-MM-DD}`.
+  - New fallback read:
+    `GET /market-data/history?ticker={ticker}&category=market-history`, using
+    `tradeDate` and `shortInterestPercent`.
+- Reported problem and root cause:
+  - Some dated reports contain an unavailable Short Interest % KPI even though
+    an earlier valid Short Interest observation exists in Market History.
+  - Unlike Days to Cover, the report frontend had no guarded historical
+    fallback for this KPI and therefore displayed `N/A`.
+- Intended behavior and invariants:
+  - Preserve a valid dated-report Short Interest % value unchanged.
+  - When only that KPI is unavailable, select the latest valid Market History
+    Short Interest % observation on or before the report date.
+  - Display the fallback observation date as `As of {source date}` and suppress
+    the day-over-day delta because the value is not a report-date observation.
+  - Never use a future observation or synthesize zero. If Market History is
+    unavailable or has no eligible observation, retain `N/A`.
+  - Preserve the existing Days to Cover fallback, the other six snapshot KPIs,
+    calculated Short Score selection, AI analysis, localization, report
+    layout, and PDF generation.
+- Files changed:
+  - `lib/report-short-interest.ts`
+  - `app/monitor/[ticker]/reports/daily-report-data.ts`
+  - `app/monitor/[ticker]/reports/ReportArchiveDevTables.tsx`
+  - `Report Templates/lean-daily-market-close-report/REPORT_DATA_CONTRACT.md`
+  - `docs/CODEX_CHANGE_LOG.md`
+- Verification:
+  - TypeScript type-check passed.
+  - Focused regression checks confirmed selection of the latest eligible
+    observation, exclusion of a future observation, preservation of an
+    existing exact-date KPI, and no change to an unrelated unavailable KPI.
+  - Production build and whitespace validation passed.
+- Remaining backend dependency / limitation:
+  - The fallback requires at least one valid `shortInterestPercent` Market
+    History record on or before the report date. Otherwise the card remains
+    `N/A`.
+
 ## 2026-10-14 - Label the Days to Cover report fallback by source date
 
 - Area:

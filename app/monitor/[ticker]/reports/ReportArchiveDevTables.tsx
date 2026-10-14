@@ -101,6 +101,11 @@ const apiMapRows = [
     purpose: 'Latest calculated Short Score candidate',
     reportData: 'Used only when its snapshotDate is on or before the selected report date. It is never copied into an older report.',
   },
+  {
+    api: 'GET /market-data/history?ticker={ticker}&category=market-history',
+    purpose: 'Short Interest % fallback',
+    reportData: 'Latest valid shortInterestPercent on or before the selected report date when the dated report KPI is unavailable.',
+  },
 ];
 
 export function ReportArchiveDevTables({
@@ -121,6 +126,7 @@ export function ReportArchiveDevTables({
   const [aiSource, setAiSource] = useState<SourceResult>(emptySource);
   const [scoreHistorySource, setScoreHistorySource] = useState<SourceResult>(emptySource);
   const [scoreCurrentSource, setScoreCurrentSource] = useState<SourceResult>(emptySource);
+  const [marketHistorySource, setMarketHistorySource] = useState<SourceResult>(emptySource);
 
   useEffect(() => {
     if (!sortedReports.some(report => report.reportDate === selectedDate)) {
@@ -138,6 +144,7 @@ export function ReportArchiveDevTables({
     const aiPath = `/market-data/ai-report?ticker=${encodedTicker}&date=${encodedDate}`;
     const scoreHistoryPath = `/market-data/history?ticker=${encodedTicker}&category=rule-engine-short-score`;
     const scoreCurrentPath = `/market-data/current?ticker=${encodedTicker}&category=rule-engine-short-score`;
+    const marketHistoryPath = `/market-data/history?ticker=${encodedTicker}&category=market-history`;
 
     // A dated report may be regenerated without changing its URL. The
     // diagnostics must inspect the latest archived payload when the operator
@@ -149,6 +156,7 @@ export function ReportArchiveDevTables({
     setAiSource({ data: null, error: '', loading: true });
     setScoreHistorySource({ data: null, error: '', loading: true });
     setScoreCurrentSource({ data: null, error: '', loading: true });
+    setMarketHistorySource({ data: null, error: '', loading: true });
 
     void Promise.all([
       readSource(indexPath),
@@ -156,13 +164,15 @@ export function ReportArchiveDevTables({
       readSource(aiPath),
       readSource(scoreHistoryPath),
       readSource(scoreCurrentPath),
-    ]).then(([index, report, ai, scoreHistory, scoreCurrent]) => {
+      readSource(marketHistoryPath),
+    ]).then(([index, report, ai, scoreHistory, scoreCurrent, marketHistory]) => {
       if (!active) return;
       setIndexSource(index);
       setReportSource(report);
       setAiSource(ai);
       setScoreHistorySource(scoreHistory);
       setScoreCurrentSource(scoreCurrent);
+      setMarketHistorySource(marketHistory);
     });
 
     return () => {
@@ -239,6 +249,14 @@ export function ReportArchiveDevTables({
       recordCount: sourceCount(scoreCurrentSource),
       status: sourceStatus(scoreCurrentSource),
     },
+    {
+      id: 'market-history',
+      title: 'Market History',
+      file: `GET /market-data/history?ticker=${encodedTicker}&category=market-history`,
+      sourcePlatform: 'API Gateway · Short Interest fallback source',
+      recordCount: sourceCount(marketHistorySource),
+      status: sourceStatus(marketHistorySource),
+    },
   ];
 
   return (
@@ -286,6 +304,7 @@ export function ReportArchiveDevTables({
         <ImportDataTable columns={['field', 'value']} rows={flattenedRows(aiSource.data)} pageSize={25} expandableColumns={['value']} />
         <ImportDataTable columns={['field', 'value']} rows={flattenedRows(scoreHistorySource.data)} pageSize={25} expandableColumns={['value']} />
         <ImportDataTable columns={['field', 'value']} rows={flattenedRows(scoreCurrentSource.data)} pageSize={25} expandableColumns={['value']} />
+        <ImportDataTable columns={['field', 'value']} rows={flattenedRows(marketHistorySource.data)} pageSize={25} expandableColumns={['value']} />
       </ImportDataTabs>
     </section>
   );
