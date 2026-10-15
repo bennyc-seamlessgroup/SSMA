@@ -4,6 +4,53 @@ This file is the persistent implementation memory for changes made by Codex.
 Read it before modifying existing portal behavior, and update it after every
 completed change.
 
+## 2026-10-15 - Preserve consolidation readiness after social import completion
+
+- Area:
+  - Operations Portal -> Social Data Upload -> background import progress and
+    Run consolidation.
+- API/data:
+  - Existing social import flow remains unchanged:
+    `POST /social-data?ticker={ticker}` followed by
+    `GET /social-data/progress?jobId={jobId}`.
+  - The post-completion refresh still uses
+    `GET /social-data/progress?ticker={ticker}` and the five platform-scoped
+    `GET /social-data` requests.
+  - Consolidation remains an explicit operator action through
+    `POST /manual-input/consolidate?ticker={ticker}`.
+- Reported problem and root cause:
+  - A Reddit import visibly reached `COMPLETED · 1 / 1`, but clicking Run
+    consolidation reported that the latest CSV had not completed.
+  - When the completed job was removed from the active-job list, the polling
+    effect was cleaned up while its platform refresh was still awaiting API
+    responses. The cancellation guard then skipped the final
+    `consolidationReady=true` update, leaving a stale false readiness value.
+- Intended behavior and invariants:
+  - Mark a successful batch ready for consolidation as soon as every tracked
+    job reports `COMPLETED`, before refreshing platform previews.
+  - Refresh the platform records and active-job response without clearing the
+    successful completion message or readiness state.
+  - Keep consolidation blocked for selected-but-not-uploaded files, active
+    jobs, and any failed job.
+  - Preserve background polling, platform replacement semantics, explicit
+    manual consolidation, and the refresh default that permits consolidation
+    when the backend reports no active jobs.
+- Files changed:
+  - `app/operations/narrative-social/NarrativeSocialUploadClient.tsx`
+  - `docs/CODEX_CHANGE_LOG.md`
+- Verification:
+  - TypeScript type-check passed.
+  - A mocked browser regression reproduced a processing Reddit job, advanced
+    it to `COMPLETED · 1 / 1`, confirmed Run consolidation stayed enabled after
+    the active-job refresh returned an empty list, and confirmed exactly one
+    consolidation request was sent.
+  - Production build and whitespace validation passed.
+- Remaining backend dependency / limitation:
+  - The ticker-scoped progress endpoint returns active jobs only. The frontend
+    therefore relies on the job-specific completion response during the live
+    session and cannot reconstruct an older completed or failed job after a
+    full page reload.
+
 ## 2026-10-14 - Fall back report Short Interest to the previous available date
 
 - Area:

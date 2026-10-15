@@ -32,6 +32,7 @@ type SocialMentionFile = {
 
 type UploadState = Record<PlatformKey, SocialMentionFile>;
 type UploadResponseState = Partial<Record<PlatformKey, SocialUploadResponse>>;
+type LoadOptions = { preserveCompletionState?: boolean };
 
 const CONSOLIDATION_VERIFICATION_TIMEOUT_MS = 5 * 60 * 1000;
 const CONSOLIDATION_POLL_INTERVAL_MS = 10 * 1000;
@@ -164,9 +165,9 @@ export function NarrativeSocialUploadClient() {
     stocktwits: null,
   });
 
-  async function load(ticker = selectedTicker) {
+  async function load(ticker = selectedTicker, options: LoadOptions = {}) {
     const normalizedTicker = ticker.trim().toUpperCase() || 'CURR';
-    setStatus('loading');
+    if (!options.preserveCompletionState) setStatus('loading');
     setDevelopmentTicker(normalizedTicker);
     setDevelopmentData(undefined);
     try {
@@ -206,16 +207,22 @@ export function NarrativeSocialUploadClient() {
         const progress = await getSocialImportProgress({ ticker: normalizedTicker });
         setProgressPayload(progress.raw);
         setJobs(Object.fromEntries(progress.jobs.map(job => [job.jobId, job])));
-        setStatus(progress.jobs.length ? 'processing' : 'idle');
-        setMessage(progress.jobs.length ? `${progress.jobs.length} social import job${progress.jobs.length === 1 ? '' : 's'} in progress.` : '');
+        if (!options.preserveCompletionState) {
+          setStatus(progress.jobs.length ? 'processing' : 'idle');
+          setMessage(progress.jobs.length ? `${progress.jobs.length} social import job${progress.jobs.length === 1 ? '' : 's'} in progress.` : '');
+        }
       } catch {
         setJobs({});
-        setStatus('idle');
-        setMessage('');
+        if (!options.preserveCompletionState) {
+          setStatus('idle');
+          setMessage('');
+        }
       }
     } catch (error) {
-      setStatus('error');
-      setMessage(error instanceof Error ? error.message : 'Unable to load current social data.');
+      if (!options.preserveCompletionState) {
+        setStatus('error');
+        setMessage(error instanceof Error ? error.message : 'Unable to load current social data.');
+      }
     }
   }
 
@@ -256,12 +263,23 @@ export function NarrativeSocialUploadClient() {
             setMessage(failures.map(job => `${job.platform || job.filename}: ${job.error || 'Import failed.'}`).join(' '));
           } else {
             const uploadedCount = completedBatch.reduce((sum, job) => sum + job.uploadedCount, 0);
-            await load(selectedTicker);
+            const completedMessage = `Processed ${uploadedCount.toLocaleString('en-US')} record${uploadedCount === 1 ? '' : 's'} across ${completedBatch.length} platform${completedBatch.length === 1 ? '' : 's'}. Run consolidation to publish the updated social data.`;
+
+            // Mark the completed batch ready before refreshing the platform
+            // previews. Clearing the last active job restarts this polling
+            // effect, so waiting until after load() can leave the old false
+            // readiness value in place even though the API returned COMPLETED.
+            setConsolidationReady(true);
+            setConsolidationFeedback(`Social import complete. Consolidation is ready for ${selectedTicker}.`);
+            setStatus('done');
+            setMessage(completedMessage);
+
+            await load(selectedTicker, { preserveCompletionState: true });
             if (!cancelled) {
               setConsolidationReady(true);
               setConsolidationFeedback(`Social import complete. Consolidation is ready for ${selectedTicker}.`);
               setStatus('done');
-              setMessage(`Processed ${uploadedCount.toLocaleString('en-US')} records across ${completedBatch.length} platform${completedBatch.length === 1 ? '' : 's'}. Run consolidation to publish the updated social data.`);
+              setMessage(completedMessage);
             }
           }
           finishingJobs.current = false;
