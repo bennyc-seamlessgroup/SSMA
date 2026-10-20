@@ -4,6 +4,47 @@ This file is the persistent implementation memory for changes made by Codex.
 Read it before modifying existing portal behavior, and update it after every
 completed change.
 
+## 2026-10-20 - Stop Notification Routing reads from rewriting hotkey audit fields
+
+- Area:
+  - Operations Portal -> Notification Routing.
+- API/data:
+  - `GET /hotkeys?ticker={ticker}` remains the only hotkey request made when
+    the page opens or the active ticker changes.
+  - `POST /hotkeys` is now called only by the explicit Save hotkey form.
+  - `DELETE /hotkeys/{ticker}/{kwatchHotkey}` remains an explicit operator
+    action.
+- Reported problem and root cause:
+  - Opening Notification Routing changed existing records to the logged-in
+    operator's email and the page-view time, so GET subsequently appeared to
+    return incorrect creation audit data.
+  - The frontend attempted to persist inferred platform values for every
+    legacy mapping missing `platform` during page initialization. Each
+    automatic `POST /hotkeys` used the backend create-or-update path, which
+    regenerated `createUser` and `createDatetime`.
+- Intended behavior and invariants:
+  - Loading, refreshing, or switching ticker on Notification Routing is
+    read-only and must never issue a hotkey mutation.
+  - Continue inferring a legacy mapping's platform from its hotkey text for
+    display only; do not backfill it automatically.
+  - New mappings still save the operator-selected platform through the
+    existing explicit Save hotkey action.
+  - Preserve explicit delete behavior, operator permissions, raw Development
+    Data display, ticker filtering, and existing hotkey sorting.
+- Files changed:
+  - `app/operations/hotkeys/HotkeyOperationsClient.tsx`
+  - `docs/CODEX_CHANGE_LOG.md`
+- Verification:
+  - TypeScript type-check passed.
+  - Production build and whitespace validation passed.
+  - Source regression check confirmed that the only remaining
+    `POST /hotkeys` call is inside the explicit form-submit handler.
+- Remaining backend dependency / limitation:
+  - This prevents future audit-field corruption but cannot reconstruct the
+    original creator or creation time for records already overwritten. Those
+    values require recovery from a backend backup/audit source or deliberate
+    recreation of the affected mappings.
+
 ## 2026-10-20 - Add raw vendor data cloning to Company Management
 
 - Area:

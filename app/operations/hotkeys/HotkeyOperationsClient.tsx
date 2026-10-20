@@ -39,10 +39,6 @@ function normalizeConfiguredPlatform(value: unknown): HotkeyPlatform | null {
   return null;
 }
 
-function hasConfiguredPlatform(value: unknown) {
-  return normalizeConfiguredPlatform(value) !== null;
-}
-
 function inferPlatformFromHotkey(value: string): HotkeyPlatform | null {
   const normalized = value.toLowerCase();
   if (normalized.includes('youtube')) return null;
@@ -119,28 +115,6 @@ export function HotkeyOperationsClient({ ticker }: { ticker: string }) {
     }
   }
 
-  async function assignInferredPlatforms(nextMappings: HotkeyMapping[]) {
-    const updates = nextMappings
-      .map(mapping => ({ mapping, inferredPlatform: platformForDisplay(mapping) }))
-      .filter((item): item is { mapping: HotkeyMapping; inferredPlatform: HotkeyPlatform } => (
-        Boolean(item.inferredPlatform)
-        && !hasConfiguredPlatform(item.mapping.platform)
-      ));
-
-    if (!updates.length) return;
-
-    await Promise.all(updates.map(({ mapping, inferredPlatform }) => (
-      jsonHotkeysFetch('/hotkeys', {
-        method: 'POST',
-        body: JSON.stringify({
-          ticker: mapping.ticker || normalizedTicker,
-          kwatchHotkey: mapping.kwatchHotkey,
-          platform: inferredPlatform,
-        }),
-      })
-    )));
-  }
-
   useEffect(() => {
     let cancelled = false;
 
@@ -155,13 +129,6 @@ export function HotkeyOperationsClient({ ticker }: { ticker: string }) {
         setDevelopmentPayload(response);
         setMappings(nextMappings);
         setState('idle');
-        if (String(profile.role ?? '').trim().toUpperCase() === 'OPERATOR') {
-          assignInferredPlatforms(nextMappings)
-            .then(() => {
-              if (!cancelled) return loadMappings(true);
-            })
-            .catch(() => undefined);
-        }
       })
       .catch(error => {
         if (cancelled) return;
