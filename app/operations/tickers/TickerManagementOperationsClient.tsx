@@ -41,6 +41,7 @@ type TickerListEnvelope = {
 };
 
 const tickerPattern = /^[A-Z0-9.-]+$/;
+const cloneTickerPattern = /^[A-Z0-9._-]+$/;
 const allVendors: Vendor[] = ['chartexchange', 'massive', 'fintel'];
 
 function localDate(date = new Date()) {
@@ -227,6 +228,34 @@ function historicalFeedback(
   return fallbackMessage;
 }
 
+function cloneFeedback(
+  sourceTicker: string,
+  targetTicker: string,
+  requestState: RequestState,
+  pipelineStatus: PipelineStatus,
+  fallbackMessage: string,
+  statusError: string,
+) {
+  if (requestState === 'error') return fallbackMessage;
+  if (pipelineStatus === 'error') {
+    const prefix = requestState === 'success'
+      ? `The clone request for ${sourceTicker} to ${targetTicker} was accepted, but its current status could not be checked.`
+      : `Clone status could not be checked for ${targetTicker}.`;
+    return `${prefix}${statusError ? ` ${statusError}` : ''} The page will retry automatically.`;
+  }
+  if (requestState !== 'success') return fallbackMessage;
+  if (pipelineStatus === 'in_progress') {
+    if (statusError) {
+      return `Cloning ${sourceTicker} to ${targetTicker} is still being checked. ${statusError} Retrying automatically.`;
+    }
+    return `Cloning ${sourceTicker} to ${targetTicker} is running. Status updates automatically.`;
+  }
+  if (pipelineStatus === 'available') {
+    return `No active clone job remains for ${targetTicker}. This lock status does not verify copied-file completeness; run consolidation separately when the cloned vendor data is ready.`;
+  }
+  return fallbackMessage;
+}
+
 export function TickerManagementOperationsClient() {
   const [authorized, setAuthorized] = useState<boolean | null>(null);
   const [records, setRecords] = useState<TickerRecord[]>([]);
@@ -254,6 +283,13 @@ export function TickerManagementOperationsClient() {
   const [message, setMessage] = useState('');
   const [historicalMessage, setHistoricalMessage] = useState('');
   const [consolidationMessage, setConsolidationMessage] = useState('');
+  const [clonePayload, setClonePayload] = useState<unknown>();
+  const [cloneStatusPayload, setCloneStatusPayload] = useState<unknown>();
+  const [cloneState, setCloneState] = useState<RequestState>('idle');
+  const [cloneStatus, setCloneStatus] = useState<PipelineStatus>('idle');
+  const [cloneLockAgeSeconds, setCloneLockAgeSeconds] = useState<number | null>(null);
+  const [cloneAcceptedTarget, setCloneAcceptedTarget] = useState('');
+  const [cloneMessage, setCloneMessage] = useState('');
 
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
@@ -281,6 +317,11 @@ export function TickerManagementOperationsClient() {
   const [toDate, setToDate] = useState('');
   const [today, setToday] = useState('');
   const [vendors, setVendors] = useState<Vendor[]>(allVendors);
+  const [cloneSourceTicker, setCloneSourceTicker] = useState('');
+  const [cloneTargetTicker, setCloneTargetTicker] = useState('');
+  const [cloneFromDate, setCloneFromDate] = useState('');
+  const [cloneToDate, setCloneToDate] = useState('');
+  const [cloneVendors, setCloneVendors] = useState<Vendor[]>(allVendors);
 
   const historicalDays = dateRangeDays(fromDate, toDate);
   const allCompanyHistoryReady = companyHistoryState === 'idle'
@@ -400,6 +441,32 @@ export function TickerManagementOperationsClient() {
       setConsolidationStatusPayload({ ticker, error: reason });
       setConsolidationStatus('error');
       setConsolidationLockAgeSeconds(null);
+      return null;
+    }
+  }, []);
+
+  const loadCloneStatus = useCallback(async (tickerInput: string, silent = false) => {
+    const targetTicker = tickerInput.trim().toUpperCase();
+    if (!cloneTickerPattern.test(targetTicker)) {
+      setCloneStatus('idle');
+      setCloneLockAgeSeconds(null);
+      setCloneStatusPayload(undefined);
+      return null;
+    }
+    if (!silent) setCloneStatus('loading');
+    const endpoint = `/clone-ticker-data/status?target_ticker=${encodeURIComponent(targetTicker)}`;
+    try {
+      const payload = await authenticatedFetch(endpoint, { cache: 'no-store' });
+      const normalized = normalizePipelineStatus(payload, 'Ticker data clone');
+      setCloneStatusPayload(payload);
+      setCloneStatus(normalized.status);
+      setCloneLockAgeSeconds(normalized.lockAgeSeconds);
+      return normalized;
+    } catch (error) {
+      const reason = error instanceof Error ? error.message : 'Unable to load clone status.';
+      setCloneStatusPayload({ target_ticker: targetTicker, error: reason });
+      setCloneStatus('error');
+      setCloneLockAgeSeconds(null);
       return null;
     }
   }, []);
@@ -535,6 +602,34 @@ export function TickerManagementOperationsClient() {
     }, 15_000);
     return () => window.clearInterval(interval);
   }, [authorized, consolidationStatus, historicalTicker, loadConsolidationStatus]);
+
+  useEffect(() => {
+    if (authorized !== true) return;
+    const targetTicker = cloneTargetTicker.trim().toUpperCase();
+    setCloneAcceptedTarget(current => current === targetTicker ? current : '');
+    setCloneState('idle');
+    setCloneMessage('');
+    if (!cloneTickerPattern.test(targetTicker)) {
+      setCloneStatus('idle');
+      setCloneLockAgeSeconds(null);
+      setCloneStatusPayload(undefined);
+      return;
+    }
+    const timer = window.setTimeout(() => {
+      void loadCloneStatus(targetTicker);
+    }, 250);
+    return () => window.clearTimeout(timer);
+  }, [authorized, cloneTargetTicker, loadCloneStatus]);
+
+  useEffect(() => {
+    if (authorized !== true || (cloneStatus !== 'in_progress' && cloneStatus !== 'error')) return;
+    const targetTicker = cloneTargetTicker.trim().toUpperCase();
+    if (!cloneTickerPattern.test(targetTicker)) return;
+    const interval = window.setInterval(() => {
+      if (document.visibilityState === 'visible') void loadCloneStatus(targetTicker, true);
+    }, 15_000);
+    return () => window.clearInterval(interval);
+  }, [authorized, cloneStatus, cloneTargetTicker, loadCloneStatus]);
 
   async function applyFilters(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -687,6 +782,76 @@ export function TickerManagementOperationsClient() {
     setVendors(current => current.includes(vendor)
       ? current.filter(item => item !== vendor)
       : [...current, vendor]);
+  }
+
+  function toggleCloneVendor(vendor: Vendor) {
+    setCloneVendors(current => current.includes(vendor)
+      ? current.filter(item => item !== vendor)
+      : [...current, vendor]);
+  }
+
+  async function runCloneTickerData(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const sourceTicker = cloneSourceTicker.trim().toUpperCase();
+    const targetTicker = cloneTargetTicker.trim().toUpperCase();
+    if (!cloneTickerPattern.test(sourceTicker) || !cloneTickerPattern.test(targetTicker)) {
+      setCloneState('error');
+      setCloneMessage('Enter valid source and target tickers using only letters, numbers, dots, underscores, or hyphens.');
+      return;
+    }
+    if (sourceTicker === targetTicker) {
+      setCloneState('error');
+      setCloneMessage('Source and target tickers must be different.');
+      return;
+    }
+    if (cloneFromDate && cloneToDate && cloneFromDate > cloneToDate) {
+      setCloneState('error');
+      setCloneMessage('Clone from date must be on or before the clone to date.');
+      return;
+    }
+    if (!cloneVendors.length) {
+      setCloneState('error');
+      setCloneMessage('Select at least one data vendor to clone.');
+      return;
+    }
+
+    const dateScope = cloneFromDate || cloneToDate
+      ? `${cloneFromDate || 'the earliest available date'} to ${cloneToDate || 'the latest available date'}`
+      : 'all available dates';
+    const confirmed = window.confirm(
+      `Clone ${cloneVendors.join(', ')} raw data from ${sourceTicker} to ${targetTicker} for ${dateScope}? Existing target files in this scope may be replaced.`,
+    );
+    if (!confirmed) return;
+
+    const request = {
+      source_ticker: sourceTicker,
+      target_ticker: targetTicker,
+      ...(cloneFromDate ? { from_date: cloneFromDate } : {}),
+      ...(cloneToDate ? { to_date: cloneToDate } : {}),
+      vendors: cloneVendors,
+    };
+    setCloneState('saving');
+    setCloneMessage(`Submitting clone request for ${sourceTicker} to ${targetTicker}...`);
+    try {
+      const response = await authenticatedFetch('/clone-ticker-data', {
+        method: 'POST',
+        body: JSON.stringify(request),
+      });
+      setClonePayload({ request, response, state: 'accepted; status tracked by clone status API' });
+      setCloneState('success');
+      setCloneAcceptedTarget(targetTicker);
+      setCloneStatusPayload(undefined);
+      setCloneStatus('in_progress');
+      setCloneLockAgeSeconds(0);
+      setCloneMessage(`Clone request was accepted for ${sourceTicker} to ${targetTicker}. Processing continues asynchronously.`);
+      window.setTimeout(() => void loadCloneStatus(targetTicker, true), 1_000);
+    } catch (error) {
+      const reason = error instanceof Error ? error.message : 'Unable to start ticker data clone.';
+      setClonePayload({ request, error: reason, state: 'error' });
+      setCloneState('error');
+      setCloneMessage(reason);
+      void loadCloneStatus(targetTicker, true);
+    }
   }
 
   async function runHistoricalInit(event: FormEvent<HTMLFormElement>) {
@@ -852,6 +1017,19 @@ export function TickerManagementOperationsClient() {
       recordCount: consolidationStatusPayload ? 1 : 0,
       payload: consolidationStatusPayload ?? { state: 'not requested' },
     },
+    {
+      endpoint: 'POST /clone-ticker-data',
+      source: 'Ticker Data Clone API',
+      state: cloneState,
+      payload: clonePayload ?? { state: 'not requested' },
+    },
+    {
+      endpoint: `GET /clone-ticker-data/status?target_ticker=${cloneTargetTicker.trim().toUpperCase() || '{target_ticker}'}`,
+      source: 'Ticker Data Clone Status API',
+      state: cloneStatus,
+      recordCount: cloneStatusPayload ? 1 : 0,
+      payload: cloneStatusPayload ?? { state: 'not requested' },
+    },
   ];
 
   const nonReadyCompanyHistoryStatuses = companyHistoryStatuses.filter(item => item.status !== 'available').sort((a, b) => (
@@ -870,6 +1048,12 @@ export function TickerManagementOperationsClient() {
       : runningCompanyCount || unavailableCompanyCount
         ? `History · ${runningCompanyCount + unavailableCompanyCount} not ready`
         : `History · ${readyCompanyCount} ready`;
+  const normalizedCloneSource = cloneSourceTicker.trim().toUpperCase();
+  const normalizedCloneTarget = cloneTargetTicker.trim().toUpperCase();
+  const cloneDateSummary = cloneFromDate || cloneToDate
+    ? `${cloneFromDate || 'Earliest'} → ${cloneToDate || 'Latest'}`
+    : 'All dates';
+  const cloneRequestRunning = cloneState === 'saving' || cloneStatus === 'loading' || cloneStatus === 'in_progress';
 
   if (authorized === false) {
     return (
@@ -996,6 +1180,75 @@ export function TickerManagementOperationsClient() {
         </form>
       </section>
 
+      <form className="ops-panel ops-ticker-clone-panel" onSubmit={runCloneTickerData}>
+        <div className="ops-panel-head">
+          <div>
+            <span className="ops-eyebrow">Vendor Data</span>
+            <h2>Clone Ticker Data</h2>
+            <p>Copy selected ChartExchange, Massive, and Fintel raw data from a source ticker into a target ticker.</p>
+          </div>
+          <span className={`ops-status ${cloneStatus === 'available' ? 'good' : cloneStatus === 'error' && cloneState !== 'idle' ? 'bad' : ''}`} aria-live="polite">
+            {pipelineStatusText('Clone', cloneStatus, cloneLockAgeSeconds)}
+          </span>
+        </div>
+        <div className="ops-ticker-clone-fields">
+          <label>
+            <span>Source ticker</span>
+            <input value={cloneSourceTicker} onChange={event => setCloneSourceTicker(event.target.value.toUpperCase())} placeholder="Source ticker" autoComplete="off" />
+          </label>
+          <label>
+            <span>Target ticker</span>
+            <input value={cloneTargetTicker} onChange={event => setCloneTargetTicker(event.target.value.toUpperCase())} placeholder="Target ticker" autoComplete="off" />
+          </label>
+          <label>
+            <span>From date (optional)</span>
+            <input type="date" value={cloneFromDate} onChange={event => setCloneFromDate(event.target.value)} />
+          </label>
+          <label>
+            <span>To date (optional)</span>
+            <input type="date" value={cloneToDate} onChange={event => setCloneToDate(event.target.value)} />
+          </label>
+        </div>
+        <fieldset className="ops-ticker-vendors"><legend>Data vendors to clone</legend>{allVendors.map(vendor => <label key={vendor}><input type="checkbox" checked={cloneVendors.includes(vendor)} onChange={() => toggleCloneVendor(vendor)} /><span>{vendor}</span></label>)}</fieldset>
+        <div className="ops-ticker-history-summary"><span>{normalizedCloneSource || 'Source required'}</span><span>{normalizedCloneTarget || 'Target required'}</span><span>{cloneDateSummary}</span><span>{cloneVendors.length} vendors</span></div>
+        <div className="ops-ticker-clone-actions">
+          <button
+            className="ops-primary-button"
+            type="submit"
+            disabled={cloneRequestRunning || (cloneAcceptedTarget === normalizedCloneTarget && cloneStatus === 'error')}
+          >
+            {cloneState === 'saving'
+              ? 'Submitting...'
+              : cloneStatus === 'in_progress'
+                ? 'Clone Running'
+                : cloneAcceptedTarget === normalizedCloneTarget && cloneStatus === 'error'
+                  ? 'Status Check Unavailable'
+                  : 'Start Clone'}
+          </button>
+          <button
+            className="ops-secondary-button"
+            type="button"
+            disabled={!cloneTickerPattern.test(normalizedCloneTarget) || cloneStatus === 'loading'}
+            onClick={() => void loadCloneStatus(normalizedCloneTarget)}
+          >
+            {cloneStatus === 'loading' ? 'Checking...' : 'Refresh Clone Status'}
+          </button>
+        </div>
+        <p className="ops-ticker-clone-note">This copies raw vendor files only. It does not create or update the managed company record, run consolidation, or verify copied-file completeness.</p>
+        {cloneMessage && (
+          <p className={`ops-form-message ${cloneState === 'error' || cloneStatus === 'error' || statusPayloadError(cloneStatusPayload) ? 'bad' : 'good'}`} role="status" aria-live="polite">
+            {cloneFeedback(
+              normalizedCloneSource,
+              normalizedCloneTarget,
+              cloneState,
+              cloneStatus,
+              cloneMessage,
+              statusPayloadError(cloneStatusPayload),
+            )}
+          </p>
+        )}
+      </form>
+
       {message && <p className={`ops-form-message ops-ticker-page-message ${actionState === 'error' || listState === 'error' || detailState === 'error' ? 'bad' : 'good'}`} role="status">{message}</p>}
 
       <section className="ops-panel ops-ticker-list-panel">
@@ -1047,7 +1300,7 @@ export function TickerManagementOperationsClient() {
               <label><span>Company name</span><input required value={editCompanyName} onChange={event => setEditCompanyName(event.target.value)} /></label>
               <label><span>Status</span><select value={editStatus} onChange={event => setEditStatus(event.target.value as 'ACTIVE' | 'INACTIVE')}><option value="ACTIVE">Active</option><option value="INACTIVE">Inactive</option></select><small>{selectedTicker.status === 'DELETED' ? 'Saving Active or Inactive attempts to restore this soft-deleted ticker.' : 'Use soft delete below to mark the ticker Deleted.'}</small></label>
               <label><span>Effective date</span><input required type="date" value={editEffectiveDate} onChange={event => setEditEffectiveDate(event.target.value)} /></label>
-              <div className="ops-ticker-detail-actions"><button className="ops-primary-button" type="submit" disabled={actionState === 'saving' || detailState === 'loading'} aria-busy={actionState === 'saving'}>{actionState === 'saving' ? 'Saving...' : selectedTicker.status === 'DELETED' ? 'Restore Ticker' : 'Save Changes'}</button><button className="ops-secondary-button" type="button" onClick={() => setHistoricalTicker(selectedTicker.ticker)}>Use for Historical Init</button><button className="ops-danger-button" type="button" onClick={deleteRecord} disabled={actionState === 'saving' || selectedTicker.status === 'DELETED'}>Soft Delete</button></div>
+              <div className="ops-ticker-detail-actions"><button className="ops-primary-button" type="submit" disabled={actionState === 'saving' || detailState === 'loading'} aria-busy={actionState === 'saving'}>{actionState === 'saving' ? 'Saving...' : selectedTicker.status === 'DELETED' ? 'Restore Ticker' : 'Save Changes'}</button><button className="ops-secondary-button" type="button" onClick={() => setHistoricalTicker(selectedTicker.ticker)}>Use for Historical Init</button><button className="ops-secondary-button" type="button" onClick={() => setCloneSourceTicker(selectedTicker.ticker)}>Use as Clone Source</button><button className="ops-secondary-button" type="button" onClick={() => setCloneTargetTicker(selectedTicker.ticker)}>Use as Clone Target</button><button className="ops-danger-button" type="button" onClick={deleteRecord} disabled={actionState === 'saving' || selectedTicker.status === 'DELETED'}>Soft Delete</button></div>
             </form>
             <dl className="ops-ticker-audit">
               <div><dt>Created by</dt><dd>{selectedTicker.createdBy || 'Not available'}</dd></div>
@@ -1059,7 +1312,7 @@ export function TickerManagementOperationsClient() {
         </section>
       )}
 
-      <OperationsDevelopmentData title="Ticker Management API Responses" description="Raw authenticated ticker registry, historical initialization, consolidation requests, and separate pipeline status responses." rows={developmentRows} />
+      <OperationsDevelopmentData title="Ticker Management API Responses" description="Raw authenticated ticker registry, historical initialization, ticker-data clone, consolidation requests, and separate pipeline status responses." rows={developmentRows} />
     </div>
   );
 }

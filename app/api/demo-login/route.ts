@@ -20,6 +20,63 @@ function noStoreJson(payload: Record<string, unknown>, status = 200) {
   });
 }
 
+type CognitoAuthAttempt = {
+  response: Response;
+  payload: Record<string, unknown>;
+  errorType: string;
+};
+
+async function authenticateDemoAccount({
+  clientId,
+  password,
+  region,
+}: {
+  clientId: string;
+  password: string;
+  region: string;
+}): Promise<CognitoAuthAttempt> {
+  const response = await fetch(`https://cognito-idp.${region}.amazonaws.com/`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/x-amz-json-1.1',
+      'X-Amz-Target': 'AWSCognitoIdentityProviderService.InitiateAuth',
+    },
+    body: JSON.stringify({
+      AuthFlow: 'USER_PASSWORD_AUTH',
+      ClientId: clientId,
+      AuthParameters: {
+        USERNAME: publicDemoEmail,
+        PASSWORD: password,
+      },
+    }),
+    cache: 'no-store',
+  });
+  const payload = await response.json().catch(() => ({})) as Record<string, unknown>;
+  return {
+    response,
+    payload,
+    errorType: String(payload.__type ?? '').split('#').at(-1) ?? '',
+  };
+}
+
+function authenticationError(attempt: CognitoAuthAttempt) {
+  const message = attempt.errorType === 'InvalidParameterException'
+    ? 'The Cognito demo client must enable USER_PASSWORD_AUTH.'
+    : attempt.errorType === 'UserNotFoundException'
+      ? 'The native Cognito demo account was not found.'
+      : attempt.errorType === 'UserNotConfirmedException'
+        ? 'The native Cognito demo account is not confirmed.'
+        : attempt.errorType === 'PasswordResetRequiredException'
+          ? 'The native Cognito demo account requires a password reset.'
+          : attempt.errorType === 'NotAuthorizedException'
+            ? 'The demo account password is not valid.'
+            : 'Automatic demo sign in failed.';
+  const status = attempt.response.status >= 400 && attempt.response.status < 600
+    ? attempt.response.status
+    : 502;
+  return { message, status };
+}
+
 export async function POST(request: Request) {
   const requestOrigin = request.headers.get('origin');
   if (requestOrigin && requestOrigin !== new URL(request.url).origin) {
@@ -27,50 +84,40 @@ export async function POST(request: Request) {
   }
 
   const password = process.env.DEMO_ACCOUNT_PASSWORD;
-  const clientId = (process.env.DEMO_COGNITO_CLIENT_ID || process.env.NEXT_PUBLIC_COGNITO_CLIENT_ID || '').trim();
+  const demoClientId = (process.env.DEMO_COGNITO_CLIENT_ID || '').trim();
+  const portalClientId = (process.env.NEXT_PUBLIC_COGNITO_CLIENT_ID || '').trim();
+  const clientIds = [...new Set([demoClientId, portalClientId].filter(Boolean))];
   const region = cognitoRegion();
-  if (!password || !clientId || !region) {
+  if (!password || !clientIds.length || !region) {
     return noStoreJson({ message: 'Automatic demo sign in is not configured.' }, 503);
   }
 
-  let response: Response;
+  let attempt: CognitoAuthAttempt | null = null;
   try {
-    response = await fetch(`https://cognito-idp.${region}.amazonaws.com/`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/x-amz-json-1.1',
-        'X-Amz-Target': 'AWSCognitoIdentityProviderService.InitiateAuth',
-      },
-      body: JSON.stringify({
-        AuthFlow: 'USER_PASSWORD_AUTH',
-        ClientId: clientId,
-        AuthParameters: {
-          USERNAME: publicDemoEmail,
-          PASSWORD: password,
-        },
-      }),
-      cache: 'no-store',
-    });
+    for (const clientId of clientIds) {
+      attempt = await authenticateDemoAccount({ clientId, password, region });
+      if (attempt.response.ok) break;
+
+      // A stale dedicated demo client can belong to an older user pool or can
+      // lack password-auth support. In those two configuration cases, retry
+      // with the portal client used by the known-working manual login flow.
+      const canTryPortalClient = clientId !== portalClientId
+        && Boolean(portalClientId)
+        && ['UserNotFoundException', 'InvalidParameterException'].includes(attempt.errorType);
+      if (!canTryPortalClient) break;
+    }
   } catch {
     return noStoreJson({ message: 'The demo authentication service could not be reached.' }, 502);
   }
 
-  const payload = await response.json().catch(() => ({})) as Record<string, unknown>;
-  if (!response.ok) {
-    const errorType = String(payload.__type ?? '').split('#').at(-1) ?? '';
-    const message = errorType === 'InvalidParameterException'
-      ? 'The Cognito demo client must enable USER_PASSWORD_AUTH.'
-      : errorType === 'UserNotFoundException'
-        ? 'The native Cognito demo account was not found.'
-        : errorType === 'UserNotConfirmedException'
-          ? 'The native Cognito demo account is not confirmed.'
-          : errorType === 'PasswordResetRequiredException'
-            ? 'The native Cognito demo account requires a password reset.'
-            : errorType === 'NotAuthorizedException'
-              ? 'The demo account password is not valid.'
-              : 'Automatic demo sign in failed.';
-    return noStoreJson({ message }, response.status >= 400 && response.status < 600 ? response.status : 502);
+  if (!attempt || !attempt.response.ok) {
+    const error = attempt
+      ? authenticationError(attempt)
+      : { message: 'Automatic demo sign in failed.', status: 502 };
+    return noStoreJson({ message: error.message }, error.status);
   }
+
+  const payload = attempt.payload;
 
   if (payload.ChallengeName) {
     return noStoreJson({ message: 'The demo account requires an unsupported authentication challenge.' }, 409);

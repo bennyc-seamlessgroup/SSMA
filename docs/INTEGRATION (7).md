@@ -33,6 +33,9 @@
   - [POST /tickers/assign](#post-tickersassign)
   - [POST /tickers/historical-init](#post-tickershistorical-init)
   - [GET /tickers/historical-init/status](#get-tickershistorical-initstatus)
+  - [POST /clone-ticker-data](#post-clone-ticker-data)
+  - [GET /clone-ticker-data](#get-clone-ticker-data)
+  - [GET /clone-ticker-data/status](#get-clone-ticker-datastatus)
   - [GET /user-inputs](#get-user-inputs)
   - [PUT /user-inputs/private-holdings](#put-user-inputsprivate-holdings)
   - [PUT /user-inputs/token-chains](#put-user-inputstoken-chains)
@@ -938,6 +941,163 @@ Authorization: <id_token>
 ```json
 {
   "message": "Access Denied: Only operators and admins can access this resource."
+}
+```
+
+---
+
+### POST /clone-ticker-data
+
+Duplicate raw vendor market data from an existing source ticker to a target/testing ticker across the centralized S3 data lake (`data-sync-platform-centralized-v2`). Restricted to users with `OPERATOR` or `ADMIN` roles.
+
+The API validates parameter formatting (enforcing regex `^[A-Za-z0-9._-]+$` and rejecting path traversal), checks for active concurrency locks at `.in_progress_clone/{target_ticker}` (returning HTTP 409 Conflict if active within 15 minutes / 900 seconds), and dispatches an asynchronous `CloneTickerDataRequest` event to EventBridge (`com.datasync.custom`) to trigger the worker Lambda.
+
+```
+POST /clone-ticker-data
+Authorization: <id_token>
+Content-Type: application/json
+```
+
+**Request Payload:**
+```json
+{
+  "source_ticker": "CURR",
+  "target_ticker": "CLONE_TEST",
+  "from_date": "2026-06-01",
+  "to_date": "2026-06-15",
+  "vendors": [
+    "chartexchange",
+    "massive",
+    "fintel"
+  ]
+}
+```
+
+**Request Parameters:**
+
+| Parameter | Type | Required | Default | Description | Supported Aliases |
+|---|---|---|---|---|---|
+| `source_ticker` | `string` | **Yes** | — | Existing source ticker to duplicate data from. | `ticker`, `from_ticker` |
+| `target_ticker` | `string` | **Yes** | — | Destination target ticker to create in S3. | `new_ticker`, `to_ticker` |
+| `from_date` | `string` | No | `null` | Start date filter in `YYYY-MM-DD` format. | — |
+| `to_date` | `string` | No | `null` | End date filter in `YYYY-MM-DD` format (must be `>= from_date`). | — |
+| `vendors` | `array[string]` / `string` | No | `["chartexchange", "massive", "fintel"]` | List or comma-separated string of vendors to clone (`chartexchange`, `massive`, `fintel`). | — |
+
+**Response** `200 OK` (Clone request accepted and dispatched to EventBridge):
+```json
+{
+  "status": "success",
+  "message": "Clone ticker data request dispatched for CURR -> CLONE_TEST",
+  "source_ticker": "CURR",
+  "target_ticker": "CLONE_TEST",
+  "from_date": "2026-06-01",
+  "to_date": "2026-06-15",
+  "vendors": [
+    "chartexchange",
+    "massive",
+    "fintel"
+  ]
+}
+```
+
+**Response** `409 Conflict` (Cloning already in progress for this target ticker):
+```json
+{
+  "error": "Cloning already in progress for target ticker CLONE_TEST"
+}
+```
+
+**Response** `400 Bad Request` (Invalid input or validation error):
+```json
+{
+  "error": "Missing required parameter: source_ticker and target_ticker must be specified"
+}
+```
+
+**Response** `401 Unauthorized` (Missing or invalid Cognito authorization):
+```json
+{
+  "error": "Unauthorized: Missing sub claim"
+}
+```
+
+**Response** `403 Forbidden` (User is not an operator or admin):
+```json
+{
+  "error": "Access Denied: Only operators and admins can access this resource."
+}
+```
+
+---
+
+### GET /clone-ticker-data
+
+Alternative HTTP GET interface to trigger ticker data cloning via URL query parameters. Restricted to users with `OPERATOR` or `ADMIN` roles.
+
+```
+GET /clone-ticker-data?source_ticker=CURR&target_ticker=CLONE_TEST&from_date=2026-06-01&to_date=2026-06-15&vendors=chartexchange,massive
+Authorization: <id_token>
+```
+
+**Query Parameters:**
+Accepts the same parameters and aliases as `POST /clone-ticker-data` (`source_ticker`, `target_ticker`, `from_date`, `to_date`, `vendors`).
+
+**Response** `200 OK`:
+```json
+{
+  "status": "success",
+  "message": "Clone ticker data request dispatched for CURR -> CLONE_TEST",
+  "source_ticker": "CURR",
+  "target_ticker": "CLONE_TEST",
+  "from_date": "2026-06-01",
+  "to_date": "2026-06-15",
+  "vendors": [
+    "chartexchange",
+    "massive"
+  ]
+}
+```
+
+---
+
+### GET /clone-ticker-data/status
+
+Query the clone lock status for a target ticker to check whether cloning is currently in progress. Restricted to users with `OPERATOR` or `ADMIN` roles.
+
+Inspects S3 lock object `.in_progress_clone/{target_ticker}`. If an active lock exists ($\le 900$ seconds), returns status `"IN_PROGRESS"` and `lock_age_seconds`. If no lock exists or the lock age exceeds 900 seconds (stale lock), automatically cleans up the stale lock and returns status `"AVAILABLE"`.
+
+```
+GET /clone-ticker-data/status?target_ticker=CLONE_TEST
+Authorization: <id_token>
+```
+
+**Query Parameters:**
+
+| Parameter | Type | Required | Description | Supported Aliases |
+|---|---|---|---|---|
+| `target_ticker` | `string` | **Yes** | Target ticker symbol to inspect. | `ticker`, `to_ticker` |
+
+**Response** `200 OK` (Cloning in progress):
+```json
+{
+  "target_ticker": "CLONE_TEST",
+  "status": "IN_PROGRESS",
+  "lock_age_seconds": 145.2
+}
+```
+
+**Response** `200 OK` (Cloning available / no active lock):
+```json
+{
+  "target_ticker": "CLONE_TEST",
+  "status": "AVAILABLE"
+}
+```
+
+**Response** `400 Bad Request` (Missing required target_ticker parameter):
+```json
+{
+  "error": "Missing required query parameter: target_ticker"
 }
 ```
 

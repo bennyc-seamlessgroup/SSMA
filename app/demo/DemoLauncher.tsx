@@ -2,9 +2,19 @@
 
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
-import { clearAuthSession, getAuthenticatedProfile, storeTokens, type AuthTokens } from '@/lib/auth-client';
+import {
+  clearAuthSession,
+  getAuthenticatedProfile,
+  getCurrentUser,
+  getStoredTokens,
+  isTokenValid,
+  startLogin,
+  storeTokens,
+  type AuthTokens,
+} from '@/lib/auth-client';
 import {
   endPublicDemoSession,
+  isPublicDemoEmail,
   publicDemoEmail,
   publicDemoTicker,
   requestPublicDemoWelcome,
@@ -12,14 +22,26 @@ import {
 
 export function DemoLauncher() {
   const [error, setError] = useState('');
+  const [message, setMessage] = useState(`Signing in securely as ${publicDemoEmail}...`);
 
   useEffect(() => {
     let cancelled = false;
-    clearAuthSession();
     endPublicDemoSession();
     requestPublicDemoWelcome();
 
     async function openDemo() {
+      const existingTokens = getStoredTokens();
+      const existingUser = getCurrentUser();
+      if (existingTokens?.idToken
+        && isTokenValid(existingTokens.idToken)
+        && isPublicDemoEmail(existingUser?.email)) {
+        window.location.replace(`/monitor/${publicDemoTicker}/dashboard`);
+        return;
+      }
+
+      // Do not carry another signed-in account into the public demo flow.
+      clearAuthSession();
+
       try {
         const response = await fetch('/api/demo-login', {
           method: 'POST',
@@ -44,7 +66,25 @@ export function DemoLauncher() {
         if (!cancelled) window.location.replace(`/monitor/${publicDemoTicker}/dashboard`);
       } catch (cause) {
         clearAuthSession();
-        if (!cancelled) setError(cause instanceof Error ? cause.message : 'Automatic demo sign in failed.');
+        if (cancelled) return;
+
+        // Federated demo identities can sign in successfully through Cognito's
+        // hosted flow even though USER_PASSWORD_AUTH reports UserNotFound.
+        // Fall back to that same working portal login and prefill the email.
+        setMessage(`Opening secure sign in for ${publicDemoEmail}...`);
+        try {
+          await startLogin({
+            redirectTo: `/monitor/${publicDemoTicker}/dashboard`,
+            loginHint: publicDemoEmail,
+            requiredEmail: publicDemoEmail,
+          });
+        } catch (loginCause) {
+          if (!cancelled) {
+            const automaticMessage = cause instanceof Error ? cause.message : 'Automatic demo sign in failed.';
+            const loginMessage = loginCause instanceof Error ? loginCause.message : 'Unable to start secure sign in.';
+            setError(`${automaticMessage} ${loginMessage}`);
+          }
+        }
       }
     }
 
@@ -58,7 +98,7 @@ export function DemoLauncher() {
     <main className="demo-launcher">
       <div className="demo-launcher__mark">CI</div>
       <strong>{error ? 'Unable to open the live demo' : 'Opening the Currenc Intelligence live demo'}</strong>
-      <span>{error || `Signing in securely as ${publicDemoEmail}...`}</span>
+      <span>{error || message}</span>
       {error ? <Link className="button light-primary" href="/">Return home</Link> : null}
     </main>
   );

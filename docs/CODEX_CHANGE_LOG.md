@@ -4,6 +4,126 @@ This file is the persistent implementation memory for changes made by Codex.
 Read it before modifying existing portal behavior, and update it after every
 completed change.
 
+## 2026-10-20 - Add raw vendor data cloning to Company Management
+
+- Area:
+  - Operations Portal -> Company Management -> Clone Ticker Data.
+  - Company detail actions and Company Management Development Data.
+- API/data:
+  - `POST /clone-ticker-data` submits an asynchronous raw-data clone for a
+    source ticker, target ticker, optional date range, and selected
+    ChartExchange, Massive, and Fintel vendors.
+  - `GET /clone-ticker-data/status?target_ticker={ticker}` checks the target's
+    clone lock and reports `IN_PROGRESS` or `AVAILABLE`.
+  - The documented `GET /clone-ticker-data` trigger is retained as a backend
+    compatibility interface but is intentionally not used by the portal;
+    mutations are submitted through the canonical POST endpoint.
+- Reported problem and root cause:
+  - The backend added ticker-data clone APIs, but operators had no portal flow
+    for selecting the clone scope, submitting the request, or following its
+    asynchronous lock status.
+- Intended behavior and invariants:
+  - Let an operations user enter distinct source and target tickers, choose an
+    optional date range, and select at least one supported vendor.
+  - Validate ticker formatting and date order before submitting, and require a
+    confirmation that existing target files in the selected scope may be
+    replaced.
+  - Default to all three supported vendors and omit blank optional dates from
+    the request.
+  - Check status when a valid target is entered, poll while a clone is running
+    or status is temporarily unavailable, and provide a manual status refresh.
+  - Treat `AVAILABLE` only as "no active clone lock"; never present it as proof
+    of copied-file completeness.
+  - Keep ticker registration and consolidation as separate explicit actions.
+    Cloning does not create/update a managed ticker and does not consolidate
+    the copied raw vendor files.
+  - Preserve the existing historical initialization, company readiness,
+    validation, consolidation, ticker registry, and authorization behavior.
+- Files changed:
+  - `app/operations/tickers/TickerManagementOperationsClient.tsx`
+  - `app/globals.css`
+  - `lib/portal-page-translations.ts`
+  - `docs/CODEX_CHANGE_LOG.md`
+- Verification:
+  - TypeScript type-check passed.
+  - Production build and whitespace validation passed.
+  - Source review confirmed the request uses the documented parameter names,
+    supported ticker pattern, vendor values, and status endpoint.
+  - No real clone job was submitted during verification, avoiding changes to
+    production vendor data.
+- Remaining backend dependency / limitation:
+  - The status API exposes only the S3 target lock. It does not return copied
+    file counts, a durable success/failure result, or completeness details.
+    Operators must verify the downstream data and run consolidation separately.
+
+## 2026-10-16 - Recover `/demo` through the working Cognito login flow
+
+- Area:
+  - Public `/demo` launcher and its server-side automatic Cognito login route.
+- API/data:
+  - Existing `POST /api/demo-login` remains the first unauthenticated login
+    attempt and still uses Cognito `USER_PASSWORD_AUTH` without exposing the
+    password to the browser.
+  - The fallback uses the portal's existing Cognito Authorization Code + PKCE
+    flow with `login_hint=demo.curr@gmail.com` and returns to the CURR
+    dashboard.
+- Reported problem and root cause:
+  - The deployed `/demo` page loaded, but `POST /api/demo-login` returned
+    `UserNotFoundException` even though the same email could sign in through
+    the normal portal login.
+  - The configured Cognito pool currently recognizes this identity through the
+    hosted/manual flow but not native `USER_PASSWORD_AUTH`.
+  - The launcher also cleared every existing browser session immediately, so a
+    valid manually authenticated demo session was destroyed before it could be
+    reused.
+- Intended behavior and invariants:
+  - Reuse an unexpired Cognito session when its signed ID-token email is the
+    configured demo email, and open the CURR dashboard without calling the
+    failing automatic-login endpoint again.
+  - Clear a valid session belonging to any other account before starting the
+    public demo flow.
+  - Keep server-side automatic login as the preferred no-password experience.
+    If a dedicated demo client reports that the user is absent or password
+    authentication is unsupported, retry the main portal client used by the
+    working manual login flow.
+  - If automatic authentication still fails, start the standard secure hosted
+    Cognito login with the demo email hint instead of leaving the visitor on
+    `Unable to open the live demo`.
+  - Require the hosted callback profile to match the configured demo email;
+    choosing another account does not open the demo workspace.
+  - Preserve CURR-only access, frontend read-only restrictions, Development
+    Mode denial, and Operations Portal denial.
+- Files changed:
+  - `app/demo/DemoLauncher.tsx`
+  - `app/api/demo-login/route.ts`
+  - `lib/auth-client.ts`
+  - `.env.example`
+  - `docs/DEMO_LOGIN_BACKEND_HANDOFF.md`
+  - `docs/CODEX_CHANGE_LOG.md`
+- Verification:
+  - The deployed page returned HTTP 200 while its automatic-login endpoint
+    reproduced HTTP 400 `UserNotFoundException`, confirming the route failure.
+  - A direct no-secret diagnostic confirmed the configured main client also
+    reports `UserNotFoundException` for native password authentication; no
+    credential or token was printed.
+  - Browser regression verified that an existing valid demo session reaches
+    `/monitor/CURR/dashboard` without another automatic-login request.
+  - Browser regression verified that an automatic-login failure opens the
+    Cognito hosted authorize URL with the demo email hint and the correct PKCE
+    callback.
+  - Callback regression verified that selecting a non-demo account is rejected
+    and its returned tokens are cleared.
+  - Added a backend/IT handoff with the observed Cognito error, same-pool
+    restoration steps, app-client requirements, security boundary, and an
+    end-to-end validation checklist.
+  - TypeScript type-check, production build, and whitespace validation passed.
+- Remaining backend dependency / limitation:
+  - Truly silent automatic login still requires a native demo user in the
+    selected Cognito pool, a current `DEMO_ACCOUNT_PASSWORD`, and an app client
+    with `ALLOW_USER_PASSWORD_AUTH`. When those are unavailable, Cognito's
+    hosted login remains interactive and may still require the visitor to
+    authenticate or select the demo account.
+
 ## 2026-10-15 - Preserve consolidation readiness after social import completion
 
 - Area:

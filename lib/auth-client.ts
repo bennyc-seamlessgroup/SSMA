@@ -41,6 +41,7 @@ const tokenKeys = {
   oauthState: 'oauth_state',
   codeVerifier: 'oauth_code_verifier',
   postLoginRedirect: 'post_login_redirect',
+  expectedLoginEmail: 'expected_login_email',
 };
 
 const cognitoDomain = process.env.NEXT_PUBLIC_COGNITO_DOMAIN ?? '';
@@ -210,6 +211,7 @@ export function clearAuthSession() {
   sessionStorage.removeItem(tokenKeys.oauthState);
   sessionStorage.removeItem(tokenKeys.codeVerifier);
   sessionStorage.removeItem(tokenKeys.postLoginRedirect);
+  sessionStorage.removeItem(tokenKeys.expectedLoginEmail);
   profileRequest = null;
   clearAuthenticatedResponseCache();
 }
@@ -229,6 +231,7 @@ export async function startLogin(options: {
   redirectTo?: string;
   screenHint?: 'signup';
   loginHint?: string;
+  requiredEmail?: string;
 } = {}) {
   assertAuthConfig();
   const redirectUri = getRedirectUri();
@@ -242,6 +245,11 @@ export async function startLogin(options: {
   sessionStorage.setItem(tokenKeys.oauthState, state);
   sessionStorage.setItem(tokenKeys.codeVerifier, codeVerifier);
   sessionStorage.setItem(tokenKeys.postLoginRedirect, redirectTo);
+  if (options.requiredEmail) {
+    sessionStorage.setItem(tokenKeys.expectedLoginEmail, options.requiredEmail.trim().toLowerCase());
+  } else {
+    sessionStorage.removeItem(tokenKeys.expectedLoginEmail);
+  }
 
   const params = new URLSearchParams({
     client_id: clientId,
@@ -303,12 +311,25 @@ export async function handleOAuthCallback() {
   sessionStorage.removeItem(tokenKeys.codeVerifier);
 
   let redirectTo = sessionStorage.getItem(tokenKeys.postLoginRedirect) || '/monitor/CURR/dashboard';
+  const expectedLoginEmail = sessionStorage.getItem(tokenKeys.expectedLoginEmail);
   sessionStorage.removeItem(tokenKeys.postLoginRedirect);
+  sessionStorage.removeItem(tokenKeys.expectedLoginEmail);
   try {
     const { authorizedMonitorRedirect } = await import('@/lib/ticker-access');
     const profile = await getAuthenticatedProfile(true);
+    if (expectedLoginEmail
+      && String(profile.email ?? '').trim().toLowerCase() !== expectedLoginEmail) {
+      clearAuthSession();
+      throw new Error(`Sign in with ${expectedLoginEmail} to open the live demo.`);
+    }
     redirectTo = authorizedMonitorRedirect(redirectTo, profile);
-  } catch {
+  } catch (error) {
+    if (expectedLoginEmail) {
+      clearAuthSession();
+      throw error instanceof Error
+        ? error
+        : new Error('Unable to verify the demo account identity.');
+    }
     // Preserve the requested route if profile access is temporarily unavailable.
   }
   return redirectTo;

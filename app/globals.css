@@ -6866,6 +6866,7 @@ html[data-design-b-theme="dark"] .ops-import-refreshed {
 
 .ops-ticker-create-panel,
 .ops-ticker-history-panel,
+.ops-ticker-clone-panel,
 .ops-ticker-list-panel,
 .ops-ticker-detail-panel {
   min-width: 0;
@@ -7061,6 +7062,7 @@ html[data-design-b-theme="dark"] .ops-import-refreshed {
 
 .ops-ticker-form-grid,
 .ops-ticker-history-fields,
+.ops-ticker-clone-fields,
 .ops-ticker-edit-form {
   display: grid;
   gap: 11px;
@@ -7072,6 +7074,10 @@ html[data-design-b-theme="dark"] .ops-import-refreshed {
 
 .ops-ticker-history-fields {
   grid-template-columns: minmax(130px, .7fr) repeat(2, minmax(145px, 1fr));
+}
+
+.ops-ticker-clone-fields {
+  grid-template-columns: repeat(2, minmax(150px, .7fr)) repeat(2, minmax(165px, 1fr));
 }
 
 .ops-ticker-management-page label {
@@ -7116,6 +7122,7 @@ html[data-design-b-theme="dark"] .ops-import-refreshed {
 
 .ops-ticker-form-actions,
 .ops-ticker-history-actions,
+.ops-ticker-clone-actions,
 .ops-ticker-detail-actions {
   display: flex;
   flex-wrap: wrap;
@@ -7125,6 +7132,18 @@ html[data-design-b-theme="dark"] .ops-import-refreshed {
 
 .ops-ticker-history-actions {
   margin-top: 0;
+}
+
+.ops-ticker-clone-actions {
+  margin-top: 0;
+}
+
+.ops-ticker-clone-note {
+  margin: 10px 0 0;
+  color: #64748b;
+  font-size: 10px;
+  font-weight: 650;
+  line-height: 1.45;
 }
 
 .ops-ticker-vendors {
@@ -7382,6 +7401,7 @@ html[data-design-b-theme='dark'] .ops-company-history-list article strong {
 
 html[data-design-b-theme='dark'] .ops-company-history-overview__head span,
 html[data-design-b-theme='dark'] .ops-company-history-overview__note,
+html[data-design-b-theme='dark'] .ops-ticker-clone-note,
 html[data-design-b-theme='dark'] .ops-company-history-list article span {
   color: var(--ci-muted);
 }
@@ -7414,11 +7434,16 @@ html[data-design-b-theme='dark'] .ops-ticker-row-actions button {
   .ops-ticker-toolbar {
     grid-template-columns: minmax(220px, 1fr) repeat(3, minmax(130px, auto));
   }
+
+  .ops-ticker-clone-fields {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
 
 @media (max-width: 760px) {
   .ops-ticker-form-grid,
   .ops-ticker-history-fields,
+  .ops-ticker-clone-fields,
   .ops-ticker-toolbar,
   .ops-ticker-edit-form {
     grid-template-columns: 1fr;
