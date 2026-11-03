@@ -8,7 +8,7 @@ import { OperationsUserPortalLink } from '@/components/OperationsUserPortalLink'
 import { PortalLanguageMenu } from '@/components/PortalLanguageMenu';
 import { PortalPageTranslator } from '@/components/PortalPageTranslator';
 import { getAuthenticatedProfile, getCurrentUser, signOut } from '@/lib/auth-client';
-import { getOperationsTicker, setOperationsTicker } from '@/lib/operations/ticker-client';
+import { getOperationsTicker, operationsTickerChangedEvent, setOperationsTicker } from '@/lib/operations/ticker-client';
 import { isPublicDemoEmail, isPublicDemoProfile, publicDemoTicker } from '@/lib/public-demo';
 import { OperationsCompanyIndicator } from './OperationsCompanyIndicator';
 
@@ -60,14 +60,17 @@ function OperationsNavIcon({ icon }: { icon: string }) {
 function OperationsNavigation({
   items,
   pathname,
+  ticker,
 }: {
   items: ReadonlyArray<readonly [string, string, string, string]>;
   pathname: string;
+  ticker: string;
 }) {
   return items.map(([label, href, icon]) => {
     const active = pathname === href || pathname.startsWith(`${href}/`);
+    const workspaceHref = `${href}?ticker=${encodeURIComponent(ticker)}`;
     return (
-      <Link href={href as never} key={href} className={active ? 'active' : ''} aria-current={active ? 'page' : undefined}>
+      <Link href={workspaceHref as never} key={href} className={active ? 'active' : ''} aria-current={active ? 'page' : undefined}>
         <span className="ops-nav__icon"><OperationsNavIcon icon={icon} /></span>
         <span>{label}</span>
       </Link>
@@ -82,6 +85,7 @@ export function OperationsShell({ children }: { children: React.ReactNode }) {
   const [theme, setTheme] = useState<'light' | 'dark'>('light');
   const [tickerDraft, setTickerDraft] = useState('CURR');
   const [activeTicker, setActiveTicker] = useState('CURR');
+  const activeTickerRef = useRef('CURR');
   const [isDemoAccount, setIsDemoAccount] = useState(false);
   const accountRef = useRef<HTMLDivElement | null>(null);
 
@@ -90,9 +94,24 @@ export function OperationsShell({ children }: { children: React.ReactNode }) {
     const storedTheme = window.localStorage.getItem('monitor-design-b-theme') === 'dark' ? 'dark' : 'light';
     document.documentElement.dataset.designBTheme = storedTheme;
     setTheme(storedTheme);
-    const storedTicker = getOperationsTicker();
+    const storedTicker = setOperationsTicker(getOperationsTicker());
     setTickerDraft(storedTicker);
     setActiveTicker(storedTicker);
+    activeTickerRef.current = storedTicker;
+
+    function syncTicker() {
+      const next = getOperationsTicker();
+      activeTickerRef.current = next;
+      setTickerDraft(next);
+      setActiveTicker(next);
+    }
+
+    function syncHistoryTicker() {
+      if (getOperationsTicker() !== activeTickerRef.current) window.location.reload();
+    }
+
+    window.addEventListener(operationsTickerChangedEvent, syncTicker);
+    window.addEventListener('popstate', syncHistoryTicker);
 
     let cancelled = false;
     const tokenUser = getCurrentUser();
@@ -116,6 +135,8 @@ export function OperationsShell({ children }: { children: React.ReactNode }) {
 
     return () => {
       cancelled = true;
+      window.removeEventListener(operationsTickerChangedEvent, syncTicker);
+      window.removeEventListener('popstate', syncHistoryTicker);
     };
   }, []);
 
@@ -159,6 +180,7 @@ export function OperationsShell({ children }: { children: React.ReactNode }) {
     const next = setOperationsTicker(tickerDraft);
     setTickerDraft(next);
     setActiveTicker(next);
+    activeTickerRef.current = next;
     if (next !== previous) window.location.reload();
   }
 
@@ -189,9 +211,9 @@ export function OperationsShell({ children }: { children: React.ReactNode }) {
         <div className="ops-sidebar__scroll">
           <nav className="ops-nav" aria-label="Operations portal navigation">
             <span className="ops-nav__section">Data Operations</span>
-            <OperationsNavigation items={workflowItems} pathname={pathname} />
+            <OperationsNavigation items={workflowItems} pathname={pathname} ticker={activeTicker} />
             <span className="ops-nav__section ops-nav__section--admin">Administration</span>
-            <OperationsNavigation items={administrationItems} pathname={pathname} />
+            <OperationsNavigation items={administrationItems} pathname={pathname} ticker={activeTicker} />
           </nav>
         </div>
 

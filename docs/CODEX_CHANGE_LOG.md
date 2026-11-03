@@ -9556,3 +9556,49 @@ completed change.
 - Remaining backend dependency / limitation:
   - `AVAILABLE` confirms only that no active history lock exists; the backend
     does not expose a separate historical completeness result.
+
+## 2026-11-03 - Keep operations tickers consistent within each browser tab
+
+- Area: Operations Portal -> navigation, Active Company indicator, and Market
+  Data -> Daily Market Inputs save confirmation.
+- APIs/data:
+  - Existing date-specific `PUT /manual-input/{category}?ticker={ticker}&tradeDate={date}`
+    requests are unchanged.
+  - The workspace ticker remains an explicit query parameter on operations
+    navigation links; no backend API or payload contract changes.
+- Reported problem and root cause:
+  - Operators occasionally saw the Active Company and save API ticker agree,
+    while the confirmation dialog's Active Workspace Ticker named a different
+    company. The workspace helper fell back to a browser-wide `localStorage`
+    selection whenever the current operations URL had no ticker. Another tab
+    could change that selection while the first tab retained its own form and
+    company-card state. Operations navigation links also dropped the ticker
+    query, making the shared fallback reachable.
+  - The shell's Active Company ticker was initialized only once and did not
+    follow ticker changes emitted by an operations page.
+- Intended behavior and invariants:
+  - An explicit URL ticker takes precedence. Otherwise, the current tab's
+    `sessionStorage` ticker takes precedence over the shared remembered ticker,
+    so another tab cannot silently retarget an open workspace.
+  - Operations navigation preserves the active ticker in each destination URL.
+  - The shell's ticker field and Active Company indicator follow ticker-change
+    events. Browser Back/Forward to a different ticker reloads the workspace
+    so its form and indicator cannot stay on the previous company.
+  - Preserve the earlier August 13 save safety rule: the confirmation displays
+    the exact captured requests, sends nothing before confirmation, and blocks
+    the save if the workspace, form, or captured API ticker differs. The
+    date-specific `PUT` method and payloads remain unchanged.
+- Files changed:
+  - `lib/operations/ticker-client.ts`
+  - `app/operations/OperationsShell.tsx`
+  - `docs/CODEX_CHANGE_LOG.md`
+- Verification:
+  - TypeScript type-check passed.
+  - Production build passed, including all statically generated pages.
+  - A focused two-tab storage test verified that changing the ticker in one
+    tab leaves the other tab's ticker intact when its route has no ticker, and
+    that an explicit route ticker still takes precedence.
+  - Whitespace validation passed.
+- Remaining backend dependency / limitation:
+  - None; this was frontend state synchronization. The existing backend
+    authorization and ticker validation remain unchanged.
