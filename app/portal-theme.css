@@ -198,7 +198,10 @@ html[data-design-b-theme='dark'] {
   letter-spacing: 0;
 }
 
-.monitor-portal :is(button, .button, input, select, textarea, .settings-select-control select, .settings-timezone-control select),
+/* Keep neutral button defaults below page-specific filled-button styles while
+   preserving the existing input and select treatment. */
+.monitor-portal :where(button, .button),
+.monitor-portal :is(input, select, textarea, .settings-select-control select, .settings-timezone-control select),
 .ops-shell :is(button, input, select, textarea) {
   border-color: var(--ci-border);
   border-radius: 6px;

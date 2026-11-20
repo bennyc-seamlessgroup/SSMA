@@ -9602,3 +9602,39 @@ completed change.
 - Remaining backend dependency / limitation:
   - None; this was frontend state synchronization. The existing backend
     authorization and ticker validation remain unchanged.
+
+## 2026-11-20 - Preserve white labels on filled portal buttons
+
+- Area: User Portal -> Internal Float guided tour, with shared button styling
+  also used by Dashboard, Report Archive, and Social Sentiment controls.
+- APIs/data:
+  - No API requests, response parsing, or data behavior changed. The Internal
+    Float page continues to use its existing Market Data and Manual Input APIs.
+- Reported problem and root cause:
+  - The guided tour's blue Next button rendered dark text in the light theme.
+    A generic portal-theme control rule used `:is(...)` with a more-specific
+    settings select in the same selector list. Its resulting specificity tied
+    several page-specific filled-button rules, and its later `color` declaration
+    replaced their white text with the neutral control text color.
+  - A local pre-fix CSS check also reproduced dark labels on selected Report
+    Archive filter/pagination and legacy Social Sentiment range-tab styles.
+    Current Dashboard active-period styling already kept its white label, but
+    the shared rule made other filled-button variants vulnerable.
+- Intended behavior and invariants:
+  - Neutral button defaults use low-specificity `:where(...)`, allowing
+    page-specific filled-button text and border colors to win in both themes.
+  - Existing input and select styling keeps its prior specificity and behavior.
+  - Preserve the earlier Report Archive blue-button contrast fix, as well as
+    existing button actions, disabled behavior, and all API calls.
+- Files changed:
+  - `app/portal-theme.css`
+  - `docs/CODEX_CHANGE_LOG.md`
+- Verification:
+  - Local browser-computed styles showed white text on the Internal Float tour
+    Next button and representative filled buttons from Report Archive,
+    Dashboard, and Social Sentiment in light and dark themes. A selected
+    Report Archive filter uses its existing light-blue-on-dark styling in dark
+    mode; neutral button text continues to follow the active theme.
+  - TypeScript type-check, production build, and whitespace validation passed.
+- Remaining backend dependency / limitation:
+  - None; this is a frontend CSS cascade correction.
